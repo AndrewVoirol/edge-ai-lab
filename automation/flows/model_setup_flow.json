@@ -1,0 +1,36 @@
+{
+  "name": "Model Setup & HF Token Configuration",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify the app is launched and ContentView is active.",
+      "expected_elements": ["Models", "Load Model", "Enter your prompt here"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Tap the Settings (gearshape) button in the header.",
+      "target_element": "gearshape"
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify the Settings view sheet is displayed.",
+      "expected_elements": ["Settings", "HuggingFace Token", "Done"]
+    },
+    {
+      "step": 4,
+      "action": "type_text",
+      "description": "Enter the HuggingFace token into the token text field.",
+      "target_element": "HuggingFace Token Field",
+      "value": "$HF_TOKEN"
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Tap 'Done' to close the settings sheet.",
+      "target_element": "Done"
+    }
+  ]
+}

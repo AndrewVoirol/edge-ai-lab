@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: macOS Build & Test
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tuist
+        run: brew install tuist
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('Project.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Generate Xcode Project
+        run: tuist generate
+
+      - name: SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint --strict || true
+
+      - name: Build macOS
+        run: |
+          xcodebuild \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            build \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Test macOS
+        run: |
+          xcodebuild \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -only-testing:GemmaEdgeGallery_macOSTests \
+            test \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            -resultBundlePath TestResults.xcresult
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-macos
+          path: TestResults.xcresult
+
+  build-ios:
+    name: iOS Simulator Build
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tuist
+        run: brew install tuist
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('Project.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Generate Xcode Project
+        run: tuist generate
+
+      - name: Build iOS (Simulator)
+        run: |
+          xcodebuild \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme GemmaEdgeGallery_iOS \
+            -destination 'generic/platform=iOS Simulator' \
+            build \
+            COMPILER_INDEX_STORE_ENABLE=NO

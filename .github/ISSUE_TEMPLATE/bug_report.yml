@@ -1,0 +1,98 @@
+name: Bug Report
+description: Report a bug in Edge AI Lab
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the sections below so we can reproduce and fix the issue.
+
+  - type: dropdown
+    id: model
+    attributes:
+      label: Model
+      description: Which model were you using when the issue occurred?
+      options:
+        - Gemma 4 E2B Standard
+        - Gemma 4 E2B Web
+        - Gemma 4 E4B Standard
+        - Gemma 4 E4B Web
+        - Gemma 4 12B Dense
+        - Custom/Unknown
+    validations:
+      required: false
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      description: Which inference backend was active?
+      options:
+        - GPU (Metal)
+        - CPU (XNNPACK)
+        - Unknown/Auto
+    validations:
+      required: false
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS Version
+      description: The version of macOS you are running.
+      placeholder: "e.g. macOS 26.0 (Tahoe)"
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Your Mac hardware model and memory.
+      placeholder: "e.g. MacBook Pro M4 Max, 36 GB"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a step-by-step description of how to reproduce the issue.
+      placeholder: |
+        1. Open Edge AI Lab
+        2. Select Gemma 4 E2B Standard
+        3. Send the message "..."
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe the expected outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what you observed instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs-screenshots
+    attributes:
+      label: Logs / Screenshots
+      description: |
+        Paste any relevant console logs (`Console.app` → filter by "EdgeAILab") or attach screenshots.
+        Tip: You can drag and drop images directly into this text area.
+      placeholder: Paste logs or attach screenshots here.
+    validations:
+      required: false

@@ -1,0 +1,61 @@
+{
+  "name": "Settings Verification Flow",
+  "description": "Verifies all settings controls work correctly: sampler config, MTP toggle, seed, system message.",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Open the Settings sheet.",
+      "target_element": "gearshape"
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify all settings sections are visible.",
+      "expected_elements": ["Backend", "Experimental Flags", "Sampler Configuration", "System Message"]
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Toggle Multi-Token Prediction on.",
+      "target_element": "Multi-Token Prediction (MTP)"
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Tap Greedy preset to set topK=1.",
+      "target_element": "Greedy (Gallery Match)"
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify greedy preset values are applied.",
+      "expected_elements": ["Top-K: 1"]
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Tap Default Sampling preset to reset.",
+      "target_element": "Default Sampling"
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify default sampling values are applied.",
+      "expected_elements": ["Top-K: 64"]
+    },
+    {
+      "step": 8,
+      "action": "type_text",
+      "description": "Enter a system message.",
+      "target_element": "System Message",
+      "value": "You are a helpful coding assistant."
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Close the settings sheet.",
+      "target_element": "Done"
+    }
+  ]
+}

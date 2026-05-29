@@ -1,0 +1,61 @@
+{
+  "name": "Performance Benchmarks & Metrics Capture",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Select the target benchmarking model (e.g. Gemma 4 E2B).",
+      "target_element": "Gemma 4 E2B"
+    },
+    {
+      "step": 2,
+      "action": "type_text",
+      "description": "Type the warmup prompt.",
+      "target_element": "Enter your prompt here",
+      "value": "Hi"
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Tap 'Generate Response' to run the warmup turn.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 4,
+      "action": "wait",
+      "description": "Wait for warmup generation to complete.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 5,
+      "action": "type_text",
+      "description": "Type the official benchmark prompt.",
+      "target_element": "Enter your prompt here",
+      "value": "Describe the theory of general relativity in simple terms."
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Tap 'Generate Response' for the benchmark run.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait for benchmark generation to complete.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Tap the expand chevron on the benchmark bar.",
+      "target_element": "chevron.up"
+    },
+    {
+      "step": 9,
+      "action": "verify_ui",
+      "description": "Verify and capture the expanded metrics.",
+      "expected_elements": ["TTFT", "Decode", "Prefill", "Memory", "Median", "P95", "Δ Memory"]
+    }
+  ]
+}

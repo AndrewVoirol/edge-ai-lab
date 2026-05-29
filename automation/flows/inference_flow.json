@@ -1,0 +1,36 @@
+{
+  "name": "Chat & Inference Flow",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Select the active model card (e.g. gemma4E2B).",
+      "target_element": "Gemma 4 E2B"
+    },
+    {
+      "step": 2,
+      "action": "type_text",
+      "description": "Type prompt in the input field.",
+      "target_element": "Enter your prompt here",
+      "value": "Write a short haiku about gravity."
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Tap 'Generate Response' to start text generation.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 4,
+      "action": "wait",
+      "description": "Wait until the 'Generating...' status completes and 'Generate Response' is active again.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify that text generation has updated the screen with response text.",
+      "expected_elements": ["TTFT", "Decode"]
+    }
+  ]
+}

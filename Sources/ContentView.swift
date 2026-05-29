@@ -1,0 +1,445 @@
+// Copyright 2026 Andrew Voirol
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import LiteRTLM
+import SwiftUI
+import UniformTypeIdentifiers
+import PhotosUI
+
+// MARK: - Content View
+
+/// The main application view — Edge AI Lab, a premium on-device inference research instrument.
+///
+/// Architecture:
+/// - **macOS**: 3-column `NavigationSplitView` —
+///   Sidebar (models/benchmarks/conversations) → Detail (model lab/dashboard) → Content (chat).
+/// - **iOS**: `TabView` with 3 tabs (Chat, Models, Lab) — adapting the same components
+///   for a mobile-first layout.
+///
+/// Dark Forest / Moss palette. "A cabin with a terminal."
+///
+/// Decomposed into focused child views:
+/// - `SidebarView` — Model list, benchmarks, conversations sidebar
+/// - `DetailColumnView` — Model detail panel / performance dashboard
+/// - `ConversationAreaView` — Chat bubbles and empty state
+/// - `BenchmarkBarView` — Performance metrics bar
+/// - `InputAreaView` — Prompt field, send button, attachments
+/// - `StatusBarView` — macOS-only status bar
+///
+/// Accessibility: Every interactive element has `.accessibilityIdentifier`
+/// for agent discoverability and UI testing.
+struct ContentView: View {
+    @Bindable private var viewModel = ConversationViewModel.shared
+    @State private var showSettings = false
+    @State private var showDashboard = false
+    @State private var showcaseModel: ModelMetadata?
+    @State private var showcaseModelURL: URL?
+
+    // NavigationSplitView state
+    @State private var selectedSection: SidebarSection?
+    @State private var selectedModelId: String?
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
+    // iOS tab selection
+    @State private var selectedTab: Int = 0
+
+    var body: some View {
+        #if os(macOS)
+        macOSLayout
+        #else
+        iOSLayout
+        #endif
+    }
+
+    // MARK: - macOS 3-Column Layout
+
+    #if os(macOS)
+    private var macOSLayout: some View {
+        appliedSharedModifiers(
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            // Left column: Sidebar
+            SidebarView(
+                selectedSection: $selectedSection,
+                selectedModelId: $selectedModelId,
+                showcaseModel: $showcaseModel,
+                showcaseModelURL: $showcaseModelURL
+            )
+        } content: {
+            // Middle column: Detail (model info / dashboard / comparison)
+            DetailColumnView(
+                selectedSection: $selectedSection,
+                selectedModelId: $selectedModelId
+            )
+        } detail: {
+            // Right column: Chat area — the instrument
+            chatColumn
+        }
+        .navigationSplitViewStyle(.balanced)
+        .foregroundStyle(AppColors.textPrimary)
+        .preferredColorScheme(.dark)
+        .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .help("Settings")
+                .accessibilityIdentifier("button_settings")
+
+                Button {
+                    viewModel.refreshDiscoveredModels()
+                    viewModel.downloadManager.refreshStates()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Refresh discovered models")
+                .accessibilityIdentifier("button_refresh")
+
+                Button {
+                    viewModel.isFilePickerPresented = true
+                } label: {
+                    Image(systemName: "plus.square")
+                    Text("Load Model")
+                }
+                .help("Load a custom model from disk")
+                .accessibilityIdentifier("button_loadModel")
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url = url,
+                      url.pathExtension == "litertlm" else { return }
+                Task { @MainActor in
+                    await viewModel.handleModelSelection(url)
+                }
+            }
+            return true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
+            Task { await viewModel.newConversation() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showDashboardRequested)) { _ in
+            selectedSection = .benchmarks
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshModelsRequested)) { _ in
+            viewModel.refreshDiscoveredModels()
+            viewModel.downloadManager.refreshStates()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .loadModelRequested)) { _ in
+            viewModel.isFilePickerPresented = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showSettingsRequested)) { _ in
+            showSettings = true
+        }
+        )
+    }
+    #endif
+
+    // MARK: - iOS Tab Layout
+
+    #if os(iOS)
+    private var iOSLayout: some View {
+        appliedSharedModifiers(
+        TabView(selection: $selectedTab) {
+            // Tab 1: Chat
+            NavigationStack {
+                chatColumn
+                    .navigationTitle("Chat")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showSettings = true
+                            } label: {
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                            .accessibilityIdentifier("button_settings")
+                        }
+                    }
+            }
+            .tabItem {
+                Label("Chat", systemImage: "bubble.left.and.bubble.right")
+            }
+            .tag(0)
+
+            // Tab 2: Models
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ModelStripView(
+                            showcaseModel: $showcaseModel,
+                            showcaseModelURL: $showcaseModelURL
+                        )
+                    }
+                }
+                .background(AppColors.backgroundPrimary)
+                .navigationTitle("Models")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Label("Models", systemImage: "cpu")
+            }
+            .tag(1)
+
+            // Tab 3: Lab (Dashboard)
+            NavigationStack {
+                PerformanceDashboardView()
+                    .navigationTitle("Lab")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Label("Lab", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .tag(2)
+        }
+        .foregroundStyle(AppColors.textPrimary)
+        .preferredColorScheme(.dark)
+        .tint(AppColors.accentCyan)
+        )
+    }
+    #endif
+
+    // MARK: - Chat Column (Shared)
+
+    /// The chat column — used as the right column on macOS and the first tab on iOS.
+    /// Contains the conversation area, benchmark bar, input area, and status bar.
+    private var chatColumn: some View {
+        ZStack {
+            VibrantBackgroundView()
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+
+            VStack(spacing: 0) {
+                // Conversation area — chat bubbles
+                ConversationAreaView()
+                    .frame(maxHeight: .infinity)
+
+                // Benchmark bar (shown when data is available)
+                if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                    Rectangle()
+                        .fill(AppColors.border)
+                        .frame(height: 0.5)
+                    BenchmarkBarView(info: info)
+                        #if os(iOS)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.xs)
+                        #else
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.sm)
+                        #endif
+                }
+
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
+
+                // Input area with multimodal attachments
+                InputAreaView()
+                    #if os(iOS)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    #else
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
+                    #endif
+
+                #if os(macOS)
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
+                StatusBarView()
+                #endif
+            }
+            .accessibilityElement(children: .contain)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("chatColumn_root")
+    }
+
+    // MARK: - HF Token Alert
+
+    @ViewBuilder
+    private var hfTokenAlert: some View {
+        // Note: iOS alerts don't support text fields natively in all cases.
+        // For simplicity, we direct the user to Settings.
+        Button("Open Settings") {
+            viewModel.downloadManager.showTokenPrompt = false
+            showSettings = true
+        }
+        Button("Cancel", role: .cancel) {
+            viewModel.downloadManager.showTokenPrompt = false
+        }
+    }
+}
+
+// MARK: - Shared Modifiers (applied via extension)
+
+extension ContentView {
+    /// Applies shared modifiers (sheets, alerts, onAppear, file importer) to the layout view.
+    @ViewBuilder
+    func appliedSharedModifiers<V: View>(_ base: V) -> some View {
+        base
+            .sheet(isPresented: $showSettings) {
+                NavigationStack {
+                    InferenceSettingsView(viewModel: viewModel)
+                        .navigationTitle("Settings")
+                        #if os(macOS)
+                        .frame(minWidth: 550, minHeight: 600)
+                        #endif
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showSettings = false }
+                                    .accessibilityIdentifier("button_doneSettings")
+                            }
+                        }
+                }
+            }
+            .sheet(isPresented: $showDashboard) {
+                NavigationStack {
+                    PerformanceDashboardView()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showDashboard = false }
+                                    .accessibilityIdentifier("button_doneDashboard")
+                            }
+                        }
+                }
+                #if os(macOS)
+                .frame(minWidth: 600, minHeight: 500)
+                #endif
+            }
+            .sheet(item: $showcaseModel) { model in
+                NavigationStack {
+                    ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)
+                }
+                #if os(macOS)
+                .frame(minWidth: 450, minHeight: 550)
+                #endif
+            }
+            .alert("HuggingFace Token Required", isPresented: Binding(
+                get: { viewModel.downloadManager.showTokenPrompt },
+                set: { viewModel.downloadManager.showTokenPrompt = $0 }
+            )) {
+                Button("Open Settings") {
+                    viewModel.downloadManager.showTokenPrompt = false
+                    showSettings = true
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.downloadManager.showTokenPrompt = false
+                }
+            }
+            .onAppear {
+                // Skip auto-loading when running under the test harness or developer automation —
+                // tests manage their own engine lifecycle.
+                guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+                      !CommandLine.arguments.contains("-RunAutomationHarness"),
+                      !CommandLine.arguments.contains("-RunAllTests"),
+                      !CommandLine.arguments.contains("-RunMatrixBenchmark") else {
+                    viewModel.downloadManager.refreshStates()
+                    DeveloperAutomationHarness.runIfRequested(viewModel: viewModel)
+                    return
+                }
+                viewModel.checkForLocalModels()
+                viewModel.downloadManager.refreshStates()
+            }
+            .fileImporter(
+                isPresented: $viewModel.isFilePickerPresented,
+                allowedContentTypes: [.data],
+                allowsMultipleSelection: false
+            ) { result in
+                do {
+                    guard let selectedFile = try result.get().first else { return }
+                    Task {
+                        await viewModel.handleModelSelection(selectedFile)
+                    }
+                } catch {
+                    viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
+                }
+            }
+    }
+}
+
+// MARK: - Reusable Views
+
+struct ModelCapabilityBadges: View {
+    let metadata: ModelMetadata
+    let experimentalFlags: ExperimentalFlagsState
+    
+    var body: some View {
+        HStack(spacing: AppSpacing.xs) {
+            if metadata.supportsImage {
+                Text("Vision")
+                    .badge(AppColors.badgeVision)
+                    .accessibilityIdentifier("badge_vision")
+            }
+            if metadata.supportsAudio {
+                Text("Audio")
+                    .badge(AppColors.badgeAudio)
+                    .accessibilityIdentifier("badge_audio")
+            }
+            if metadata.supportsMTP {
+                Text("MTP")
+                    .badge(AppColors.badgeMTP)
+                    .accessibilityIdentifier("badge_mtp")
+            }
+            if experimentalFlags.enableToolCalling {
+                Text("Tools")
+                    .badge(AppColors.toolCall)
+                    .accessibilityIdentifier("badge_tools")
+            }
+            if experimentalFlags.enableThinking {
+                Text("Thinking")
+                    .badge(AppColors.badgeThinking)
+                    .accessibilityIdentifier("badge_thinking")
+            }
+        }
+    }
+}
+
+// MARK: - Previews
+
+#Preview {
+    ContentView()
+}
+
+// MARK: - Vibrant Background
+
+struct VibrantBackgroundView: View {
+    var body: some View {
+        ZStack {
+            // Deep forest floor — the darkest layer
+            AppColors.backgroundPrimary
+            
+            // Moonlight through canopy (top left) — subtle moss green
+            RadialGradient(
+                gradient: Gradient(colors: [AppColors.accentTeal.opacity(0.10), .clear]),
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 800
+            )
+            
+            // Distant firelight (bottom right) — warm amber glow
+            RadialGradient(
+                gradient: Gradient(colors: [AppColors.accentGold.opacity(0.06), .clear]),
+                center: .bottomTrailing,
+                startRadius: 0,
+                endRadius: 800
+            )
+        }
+    }
+}

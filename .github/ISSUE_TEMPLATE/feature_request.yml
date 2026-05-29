@@ -1,0 +1,56 @@
+name: Feature Request
+description: Suggest a feature for Edge AI Lab
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make Edge AI Lab better? We'd love to hear it! Please describe the feature and the problem it would solve.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the feature you'd like to see added.
+      placeholder: A clear and concise description of the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: What problem does this solve? Who benefits from it?
+      placeholder: |
+        Explain the scenario where this feature would be useful.
+        For example: "As a researcher, I want to … so that I can …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or workarounds you've considered.
+      placeholder: Describe any alternatives or workarounds you've tried.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Edge AI Lab does this relate to?
+      options:
+        - Inference Engine
+        - UI/UX
+        - Benchmarking
+        - Tool Calling
+        - Model Management
+        - MCP
+        - Other
+    validations:
+      required: false
