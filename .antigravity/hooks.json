@@ -1,0 +1,44 @@
+{
+  "tuist-auto-generate": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.antigravity/hooks/tuist-generate.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "model-check": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp_xcodebuild-mcp_.*test|mcp_xcodebuild-mcp_.*build",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.antigravity/hooks/check-model.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "metrics-capture": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp_xcodebuild-mcp_.*test|mcp_xcode-tools_RunAllTests|mcp_xcode-tools_RunSomeTests",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.antigravity/hooks/capture-metrics.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

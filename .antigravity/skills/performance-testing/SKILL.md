@@ -1,58 +1,93 @@
 ---
-name: Performance Testing Framework
-description: Guidelines for running performance tests, capturing metrics, and managing the JSON metrics store.
+name: performance-testing
+description: "Guidelines for running performance tests, capturing metrics, and managing the JSON metrics store for trend tracking. Activate when working with tests, benchmarks, or performance analysis."
 ---
 
 # Performance Testing Framework
 
-## 1. Test Architecture
+## Test Architecture: Two Layers
 
-Two test layers separated by Xcode Test Plans:
+Tests are organized into two test plans for selective execution:
 
-- **UnitTests.xctestplan**: Mock-based tests for instrumentation plumbing. No model dependency. Fast.
-- **PerformanceTests.xctestplan**: Real model tests with `measure(metrics:)` blocks. Requires ~2GB model file.
+| Test Plan | Purpose | Model Required | Speed | Files |
+|---|---|---|---|---|
+| **UnitTests** | Logic validation with mocks | ❌ No | Fast (seconds) | `GemmaEdgeGalleryTests.swift`, `MockInstrumentedEngine.swift` |
+| **PerformanceTests** | Real inference benchmarking | ✅ Yes | Slow (minutes) | `PerformanceTests.swift` |
 
-Both layers live in the same test targets (`GemmaEdgeGallery_iOSTests` / `GemmaEdgeGallery_macOSTests`). Test files use `#if os(iOS)` / `#elseif os(macOS)` for platform-specific imports.
+### InstrumentedEngineProtocol
+All tests use the `InstrumentedEngineProtocol` abstraction:
+- **Unit tests** inject `MockInstrumentedEngine` — fast, deterministic, no model needed
+- **Performance tests** use `InstrumentedEngine` — real LiteRT-LM inference with signposts
 
-## 2. InstrumentedEngine Protocol
+> [!IMPORTANT]
+> **Never call LiteRTLM APIs directly from test code.** Always go through `InstrumentedEngineProtocol`.
 
-All inference interaction goes through `InstrumentedEngineProtocol`:
+## Running Tests
 
-- **Unit tests** inject `MockInstrumentedEngine` — returns configurable `BenchmarkInfo` values without loading a real model.
-- **Performance tests** inject real `InstrumentedEngine` — wraps LiteRTLM and produces actual benchmark data.
+### Unit Tests (fast, no model)
+```
+MCP Server: xcodebuild-mcp
+Tool: simulator test
+Args: scheme=GemmaEdgeGallery_iOS, workspace=GemmaEdgeGallery.xcworkspace, testPlan=UnitTests
+```
 
-Never call LiteRTLM APIs directly from test code. Always go through the protocol.
+### Performance Tests (requires model in models/)
+```
+MCP Server: xcodebuild-mcp
+Tool: simulator test  
+Args: scheme=GemmaEdgeGallery_iOS, workspace=GemmaEdgeGallery.xcworkspace, testPlan=PerformanceTests
+```
 
-## 3. JSON Metrics Store
+> [!WARNING]
+> Performance tests require a `.litertlm` model file in the `models/` directory. If no model is present, performance tests will be skipped. Run `.antigravity/skills/performance-testing/scripts/provision-model.sh` to check model availability.
 
-- **Location**: `metrics/history.json` in the project root.
-- **Append-only**: Each test run adds an entry. Never overwrite or truncate.
-- **Schema** includes: timestamp, model name, platform, device, all `BenchmarkInfo` fields, `ExperimentalFlags` state.
-- The agent queries this file for trend analysis and regression detection.
+## Metrics Store
 
-## 4. Running Tests
+Test results are automatically captured to `metrics/history.json` by a PostToolUse hook after every test execution via XcodeBuildMCP.
 
-- **Unit tests**: Use XcodeBuildMCP `test` tool with the `UnitTests` test plan.
-- **Performance tests**: Use XcodeBuildMCP `test` tool with the `PerformanceTests` test plan. Requires a model file at a known path.
-- **Parse results**: Use XcodeBuildMCP `getTestResults` with the xcresult bundle path.
-- **Do NOT** use Fastlane for test execution. Fastlane is for build/distribution only.
+### Schema
+Each entry in `metrics/history.json`:
+```json
+{
+  "timestamp": "2026-05-29T20:00:00Z",
+  "testPlan": "PerformanceTests",
+  "results": [
+    {
+      "suite": "PerformanceTests",
+      "test": "testInferenceLatency",
+      "status": "passed",
+      "durationMs": 1234
+    }
+  ],
+  "flags": {
+    "enableBenchmark": true,
+    "enableSpeculativeDecoding": null,
+    "enableConversationConstrainedDecoding": false
+  },
+  "model": "gemma-4-E2B-it-web.litertlm",
+  "device": "iPhone 16 Pro Simulator"
+}
+```
 
-## 5. Baseline Methodology
+### Purpose
+The metrics store enables trend tracking across:
+- Model changes (drop in different models, compare performance)
+- Feature additions/removals (impact on latency/memory)
+- Flag configurations (speculative decoding impact)
+- Device variations (simulator vs device)
 
-- **NO** hard CI/CD failures on performance regressions.
-- Measure first, derive baselines from first principles, enforce thresholds only after understanding model capabilities.
-- Alerts are soft: agent-generated reports from JSON metrics store trends.
+## os_signpost Categories
 
-## 6. XCTMetrics (Phase 2)
+The `InstrumentedEngine` emits signposts under subsystem `com.andrewvoirol.GemmaEdgeGallery.performance`:
 
-Performance tests use `measure(metrics:)` with:
+| Category | Signpost | What It Measures |
+|---|---|---|
+| `model-load` | `ModelLoad` | Time from engine init to model ready |
+| `inference` | `Inference` | Full inference duration (prompt to completion) |
+| `first-token` | `FirstToken` | Time to first token (TTFT) |
 
-- `XCTMemoryMetric()` — peak memory (critical for 2–8GB models)
-- `XCTCPUMetric()` — CPU usage (anomaly detector for GPU fallback)
-- `XCTOSSignpostMetric()` — validates `os_signpost` interval durations
-
-## 7. os_signpost Categories
-
-- **Subsystem**: `com.andrewvoirol.GemmaEdgeGallery.performance`
-- **Categories**: `model-load`, `inference`, `first-token`
-- Signposts wrap: engine initialization, message streaming, first token event.
+## Baseline Methodology
+- No hard CI/CD failures on regressions
+- Metrics are append-only for trend analysis
+- Agents query `metrics/history.json` to detect regressions
+- Human review for significant regressions

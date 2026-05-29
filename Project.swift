@@ -65,5 +65,30 @@ let project = Project(
                 .target(name: "GemmaEdgeGallery_macOS")
             ]
         )
+    ],
+    schemes: [
+        .scheme(
+            name: "GemmaEdgeGallery_iOS",
+            shared: true,
+            buildAction: .buildAction(targets: ["GemmaEdgeGallery_iOS"]),
+            testAction: .targets(
+                ["GemmaEdgeGallery_iOSTests"],
+                configuration: .debug,
+                options: .options(coverage: true)
+            ),
+            runAction: .runAction(configuration: .debug)
+        ),
+        .scheme(
+            name: "GemmaEdgeGallery_macOS",
+            shared: true,
+            buildAction: .buildAction(targets: ["GemmaEdgeGallery_macOS"]),
+            testAction: .targets(
+                ["GemmaEdgeGallery_macOSTests"],
+                configuration: .debug,
+                options: .options(coverage: true)
+            ),
+            runAction: .runAction(configuration: .debug)
+        )
     ]
 )
+
