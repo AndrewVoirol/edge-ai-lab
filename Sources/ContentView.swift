@@ -1,0 +1,124 @@
+import LiteRTLM
+import SwiftUI
+import UniformTypeIdentifiers
+
+struct ContentView: View {
+    @State private var viewModel = ConversationViewModel()
+    @State private var showSettings = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            headerView
+                .padding()
+
+            Divider()
+
+            // Prompt input
+            TextField("Enter your prompt here", text: $viewModel.prompt)
+                .textFieldStyle(.roundedBorder)
+                .padding()
+
+            // Generate button
+            Button(viewModel.isGenerating ? "Generating..." : "Generate Response") {
+                Task {
+                    await viewModel.generateText()
+                }
+            }
+            .buttonStyle(.bordered)
+            .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
+
+            // Response area
+            ScrollView {
+                Text(viewModel.responseText)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(maxHeight: .infinity)
+
+            // Benchmark bar (shown when data is available)
+            if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                Divider()
+                benchmarkBar(info: info)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+            }
+        }
+        .padding()
+        .fileImporter(
+            isPresented: $viewModel.isFilePickerPresented,
+            allowedContentTypes: [UTType.data],
+            allowsMultipleSelection: false
+        ) { result in
+            do {
+                guard let selectedFile = try result.get().first else { return }
+                Task {
+                    await viewModel.handleModelSelection(selectedFile)
+                }
+            } catch {
+                viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
+            }
+        }
+        .sheet(isPresented: $showSettings) {
+            NavigationStack {
+                InferenceSettingsView(viewModel: viewModel)
+                    .navigationTitle("Settings")
+                    #if os(iOS)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showSettings = false }
+                        }
+                    }
+                    #endif
+            }
+            #if os(macOS)
+            .frame(minWidth: 400, minHeight: 500)
+            #endif
+        }
+    }
+
+    // MARK: - Header
+
+    private var headerView: some View {
+        HStack {
+            Text(viewModel.statusMessage)
+                .font(.headline)
+            Spacer()
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .help("Inference Settings")
+            Button("Load Model") {
+                viewModel.isFilePickerPresented = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+
+    // MARK: - Benchmark Bar
+
+    private func benchmarkBar(info: BenchmarkInfo) -> some View {
+        HStack(spacing: 16) {
+            benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
+            Divider().frame(height: 20)
+            benchmarkItem(label: "Decode", value: String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+            Divider().frame(height: 20)
+            benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
+            Spacer()
+        }
+        .font(.caption)
+    }
+
+    private func benchmarkItem(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .monospacedDigit()
+                .fontWeight(.medium)
+        }
+    }
+}
