@@ -26,11 +26,14 @@ protocol InstrumentedEngineProtocol: AnyObject {
     ///   - useGPU: Whether to use GPU backend (true) or CPU (false).
     ///   - cacheDir: Cache directory path for the engine.
     ///   - flags: Experimental flags configuration to apply.
+    ///   - samplerConfig: Optional sampler configuration (topK, topP, temperature).
+    ///     If nil, uses the SDK's defaults.
     func initialize(
         modelPath: String,
         useGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
     ) async throws
 
     /// Initialize with smart fallback: try the preferred backend, fall back if it fails.
@@ -39,12 +42,14 @@ protocol InstrumentedEngineProtocol: AnyObject {
     ///   - preferGPU: Whether GPU is the preferred backend.
     ///   - cacheDir: Cache directory path for the engine.
     ///   - flags: Experimental flags configuration to apply.
+    ///   - samplerConfig: Optional sampler configuration (topK, topP, temperature).
     /// - Returns: The result describing which backend was actually used.
     func initializeWithFallback(
         modelPath: String,
         preferGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
     ) async throws -> BackendResult
 
     /// Send a message and receive a streamed response.
@@ -101,6 +106,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         enableConversationConstrainedDecoding: false,
         visualTokenBudget: nil
     )
+    /// The sampler config used for the current conversation.
+    private var activeSamplerConfig: SamplerConfig?
 
     var isReady: Bool { conversation != nil }
 
@@ -110,12 +117,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         modelPath: String,
         useGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig? = nil
     ) async throws {
         // Tear down any existing engine first
         shutdown()
 
         self.flagsState = flags
+        self.activeSamplerConfig = samplerConfig
 
         // Configure experimental flags — MUST opt in first
         ExperimentalFlags.optIntoExperimentalAPIs()
@@ -138,7 +147,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             try await newEngine.initialize()
 
             self.engine = newEngine
-            self.conversation = try await newEngine.createConversation()
+
+            // Create conversation with optional sampler config
+            let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+            self.conversation = try await newEngine.createConversation(with: convConfig)
 
             os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
                         "Model loaded successfully")
@@ -212,6 +224,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         engine = nil
         lastBenchmarkInfo = nil
         lastBackendResult = nil
+        activeSamplerConfig = nil
     }
 
     // MARK: - Smart Backend Initialization with Fallback
@@ -220,7 +233,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         modelPath: String,
         preferGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig? = nil
     ) async throws -> BackendResult {
         // Check known model registry first for pre-verified guidance
         let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
@@ -241,7 +255,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 modelPath: modelPath,
                 useGPU: shouldTryGPU,
                 cacheDir: cacheDir,
-                flags: flags
+                flags: flags,
+                samplerConfig: samplerConfig
             )
 
             let result = BackendResult(
@@ -269,7 +284,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     modelPath: modelPath,
                     useGPU: fallbackUseGPU,
                     cacheDir: cacheDir,
-                    flags: flags
+                    flags: flags,
+                    samplerConfig: samplerConfig
                 )
 
                 let result = BackendResult(

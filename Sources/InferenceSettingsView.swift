@@ -98,6 +98,45 @@ struct InferenceSettingsView: View {
                 .help("Enable constrained decoding for structured outputs.")
             }
 
+            Section("Sampler Configuration") {
+                Stepper("Top-K: \(viewModel.topK)", value: $viewModel.topK, in: 1...128)
+                    .help("Number of most likely tokens to consider. Set to 1 for greedy (deterministic) decoding.")
+
+                HStack {
+                    Text("Top-P: \(viewModel.topP, specifier: "%.2f")")
+                    Slider(value: $viewModel.topP, in: 0.0...1.0, step: 0.05)
+                }
+                .help("Cumulative probability threshold for nucleus sampling.")
+
+                HStack {
+                    Text("Temperature: \(viewModel.temperature, specifier: "%.2f")")
+                    Slider(value: $viewModel.temperature, in: 0.0...2.0, step: 0.1)
+                }
+                .help("Controls randomness. 0 = deterministic, higher = more creative.")
+
+                Button {
+                    viewModel.topK = 1
+                    viewModel.topP = 1.0
+                    viewModel.temperature = 1.0
+                } label: {
+                    Label("Greedy (Gallery Match)", systemImage: "target")
+                }
+                .help("Set topK=1, topP=1.0 to match AI Edge Gallery's benchmark settings for apples-to-apples comparison.")
+
+                Button {
+                    viewModel.topK = 64
+                    viewModel.topP = 0.95
+                    viewModel.temperature = 1.0
+                } label: {
+                    Label("Default Sampling", systemImage: "dice")
+                }
+                .help("Reset to SDK defaults: topK=64, topP=0.95, temperature=1.0.")
+
+                Text("⚠️ Sampler changes take effect on next model load.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             // Model info section (shown when metadata is available)
             if let metadata = viewModel.activeModelMetadata {
                 Section("Model Info") {

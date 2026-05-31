@@ -48,6 +48,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// The last prompt text passed to sendMessageStream.
     private(set) var lastPromptText: String?
 
+    /// The last sampler config passed to initialize.
+    private(set) var lastSamplerConfig: SamplerConfig?
+
     /// Number of times shutdown was called.
     private(set) var shutdownCallCount = 0
 
@@ -67,11 +70,13 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         modelPath: String,
         useGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
     ) async throws {
         initializeCallCount += 1
         lastModelPath = modelPath
         lastFlags = flags
+        lastSamplerConfig = samplerConfig
         flagsState = flags
 
         if let error = initError {
@@ -85,14 +90,16 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         modelPath: String,
         preferGPU: Bool,
         cacheDir: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
     ) async throws -> BackendResult {
         // Delegate to regular initialize
         try await initialize(
             modelPath: modelPath,
             useGPU: preferGPU,
             cacheDir: cacheDir,
-            flags: flags
+            flags: flags,
+            samplerConfig: samplerConfig
         )
 
         let result = mockBackendResult ?? BackendResult(

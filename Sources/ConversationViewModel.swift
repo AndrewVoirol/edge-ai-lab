@@ -45,6 +45,17 @@ final class ConversationViewModel {
         visualTokenBudget: nil
     )
 
+    // MARK: - Sampler Configuration
+
+    /// Top-K sampling parameter. Set to 1 for greedy (Gallery-matching) decoding.
+    var topK: Int = 64
+
+    /// Top-P (nucleus) sampling parameter.
+    var topP: Float = 0.95
+
+    /// Temperature for sampling. Higher = more random.
+    var temperature: Float = 1.0
+
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
@@ -119,6 +130,10 @@ final class ConversationViewModel {
         activeModelMetadata = ModelRegistry.lookup(path: modelPath)
         if let metadata = activeModelMetadata {
             statusMessage = "Loading \(metadata.name)..."
+            // Apply model's default sampler config
+            topK = metadata.defaultConfig.topK
+            topP = Float(metadata.defaultConfig.topP)
+            temperature = Float(metadata.defaultConfig.temperature)
         }
 
         do {
@@ -141,12 +156,20 @@ final class ConversationViewModel {
                 )
             }
 
+            // Build sampler config from current settings
+            let samplerConfig = try? SamplerConfig(
+                topK: topK,
+                topP: topP,
+                temperature: temperature
+            )
+
             // Use smart fallback initialization
             let result = try await engine.initializeWithFallback(
                 modelPath: modelPath,
                 preferGPU: useGPU,
                 cacheDir: modelCacheDirectory.path,
-                flags: experimentalFlags
+                flags: experimentalFlags,
+                samplerConfig: samplerConfig
             )
 
             backendResult = result
