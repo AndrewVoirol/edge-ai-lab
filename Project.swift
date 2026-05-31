@@ -6,10 +6,11 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // NOTE: v0.12.0 release tag has packaging issues (missing macOS xcframework slice,
-        // unsafe build flags). main HEAD (aeefa9b) is also currently broken.
-        // Pinning to last known-good commit. Re-evaluate when v0.13.0+ is released.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("3a97cbfe4e788916ede49feb9526a3854a3b3946"))
+        // Session 4: Upgraded from 3a97cbf to main HEAD (aeefa9b, 2026-05-29).
+        // Includes: macOS Swift API support, MTP byte-mapping fix (Windows),
+        // sampler config in CLI, version bump to 0.13.0-dev.
+        // v0.12.0 tag still has packaging issues. Will re-evaluate at v0.13.0 release.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
     ],
     settings: .settings(
         base: [
