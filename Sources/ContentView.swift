@@ -64,17 +64,18 @@ struct ContentView: View {
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
                     .navigationTitle("Settings")
-                    #if os(iOS)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showSettings = false }
                         }
                     }
-                    #endif
             }
             #if os(macOS)
             .frame(minWidth: 400, minHeight: 500)
             #endif
+        }
+        .onAppear {
+            viewModel.checkForLocalModels()
         }
     }
 
@@ -101,13 +102,38 @@ struct ContentView: View {
     // MARK: - Benchmark Bar
 
     private func benchmarkBar(info: BenchmarkInfo) -> some View {
-        HStack(spacing: 16) {
-            benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
-            Divider().frame(height: 20)
-            benchmarkItem(label: "Decode", value: String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
-            Divider().frame(height: 20)
-            benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
-            Spacer()
+        VStack(spacing: 4) {
+            HStack(spacing: 16) {
+                // Backend indicator
+                if let result = viewModel.backendResult {
+                    HStack(spacing: 4) {
+                        Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
+                            .foregroundStyle(result.activeBackend == .gpu ? .green : .orange)
+                        Text(result.activeBackend == .gpu ? "GPU" : "CPU")
+                            .fontWeight(.semibold)
+                    }
+                    Divider().frame(height: 20)
+                }
+
+                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
+                Divider().frame(height: 20)
+                benchmarkItem(label: "Decode", value: String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                Divider().frame(height: 20)
+                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
+                Spacer()
+            }
+
+            // Fallback warning
+            if let result = viewModel.backendResult, result.didFallback, let reason = result.fallbackReason {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                    Text(reason)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
         }
         .font(.caption)
     }

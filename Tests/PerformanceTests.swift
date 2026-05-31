@@ -11,13 +11,103 @@ import LiteRTLM
 /// These tests are in the PerformanceTests.xctestplan and should only be run
 /// on provisioned machines with a model file available.
 ///
-/// NOTE: Set the `PERFORMANCE_TEST_MODEL_PATH` environment variable to the
-/// absolute path of your .litertlm model file before running these tests.
+/// Model discovery (Option C):
+///   1. `PERFORMANCE_TEST_MODEL_PATH` environment variable (highest priority, CI/automation)
+///   2. Project `models/` directory (local dev, macOS tests)
+///   3. App Documents directory (simulator/device with provisioned model)
+///
+/// Backend selection:
+///   - Prefers GPU on macOS and physical iOS devices
+///   - Falls back to CPU on iOS Simulator (Metal shader translation is not
+///     bit-identical to device GPU — see Apple docs:
+///     https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator)
 final class PerformanceTests: XCTestCase {
 
-    /// Path to the model file. Set via environment variable.
+    // MARK: - Model Discovery (Option C: env var + fallback)
+
+    /// Discovers the first available .litertlm model file.
+    /// Priority: env var → project models/ dir → app Documents dir.
     private var modelPath: String? {
-        ProcessInfo.processInfo.environment["PERFORMANCE_TEST_MODEL_PATH"]
+        // 1. Explicit env var (CI/automation) — highest priority
+        if let envPath = ProcessInfo.processInfo.environment["PERFORMANCE_TEST_MODEL_PATH"],
+           FileManager.default.fileExists(atPath: envPath) {
+            return envPath
+        }
+
+        // 2. Convention: models/ directory relative to project root (macOS tests)
+        let projectModels = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // project root
+            .appendingPathComponent("models")
+        if let model = findFirstModel(in: projectModels) {
+            return model
+        }
+
+        // 3. App's Documents directory (simulator/device when model is provisioned)
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
+           let model = findFirstModel(in: docs) {
+            return model
+        }
+
+        return nil
+    }
+
+    /// Finds the best .litertlm model for the current platform.
+    ///
+    /// Verified compatibility matrix (from SimulatorCompatibilityTests):
+    /// - macOS + GPU:      standard ✅, web ✅
+    /// - iOS device + GPU: standard ❌, web ✅
+    /// - iOS sim + CPU:    standard ✅, web ❌
+    ///
+    /// So: iOS device prefers web model (GPU), everything else prefers standard.
+    private func findFirstModel(in directory: URL) -> String? {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ) else { return nil }
+
+        let models = files.filter { $0.pathExtension == "litertlm" }
+
+        #if os(iOS) && !targetEnvironment(simulator)
+        // Physical iOS device: prefer web model (GPU-compatible on A-series)
+        if let web = models.first(where: { $0.lastPathComponent.contains("-web") }) {
+            return web.path
+        }
+        // Fall back to standard model (will use CPU)
+        return models.first?.path
+        #else
+        // macOS and iOS Simulator: prefer standard model (CPU+GPU support)
+        if let standard = models.first(where: { !$0.lastPathComponent.contains("-web") }) {
+            return standard.path
+        }
+        return models.first?.path
+        #endif
+    }
+
+    // MARK: - Backend Selection
+
+    /// Determines the appropriate GPU/CPU backend for the current platform and model.
+    ///
+    /// Verified behavior:
+    /// - macOS:           GPU (Metal) ✅ — both models work
+    /// - iOS device:      GPU (Metal) ✅ — only with web model (selected by findFirstModel)
+    /// - iOS Simulator:   CPU (XNNPACK) ✅ — Metal shader translation corrupts inference
+    private var shouldUseGPU: Bool {
+        #if targetEnvironment(simulator)
+        return false  // Metal not reliable on simulator; use CPU (XNNPACK)
+        #else
+        return true   // Native GPU on macOS and physical iOS devices
+        #endif
+    }
+
+    // MARK: - Cache Directory
+
+    /// Creates a temporary cache directory for the engine's XNNPACK weight cache.
+    /// The directory must exist before engine initialization.
+    private func createCacheDir(prefix: String) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(prefix)_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 
     override func setUp() {
@@ -33,9 +123,10 @@ final class PerformanceTests: XCTestCase {
 
     func testModelLoadPerformance() throws {
         guard let modelPath = modelPath else {
-            throw XCTSkip("PERFORMANCE_TEST_MODEL_PATH not set — skipping model-dependent test")
+            throw XCTSkip("No model file available — skipping model-dependent test")
         }
 
+        let useGPU = shouldUseGPU
         let metrics: [XCTMetric] = [
             XCTMemoryMetric(),
             XCTCPUMetric(),
@@ -50,9 +141,7 @@ final class PerformanceTests: XCTestCase {
             let expectation = self.expectation(description: "Engine initialized")
 
             Task { @MainActor in
-                let fileManager = FileManager.default
-                let cacheDir = fileManager.temporaryDirectory
-                    .appendingPathComponent("perf_test_cache_\(UUID().uuidString)").path
+                let cacheDir = try self.createCacheDir(prefix: "perf_test_cache")
 
                 let flags = ExperimentalFlagsState(
                     enableBenchmark: true,
@@ -64,14 +153,15 @@ final class PerformanceTests: XCTestCase {
                 do {
                     try await engine.initialize(
                         modelPath: modelPath,
-                        useGPU: true,
-                        cacheDir: cacheDir,
+                        useGPU: useGPU,
+                        cacheDir: cacheDir.path,
                         flags: flags
                     )
                 } catch {
                     XCTFail("Engine initialization failed: \(error)")
                 }
                 engine.shutdown()
+                try? FileManager.default.removeItem(at: cacheDir)
                 expectation.fulfill()
             }
 
@@ -83,9 +173,10 @@ final class PerformanceTests: XCTestCase {
 
     func testInferencePerformance() throws {
         guard let modelPath = modelPath else {
-            throw XCTSkip("PERFORMANCE_TEST_MODEL_PATH not set — skipping model-dependent test")
+            throw XCTSkip("No model file available — skipping model-dependent test")
         }
 
+        let useGPU = shouldUseGPU
         let metrics: [XCTMetric] = [
             XCTMemoryMetric(),
             XCTCPUMetric(),
@@ -98,10 +189,10 @@ final class PerformanceTests: XCTestCase {
         // Initialize engine once outside the measure block
         let engine = InstrumentedEngine()
         let initExpectation = expectation(description: "Engine initialized for inference test")
+        var cacheDir: URL?
 
         Task { @MainActor in
-            let cacheDir = FileManager.default.temporaryDirectory
-                .appendingPathComponent("perf_test_inference_\(UUID().uuidString)").path
+            cacheDir = try self.createCacheDir(prefix: "perf_test_inference")
             let flags = ExperimentalFlagsState(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
@@ -110,8 +201,8 @@ final class PerformanceTests: XCTestCase {
             )
             try await engine.initialize(
                 modelPath: modelPath,
-                useGPU: true,
-                cacheDir: cacheDir,
+                useGPU: useGPU,
+                cacheDir: cacheDir!.path,
                 flags: flags
             )
             initExpectation.fulfill()
@@ -146,5 +237,8 @@ final class PerformanceTests: XCTestCase {
         }
 
         engine.shutdown()
+        if let cacheDir = cacheDir {
+            try? FileManager.default.removeItem(at: cacheDir)
+        }
     }
 }

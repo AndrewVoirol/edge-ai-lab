@@ -28,11 +28,15 @@ description: "Project generation and management using Tuist. Activate when editi
 | `GemmaEdgeGallery_macOSTests` | macOS | `com.andrewvoirol.GemmaEdgeGallery.mac.Tests` | macOS 26.0+ |
 
 ## Code Signing
-- **Team ID:** `ASX83B274M` (Free Personal Team)
+- **Team ID:** `Y7J7WUK693` (Free Personal Team)
 - **Style:** `Automatic`
-- Set via `DEVELOPMENT_TEAM` environment variable or defaults to `ASX83B274M`
+- Set via `DEVELOPMENT_TEAM` environment variable or defaults to `Y7J7WUK693`
 - **Do NOT remove** the Team ID from `Project.swift`
 - Free teams cannot use `fastlane match` or `sigh` — provisioning is local-only
+
+### Entitlements
+- **`increased-memory-limit`** — ✅ Works with personal (free) teams. Add to the target's entitlements to request more memory for large model inference.
+- **`extended-virtual-addressing`** — ❌ Blocked by personal teams. Requires a paid Apple Developer Program membership. Do NOT add this entitlement with a free team — it will cause signing failures.
 
 ## Dependencies
 - `LiteRT-LM` from `https://github.com/google-ai-edge/LiteRT-LM.git` (branch: `main`)
@@ -50,3 +54,14 @@ description: "Project generation and management using Tuist. Activate when editi
 - Dependencies (packages, targets)
 - Build settings (code signing, team ID)
 - Source/test file globs
+
+### InfoPlist Keys (iOS Target)
+The following keys are configured in the iOS target's `InfoPlist` in `Project.swift`:
+
+| Key | Value | Purpose |
+|---|---|---|
+| `UIFileSharingEnabled` | `true` | Exposes Documents directory in Finder/Files app for model provisioning |
+| `LSSupportsOpeningDocumentsInPlace` | `true` | Allows opening documents directly from Files app |
+| `UISupportsDocumentBrowser` | `true` | Enables document browser for model file management |
+
+These keys enable users (and `devicectl`) to provision `.litertlm` model files to the app's Documents directory on physical devices.

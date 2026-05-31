@@ -1,12 +1,15 @@
 import ProjectDescription
 import Foundation
 
-let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "ASX83B274M"
+let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK693"
 
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
+        // NOTE: v0.12.0 release tag has packaging issues (missing macOS xcframework slice,
+        // unsafe build flags). main HEAD (aeefa9b) is also currently broken.
+        // Pinning to last known-good commit. Re-evaluate when v0.13.0+ is released.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("3a97cbfe4e788916ede49feb9526a3854a3b3946"))
     ],
     settings: .settings(
         base: [
@@ -22,9 +25,19 @@ let project = Project(
             bundleId: "com.andrewvoirol.GemmaEdgeGallery",
             deploymentTargets: .iOS("26.5"),
             infoPlist: .extendingDefault(with: [
-                "UILaunchScreen": [:]
+                "UILaunchScreen": [:],
+                // Enable iTunes/Finder file sharing so models can be copied to Documents/
+                "UIFileSharingEnabled": true,
+                // Allow the Files app to browse and manage model files in Documents/
+                "LSSupportsOpeningDocumentsInPlace": true,
+                // Support opening .litertlm files directly from other apps
+                "UISupportsDocumentBrowser": true,
             ]),
             sources: ["Sources/**"],
+            // Increased Memory Limit entitlement for large model inference.
+            // NOTE: extended-virtual-addressing requires paid Apple Developer Program;
+            // increased-memory-limit works with personal teams (matches zealous-bose config).
+            entitlements: .file(path: "GemmaEdgeGallery_iOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM")
             ]

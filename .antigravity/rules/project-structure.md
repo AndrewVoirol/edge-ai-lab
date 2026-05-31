@@ -17,8 +17,21 @@ These constraints protect the project from structural corruption.
 ## Model Files
 - Model files (`*.litertlm`) live in `models/` directory
 - `models/` is gitignored — models are locally provisioned, not committed
-- Never commit model files to git (they are 1.5-2GB each)
+- Never commit model files to git (they are 2.0-3.7GB each)
 - See `.antigravity/skills/performance-testing/scripts/provision-model.sh` for availability checks
+
+### Physical Device Provisioning
+Models must be pushed to the app's Documents/ directory on the device:
+```bash
+xcrun devicectl device copy to --device <UDID> \
+  --domain-type appDataContainer \
+  --domain-identifier com.andrewvoirol.GemmaEdgeGallery \
+  --source models/<filename>.litertlm \
+  --destination Documents/<filename>.litertlm
+```
+
+> [!NOTE]
+> The iOS target includes `UIFileSharingEnabled`, `LSSupportsOpeningDocumentsInPlace`, and `UISupportsDocumentBrowser` in its InfoPlist (configured in `Project.swift`). This enables model files to be copied via Finder, AirDrop, or the Files app.
 
 ## Dependencies
 - Swift package dependencies are declared in `Project.swift`

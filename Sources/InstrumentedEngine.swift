@@ -17,6 +17,9 @@ protocol InstrumentedEngineProtocol: AnyObject {
     /// The current experimental flags state.
     var flagsState: ExperimentalFlagsState { get }
 
+    /// The result of the last backend initialization attempt.
+    var lastBackendResult: BackendResult? { get }
+
     /// Initialize the engine with a model file.
     /// - Parameters:
     ///   - modelPath: Filesystem path to the .litertlm model file.
@@ -30,6 +33,20 @@ protocol InstrumentedEngineProtocol: AnyObject {
         flags: ExperimentalFlagsState
     ) async throws
 
+    /// Initialize with smart fallback: try the preferred backend, fall back if it fails.
+    /// - Parameters:
+    ///   - modelPath: Filesystem path to the .litertlm model file.
+    ///   - preferGPU: Whether GPU is the preferred backend.
+    ///   - cacheDir: Cache directory path for the engine.
+    ///   - flags: Experimental flags configuration to apply.
+    /// - Returns: The result describing which backend was actually used.
+    func initializeWithFallback(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState
+    ) async throws -> BackendResult
+
     /// Send a message and receive a streamed response.
     /// - Parameter text: The user's prompt text.
     /// - Returns: An AsyncThrowingStream of response text chunks.
@@ -37,6 +54,25 @@ protocol InstrumentedEngineProtocol: AnyObject {
 
     /// Tear down the engine and free resources.
     func shutdown()
+}
+
+// MARK: - Backend Result
+
+/// Describes the outcome of a backend initialization attempt.
+struct BackendResult: Sendable {
+    /// The backend that was actually activated.
+    let activeBackend: ActiveBackend
+    /// Whether the engine fell back from the preferred backend.
+    let didFallback: Bool
+    /// The error from the preferred backend, if fallback occurred.
+    let fallbackReason: String?
+    /// The detected capability of the model on this platform.
+    let detectedCapability: BackendCapability
+
+    enum ActiveBackend: String, Sendable {
+        case gpu
+        case cpu
+    }
 }
 
 // MARK: - Concrete Implementation
@@ -58,6 +94,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     private var engine: Engine?
     private var conversation: Conversation?
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
+    private(set) var lastBackendResult: BackendResult?
     private(set) var flagsState: ExperimentalFlagsState = ExperimentalFlagsState(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,
@@ -174,6 +211,105 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         conversation = nil
         engine = nil
         lastBenchmarkInfo = nil
+        lastBackendResult = nil
+    }
+
+    // MARK: - Smart Backend Initialization with Fallback
+
+    func initializeWithFallback(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState
+    ) async throws -> BackendResult {
+        // Check known model registry first for pre-verified guidance
+        let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
+
+        let shouldTryGPU: Bool
+        switch recommendation {
+        case .gpu:
+            shouldTryGPU = true
+        case .cpu:
+            shouldTryGPU = false
+        case .probeRequired:
+            shouldTryGPU = preferGPU
+        }
+
+        // Attempt primary backend
+        do {
+            try await initialize(
+                modelPath: modelPath,
+                useGPU: shouldTryGPU,
+                cacheDir: cacheDir,
+                flags: flags
+            )
+
+            let result = BackendResult(
+                activeBackend: shouldTryGPU ? .gpu : .cpu,
+                didFallback: shouldTryGPU != preferGPU,
+                fallbackReason: shouldTryGPU != preferGPU
+                    ? "Known model metadata indicates \(shouldTryGPU ? "GPU" : "CPU") is optimal for this platform."
+                    : nil,
+                detectedCapability: determineCapability(
+                    requestedGPU: shouldTryGPU,
+                    gpuSucceeded: shouldTryGPU,
+                    cpuSucceeded: !shouldTryGPU
+                )
+            )
+            self.lastBackendResult = result
+            return result
+
+        } catch {
+            let primaryError = error.localizedDescription
+
+            // Attempt fallback to the other backend
+            let fallbackUseGPU = !shouldTryGPU
+            do {
+                try await initialize(
+                    modelPath: modelPath,
+                    useGPU: fallbackUseGPU,
+                    cacheDir: cacheDir,
+                    flags: flags
+                )
+
+                let result = BackendResult(
+                    activeBackend: fallbackUseGPU ? .gpu : .cpu,
+                    didFallback: true,
+                    fallbackReason: "\(shouldTryGPU ? "GPU" : "CPU") failed: \(primaryError). Fell back to \(fallbackUseGPU ? "GPU" : "CPU").",
+                    detectedCapability: determineCapability(
+                        requestedGPU: shouldTryGPU,
+                        gpuSucceeded: fallbackUseGPU,
+                        cpuSucceeded: !fallbackUseGPU
+                    )
+                )
+                self.lastBackendResult = result
+                return result
+
+            } catch {
+                // Both backends failed
+                self.lastBackendResult = nil
+                throw InstrumentedEngineError.bothBackendsFailed(
+                    primaryBackend: shouldTryGPU ? "GPU" : "CPU",
+                    primaryError: primaryError,
+                    fallbackBackend: fallbackUseGPU ? "GPU" : "CPU",
+                    fallbackError: error.localizedDescription
+                )
+            }
+        }
+    }
+
+    /// Determine backend capability from probe results.
+    private func determineCapability(
+        requestedGPU: Bool,
+        gpuSucceeded: Bool,
+        cpuSucceeded: Bool
+    ) -> BackendCapability {
+        switch (gpuSucceeded, cpuSucceeded) {
+        case (true, true):   return .gpuAndCpu
+        case (true, false):  return .gpuOnly
+        case (false, true):  return .cpuOnly
+        case (false, false): return .unknown
+        }
     }
 }
 
@@ -181,11 +317,19 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
 enum InstrumentedEngineError: LocalizedError {
     case notInitialized
+    case bothBackendsFailed(
+        primaryBackend: String,
+        primaryError: String,
+        fallbackBackend: String,
+        fallbackError: String
+    )
 
     var errorDescription: String? {
         switch self {
         case .notInitialized:
             return "Engine is not initialized. Load a model first."
+        case let .bothBackendsFailed(primary, primaryErr, fallback, fallbackErr):
+            return "Both backends failed. \(primary): \(primaryErr). \(fallback): \(fallbackErr)"
         }
     }
 }

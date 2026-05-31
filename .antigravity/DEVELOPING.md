@@ -17,7 +17,7 @@ GemmaEdgeGallery is a SwiftUI app that runs Google Gemma 4 models on-device usin
 ## Project Specifications
 - **Language:** Swift 6.0+
 - **Platforms:** iOS 26.5+, macOS 26.0+
-- **Developer Team ID:** `ASX83B274M` (Free Personal Team)
+- **Developer Team ID:** `Y7J7WUK693` (Free Personal Team)
 - **Bundle ID Base:** `com.andrewvoirol.GemmaEdgeGallery`
 - **Project Generator:** Tuist — edit `Project.swift`, never `.xcodeproj`
 - **Dependencies:** LiteRT-LM (via Swift Package Manager, branch: `main`)
@@ -63,19 +63,81 @@ Project.swift → tuist generate → XcodeBuildMCP (build/test/deploy)
 
 ## Model Provisioning
 
-LLM weights are large (~1.5-2GB) and are **not committed to git**. Models live in the `models/` directory.
+LLM weights are large (~2.0-3.7GB) and are **not committed to git**. Models live in the `models/` directory.
+
+### Full Model Catalog
+
+| Model | File | Size | GPU | CPU | iOS Device | macOS | Simulator | Source |
+|---|---|---|---|---|---|---|---|---|
+| Gemma-3n-E2B-it | `gemma-3n-E2B-it-int4.litertlm` | 3.39 GB | ✅ Mobile | ❌ | GPU-only | GPU Only | GPU Only | [google/gemma-3n-E2B-it-litert-lm](https://huggingface.co/google/gemma-3n-E2B-it-litert-lm) |
+| Gemma-3n-E2B-HW | `gemma-3n-E2B-HW.litertlm` | 2.83 GB | ✅ Mobile | ❌ | GPU (24.0 tok/s decode, 7.8 tok/s prefill) | GPU Only (78.6 tok/s) | GPU Only (degenerate) | AI Edge Gallery hardware-optimized variant |
+| Gemma-4-E2B-it (Standard) | `gemma-4-E2B-it.litertlm` | 2.59 GB | ✅ Desktop + Mobile | ✅ XNNPACK | GPU + CPU (GPU works on iPhone 16 Pro Max, 2.33s load) | GPU+CPU | CPU only | [litert-community/gemma-4-E2B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm) |
+| Gemma-4-E2B-it (Mobile GPU) | `gemma-4-E2B-it-web.litertlm` | 2.01 GB | ✅ Mobile | ❌ | GPU-only | GPU Only (113.1 tok/s) | GPU Only (degenerate) | [litert-community/gemma-4-E2B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm) |
+| Gemma-4-E4B-it (Standard) | `gemma-4-E4B-it.litertlm` | 3.66 GB | ✅ Desktop | ✅ XNNPACK | CPU only | GPU+CPU | CPU only | [litert-community/gemma-4-E4B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm) |
+| Gemma-4-E4B-it (Mobile GPU) | `gemma-4-E4B-it-web.litertlm` | 2.97 GB | ✅ Mobile | ❌ | GPU-only | GPU Only | GPU Only (degenerate) | [litert-community/gemma-4-E4B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm) |
+
+### Model Naming Convention
+
+| Label | Meaning | Details |
+|---|---|---|
+| **Desktop GPU+CPU** | Desktop Metal + XNNPACK CPU subgraphs | Works on macOS (GPU or CPU) and iOS (GPU + CPU fallback). Contains both Metal GPU shaders compiled for desktop and XNNPACK CPU subgraphs. |
+| **Mobile GPU** | Artisan mobile GPU shaders, no CPU fallback | Optimized for A-series/M-series mobile Metal GPUs. No XNNPACK CPU subgraph — GPU is the only backend. |
+| **Mobile GPU (HW)** | Hardware-optimized mobile GPU shaders | Further hardware-optimized variant of Mobile GPU shaders. Best on-device GPU performance. |
+
+> [!NOTE]
+> Filenames on disk (e.g., `gemma-4-E2B-it-web.litertlm`) follow HuggingFace upstream naming conventions. The labels above describe the **shader/backend type**, not the filename.
+
+> [!NOTE]
+> The standard model (`gemma-4-E2B-it.litertlm`) is preferred for development — it supports both CPU and GPU backends on all platforms (including iOS devices), enabling the "Use GPU" toggle and inference on the iOS Simulator (CPU mode). GPU acceleration works on iPhone 16 Pro Max with a 2.33s load time.
+
+> [!IMPORTANT]
+> Gemma 3n (`google/gemma-3n-E2B-it-litert-lm`) is a **gated model** requiring HuggingFace authentication. This is the model used by the iOS Gallery app.
+
+### Download Models
 
 ```bash
+# Using HuggingFace CLI (recommended)
+pip install huggingface-hub
+huggingface-cli download litert-community/gemma-4-E2B-it-litert-lm gemma-4-E2B-it.litertlm --local-dir ./models
+
+# Using curl
+curl -L https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm -o ./models/gemma-4-E2B-it.litertlm
+
+# For gated models (Gemma 3n)
+huggingface-cli login
+huggingface-cli download google/gemma-3n-E2B-it-litert-lm gemma-3n-E2B-it-int4.litertlm --local-dir ./models
+
 # Check model availability
 .antigravity/skills/performance-testing/scripts/provision-model.sh
-
-# Copy a model
-cp /path/to/gemma-4-E2B-it-web.litertlm models/
 ```
+
+### Provisioning Models to iOS Devices
+
+Use `devicectl` to copy model files to the app's Documents directory on a physical device:
+
+```bash
+xcrun devicectl device copy to \
+  --device <UDID> \
+  --domain-type appDataContainer \
+  --domain-identifier com.andrewvoirol.GemmaEdgeGallery \
+  --source <file> \
+  --destination Documents/<filename>
+```
+
+### Model Selection per Platform
+
+| Platform | Recommended Model | Backend | Notes |
+|---|---|---|---|
+| macOS (development) | `gemma-4-E2B-it.litertlm` | GPU + CPU | Full flexibility, both backends work |
+| iOS Simulator | `gemma-4-E2B-it.litertlm` | CPU only | Only standard models have CPU subgraph |
+| iOS Device (GPU perf) | `gemma-4-E2B-it-web.litertlm` | GPU only | Mobile Metal shaders, best GPU perf |
+| iOS Device (Standard GPU) | `gemma-4-E2B-it.litertlm` | GPU + CPU | GPU works on iPhone 16 Pro Max (2.33s load) |
+| iOS Device (HW-optimized) | `gemma-3n-E2B-HW.litertlm` | GPU only | Hardware-optimized, 24.0 tok/s decode |
+| iOS Device (Gallery compat) | `gemma-3n-E2B-it-int4.litertlm` | GPU only | Same model as iOS Gallery app |
 
 - The `models/` directory is gitignored
 - Unit tests work without a model (they use `MockInstrumentedEngine`)
-- Performance tests require a model in `models/`
+- Performance tests auto-discover models via fallback: env var → `models/` dir → app Documents
 - The app uses iOS Document Picker for user model selection at runtime
 
 ## Test Plans
@@ -84,14 +146,74 @@ cp /path/to/gemma-4-E2B-it-web.litertlm models/
 |---|---|---|---|
 | **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management |
 | **PerformanceTests** | ✅ Yes | Slow (minutes) | Real inference, latency, memory |
+| **SimulatorCompatibilityTests** | ✅ Yes | Slow (minutes) | Model/backend compatibility matrix |
+
+### Model Discovery (PerformanceTests)
+
+The `PerformanceTests` suite discovers models automatically (no env var needed for local dev):
+1. `PERFORMANCE_TEST_MODEL_PATH` env var (CI/automation — highest priority)
+2. `models/` directory relative to project root (macOS local dev)
+3. App Documents directory (simulator/device with provisioned model)
+
+> [!WARNING]
+> `#filePath`-based model discovery does **not** work on physical iOS devices (the path points to the build host, not the device filesystem). On-device tests use Documents/ directory scanning instead.
+
+### Backend Selection
+
+Tests automatically select the appropriate backend:
+- **macOS / Physical iOS device:** GPU (Metal)
+- **iOS Simulator:** CPU (XNNPACK) — Metal shader translation on the simulator is not bit-identical and produces corrupted inference output. See [Apple docs](https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator).
+
+> [!NOTE]
+> **TEST_HOST:** Device tests run inside the app's sandbox via `TEST_HOST`. Model files must be placed in the app's `Documents/` directory (use `devicectl` — see Model Provisioning above).
+
+### Running Tests
 
 ```bash
 # Run unit tests only (fast, no model)
 xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS --test-plan UnitTests
 
-# Run performance tests (requires model)
+# Run performance tests (auto-discovers model, auto-selects backend)
 xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS --test-plan PerformanceTests
+
+# Run performance tests with explicit model path (CI)
+xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS \
+  --test-plan PerformanceTests \
+  --testRunnerEnv PERFORMANCE_TEST_MODEL_PATH=/path/to/model.litertlm
 ```
+
+### Platform Compatibility Matrix (Verified — iPhone 16 Pro Max)
+
+| Model | Backend | macOS | iOS Sim | iOS Device | Decode | Prefill | TTFT | Init |
+|---|---|---|---|---|---|---|---|---|
+| Desktop GPU+CPU (`gemma-4-E2B-it`) | GPU | ✅ 33.8 tok/s | ❌ crash | ✅ **works** | 16.8 tok/s | 106.2 tok/s | 0.210s | 2.33s |
+| Desktop GPU+CPU (`gemma-4-E2B-it`) | CPU | ✅ 30.8 tok/s | ✅ 29.4 tok/s | ✅ | 24.3 tok/s | 53.8 tok/s | 0.34s | 4.22s |
+| Mobile GPU (`gemma-4-E2B-it-web`) | GPU | ✅ | ❌ degenerate | ✅ **42.9 tok/s** | 43.5 tok/s | 16.9 tok/s | 0.97s | 2.94s |
+| Mobile GPU (`gemma-4-E2B-it-web`) | CPU | ❌ no subgraph | ❌ no subgraph | ❌ no subgraph | — | — | — | — |
+| HW (`gemma-3n-E2B-HW`) | GPU | Unknown | Unknown | ✅ | 24.0 tok/s | 7.8 tok/s | 2.09s | 4.34s |
+
+> [!NOTE]
+> The earlier assumption that standard models' desktop Metal shaders fail on A-series mobile GPUs was **incorrect**. `gemma-4-E2B-it.litertlm` GPU acceleration works on iPhone 16 Pro Max (2.33s load time). **Web/mobile models** still have no CPU fallback — choose the right variant for your use case.
+
+### macOS Benchmark Baselines (Session 2 — Apple Silicon Mac)
+
+| Model | Backend | Decode (tok/s) | Prefill (tok/s) | TTFT (s) |
+|---|---|---|---|---|
+| Desktop GPU+CPU (`gemma-4-E2B-it`) | GPU | 109.9 | 324.8 | 0.058 |
+| Mobile GPU (`gemma-4-E2B-it-web`) | GPU | 113.1 | 123.7 | 0.138 |
+| Gemma 3n HW (`gemma-3n-E2B-HW`) | GPU | 78.6 | 89.8 | 0.191 |
+| Desktop GPU+CPU (`gemma-4-E2B-it`) | CPU | 32.9 | 83.8 | 0.221 |
+
+#### macOS MTP Baselines (Effective Throughput)
+
+| Model | Backend | Effective tok/s | Tokens | Wall Time |
+|---|---|---|---|---|
+| Mobile GPU (`gemma-4-E2B-it-web`) | GPU + MTP | ~101 | 101 | 1.00s |
+| Gemma 3n HW (`gemma-3n-E2B-HW`) | GPU + MTP | ~68 | 101 | 1.48s |
+| Desktop GPU+CPU (`gemma-4-E2B-it`) | CPU + MTP | ~18 | 101 | 5.59s |
+
+> [!NOTE]
+> macOS numbers are significantly faster than iOS device numbers because the Mac's GPU/CPU has higher throughput than mobile A-series chips. These baselines are useful for development iteration speed but should not be compared directly to iOS device benchmarks.
 
 ## MCP Architecture (for Agents)
 
@@ -112,6 +234,76 @@ Three hooks fire automatically during agent workflows:
 | Model check | Before build/test MCP calls | Warns if no model in `models/` |
 | Metrics capture | After test MCP calls | Appends results to `metrics/history.json` |
 
+## Gallery Parity Features
+
+This project aims for feature parity with the [Google AI Edge Gallery](https://github.com/nicklkfoster/GoogleAIEdgeGallery) iOS app. See `.antigravity/skills/gallery-parity/SKILL.md` for the full gap analysis.
+
+### Current Status
+| Feature | Status | Notes |
+|---|---|---|
+| LiteRT-LM inference | ✅ Done | GPU + CPU with smart fallback |
+| Model metadata registry | ✅ Done | `ModelRegistry` with variant detection |
+| Benchmark capture | ✅ Done | `BenchmarkInfo` + metrics persistence |
+| Experimental flags | ✅ Done | `ExperimentalFlagsState` management |
+| Dual platform targets | ✅ Done | iOS + macOS via Tuist |
+| HuggingFace downloads | ❌ Missing | Gallery downloads models at runtime |
+| Multi-turn chat | ❌ Missing | Gallery maintains conversation history |
+| Multimodal input | ❌ Missing | Image + audio input support |
+| Model management UI | ❌ Missing | Download, delete, update models |
+| Remote allowlist | ❌ Missing | Fetch model catalog from remote config |
+
+### Gallery Benchmark Target (Session 3b — 2026-05-31)
+User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
+
+| Model | Accel | Prefill (tok/s) | Decode (tok/s) | TTFT (s) | Init (ms) |
+|---|---|---|---|---|---|
+| Gemma-4-E2B-it | GPU | **360.35** | **41.65** | **0.74** | **9192** |
+| Gemma-3n-E2B-it | GPU | **392.86** | **25.57** | **0.70** | **8194** |
+| Gemma-4-E2B-it | CPU | 0.00 | 0.00 | 0.00 | 0.00 |
+
+> [!WARNING]
+> **MTP / Speculative Decoding Caveats:**
+> - **~30-40× cold-start init penalty**: Gallery init times (9.2s/8.2s) include MTP drafter compilation.
+> - **`BenchmarkInfo` returns `nil`** when MTP is enabled (SDK limitation — metrics cannot be captured).
+> - **Effective throughput may be lower on short prompts** due to drafter model overhead; MTP benefits are most visible on longer generations.
+> - **MTP + CPU backend CRASHES on iOS device** — SDK crash at external symbol. MTP on device only works with GPU backend.
+> - **CPU accelerator returns all zeros** in the Gallery for Gemma 4 E2B — model has no XNNPACK CPU subgraph.
+
+## Known SDK Issues (Community-Validated)
+
+| # | Issue | Community Ref | Status |
+|---|---|---|---|
+| 1 | MTP + Web GPU model SEGV crash on iOS | [LiteRT-LM #2243](https://github.com/google-ai-edge/LiteRT-LM/issues/2243) | Open — MTP on iOS is experimental |
+| 2 | MTP + CPU crashes on iOS device | [LiteRT-LM #2243](https://github.com/google-ai-edge/LiteRT-LM/issues/2243) | Open — XNNPACK + MTP not fully supported |
+| 3 | Gallery CPU returns all zeros | No exact match — likely silent model failure | Confirmed locally |
+| 4 | BenchmarkInfo nil with MTP | No exact issue — SDK benchmarking predates MTP | Known SDK limitation |
+| 5 | Simulator GPU produces garbage | [Apple docs](https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator), flutter_gemma docs | Well-documented platform limitation |
+| 6 | MTP cold-start ~30-40× penalty | Expected behavior (JIT kernel compilation) | Not a bug |
+| 7 | BenchmarkInfo nil WITHOUT MTP on macOS | No exact issue — `getBenchmarkInfo()` throws silently | Confirmed locally (Session 3b) |
+
+> [!NOTE]
+> See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.
+
+## Entitlements
+
+| Entitlement | Purpose | Personal Team | Paid Team |
+|---|---|---|---|
+| `increased-memory-limit` | Allows app to use more RAM for large models | ✅ Works | ✅ Works |
+| `extended-virtual-addressing` | Enables >4GB address space for very large models | ❌ Blocked | ✅ Works |
+
+> [!NOTE]
+> For development with a free personal team, `increased-memory-limit` is sufficient for E2B models. `extended-virtual-addressing` requires a paid Apple Developer account.
+
+## InfoPlist Keys
+
+The iOS target in `Project.swift` includes these `InfoPlist` keys to enable model file access:
+
+| Key | Value | Purpose |
+|---|---|---|
+| `UIFileSharingEnabled` | `true` | Exposes Documents/ via iTunes/Finder file sharing |
+| `LSSupportsOpeningDocumentsInPlace` | `true` | Allows opening documents in place from Files app |
+| `UISupportsDocumentBrowser` | `true` | Enables the document browser for model selection |
+
 ## Project Structure
 
 ```
@@ -126,7 +318,7 @@ gemma-edgegallery/
 │   ├── DEVELOPING.md     # This file
 │   ├── hooks.json        # Lifecycle hook configuration
 │   ├── hooks/            # Hook scripts
-│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing)
+│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing, gallery-parity, model-management)
 │   └── rules/            # Always-on agent rules
 ├── .gitignore
 ├── GemmaEdgeGallery.xcodeproj/   # Tuist-generated (DO NOT EDIT)

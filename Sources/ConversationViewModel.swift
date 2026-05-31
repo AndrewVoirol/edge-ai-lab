@@ -22,7 +22,7 @@ final class ConversationViewModel {
     /// Whether an inference is currently in progress.
     var isGenerating = false
 
-    /// Whether GPU backend is selected.
+    /// Whether GPU backend is preferred.
     var useGPU = true
 
     /// The most recent BenchmarkInfo from completed inference.
@@ -30,6 +30,12 @@ final class ConversationViewModel {
 
     /// Whether to show the file picker.
     var isFilePickerPresented = false
+
+    /// Result of the last backend initialization (active backend, fallback info).
+    var backendResult: BackendResult?
+
+    /// Metadata for the currently loaded model, if known.
+    var activeModelMetadata: ModelMetadata?
 
     /// Current experimental flags configuration (user-toggleable, default ON).
     var experimentalFlags = ExperimentalFlagsState(
@@ -84,9 +90,37 @@ final class ConversationViewModel {
         await initializeEngine(modelPath: url.path)
     }
 
-    /// Initialize the inference engine with a model file.
+    /// Checks the sandboxed Documents directory for any .litertlm files and auto-loads the first one.
+    func checkForLocalModels() {
+        let fileManager = FileManager.default
+        guard let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        do {
+            let files = try fileManager.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil)
+            let modelFiles = files.filter { $0.pathExtension == "litertlm" }
+            if let firstModel = modelFiles.first {
+                statusMessage = "Found local model: \(firstModel.lastPathComponent)"
+                activeModelURL = firstModel
+                Task {
+                    await initializeEngine(modelPath: firstModel.path)
+                }
+            }
+        } catch {
+            print("[ViewModel] Failed to scan local documents: \(error.localizedDescription)")
+        }
+    }
+
+    /// Initialize the inference engine with a model file, using smart backend fallback.
     func initializeEngine(modelPath: String) async {
         statusMessage = "Initializing Engine..."
+
+        // Look up model metadata for known models
+        activeModelMetadata = ModelRegistry.lookup(path: modelPath)
+        if let metadata = activeModelMetadata {
+            statusMessage = "Loading \(metadata.name)..."
+        }
+
         do {
             let fileManager = FileManager.default
             guard let cacheBaseDirectory = fileManager.urls(
@@ -107,15 +141,26 @@ final class ConversationViewModel {
                 )
             }
 
-            try await engine.initialize(
+            // Use smart fallback initialization
+            let result = try await engine.initializeWithFallback(
                 modelPath: modelPath,
-                useGPU: useGPU,
+                preferGPU: useGPU,
                 cacheDir: modelCacheDirectory.path,
                 flags: experimentalFlags
             )
 
-            statusMessage = "Engine Ready! 🎉"
+            backendResult = result
+
+            let backendLabel = result.activeBackend == .gpu ? "GPU 🚀" : "CPU"
+            let modelLabel = activeModelMetadata?.name ?? modelFilename
+
+            if result.didFallback {
+                statusMessage = "\(modelLabel) ready (\(backendLabel)) ⚠️ Fallback"
+            } else {
+                statusMessage = "\(modelLabel) ready (\(backendLabel)) 🎉"
+            }
         } catch {
+            backendResult = nil
             statusMessage = "Failed to initialize: \(error.localizedDescription)"
         }
     }
@@ -167,6 +212,8 @@ final class ConversationViewModel {
     func shutdown() {
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
+        activeModelMetadata = nil
+        backendResult = nil
         engine.shutdown()
         benchmarkInfo = nil
     }

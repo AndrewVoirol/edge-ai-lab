@@ -89,3 +89,14 @@ Args: scheme=GemmaEdgeGallery_iOS, workspace=GemmaEdgeGallery.xcworkspace, testP
 
 > [!WARNING]
 > **Physical device deployment** via raw `xcodebuild` will fail due to Keychain security blocking code signing in non-interactive sessions. Always use `xcodebuild-mcp device build-and-run` for device deployment.
+
+## Physical Device Testing
+
+> [!NOTE]
+> **TEST_HOST sandbox**: iOS unit tests run inside the host app's process via `TEST_HOST` (configured automatically by Tuist). This means tests share the app's sandbox — model files in the app's `Documents/` directory are accessible to tests. However, `#filePath` does NOT resolve to the project directory on physical devices; tests must discover models via `FileManager.urls(for: .documentDirectory)`.
+
+### Device Test Workflow
+1. Build and install the app on the device
+2. Push model files to the app's Documents/ via `xcrun devicectl device copy to`
+3. Run tests — they discover models from the app's Documents/ directory
+4. Results include benchmark data captured via os_signpost and BenchmarkInfo

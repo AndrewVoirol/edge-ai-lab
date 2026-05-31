@@ -16,6 +16,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// The BenchmarkInfo to return after inference. Set this before calling sendMessageStream.
     var mockBenchmarkInfo: BenchmarkInfo?
 
+    /// The BackendResult to return from initializeWithFallback. Set this before calling.
+    var mockBackendResult: BackendResult?
+
     /// The response chunks to stream back. Each string is yielded as a separate chunk.
     var mockResponseChunks: [String] = ["Hello", ", ", "world", "!"]
 
@@ -52,6 +55,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
 
     private(set) var isReady = false
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
+    private(set) var lastBackendResult: BackendResult?
     private(set) var flagsState = ExperimentalFlagsState(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,
@@ -75,6 +79,30 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         }
 
         isReady = true
+    }
+
+    func initializeWithFallback(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState
+    ) async throws -> BackendResult {
+        // Delegate to regular initialize
+        try await initialize(
+            modelPath: modelPath,
+            useGPU: preferGPU,
+            cacheDir: cacheDir,
+            flags: flags
+        )
+
+        let result = mockBackendResult ?? BackendResult(
+            activeBackend: preferGPU ? .gpu : .cpu,
+            didFallback: false,
+            fallbackReason: nil,
+            detectedCapability: .unknown
+        )
+        self.lastBackendResult = result
+        return result
     }
 
     func sendMessageStream(_ text: String) -> AsyncThrowingStream<String, Error> {
@@ -112,5 +140,6 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         shutdownCallCount += 1
         isReady = false
         lastBenchmarkInfo = nil
+        lastBackendResult = nil
     }
 }

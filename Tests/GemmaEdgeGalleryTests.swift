@@ -50,10 +50,14 @@ final class ConversationViewModelTests: XCTestCase {
 
         await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        XCTAssertEqual(vm.statusMessage, "Engine Ready! 🎉")
+        // Status message now includes backend info and model filename
+        XCTAssertTrue(vm.statusMessage.contains("ready"))
+        XCTAssertTrue(vm.statusMessage.contains("🎉") || vm.statusMessage.contains("Fallback"))
         XCTAssertTrue(vm.isEngineReady)
-        XCTAssertEqual(mockEngine.initializeCallCount, 1)
+        // initializeWithFallback calls initialize internally
+        XCTAssertGreaterThanOrEqual(mockEngine.initializeCallCount, 1)
         XCTAssertEqual(mockEngine.lastModelPath, "/path/to/model.litertlm")
+        XCTAssertNotNil(vm.backendResult)
     }
 
     @MainActor
@@ -67,8 +71,10 @@ final class ConversationViewModelTests: XCTestCase {
 
         await vm.initializeEngine(modelPath: "/path/to/bad_model.litertlm")
 
+        // Both backends fail (mock throws on both attempts), so we get a failure message
         XCTAssertTrue(vm.statusMessage.contains("Failed to initialize"))
         XCTAssertFalse(vm.isEngineReady)
+        XCTAssertNil(vm.backendResult)
     }
 
     @MainActor
@@ -263,5 +269,83 @@ final class MetricsStoreTests: XCTestCase {
                 visualTokenBudget: nil
             )
         )
+    }
+}
+
+// MARK: - ModelMetadata Tests
+
+final class ModelMetadataTests: XCTestCase {
+
+    func testLookupByFilename() {
+        let metadata = ModelRegistry.lookup(filename: "gemma-4-E2B-it.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Desktop GPU+CPU")
+    }
+
+    func testLookupByFilenameWebVariant() {
+        let metadata = ModelRegistry.lookup(filename: "gemma-4-E2B-it-web.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Mobile GPU")
+    }
+
+    func testLookupByPath() {
+        let metadata = ModelRegistry.lookup(path: "/path/to/models/gemma-4-E2B-it.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Desktop GPU+CPU")
+    }
+
+    func testLookupUnknownReturnsNil() {
+        let metadata = ModelRegistry.lookup(filename: "unknown-model.litertlm")
+        XCTAssertNil(metadata)
+    }
+
+    func testRecommendedBackendForUnknownModel() {
+        let recommendation = ModelRegistry.recommendedBackend(for: "/path/to/unknown.litertlm")
+        XCTAssertEqual(recommendation, .probeRequired)
+    }
+
+    func testE2BStandardSupportsMTP() {
+        let metadata = ModelRegistry.gemma4E2BStandard
+        XCTAssertTrue(metadata.supportsMTP)
+        XCTAssertTrue(metadata.capabilities.contains("speculative_decoding"))
+    }
+
+    func testE4BModelsInRegistry() {
+        let e4bStandard = ModelRegistry.lookup(filename: "gemma-4-E4B-it.litertlm")
+        XCTAssertNotNil(e4bStandard)
+        XCTAssertEqual(e4bStandard?.name, "Gemma 4 E4B · Desktop GPU+CPU")
+
+        let e4bWeb = ModelRegistry.lookup(filename: "gemma-4-E4B-it-web.litertlm")
+        XCTAssertNotNil(e4bWeb)
+        XCTAssertEqual(e4bWeb?.name, "Gemma 4 E4B · Mobile GPU")
+    }
+
+    func testKnownModelCountIsSix() {
+        XCTAssertEqual(ModelRegistry.knownModels.count, 6)
+    }
+
+    func testBackendCapabilitySupportsGPU() {
+        XCTAssertTrue(BackendCapability.gpuOnly.supportsGPU)
+        XCTAssertTrue(BackendCapability.gpuAndCpu.supportsGPU)
+        XCTAssertFalse(BackendCapability.cpuOnly.supportsGPU)
+        XCTAssertFalse(BackendCapability.unknown.supportsGPU)
+    }
+
+    func testBackendCapabilitySupportsCPU() {
+        XCTAssertTrue(BackendCapability.cpuOnly.supportsCPU)
+        XCTAssertTrue(BackendCapability.gpuAndCpu.supportsCPU)
+        XCTAssertFalse(BackendCapability.gpuOnly.supportsCPU)
+        XCTAssertFalse(BackendCapability.unknown.supportsCPU)
+    }
+
+    func testPlatformSupportCurrentPlatform() {
+        let support = PlatformSupport(
+            macOS: .gpuAndCpu,
+            iOSDevice: .cpuOnly,
+            iOSSimulator: .cpuOnly
+        )
+        // Depending on test platform, verify we get a valid capability
+        let current = support.currentPlatform
+        XCTAssertNotEqual(current, .unknown)
     }
 }

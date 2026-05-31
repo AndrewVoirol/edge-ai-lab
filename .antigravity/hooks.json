@@ -30,12 +30,12 @@
   "metrics-capture": {
     "PostToolUse": [
       {
-        "matcher": "mcp_xcodebuild-mcp_.*test|mcp_xcode-tools_RunAllTests|mcp_xcode-tools_RunSomeTests",
+        "matcher": "mcp_xcodebuild-mcp_.*test|mcp_xcode-tools_RunAllTests|mcp_xcode-tools_RunSomeTests|run_command",
         "hooks": [
           {
             "type": "command",
             "command": "./.antigravity/hooks/capture-metrics.sh",
-            "timeout": 15
+            "timeout": 30
           }
         ]
       }
