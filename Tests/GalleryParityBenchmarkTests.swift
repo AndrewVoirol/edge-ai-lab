@@ -30,6 +30,12 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     /// Maximum decode tokens per run (matches Gallery's 256 decode token setting).
     private let maxDecodeTokens = 256
 
+    /// Sampler config matching Gallery v1.0.6: greedy decoding with topK=1.
+    /// Gallery uses topK=1, topP=1.0, temperature=1.0 for deterministic output.
+    private var gallerySamplerConfig: SamplerConfig {
+        try! SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+    }
+
     /// A prompt designed to generate approximately 256 prefill tokens.
     /// The Gallery uses synthetic tokens for prefill measurement, but we use a long natural
     /// language prompt that LiteRT-LM will tokenize into ~256 tokens.
@@ -205,6 +211,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         print("║ Model: \(modelFilename)")
         print("║ Config: \(maxDecodeTokens) decode tokens, \(numberOfRuns) runs")
         print("║ Backend: \(useGPU ? "GPU" : "CPU"), MTP: \(enableMTP ? "ON" : "OFF")")
+        print("║ Sampler: topK=1, topP=1.0 (Gallery greedy mode)")
         print("╚══════════════════════════════════════════════════════════════")
 
         // Accumulators for averaging
@@ -236,7 +243,8 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                     modelPath: modelPath,
                     useGPU: useGPU,
                     cacheDir: cacheDirURL.path,
-                    flags: flags
+                    flags: flags,
+                    samplerConfig: gallerySamplerConfig
                 )
             } catch {
                 print("❌ [\(label)] Run \(run): Engine init failed: \(error)")
