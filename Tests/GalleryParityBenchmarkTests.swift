@@ -193,10 +193,118 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         )
     }
 
+    // MARK: - Gallery-Exact Model Variant Tests
+
+    /// Test the EXACT model the Gallery iOS app uses: gemma-3n-E2B-it-int4.litertlm
+    /// from google/gemma-3n-E2B-it-litert-lm. This is the standard INT4 variant (3.39 GB),
+    /// NOT the HW-optimized variant (2.83 GB). The 25% decode gap may be due to
+    /// model variant differences — this test isolates that variable.
+    func testGalleryParity_Gemma3nE2B_INT4_GPU() async throws {
+        let model = try findModel(named: "gemma-3n-E2B-it-int4.litertlm")
+        try await runGalleryParityBenchmark(
+            modelPath: model,
+            useGPU: true,
+            enableMTP: false,
+            label: "Gemma3n-E2B-INT4/GPU"
+        )
+    }
+
+    /// Test the HW-optimized variant specifically (for comparison with INT4).
+    func testGalleryParity_Gemma3nE2B_HW_GPU() async throws {
+        let model = try findModel(named: "gemma-3n-E2B-HW.litertlm")
+        try await runGalleryParityBenchmark(
+            modelPath: model,
+            useGPU: true,
+            enableMTP: false,
+            label: "Gemma3n-E2B-HW/GPU"
+        )
+    }
+
+    // MARK: - SDK Benchmark Mode (Exact Gallery Methodology)
+
+    /// Uses the LiteRT-LM SDK's built-in `benchmark()` function which:
+    /// - Creates its own Engine + Conversation internally
+    /// - Uses `initializeForBenchmark()` with fixed prefill/decode token counts
+    /// - Uses synthetic tokens (not natural language) for prefill measurement
+    /// - Reports BenchmarkInfo directly
+    ///
+    /// This gives exact parity with Gallery's measurement methodology.
+    func testSDKBenchmarkMode_Gemma4E2B_GPU() async throws {
+        let model = try findModel(named: "gemma-4-E2B-it.litertlm")
+        try await runSDKBenchmark(
+            modelPath: model,
+            backend: .gpu,
+            label: "Gemma4-E2B-Standard/GPU (SDK Mode)"
+        )
+    }
+
+    func testSDKBenchmarkMode_Gemma3nE2B_GPU() async throws {
+        let model = try findAnyModel(matching: [
+            "gemma-3n-E2B-HW.litertlm",
+            "gemma-3n-E2B-it-int4.litertlm"
+        ])
+        try await runSDKBenchmark(
+            modelPath: model,
+            backend: .gpu,
+            label: "Gemma3n-E2B/GPU (SDK Mode)"
+        )
+    }
+
+    /// Runs the LiteRT-LM SDK's built-in benchmark function for exact Gallery methodology parity.
+    private func runSDKBenchmark(
+        modelPath: String,
+        backend: Backend,
+        prefillTokens: Int = 256,
+        decodeTokens: Int = 256,
+        label: String
+    ) async throws {
+        let modelFilename = (modelPath as NSString).lastPathComponent
+
+        print("╔══════════════════════════════════════════════════════════════")
+        print("║ SDK BENCHMARK MODE: \(label)")
+        print("║ Model: \(modelFilename)")
+        print("║ Config: \(prefillTokens) prefill, \(decodeTokens) decode tokens")
+        print("║ Backend: \(backend.rawValue)")
+        print("║ Method: LiteRTLM benchmark() — synthetic tokens, exact Gallery parity")
+        print("╚══════════════════════════════════════════════════════════════")
+
+        let cacheDirURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sdk_bench_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: cacheDirURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: cacheDirURL) }
+
+        do {
+            let info = try await benchmark(
+                modelPath: modelPath,
+                backend: backend,
+                prefillTokens: prefillTokens,
+                decodeTokens: decodeTokens,
+                cacheDir: cacheDirURL.path
+            )
+
+            print("\n╔══════════════════════════════════════════════════════════════")
+            print("║ SDK BENCHMARK RESULTS: \(label)")
+            print("╠══════════════════════════════════════════════════════════════")
+            print("║ Prefill: \(String(format: "%.2f", info.lastPrefillTokensPerSecond)) tok/s")
+            print("║ Decode: \(String(format: "%.2f", info.lastDecodeTokensPerSecond)) tok/s")
+            print("║ TTFT: \(String(format: "%.3f", info.timeToFirstTokenInSecond))s")
+            print("║ Init: \(String(format: "%.3f", info.initTimeInSecond))s")
+            print("║ Prefill tokens: \(info.lastPrefillTokenCount)")
+            print("║ Decode tokens: \(info.lastDecodeTokenCount)")
+            print("╚══════════════════════════════════════════════════════════════")
+
+            XCTAssertGreaterThan(info.lastDecodeTokensPerSecond, 0, "Expected non-zero decode speed")
+        } catch {
+            print("❌ [\(label)] SDK benchmark failed: \(error)")
+            throw XCTSkip("[\(label)] SDK benchmark failed: \(error)")
+        }
+    }
+
     // MARK: - Benchmark Engine
 
     /// Runs a Gallery-parity benchmark: `numberOfRuns` iterations, averaging results.
-    /// The engine is initialized once and reused across runs to avoid native resource lifecycle issues.
+    /// Each run creates a fresh conversation (via resetConversation) to prevent context overflow.
+    /// A warmup inference primes the SDK's BenchmarkInfo system before each real benchmark run.
     @MainActor
     private func runGalleryParityBenchmark(
         modelPath: String,
@@ -213,6 +321,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         print("║ Config: \(maxDecodeTokens) decode tokens, \(numberOfRuns) runs")
         print("║ Backend: \(useGPU ? "GPU" : "CPU"), MTP: \(enableMTP ? "ON" : "OFF")")
         print("║ Sampler: topK=1, topP=1.0 (Gallery greedy mode)")
+        print("║ Context: Fresh conversation per run (no accumulation)")
         print("╚══════════════════════════════════════════════════════════════")
 
         // Accumulators for averaging
@@ -254,10 +363,37 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         let initElapsed = (CFAbsoluteTimeGetCurrent() - initStart) * 1000
         print("  Init: \(String(format: "%.0f", initElapsed))ms")
 
-        // Run inference multiple times on the same engine
+        // Run inference multiple times, each with a fresh conversation
         for run in 1...numberOfRuns {
             print("\n--- Run \(run)/\(numberOfRuns) ---")
 
+            // Step 1: Reset conversation for a clean context window
+            if run > 1 {
+                do {
+                    try await engine.resetConversation()
+                    print("  ✓ Fresh conversation created")
+                } catch {
+                    print("❌ [\(label)] Run \(run): resetConversation failed: \(error)")
+                    XCTFail("[\(label)] resetConversation failed: \(error)")
+                    break
+                }
+            }
+
+            // Step 2: Warmup to prime BenchmarkInfo subsystem
+            // The SDK returns nil BenchmarkInfo on the FIRST turn of each session.
+            // This throwaway inference (turn 1) forces the counters to initialize.
+            // We intentionally do NOT reset after warmup — the benchmark must run
+            // as turn 2 on the SAME session for BenchmarkInfo to be available.
+            // The small warmup context (~20 tokens from "Hi") is negligible contamination
+            // for a 256-token benchmark.
+            do {
+                try await engine.warmup()
+                print("  ✓ Warmup complete (BenchmarkInfo primed for turn 2)")
+            } catch {
+                print("  ⚠️ Warmup failed: \(error) — proceeding with wall-clock fallback")
+            }
+
+            // Step 4: Run the actual benchmark prompt
             var response = ""
             var tokenCount = 0
             var firstTokenTime: Double?
@@ -290,7 +426,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                 ttfts.append(ttft)
             }
 
-            // Capture BenchmarkInfo (if available)
+            // Capture BenchmarkInfo (should be non-nil after warmup priming)
             if let info = engine.lastBenchmarkInfo {
                 decodeSpeeds.append(info.lastDecodeTokensPerSecond)
                 prefillSpeeds.append(info.lastPrefillTokensPerSecond)
@@ -310,7 +446,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                 if enableMTP {
                     print("  ⚠️ BenchmarkInfo nil (expected with MTP)")
                 } else {
-                    print("  ⚠️ BenchmarkInfo nil (unexpected without MTP — SDK limitation)")
+                    print("  ⚠️ BenchmarkInfo nil (unexpected — warmup may have failed)")
                 }
                 print("  📊 Wall-clock metrics:")
                 print("    Tokens: \(tokenCount) in \(String(format: "%.2f", inferenceElapsed))s")
@@ -324,6 +460,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
             print("  Response preview: \(response.prefix(80))...")
 
             XCTAssertFalse(response.isEmpty, "[\(label)] Run \(run): Expected non-empty response")
+            XCTAssertGreaterThan(tokenCount, 1, "[\(label)] Run \(run): Expected more than 1 token (context overflow?)")
         }
 
         // Shutdown after all runs complete

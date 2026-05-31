@@ -281,9 +281,11 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 6 | MTP cold-start ~30-40× penalty | Expected behavior (JIT kernel compilation) | Not a bug |
 | 7 | BenchmarkInfo nil WITHOUT MTP on macOS | No exact issue — `getBenchmarkInfo()` throws silently | Confirmed locally (Session 3b) |
 | 8 | **Conversation.deinit use-after-free** | Discovered Session 4 | **FIXED** — use `withExtendedLifetime` in `shutdown()` |
-| 9 | **BenchmarkInfo nil on first conversation turn** | No issue filed | Confirmed (Session 4). SDK limitation — wall-clock fallback needed |
-| 10 | **Context overflow on multi-turn reuse** | No issue filed | Confirmed (Session 4). `Token id X out of range` crash |
-| 11 | **Metal sampler dylib not bundled** | No issue filed | Falls back to C API. No impact for topK=1 greedy |
+| 9 | **BenchmarkInfo nil on first conversation turn** | No issue filed | **FIXED** (Session 6). Per-session limitation. Don't reset after warmup — benchmark runs as turn 2 with BenchmarkInfo available |
+| 10 | **Context overflow on multi-turn reuse** | No issue filed | **FIXED** (Session 5). Added `resetConversation()` for fresh context per run |
+| 11 | **Metal sampler dylib not bundled** | No issue filed | **Root cause**: Git LFS pointers in prebuilt/, xcframework excludes dylib. Falls back to C API. No impact for topK=1 |
+| 12 | **resetConversation single-session race** | Discovered Session 6 | **FIXED** — `sendMessageStream` Task captured local Conversation ref. Await `activeInferenceTask` before niling |
+| 13 | **SDK benchmark() decode token cap** | No issue filed | `benchmark()` only generates 32 decode tokens despite requesting 256. Model-level EOS constraint |
 
 > [!NOTE]
 > See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.

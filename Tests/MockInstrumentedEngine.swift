@@ -54,6 +54,12 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// Number of times shutdown was called.
     private(set) var shutdownCallCount = 0
 
+    /// Number of times resetConversation was called.
+    private(set) var resetConversationCallCount = 0
+
+    /// Number of times warmup was called.
+    private(set) var warmupCallCount = 0
+
     // MARK: - Protocol Conformance
 
     private(set) var isReady = false
@@ -141,6 +147,17 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
                 continuation.finish()
             }
         }
+    }
+
+    func resetConversation() async throws {
+        resetConversationCallCount += 1
+        lastBenchmarkInfo = nil
+    }
+
+    func warmup() async throws {
+        warmupCallCount += 1
+        // Simulate benchmark priming — set lastBenchmarkInfo after warmup
+        lastBenchmarkInfo = mockBenchmarkInfo
     }
 
     func shutdown() {

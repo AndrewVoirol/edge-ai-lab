@@ -151,6 +151,10 @@ enum ModelRegistry {
     ///   Prefill: 402.93 tok/s | Decode: 25.47 tok/s
     ///   TTFT: 0.68s | Init: 6499.08ms
     ///   (256 prefill/decode tokens, 3 runs, GPU accelerator)
+    ///
+    /// NOTE: This is the standard INT4 variant (3.39 GB). The HW variant (gemma3nE2BHW)
+    /// is a hardware-optimized build (2.83 GB) with potentially different quantization
+    /// and shader configurations. Performance differences between variants are under investigation.
     static let gemma3nE2B = ModelMetadata(
         name: "Gemma 3n E2B · Mobile GPU",
         modelId: "google/gemma-3n-E2B-it-litert-lm",
@@ -214,6 +218,10 @@ enum ModelRegistry {
     /// Gallery iOS benchmark reference (v1.0.6, iPhone 16 Pro Max, Gemma-4-E2B-it, GPU):
     ///   Prefill: 305.45 tok/s | Decode: 39.23 tok/s
     ///   TTFT: 0.87s | Init: 1006.00ms
+    ///
+    /// Our benchmark (Session 5, iPhone 16 Pro Max, GPU, greedy):
+    ///   Decode: 43.09 tok/s (✅ +3.5% vs Gallery)
+    ///   Init: 3236ms
     static let gemma4E2BStandard = ModelMetadata(
         name: "Gemma 4 E2B · Desktop GPU+CPU",
         modelId: "litert-community/gemma-4-E2B-it-litert-lm",

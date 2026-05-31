@@ -57,6 +57,17 @@ protocol InstrumentedEngineProtocol: AnyObject {
     /// - Returns: An AsyncThrowingStream of response text chunks.
     func sendMessageStream(_ text: String) -> AsyncThrowingStream<String, Error>
 
+    /// Create a fresh conversation on the existing engine, resetting the context window.
+    /// The engine stays alive (preserving model weights), only the conversation is recreated.
+    /// - Throws: An error if the engine is not initialized or conversation creation fails.
+    func resetConversation() async throws
+
+    /// Send a short throwaway prompt to prime the SDK's benchmark subsystem.
+    /// After warmup completes, `getBenchmarkInfo()` will return non-nil on subsequent turns.
+    /// The warmup response is discarded. Call `resetConversation()` after warmup to get
+    /// a clean context for the real benchmark.
+    func warmup() async throws
+
     /// Tear down the engine and free resources.
     func shutdown()
 }
@@ -108,6 +119,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     )
     /// The sampler config used for the current conversation.
     private var activeSamplerConfig: SamplerConfig?
+    /// Tracks the active inference Task so resetConversation() can await its completion.
+    /// This is critical because the Task captures a local strong reference to the Conversation,
+    /// and the native session won't be deleted until that reference is released.
+    private var activeInferenceTask: Task<Void, Never>?
 
     var isReady: Bool { conversation != nil }
 
@@ -170,56 +185,122 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             }
         }
 
-        return AsyncThrowingStream { continuation in
-            Task { @MainActor in
-                let signpostID = OSSignpostID(log: Self.inferenceLog)
-                os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                            "Starting inference for prompt length %{public}d", text.count)
+        let stream: AsyncThrowingStream<String, Error>
+        var continuation: AsyncThrowingStream<String, Error>.Continuation!
+        stream = AsyncThrowingStream { continuation = $0 }
 
-                var isFirstToken = true
+        // Store the Task so resetConversation() can await its completion.
+        // The Task captures `conversation` (the local binding), which prevents
+        // Conversation.deinit from running until the Task body returns.
+        let task = Task { @MainActor [conversation] in
+            let signpostID = OSSignpostID(log: Self.inferenceLog)
+            os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
+                        "Starting inference for prompt length %{public}d", text.count)
 
-                do {
-                    for try await chunk in conversation.sendMessageStream(Message(text)) {
-                        if let firstContent = chunk.contents.first {
-                            switch firstContent {
-                            case .text(let responseText):
-                                if isFirstToken {
-                                    os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
-                                                "First token received")
-                                    isFirstToken = false
-                                }
-                                continuation.yield(responseText)
-                            default:
-                                break
+            var isFirstToken = true
+
+            do {
+                for try await chunk in conversation.sendMessageStream(Message(text)) {
+                    if let firstContent = chunk.contents.first {
+                        switch firstContent {
+                        case .text(let responseText):
+                            if isFirstToken {
+                                os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
+                                            "First token received")
+                                isFirstToken = false
                             }
+                            continuation.yield(responseText)
+                        default:
+                            break
                         }
                     }
-
-                    // Capture BenchmarkInfo after stream completes
-                    if self.flagsState.enableBenchmark {
-                        do {
-                            self.lastBenchmarkInfo = try conversation.getBenchmarkInfo()
-                        } catch {
-                            // Gracefully degrade — benchmark data unavailable but inference succeeded
-                            self.lastBenchmarkInfo = nil
-                        }
-                    }
-
-                    os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                                "Inference completed")
-                    continuation.finish()
-                } catch {
-                    os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                                "Inference FAILED: %{public}s", error.localizedDescription)
-                    continuation.finish(throwing: error)
                 }
+
+                // Capture BenchmarkInfo after stream completes
+                if self.flagsState.enableBenchmark {
+                    do {
+                        self.lastBenchmarkInfo = try conversation.getBenchmarkInfo()
+                    } catch {
+                        // Gracefully degrade — benchmark data unavailable but inference succeeded
+                        self.lastBenchmarkInfo = nil
+                    }
+                }
+
+                os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
+                            "Inference completed")
+                continuation.finish()
+            } catch {
+                os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
+                            "Inference FAILED: %{public}s", error.localizedDescription)
+                continuation.finish(throwing: error)
             }
+        }
+        self.activeInferenceTask = task
+
+        return stream
+    }
+
+    // MARK: - Conversation Reset
+
+    func resetConversation() async throws {
+        guard let engine = engine else {
+            throw InstrumentedEngineError.notInitialized
+        }
+
+        // CRITICAL: The LiteRT-LM engine only supports ONE session at a time.
+        // We must fully delete the existing conversation (native session) BEFORE
+        // creating a new one, or the engine returns:
+        //   "FAILED_PRECONDITION: A session already exists."
+        //
+        // Root cause: sendMessageStream() captures a local strong reference to the
+        // Conversation in its Task closure. Even after `self.conversation = nil`,
+        // the Task holds the reference, preventing Conversation.deinit from running.
+        // We MUST await the Task's completion to release that reference.
+
+        // Step 1: Wait for any active inference Task to complete.
+        // This releases the Task's captured Conversation reference.
+        if let task = activeInferenceTask {
+            await task.value
+            activeInferenceTask = nil
+        }
+
+        // Step 2: Nil the conversation to trigger Conversation.deinit.
+        // At this point, `self.conversation` is the only remaining strong reference.
+        // withExtendedLifetime ensures the engine stays alive during deinit.
+        autoreleasepool {
+            withExtendedLifetime(engine) {
+                conversation = nil
+            }
+        }
+        lastBenchmarkInfo = nil
+
+        // Step 3: Create a fresh conversation with the same sampler config.
+        let convConfig = ConversationConfig(samplerConfig: activeSamplerConfig)
+        self.conversation = try await engine.createConversation(with: convConfig)
+    }
+
+    // MARK: - Warmup
+
+    func warmup() async throws {
+        guard conversation != nil else {
+            throw InstrumentedEngineError.notInitialized
+        }
+
+        // Send a minimal prompt to prime the benchmark subsystem.
+        // The SDK's BenchmarkInfo is nil on the first conversation turn;
+        // this throwaway inference forces the internal counters to initialize.
+        for try await _ in sendMessageStream("Hi") {
+            // Discard all response tokens
         }
     }
 
     // MARK: - Shutdown
 
     func shutdown() {
+        // Cancel any active inference task to release its captured Conversation reference.
+        activeInferenceTask?.cancel()
+        activeInferenceTask = nil
+
         // IMPORTANT: The native conversation handle depends on the engine being alive.
         // We must ensure Conversation.deinit (which calls litert_lm_conversation_delete)
         // runs BEFORE Engine.deinit (which calls litert_lm_engine_delete).

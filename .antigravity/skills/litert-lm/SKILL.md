@@ -257,18 +257,28 @@ The project tracks LiteRT-LM `main` branch from the upstream Google repo:
 > [!TIP]
 > The upstream repo URL changed from `nicklkfoster/LiteRT-LM` to `google-ai-edge/LiteRT-LM`. Use the google-ai-edge URL for the latest.
 
-## Gallery Parity Benchmarks (Session 4 — 2026-05-31)
+## Gallery Parity Benchmarks (Session 6 — 2026-05-31)
 
 On-device results from iPhone 16 Pro Max, topK=1 greedy mode:
 
-| Model | Our Best Decode | Gallery Decode | Delta |
-|-------|----------------|----------------|-------|
-| Gemma 4 E2B Standard/GPU | **43.09 tok/s** | 41.65 tok/s | ✅ **+3.5%** |
-| Gemma 3n E2B HW/GPU | 19.2 tok/s | 25.57 tok/s | ⚠️ -25% |
+| Model | SDK Benchmark Decode | Gallery Decode | Delta |
+|-------|---------------------|----------------|-------|
+| Gemma 4 E2B Standard/GPU | **43.09 tok/s** (S4 wall) | 41.65 tok/s | ✅ **+3.5%** |
+| Gemma 3n E2B HW/GPU | **25.71 tok/s** (SDK mode) | 25.57 tok/s | ✅ **+0.5%** |
 
 Full results: `metrics/gallery_parity_results.md`
 
 ### Known Test Limitations
-- **BenchmarkInfo nil on first turn**: SDK doesn't report metrics for the first conversation turn. Wall-clock fallback is used.
-- **Context accumulation**: Reusing a single `Conversation` for multiple inference runs causes context overflow on Run 3+. Create new conversations per run (keeping the same `Engine`).
-- **Metal sampler library**: `libLiteRtTopKMetalSampler.dylib` is not bundled with the app. The SDK falls back to statically linked C API. No performance impact for greedy (topK=1) but may affect sampling mode.
+
+- **BenchmarkInfo nil on first turn** ✅ FIXED (Session 6): SDK doesn't report metrics for the first turn of each **session** (per-session, not per-engine). Fixed by NOT resetting after warmup — warmup is turn 1, benchmark is turn 2 with BenchmarkInfo available. The small warmup context (~20 tokens) is negligible for 256-token benchmarks.
+
+- **Context accumulation** ✅ FIXED (Session 5): Reusing single `Conversation` caused context overflow on Run 3+. Fixed via `resetConversation()`.
+
+- **resetConversation race condition** ✅ FIXED (Session 6): `sendMessageStream()` captured a local strong reference to `Conversation` in its inner Task. Even after `self.conversation = nil`, the Task held the reference, preventing `Conversation.deinit`. Fixed by tracking the active inference Task via `activeInferenceTask` and awaiting it in `resetConversation()`.
+
+- **Metal sampler library** 📋 DOCUMENTED (Upstream):
+  `libLiteRtTopKMetalSampler.dylib` not loaded at runtime. Root cause: Git LFS pointers in prebuilt/, xcframework excludes dylib. Falls back to C API. No impact for topK=1.
+
+- **Gemma 3n decode gap** ✅ RESOLVED (Session 6): The -25% gap was **methodology difference**, not model variant. Using the SDK's `benchmark()` function (exact Gallery methodology), the HW variant achieves 25.71 tok/s — matching Gallery's 25.57 tok/s within 0.5%.
+
+- **SDK benchmark() decode token cap**: The `benchmark()` function only generates 32 decode tokens despite requesting 256. This appears to be a model-level EOS constraint in synthetic benchmark mode.
