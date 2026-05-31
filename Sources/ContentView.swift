@@ -14,6 +14,12 @@ struct ContentView: View {
 
             Divider()
 
+            // Discovered models (shown when models are available)
+            if !viewModel.discoveredModels.isEmpty {
+                discoveredModelsSection
+                Divider()
+            }
+
             // Prompt input
             TextField("Enter your prompt here", text: $viewModel.prompt)
                 .textFieldStyle(.roundedBorder)
@@ -87,6 +93,12 @@ struct ContentView: View {
                 .font(.headline)
             Spacer()
             Button {
+                viewModel.refreshDiscoveredModels()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .help("Refresh discovered models")
+            Button {
                 showSettings = true
             } label: {
                 Image(systemName: "gearshape")
@@ -97,6 +109,62 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    // MARK: - Discovered Models
+
+    private var discoveredModelsSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Available Models")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(viewModel.discoveredModels) { model in
+                        modelCard(model)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    private func modelCard(_ model: DiscoveredModel) -> some View {
+        Button {
+            Task {
+                await viewModel.handleModelSelection(model.url)
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(model.metadata?.name ?? model.filename)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    if model.source == .edgeGallery {
+                        Text("Gallery")
+                            .font(.caption2)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(.blue.opacity(0.15))
+                            .foregroundStyle(.blue)
+                            .clipShape(Capsule())
+                    }
+                }
+                Text(model.formattedSize)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.quaternary.opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Benchmark Bar

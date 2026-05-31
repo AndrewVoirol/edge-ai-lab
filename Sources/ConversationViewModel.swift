@@ -61,6 +61,9 @@ final class ConversationViewModel {
     /// The URL of the currently loaded model file (for security scope management).
     private(set) var activeModelURL: URL?
 
+    /// Models discovered from local storage and AI Edge Gallery.
+    var discoveredModels: [DiscoveredModel] = []
+
     /// Whether the engine is initialized and ready for inference.
     var isEngineReady: Bool { engine.isReady }
 
@@ -98,28 +101,31 @@ final class ConversationViewModel {
             // Even without security scope, try to load (may work for non-sandboxed macOS)
         }
 
+        // Bookmark Gallery models for future auto-discovery
+        GalleryModelDiscovery.bookmarkGalleryModel(url)
+
         await initializeEngine(modelPath: url.path)
     }
 
-    /// Checks the sandboxed Documents directory for any .litertlm files and auto-loads the first one.
+    /// Discover available models from local storage and Gallery, auto-load if possible.
     func checkForLocalModels() {
-        let fileManager = FileManager.default
-        guard let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-        do {
-            let files = try fileManager.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil)
-            let modelFiles = files.filter { $0.pathExtension == "litertlm" }
-            if let firstModel = modelFiles.first {
-                statusMessage = "Found local model: \(firstModel.lastPathComponent)"
-                activeModelURL = firstModel
-                Task {
-                    await initializeEngine(modelPath: firstModel.path)
-                }
+        discoveredModels = GalleryModelDiscovery.discoverModels()
+
+        if let firstModel = discoveredModels.first {
+            statusMessage = "Found model: \(firstModel.filename)"
+            if firstModel.source == .edgeGallery {
+                statusMessage += " (via Edge Gallery)"
             }
-        } catch {
-            print("[ViewModel] Failed to scan local documents: \(error.localizedDescription)")
+            activeModelURL = firstModel.url
+            Task {
+                await initializeEngine(modelPath: firstModel.url.path)
+            }
         }
+    }
+
+    /// Refresh the discovered models list without auto-loading.
+    func refreshDiscoveredModels() {
+        discoveredModels = GalleryModelDiscovery.discoverModels()
     }
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
