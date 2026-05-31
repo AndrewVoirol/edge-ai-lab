@@ -196,6 +196,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     // MARK: - Benchmark Engine
 
     /// Runs a Gallery-parity benchmark: `numberOfRuns` iterations, averaging results.
+    /// The engine is initialized once and reused across runs to avoid native resource lifecycle issues.
     @MainActor
     private func runGalleryParityBenchmark(
         modelPath: String,
@@ -218,47 +219,45 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         var decodeSpeeds: [Double] = []
         var prefillSpeeds: [Double] = []
         var ttfts: [Double] = []
-        var initTimes: [Double] = []
         var totalTokenCounts: [Int] = []
 
+        // Initialize engine ONCE — reuse across all runs
+        let engine = InstrumentedEngine()
+        let cacheDirURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gallery_parity_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: cacheDirURL, withIntermediateDirectories: true)
+
+        let flags = ExperimentalFlagsState(
+            enableBenchmark: true,
+            enableSpeculativeDecoding: enableMTP ? true : nil,
+            enableConversationConstrainedDecoding: false,
+            visualTokenBudget: nil
+        )
+
+        let initStart = CFAbsoluteTimeGetCurrent()
+        do {
+            try await engine.initialize(
+                modelPath: modelPath,
+                useGPU: useGPU,
+                cacheDir: cacheDirURL.path,
+                flags: flags,
+                samplerConfig: gallerySamplerConfig
+            )
+        } catch {
+            print("❌ [\(label)] Engine init failed: \(error)")
+            if enableMTP {
+                throw XCTSkip("[\(label)] MTP engine init failed (known limitation): \(error)")
+            }
+            XCTFail("[\(label)] Engine init failed: \(error)")
+            return
+        }
+        let initElapsed = (CFAbsoluteTimeGetCurrent() - initStart) * 1000
+        print("  Init: \(String(format: "%.0f", initElapsed))ms")
+
+        // Run inference multiple times on the same engine
         for run in 1...numberOfRuns {
             print("\n--- Run \(run)/\(numberOfRuns) ---")
 
-            let engine = InstrumentedEngine()
-            let cacheDirURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("gallery_parity_\(UUID().uuidString)")
-            try FileManager.default.createDirectory(at: cacheDirURL, withIntermediateDirectories: true)
-
-            let flags = ExperimentalFlagsState(
-                enableBenchmark: true,
-                enableSpeculativeDecoding: enableMTP ? true : nil,
-                enableConversationConstrainedDecoding: false,
-                visualTokenBudget: nil
-            )
-
-            // Phase 1: Initialize engine (measures init time)
-            let initStart = CFAbsoluteTimeGetCurrent()
-            do {
-                try await engine.initialize(
-                    modelPath: modelPath,
-                    useGPU: useGPU,
-                    cacheDir: cacheDirURL.path,
-                    flags: flags,
-                    samplerConfig: gallerySamplerConfig
-                )
-            } catch {
-                print("❌ [\(label)] Run \(run): Engine init failed: \(error)")
-                if enableMTP {
-                    throw XCTSkip("[\(label)] MTP engine init failed (known limitation): \(error)")
-                }
-                XCTFail("[\(label)] Engine init failed: \(error)")
-                return
-            }
-            let initElapsed = CFAbsoluteTimeGetCurrent() - initStart
-            initTimes.append(initElapsed * 1000) // Convert to ms
-            print("  Init: \(String(format: "%.0f", initElapsed * 1000))ms")
-
-            // Phase 2: Inference (measures TTFT, prefill speed, decode speed)
             var response = ""
             var tokenCount = 0
             var firstTokenTime: Double?
@@ -281,9 +280,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                     throw XCTSkip("[\(label)] MTP inference failed (known crash): \(error)")
                 }
                 XCTFail("[\(label)] Inference failed: \(error)")
-                engine.shutdown()
-                try? FileManager.default.removeItem(at: cacheDirURL)
-                return
+                break
             }
 
             let inferenceElapsed = CFAbsoluteTimeGetCurrent() - inferenceStart
@@ -293,7 +290,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                 ttfts.append(ttft)
             }
 
-            // Phase 3: Capture BenchmarkInfo (if available)
+            // Capture BenchmarkInfo (if available)
             if let info = engine.lastBenchmarkInfo {
                 decodeSpeeds.append(info.lastDecodeTokensPerSecond)
                 prefillSpeeds.append(info.lastPrefillTokensPerSecond)
@@ -327,16 +324,17 @@ final class GalleryParityBenchmarkTests: XCTestCase {
             print("  Response preview: \(response.prefix(80))...")
 
             XCTAssertFalse(response.isEmpty, "[\(label)] Run \(run): Expected non-empty response")
-
-            engine.shutdown()
-            try? FileManager.default.removeItem(at: cacheDirURL)
         }
+
+        // Shutdown after all runs complete
+        engine.shutdown()
+        try? FileManager.default.removeItem(at: cacheDirURL)
 
         // Phase 4: Calculate and report averages
         let avgDecode = decodeSpeeds.isEmpty ? 0.0 : decodeSpeeds.reduce(0, +) / Double(decodeSpeeds.count)
         let avgPrefill = prefillSpeeds.isEmpty ? 0.0 : prefillSpeeds.reduce(0, +) / Double(prefillSpeeds.count)
         let avgTTFT = ttfts.isEmpty ? 0.0 : ttfts.reduce(0, +) / Double(ttfts.count)
-        let avgInit = initTimes.isEmpty ? 0.0 : initTimes.reduce(0, +) / Double(initTimes.count)
+        let avgInit = initElapsed
         let avgTokens = totalTokenCounts.isEmpty ? 0 : totalTokenCounts.reduce(0, +) / totalTokenCounts.count
 
         print("\n╔══════════════════════════════════════════════════════════════")

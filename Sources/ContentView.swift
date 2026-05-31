@@ -81,6 +81,11 @@ struct ContentView: View {
             #endif
         }
         .onAppear {
+            // Skip auto-loading when running under the test harness —
+            // tests manage their own engine lifecycle.
+            guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+                return
+            }
             viewModel.checkForLocalModels()
         }
     }
