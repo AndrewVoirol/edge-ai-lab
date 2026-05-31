@@ -223,12 +223,15 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         // IMPORTANT: The native conversation handle depends on the engine being alive.
         // We must ensure Conversation.deinit (which calls litert_lm_conversation_delete)
         // runs BEFORE Engine.deinit (which calls litert_lm_engine_delete).
-        // Hold a strong reference to the engine while we nil the conversation,
-        // so the engine can't be deallocated until after the conversation is gone.
-        let engineRef = engine
-        conversation = nil
-        // Now the conversation is fully deallocated. Safe to release the engine.
-        _ = engineRef  // Keep engine alive until this point
+        // withExtendedLifetime is a compiler barrier that guarantees the engine
+        // won't be deallocated while the conversation is being cleaned up.
+        if let engineRef = engine {
+            withExtendedLifetime(engineRef) {
+                conversation = nil
+            }
+        } else {
+            conversation = nil
+        }
         engine = nil
         lastBenchmarkInfo = nil
         lastBackendResult = nil
