@@ -46,6 +46,77 @@ try await engine.initialize()  // mmap'd memory is now invalid
 - `Engine.initialize()` and `Conversation.sendMessageStream()` are `async` — always `await` them
 - Never block the main thread with synchronous engine operations
 
+## Engine / Conversation Shutdown Lifecycle
+
+> [!CAUTION]
+> **Conversation.deinit MUST run before Engine.deinit.** The native conversation handle (`CConversationHandle`) depends on the native engine being alive. If `litert_lm_engine_delete` runs before `litert_lm_conversation_delete`, the conversation's handle becomes a dangling pointer → **EXC_BAD_ACCESS crash**.
+
+### Correct Shutdown Pattern
+```swift
+func shutdown() {
+    // Use withExtendedLifetime to guarantee ordering.
+    // This is a compiler barrier — the engine won't be deallocated
+    // until after the closure completes.
+    if let engineRef = engine {
+        withExtendedLifetime(engineRef) {
+            conversation = nil  // Conversation.deinit runs HERE, while engine is alive
+        }
+    } else {
+        conversation = nil
+    }
+    engine = nil  // NOW safe — conversation is already gone
+}
+```
+
+### Incorrect Pattern
+```swift
+// ❌ WRONG: ARC ordering is not guaranteed
+func shutdown() {
+    conversation = nil  // May or may not dealloc immediately
+    engine = nil        // If engine deallocs first → crash in Conversation.deinit
+}
+
+// ❌ ALSO WRONG: `_ = ref` can be optimized away
+let engineRef = engine
+conversation = nil
+_ = engineRef  // Compiler may optimize this out
+engine = nil
+```
+
+### XCTest Host App Conflict
+When running XCTests on a physical device, the test runner launches the host app. If the app's `onAppear` auto-loads a model (e.g., `checkForLocalModels()`), it creates engine/conversation instances that compete for GPU resources with the test's own instances.
+
+**Fix**: Guard auto-loading behind XCTest detection:
+```swift
+.onAppear {
+    guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+        return  // Skip auto-load when running under test harness
+    }
+    viewModel.checkForLocalModels()
+}
+```
+
+## SamplerConfig
+
+`SamplerConfig` controls the sampling strategy for token generation. It must be injected during conversation creation, not after.
+
+### Usage
+```swift
+let samplerConfig = try SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+let conversation = try await engine.createConversation(with: convConfig)
+```
+
+### Parameters
+| Parameter | Default | Gallery v1.0.6 | Notes |
+|-----------|---------|----------------|-------|
+| `topK` | 64 | 1 (greedy) | topK=1 forces deterministic output |
+| `topP` | 0.95 | 1.0 | No nucleus filtering |
+| `temperature` | 1.0 | 1.0 | No temperature scaling |
+
+> [!WARNING]
+> **topK=1 (greedy) vs topK=64 (sampling) affects benchmark speed.** Greedy decoding is faster because the sampler does less work. When comparing against Gallery numbers, always use topK=1 for parity.
+
 ## ExperimentalFlags API
 
 > [!IMPORTANT]
@@ -160,27 +231,44 @@ ExperimentalFlags.enableSpeculativeDecoding = true
 ## SDK Version Management
 
 ### Current Configuration
-The project currently pins LiteRT-LM to `branch: main` at a specific commit:
+The project tracks LiteRT-LM `main` branch from the upstream Google repo:
 
 ```swift
 // In Project.swift
-.package(url: "https://github.com/nicklkfoster/LiteRT-LM", branch: "main")
-// Pinned to commit 3a97cbf in .package.resolved
+.package(url: "https://github.com/google-ai-edge/LiteRT-LM.git", branch: "main")
+// Currently resolved to commit aeefa9b
 ```
 
-### Recommended Configuration
-For stability, keep the current pin to the known-good commit:
+### Version History
+| Commit | Date | Status | Notes |
+|--------|------|--------|-------|
+| `aeefa9b` | 2026-05-31 | **Current** | Main HEAD. SamplerConfig, ConversationConfig APIs. Verified on macOS + iPhone 16 Pro Max. |
+| `3a97cbf` | 2026-05-30 | Previous | Initial known-good. |
 
-```swift
-// Current known-good configuration (commit 3a97cbf)
-.package(url: "https://github.com/nicklkfoster/LiteRT-LM", branch: "main")
-// Pinned to commit 3a97cbf in .package.resolved
-```
-
-### Version Notes
-- **Commit `3a97cbf`**: Known-good commit with Swift APIs, Metal GPU support, tested on all platforms
-- **`branch: main`**: Gets latest changes but may include breaking API changes
-- When upgrading, test on all platforms (macOS, iOS device, simulator) before committing
+### Upgrade Procedure
+1. Commit current working state
+2. Run `swift package update` to pull latest
+3. Build for macOS: `xcodebuild build -scheme GemmaEdgeGallery_macOS -quiet`
+4. Build for iOS: `xcodebuild build -scheme GemmaEdgeGallery_iOS -destination generic/platform=iOS -quiet`
+5. Run unit tests on simulator
+6. If all pass, commit the updated `.package.resolved`
+7. Run on-device benchmarks to verify no performance regressions
 
 > [!TIP]
-> If you switch to `from: "0.12.0"`, run `tuist generate` and resolve any API differences. The branch-based pin at commit `3a97cbf` is known-good with the current codebase.
+> The upstream repo URL changed from `nicklkfoster/LiteRT-LM` to `google-ai-edge/LiteRT-LM`. Use the google-ai-edge URL for the latest.
+
+## Gallery Parity Benchmarks (Session 4 — 2026-05-31)
+
+On-device results from iPhone 16 Pro Max, topK=1 greedy mode:
+
+| Model | Our Best Decode | Gallery Decode | Delta |
+|-------|----------------|----------------|-------|
+| Gemma 4 E2B Standard/GPU | **43.09 tok/s** | 41.65 tok/s | ✅ **+3.5%** |
+| Gemma 3n E2B HW/GPU | 19.2 tok/s | 25.57 tok/s | ⚠️ -25% |
+
+Full results: `metrics/gallery_parity_results.md`
+
+### Known Test Limitations
+- **BenchmarkInfo nil on first turn**: SDK doesn't report metrics for the first conversation turn. Wall-clock fallback is used.
+- **Context accumulation**: Reusing a single `Conversation` for multiple inference runs causes context overflow on Run 3+. Create new conversations per run (keeping the same `Engine`).
+- **Metal sampler library**: `libLiteRtTopKMetalSampler.dylib` is not bundled with the app. The SDK falls back to statically linked C API. No performance impact for greedy (topK=1) but may affect sampling mode.

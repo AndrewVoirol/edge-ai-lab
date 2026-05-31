@@ -15,8 +15,11 @@ description: "Project generation and management using Tuist. Activate when editi
 
 - ALL project changes go through `Project.swift`
 - After ANY edit to `Project.swift`, run `tuist generate`
-- New Swift files added to `Sources/` or `Tests/` require `tuist generate` to be picked up
+- New Swift files added to `Sources/` or `Tests/` require `tuist generate --no-open` to be picked up
 - The `.xcworkspace` file has a `.tuist-generated` marker — respect it
+
+> [!WARNING]
+> **The auto-tuist-generate hook only fires when `Project.swift` is edited.** When creating new Swift files in `Sources/` or `Tests/`, you MUST manually run `tuist generate --no-open` after creating the file. Builds will fail with "missing module" or unresolved symbol errors if you skip this step.
 
 ## Project Structure
 

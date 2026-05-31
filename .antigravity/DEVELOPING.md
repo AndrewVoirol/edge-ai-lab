@@ -280,6 +280,10 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 5 | Simulator GPU produces garbage | [Apple docs](https://developer.apple.com/documentation/metal/developing_metal_apps_that_run_in_simulator), flutter_gemma docs | Well-documented platform limitation |
 | 6 | MTP cold-start ~30-40× penalty | Expected behavior (JIT kernel compilation) | Not a bug |
 | 7 | BenchmarkInfo nil WITHOUT MTP on macOS | No exact issue — `getBenchmarkInfo()` throws silently | Confirmed locally (Session 3b) |
+| 8 | **Conversation.deinit use-after-free** | Discovered Session 4 | **FIXED** — use `withExtendedLifetime` in `shutdown()` |
+| 9 | **BenchmarkInfo nil on first conversation turn** | No issue filed | Confirmed (Session 4). SDK limitation — wall-clock fallback needed |
+| 10 | **Context overflow on multi-turn reuse** | No issue filed | Confirmed (Session 4). `Token id X out of range` crash |
+| 11 | **Metal sampler dylib not bundled** | No issue filed | Falls back to C API. No impact for topK=1 greedy |
 
 > [!NOTE]
 > See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.
@@ -318,8 +322,8 @@ gemma-edgegallery/
 │   ├── DEVELOPING.md     # This file
 │   ├── hooks.json        # Lifecycle hook configuration
 │   ├── hooks/            # Hook scripts
-│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing, gallery-parity, model-management)
-│   └── rules/            # Always-on agent rules
+│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing, gallery-parity, model-management, benchmark-comparison)
+│   └── rules/            # Always-on agent rules (project-structure, build-tool-boundaries, benchmark-methodology, workflow-discipline)
 ├── .gitignore
 ├── GemmaEdgeGallery.xcodeproj/   # Tuist-generated (DO NOT EDIT)
 ├── GemmaEdgeGallery.xcworkspace/ # Tuist-generated (DO NOT EDIT)
