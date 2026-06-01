@@ -285,7 +285,8 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 10 | **Context overflow on multi-turn reuse** | No issue filed | **FIXED** (Session 5). Added `resetConversation()` for fresh context per run |
 | 11 | **Metal sampler dylib not bundled** | No issue filed | **Root cause**: Git LFS pointers in prebuilt/, xcframework excludes dylib. Falls back to C API. No impact for topK=1 |
 | 12 | **resetConversation single-session race** | Discovered Session 6 | **FIXED** — `sendMessageStream` Task captured local Conversation ref. Await `activeInferenceTask` before niling |
-| 13 | **SDK benchmark() decode token cap** | No issue filed | `benchmark()` only generates 32 decode tokens despite requesting 256. Model-level EOS constraint |
+| 13 | **SDK benchmark() decode token cap** | No issue filed | `benchmark()` only generates 32 decode tokens despite requesting 256. Native C++ loop hardcoded to 32 iterations. **Confirmed on-device** (Session 7): canary assertion validated, 34.48 tok/s avg on iPhone 16 Pro Max |
+| 14 | **Gemma 3n SDK benchmark mode crash** | No issue filed | `benchmark()` mode crashes at `<external symbol>` for Gemma 3n models on iOS device. Natural language benchmark works fine (17.84 tok/s INT4). SDK limitation, not app code. |
 
 > [!NOTE]
 > See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.
