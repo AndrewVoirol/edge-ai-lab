@@ -51,7 +51,7 @@ enum BackendRecommendation: String, Sendable {
 /// Metadata about a known LiteRT-LM model, inspired by the Google AI Edge Gallery allowlist.
 /// Used to pre-populate UI with capabilities before loading, and to guide backend selection.
 struct ModelMetadata: Codable, Sendable, Identifiable {
-    var id: String { modelId }
+    var id: String { modelFile }
 
     /// Human-readable model name (e.g., "Gemma-4-E2B-it")
     let name: String
@@ -85,6 +85,18 @@ struct ModelMetadata: Codable, Sendable, Identifiable {
 
     /// Platform-specific backend support
     let platformSupport: PlatformSupport
+
+    /// HuggingFace download URL for fetching this model.
+    /// Constructed from the modelId and modelFile.
+    var downloadURL: URL? {
+        URL(string: "https://huggingface.co/\(modelId)/resolve/main/\(modelFile)")
+    }
+
+    /// Whether this model requires HuggingFace authentication (gated model).
+    /// Models under `google/*` repos are typically gated; `litert-community/*` are public.
+    var requiresAuth: Bool {
+        modelId.hasPrefix("google/")
+    }
 
     /// Whether speculative decoding (MTP) is available for this model.
     var supportsMTP: Bool {
@@ -132,83 +144,9 @@ enum ModelRegistry {
 
     /// All known models in the registry.
     static let knownModels: [ModelMetadata] = [
-        gemma3nE2B,
-        gemma3nE2BHW,
         gemma4E2BStandard,
         gemma4E2BWeb,
-        gemma4E4BStandard,
-        gemma4E4BWeb,
     ]
-
-    // MARK: - Gemma 3n E2B (iOS Gallery Model)
-
-    /// The model used by the official Google AI Edge Gallery iOS app (ios_1_0_0.json).
-    /// Gemma 3n uses MatFormer + PLE caching for efficient on-device inference.
-    /// This is a GPU-only model with mobile-native Metal shaders for A-series chips.
-    /// Commit hash pinned by Gallery: 73b019b63436d346f68dd9c1dbfd117eb264d888
-    ///
-    /// Gallery iOS benchmark (v1.0.6, iPhone 16 Pro Max):
-    ///   Prefill: 402.93 tok/s | Decode: 25.47 tok/s
-    ///   TTFT: 0.68s | Init: 6499.08ms
-    ///   (256 prefill/decode tokens, 3 runs, GPU accelerator)
-    ///
-    /// NOTE: This is the standard INT4 variant (3.39 GB). The HW variant (gemma3nE2BHW)
-    /// is a hardware-optimized build (2.83 GB) with potentially different quantization
-    /// and shader configurations. Performance differences between variants are under investigation.
-    static let gemma3nE2B = ModelMetadata(
-        name: "Gemma 3n E2B · Mobile GPU",
-        modelId: "google/gemma-3n-E2B-it-litert-lm",
-        modelFile: "gemma-3n-E2B-it-int4.litertlm",
-        description: "Gemma 3n E2B — the model used by the official AI Edge Gallery iOS app. INT4 quantized with mobile-native GPU shaders. Supports text, vision, and audio input.",
-        sizeInBytes: 3_388_604_416,  // ~3.39 GB
-        minDeviceMemoryGB: 6,
-        supportsImage: true,
-        supportsAudio: true,
-        capabilities: ["speculative_decoding"],
-        defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
-            temperature: 1.0,
-            maxContextLength: 4_096,
-            maxTokens: 4_096,
-            accelerators: "gpu",
-            visionAccelerator: nil
-        ),
-        platformSupport: PlatformSupport(
-            macOS: .gpuOnly,          // Same arch as HW variant (78.6 tok/s on macOS)
-            iOSDevice: .gpuOnly,      // Mobile-native Metal shaders — Gallery verified (402.93 tok/s prefill)
-            iOSSimulator: .gpuOnly    // GPU-only model, sim GPU unreliable
-        )
-    )
-
-    /// Hardware-optimized Gemma 3n E2B variant — downloaded by Gallery iOS app.
-    /// Filename `gemma-3n-E2B-HW.litertlm` suggests a hardware-specific (HW) build
-    /// for Apple Silicon / A-series chips. Smaller than the INT4 variant (2.83 GB vs 3.39 GB).
-    static let gemma3nE2BHW = ModelMetadata(
-        name: "Gemma 3n E2B · Mobile GPU (HW)",
-        modelId: "google/gemma-3n-E2B-it-litert-lm",
-        modelFile: "gemma-3n-E2B-HW.litertlm",
-        description: "Hardware-optimized Gemma 3n E2B with mobile-native GPU shaders for A-series chips. Downloaded by Gallery iOS app.",
-        sizeInBytes: 3_037_282_304,  // ~2.83 GB (actual on-disk size)
-        minDeviceMemoryGB: 6,
-        supportsImage: true,
-        supportsAudio: true,
-        capabilities: ["speculative_decoding"],
-        defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
-            temperature: 1.0,
-            maxContextLength: 4_096,
-            maxTokens: 4_096,
-            accelerators: "gpu",
-            visionAccelerator: nil
-        ),
-        platformSupport: PlatformSupport(
-            macOS: .gpuOnly,          // Session 2 verified: 78.6 tok/s decode
-            iOSDevice: .gpuOnly,      // Mobile-native Metal shaders — same as INT4 variant
-            iOSSimulator: .gpuOnly    // Loads, inference runs (degenerate on sim)
-        )
-    )
 
     // MARK: - Gemma 4 E2B (Standard)
 
@@ -274,64 +212,6 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // Session 2 verified: 113.1 tok/s on macOS Metal
             iOSDevice: .gpuOnly,      // A-series Metal GPU — fastest path (42.9 tok/s)
             iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
-        )
-    )
-
-    // MARK: - Gemma 4 E4B (Standard)
-
-    /// Gemma 4 E4B standard build — larger 4B-effective model with CPU + GPU subgraphs.
-    static let gemma4E4BStandard = ModelMetadata(
-        name: "Gemma 4 E4B · Desktop GPU+CPU",
-        modelId: "litert-community/gemma-4-E4B-it-litert-lm",
-        modelFile: "gemma-4-E4B-it.litertlm",
-        description: "Gemma 4 E4B standard model (4B effective params). CPU (XNNPACK) + desktop GPU (Metal). Higher quality than E2B but requires more memory.",
-        sizeInBytes: 3_660_000_000,  // ~3.66 GB
-        minDeviceMemoryGB: 12,
-        supportsImage: true,
-        supportsAudio: true,
-        capabilities: ["llm_thinking", "speculative_decoding"],
-        defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
-            temperature: 1.0,
-            maxContextLength: 32_000,
-            maxTokens: 4_000,
-            accelerators: "gpu,cpu",
-            visionAccelerator: "gpu"
-        ),
-        platformSupport: PlatformSupport(
-            macOS: .gpuAndCpu,
-            iOSDevice: .cpuOnly,      // Assumed same pattern as E2B standard
-            iOSSimulator: .cpuOnly
-        )
-    )
-
-    // MARK: - Gemma 4 E4B (Web / Mobile GPU)
-
-    /// Gemma 4 E4B web/mobile variant — GPU-only for A-series chips.
-    static let gemma4E4BWeb = ModelMetadata(
-        name: "Gemma 4 E4B · Mobile GPU",
-        modelId: "litert-community/gemma-4-E4B-it-litert-lm",
-        modelFile: "gemma-4-E4B-it-web.litertlm",
-        description: "Mobile-optimized Gemma 4 E4B with GPU artisan shaders for A-series chips. GPU-only — no CPU subgraph.",
-        sizeInBytes: 2_970_000_000,  // ~2.97 GB
-        minDeviceMemoryGB: 12,
-        supportsImage: true,
-        supportsAudio: true,
-        capabilities: ["llm_thinking", "speculative_decoding"],
-        defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
-            temperature: 1.0,
-            maxContextLength: 32_000,
-            maxTokens: 4_000,
-            accelerators: "gpu",
-            visionAccelerator: "gpu"
-        ),
-        platformSupport: PlatformSupport(
-            macOS: .gpuOnly,          // Same architecture as E2B web
-            iOSDevice: .gpuOnly,
-            iOSSimulator: .gpuOnly    // Same architecture as E2B web
         )
     )
 

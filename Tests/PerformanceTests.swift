@@ -54,7 +54,7 @@ final class PerformanceTests: XCTestCase {
 
     /// Finds the best .litertlm model for the current platform.
     ///
-    /// Verified compatibility matrix (from SimulatorCompatibilityTests):
+    /// Verified compatibility matrix (from platform support testing):
     /// - macOS + GPU:      standard ✅, web ✅
     /// - iOS device + GPU: standard ❌, web ✅
     /// - iOS sim + CPU:    standard ✅, web ❌

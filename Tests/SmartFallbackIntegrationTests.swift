@@ -9,8 +9,7 @@ import LiteRTLM
 
 /// Integration tests for the smart backend fallback system.
 ///
-/// Unlike SimulatorCompatibilityTests (which explicitly passes useGPU: true/false),
-/// these tests exercise the REAL user code path:
+/// These tests exercise the REAL user code path:
 ///
 ///   ModelRegistry.lookup() → platformSupport.currentPlatform → recommendedBackend
 ///   → initializeWithFallback() → inference
@@ -19,11 +18,11 @@ import LiteRTLM
 /// experience matches what our platform support matrix says it should be.
 ///
 /// **Why this exists:** Session 1 set `gemma4E2BStandard.iOSDevice = .cpuOnly` which
-/// was wrong (GPU works on device). SimulatorCompatibilityTests never caught this because
-/// they bypass the ModelRegistry routing entirely. This test catches that class of bug.
+/// was wrong (GPU works on device). A direct backend test never caught this because
+/// it bypasses the ModelRegistry routing entirely. This test catches that class of bug.
 final class SmartFallbackIntegrationTests: XCTestCase {
 
-    // MARK: - Model Discovery (shared with SimulatorCompatibilityTests)
+    // MARK: - Model Discovery
 
     private var availableModels: [URL] {
         var models: [URL] = []
@@ -150,15 +149,6 @@ final class SmartFallbackIntegrationTests: XCTestCase {
             modelPath: modelPath,
             expectedFilename: "gemma-4-E2B-it-web.litertlm",
             label: "Mobile GPU"
-        )
-    }
-
-    func testSmartFallback_Gemma3nModel() async throws {
-        let modelPath = try findModel(named: "gemma-3n-E2B-HW.litertlm")
-        try await runSmartFallbackTest(
-            modelPath: modelPath,
-            expectedFilename: "gemma-3n-E2B-HW.litertlm",
-            label: "Gemma 3n HW"
         )
     }
 

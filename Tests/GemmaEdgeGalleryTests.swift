@@ -260,7 +260,14 @@ final class MetricsStoreTests: XCTestCase {
                 decodeTokensPerSecond: decodeSpeed,
                 prefillTokensPerSecond: 128.7,
                 lastPrefillTokenCount: 256,
-                lastDecodeTokenCount: 128
+                lastDecodeTokenCount: 128,
+                thermalStateAtStart: nil,
+                thermalStateAtEnd: nil,
+                availableMemoryAtStartMB: nil,
+                availableMemoryAtEndMB: nil,
+                medianTokenLatencyMs: nil,
+                p95TokenLatencyMs: nil,
+                tokenLatenciesMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -310,18 +317,10 @@ final class ModelMetadataTests: XCTestCase {
         XCTAssertTrue(metadata.capabilities.contains("speculative_decoding"))
     }
 
-    func testE4BModelsInRegistry() {
-        let e4bStandard = ModelRegistry.lookup(filename: "gemma-4-E4B-it.litertlm")
-        XCTAssertNotNil(e4bStandard)
-        XCTAssertEqual(e4bStandard?.name, "Gemma 4 E4B · Desktop GPU+CPU")
 
-        let e4bWeb = ModelRegistry.lookup(filename: "gemma-4-E4B-it-web.litertlm")
-        XCTAssertNotNil(e4bWeb)
-        XCTAssertEqual(e4bWeb?.name, "Gemma 4 E4B · Mobile GPU")
-    }
 
-    func testKnownModelCountIsSix() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 6)
+    func testKnownModelCountIsTwo() {
+        XCTAssertEqual(ModelRegistry.knownModels.count, 2)
     }
 
     func testBackendCapabilitySupportsGPU() {

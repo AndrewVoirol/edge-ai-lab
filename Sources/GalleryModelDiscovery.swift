@@ -9,7 +9,7 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// The file URL to the model.
     let url: URL
 
-    /// The filename (e.g., "gemma-3n-E2B-HW.litertlm").
+    /// The filename (e.g., "gemma-4-E2B-it.litertlm").
     var filename: String { url.lastPathComponent }
 
     /// The file size in bytes.

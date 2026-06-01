@@ -18,7 +18,6 @@ import LiteRTLM
 ///
 /// **User's Gallery Results (iPhone 16 Pro Max, 2026-05-31):**
 /// - Gemma-4-E2B-it GPU: Prefill 360.35 tok/s, Decode 41.65 tok/s, TTFT 0.74s, Init 9192ms
-/// - Gemma-3n-E2B-it GPU: Prefill 392.86 tok/s, Decode 25.57 tok/s, TTFT 0.70s, Init 8194ms
 /// - Gemma-4-E2B-it CPU: All zeros (CPU not supported for this model variant)
 final class GalleryParityBenchmarkTests: XCTestCase {
 
@@ -109,14 +108,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         throw XCTSkip("Model '\(filename)' not available — skipping")
     }
 
-    private func findAnyModel(matching filenames: [String]) throws -> String {
-        for filename in filenames {
-            if let model = availableModels.first(where: { $0.lastPathComponent == filename }) {
-                return model.path
-            }
-        }
-        throw XCTSkip("None of \(filenames) available — skipping")
-    }
+
 
     // MARK: - Gallery Parity Tests (No MTP — Baseline)
 
@@ -145,20 +137,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         )
     }
 
-    /// Gemma 3n E2B HW model, GPU, no MTP.
-    /// Gallery comparison: GPU → 392.86 tok/s prefill, 25.57 tok/s decode.
-    func testGalleryParity_Gemma3nE2B_GPU() async throws {
-        let model = try findAnyModel(matching: [
-            "gemma-3n-E2B-HW.litertlm",
-            "gemma-3n-E2B-it-int4.litertlm"
-        ])
-        try await runGalleryParityBenchmark(
-            modelPath: model,
-            useGPU: true,
-            enableMTP: false,
-            label: "Gemma3n-E2B/GPU"
-        )
-    }
+
 
     /// Gemma 4 E2B Standard, CPU, no MTP.
     /// Gallery got all zeros for CPU — expect similar or very slow results.
@@ -187,47 +166,11 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         )
     }
 
-    /// Gemma 3n E2B HW model, GPU, WITH MTP.
-    /// Gallery: 392.86 tok/s prefill, 25.57 tok/s decode.
-    func testGalleryParity_Gemma3nE2B_GPU_MTP() async throws {
-        let model = try findAnyModel(matching: [
-            "gemma-3n-E2B-HW.litertlm",
-            "gemma-3n-E2B-it-int4.litertlm"
-        ])
-        try await runGalleryParityBenchmark(
-            modelPath: model,
-            useGPU: true,
-            enableMTP: true,
-            label: "Gemma3n-E2B/GPU+MTP"
-        )
-    }
+
 
     // MARK: - Gallery-Exact Model Variant Tests
 
-    /// Test the EXACT model the Gallery iOS app uses: gemma-3n-E2B-it-int4.litertlm
-    /// from google/gemma-3n-E2B-it-litert-lm. This is the standard INT4 variant (3.39 GB),
-    /// NOT the HW-optimized variant (2.83 GB). The 25% decode gap may be due to
-    /// model variant differences — this test isolates that variable.
-    func testGalleryParity_Gemma3nE2B_INT4_GPU() async throws {
-        let model = try findModel(named: "gemma-3n-E2B-it-int4.litertlm")
-        try await runGalleryParityBenchmark(
-            modelPath: model,
-            useGPU: true,
-            enableMTP: false,
-            label: "Gemma3n-E2B-INT4/GPU"
-        )
-    }
 
-    /// Test the HW-optimized variant specifically (for comparison with INT4).
-    func testGalleryParity_Gemma3nE2B_HW_GPU() async throws {
-        let model = try findModel(named: "gemma-3n-E2B-HW.litertlm")
-        try await runGalleryParityBenchmark(
-            modelPath: model,
-            useGPU: true,
-            enableMTP: false,
-            label: "Gemma3n-E2B-HW/GPU"
-        )
-    }
 
     // MARK: - SDK Benchmark Mode (Exact Gallery Methodology)
 
@@ -255,18 +198,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         )
     }
 
-    func testSDKBenchmarkMode_Gemma3nE2B_GPU() async throws {
-        let model = try findAnyModel(matching: [
-            "gemma-3n-E2B-HW.litertlm",
-            "gemma-3n-E2B-it-int4.litertlm"
-        ])
-        try await runSDKBenchmark(
-            modelPath: model,
-            backend: .gpu,
-            runs: numberOfRuns,
-            label: "Gemma3n-E2B/GPU (SDK Mode)"
-        )
-    }
+
 
     /// Runs the LiteRT-LM SDK's built-in benchmark function for exact Gallery methodology parity.
     /// Supports multiple runs with inter-run cooldown to mitigate thermal throttling.
