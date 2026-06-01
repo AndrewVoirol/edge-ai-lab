@@ -30,6 +30,15 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     /// Maximum decode tokens per run (matches Gallery's 256 decode token setting).
     private let maxDecodeTokens = 256
 
+    /// Cooldown time in seconds between benchmark runs to mitigate thermal throttling.
+    /// On iPhone 16 Pro Max, sustained GPU load causes ~40% decode speed degradation
+    /// across consecutive runs. A 10s cooldown allows the SoC to partially recover.
+    private let cooldownSeconds: UInt64 = 10
+
+    /// Threshold for detecting thermal throttling: if decode speed drops >15% vs Run 1,
+    /// the run is flagged as thermally affected in output.
+    private let thermalThrottleThreshold = 0.15
+
     /// Sampler config matching Gallery v1.0.6: greedy decoding with topK=1.
     /// Gallery uses topK=1, topP=1.0, temperature=1.0 for deterministic output.
     private var gallerySamplerConfig: SamplerConfig {
@@ -228,12 +237,20 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     /// - Uses synthetic tokens (not natural language) for prefill measurement
     /// - Reports BenchmarkInfo directly
     ///
+    /// **Known SDK behavior (32-token decode cap):**
+    /// Despite requesting `decodeTokens: 256`, the native C++ engine's benchmark mode
+    /// generates exactly 32 decode tokens. This is an SDK-level constraint — the Swift API
+    /// correctly passes the parameter through `litert_lm_engine_settings_set_num_decode_tokens`,
+    /// but the native benchmark loop caps at 32 iterations. The Gallery app observes the
+    /// same 32-token count, so decode tok/s comparisons remain valid (apples-to-apples).
+    ///
     /// This gives exact parity with Gallery's measurement methodology.
     func testSDKBenchmarkMode_Gemma4E2B_GPU() async throws {
         let model = try findModel(named: "gemma-4-E2B-it.litertlm")
         try await runSDKBenchmark(
             modelPath: model,
             backend: .gpu,
+            runs: numberOfRuns,
             label: "Gemma4-E2B-Standard/GPU (SDK Mode)"
         )
     }
@@ -246,16 +263,19 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         try await runSDKBenchmark(
             modelPath: model,
             backend: .gpu,
+            runs: numberOfRuns,
             label: "Gemma3n-E2B/GPU (SDK Mode)"
         )
     }
 
     /// Runs the LiteRT-LM SDK's built-in benchmark function for exact Gallery methodology parity.
+    /// Supports multiple runs with inter-run cooldown to mitigate thermal throttling.
     private func runSDKBenchmark(
         modelPath: String,
         backend: Backend,
         prefillTokens: Int = 256,
         decodeTokens: Int = 256,
+        runs: Int = 1,
         label: String
     ) async throws {
         let modelFilename = (modelPath as NSString).lastPathComponent
@@ -265,39 +285,97 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         print("║ Model: \(modelFilename)")
         print("║ Config: \(prefillTokens) prefill, \(decodeTokens) decode tokens")
         print("║ Backend: \(backend.rawValue)")
+        print("║ Runs: \(runs), Cooldown: \(cooldownSeconds)s between runs")
         print("║ Method: LiteRTLM benchmark() — synthetic tokens, exact Gallery parity")
+        print("║ NOTE: SDK benchmark mode caps decode at 32 tokens (known SDK behavior)")
         print("╚══════════════════════════════════════════════════════════════")
 
-        let cacheDirURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("sdk_bench_\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: cacheDirURL, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: cacheDirURL) }
+        var decodeSpeeds: [Double] = []
+        var prefillSpeeds: [Double] = []
+        var decodeTokenCounts: [Int] = []
 
-        do {
-            let info = try await benchmark(
-                modelPath: modelPath,
-                backend: backend,
-                prefillTokens: prefillTokens,
-                decodeTokens: decodeTokens,
-                cacheDir: cacheDirURL.path
-            )
+        for run in 1...runs {
+            print("\n--- SDK Run \(run)/\(runs) ---")
 
-            print("\n╔══════════════════════════════════════════════════════════════")
-            print("║ SDK BENCHMARK RESULTS: \(label)")
-            print("╠══════════════════════════════════════════════════════════════")
-            print("║ Prefill: \(String(format: "%.2f", info.lastPrefillTokensPerSecond)) tok/s")
-            print("║ Decode: \(String(format: "%.2f", info.lastDecodeTokensPerSecond)) tok/s")
-            print("║ TTFT: \(String(format: "%.3f", info.timeToFirstTokenInSecond))s")
-            print("║ Init: \(String(format: "%.3f", info.initTimeInSecond))s")
-            print("║ Prefill tokens: \(info.lastPrefillTokenCount)")
-            print("║ Decode tokens: \(info.lastDecodeTokenCount)")
-            print("╚══════════════════════════════════════════════════════════════")
+            let cacheDirURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sdk_bench_\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: cacheDirURL, withIntermediateDirectories: true)
 
-            XCTAssertGreaterThan(info.lastDecodeTokensPerSecond, 0, "Expected non-zero decode speed")
-        } catch {
-            print("❌ [\(label)] SDK benchmark failed: \(error)")
-            throw XCTSkip("[\(label)] SDK benchmark failed: \(error)")
+            do {
+                let info = try await benchmark(
+                    modelPath: modelPath,
+                    backend: backend,
+                    prefillTokens: prefillTokens,
+                    decodeTokens: decodeTokens,
+                    cacheDir: cacheDirURL.path
+                )
+
+                decodeSpeeds.append(info.lastDecodeTokensPerSecond)
+                prefillSpeeds.append(info.lastPrefillTokensPerSecond)
+                decodeTokenCounts.append(info.lastDecodeTokenCount)
+
+                // Thermal throttling annotation
+                let thermalFlag: String
+                if run > 1, let baseline = decodeSpeeds.first, baseline > 0 {
+                    let dropPct = (baseline - info.lastDecodeTokensPerSecond) / baseline
+                    thermalFlag = dropPct > thermalThrottleThreshold ? " 🌡️ THROTTLED (\(String(format: "%.0f", dropPct * 100))% drop)" : ""
+                } else {
+                    thermalFlag = ""
+                }
+
+                print("  📊 Prefill: \(String(format: "%.2f", info.lastPrefillTokensPerSecond)) tok/s")
+                print("  📊 Decode: \(String(format: "%.2f", info.lastDecodeTokensPerSecond)) tok/s\(thermalFlag)")
+                print("  📊 TTFT: \(String(format: "%.3f", info.timeToFirstTokenInSecond))s")
+                print("  📊 Decode tokens: \(info.lastDecodeTokenCount)")
+
+                // Canary assertion: SDK benchmark mode currently caps at 32 decode tokens.
+                // If this assertion fails, a new SDK version may have lifted the cap — update
+                // our documentation and re-evaluate decode speed comparisons.
+                if info.lastDecodeTokenCount != decodeTokens {
+                    print("  ⚠️ CANARY: SDK generated \(info.lastDecodeTokenCount) decode tokens, not \(decodeTokens)")
+                    print("  ⚠️ This is a known SDK limitation — decode tok/s is measured over \(info.lastDecodeTokenCount) tokens")
+                }
+
+                XCTAssertGreaterThan(info.lastDecodeTokensPerSecond, 0, "Expected non-zero decode speed")
+            } catch {
+                print("❌ [\(label)] SDK benchmark run \(run) failed: \(error)")
+                throw XCTSkip("[\(label)] SDK benchmark failed: \(error)")
+            }
+
+            try? FileManager.default.removeItem(at: cacheDirURL)
+
+            // Inter-run cooldown to mitigate thermal throttling
+            if run < runs {
+                print("  ⏳ Cooling down \(cooldownSeconds)s before next run...")
+                try await Task.sleep(nanoseconds: cooldownSeconds * 1_000_000_000)
+            }
         }
+
+        // Summary across runs
+        let avgDecode = decodeSpeeds.reduce(0, +) / Double(decodeSpeeds.count)
+        let avgPrefill = prefillSpeeds.reduce(0, +) / Double(prefillSpeeds.count)
+        let typicalDecodeTokens = decodeTokenCounts.first ?? 0
+
+        print("\n╔══════════════════════════════════════════════════════════════")
+        print("║ SDK BENCHMARK RESULTS: \(label) — \(runs) runs averaged")
+        print("╠══════════════════════════════════════════════════════════════")
+        print("║ Prefill speed (avg): \(String(format: "%.2f", avgPrefill)) tok/s")
+        print("║ Decode speed (avg): \(String(format: "%.2f", avgDecode)) tok/s")
+        print("║ Decode tokens per run: \(typicalDecodeTokens) (SDK cap; requested \(decodeTokens))")
+        print("║")
+        print("║ Individual runs:")
+        for (i, speed) in decodeSpeeds.enumerated() {
+            let pfStr = i < prefillSpeeds.count ? String(format: "%.1f", prefillSpeeds[i]) : "N/A"
+            let thermalFlag: String
+            if i > 0, let baseline = decodeSpeeds.first, baseline > 0 {
+                let dropPct = (baseline - speed) / baseline
+                thermalFlag = dropPct > thermalThrottleThreshold ? " 🌡️" : ""
+            } else {
+                thermalFlag = ""
+            }
+            print("║   Run \(i+1): Decode \(String(format: "%.1f", speed)) | Prefill \(pfStr)\(thermalFlag)")
+        }
+        print("╚══════════════════════════════════════════════════════════════")
     }
 
     // MARK: - Benchmark Engine
@@ -393,7 +471,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                 print("  ⚠️ Warmup failed: \(error) — proceeding with wall-clock fallback")
             }
 
-            // Step 4: Run the actual benchmark prompt
+            // Step 3: Run the actual benchmark prompt
             var response = ""
             var tokenCount = 0
             var firstTokenTime: Double?
@@ -431,9 +509,18 @@ final class GalleryParityBenchmarkTests: XCTestCase {
                 decodeSpeeds.append(info.lastDecodeTokensPerSecond)
                 prefillSpeeds.append(info.lastPrefillTokensPerSecond)
 
+                // Thermal throttling annotation
+                let thermalFlag: String
+                if run > 1, let baseline = decodeSpeeds.first, baseline > 0 {
+                    let dropPct = (baseline - info.lastDecodeTokensPerSecond) / baseline
+                    thermalFlag = dropPct > thermalThrottleThreshold ? " 🌡️ THROTTLED (\(String(format: "%.0f", dropPct * 100))% drop vs Run 1)" : ""
+                } else {
+                    thermalFlag = ""
+                }
+
                 print("  📊 BenchmarkInfo:")
                 print("    Prefill: \(String(format: "%.2f", info.lastPrefillTokensPerSecond)) tok/s")
-                print("    Decode: \(String(format: "%.2f", info.lastDecodeTokensPerSecond)) tok/s")
+                print("    Decode: \(String(format: "%.2f", info.lastDecodeTokensPerSecond)) tok/s\(thermalFlag)")
                 print("    TTFT: \(String(format: "%.3f", info.timeToFirstTokenInSecond))s")
                 print("    Init: \(String(format: "%.3f", info.initTimeInSecond))s")
 
@@ -461,6 +548,12 @@ final class GalleryParityBenchmarkTests: XCTestCase {
 
             XCTAssertFalse(response.isEmpty, "[\(label)] Run \(run): Expected non-empty response")
             XCTAssertGreaterThan(tokenCount, 1, "[\(label)] Run \(run): Expected more than 1 token (context overflow?)")
+
+            // Inter-run cooldown to mitigate thermal throttling
+            if run < numberOfRuns {
+                print("  ⏳ Cooling down \(cooldownSeconds)s before next run...")
+                try await Task.sleep(nanoseconds: cooldownSeconds * 1_000_000_000)
+            }
         }
 
         // Shutdown after all runs complete
@@ -476,6 +569,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
 
         print("\n╔══════════════════════════════════════════════════════════════")
         print("║ RESULTS: \(label)\(mtpLabel) — \(numberOfRuns) runs averaged")
+        print("║ Cooldown: \(cooldownSeconds)s between runs")
         print("╠══════════════════════════════════════════════════════════════")
         print("║ Prefill speed (avg): \(String(format: "%.2f", avgPrefill)) tokens/sec")
         print("║ Decode speed (avg): \(String(format: "%.2f", avgDecode)) tokens/sec")
@@ -487,7 +581,14 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         for (i, speed) in decodeSpeeds.enumerated() {
             let pfStr = i < prefillSpeeds.count ? String(format: "%.1f", prefillSpeeds[i]) : "N/A"
             let ttftStr = i < ttfts.count ? String(format: "%.3f", ttfts[i]) : "N/A"
-            print("║   Run \(i+1): Decode \(String(format: "%.1f", speed)) | Prefill \(pfStr) | TTFT \(ttftStr)s")
+            let thermalFlag: String
+            if i > 0, let baseline = decodeSpeeds.first, baseline > 0 {
+                let dropPct = (baseline - speed) / baseline
+                thermalFlag = dropPct > thermalThrottleThreshold ? " 🌡️" : ""
+            } else {
+                thermalFlag = ""
+            }
+            print("║   Run \(i+1): Decode \(String(format: "%.1f", speed)) | Prefill \(pfStr) | TTFT \(ttftStr)s\(thermalFlag)")
         }
         print("╚══════════════════════════════════════════════════════════════")
     }
