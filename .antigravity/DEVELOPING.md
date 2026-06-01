@@ -224,6 +224,9 @@ This project has **two** Xcode MCP servers:
 
 See `.antigravity/skills/xcode-mcp/SKILL.md` for the full capability matrix.
 
+> [!IMPORTANT]
+> **Device workflows** require `.xcodebuildmcp/config.yaml` with `enabledWorkflows: ["simulator", "device", "ui-automation", "debugging"]`. Only simulator is enabled by default. The MCP server must be restarted after config changes.
+
 ## Automation Hooks
 
 Three hooks fire automatically during agent workflows:
@@ -287,6 +290,8 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 12 | **resetConversation single-session race** | Discovered Session 6 | **FIXED** — `sendMessageStream` Task captured local Conversation ref. Await `activeInferenceTask` before niling |
 | 13 | **SDK benchmark() decode token cap** | No issue filed | `benchmark()` only generates 32 decode tokens despite requesting 256. Native C++ loop hardcoded to 32 iterations. **Confirmed on-device** (Session 7): canary assertion validated, 34.48 tok/s avg on iPhone 16 Pro Max |
 | 14 | **Gemma 3n SDK benchmark mode crash** | No issue filed | `benchmark()` mode crashes at `<external symbol>` for Gemma 3n models on iOS device. Natural language benchmark works fine (17.84 tok/s INT4). SDK limitation, not app code. |
+| 15 | **testmanagerd broken after device re-pairing** | Apple known issue | `devicectl manage unpair` + `pair` re-establishes CoreDevice tunnel but `testmanagerd` (XCTest connection mediator) needs a device restart. Symptom: "test runner hung before establishing connection". **Fix**: Restart iPhone after re-pairing. |
+| 16 | **ModelMetadata.id collision (SwiftUI)** | Discovered Session 8 | **FIXED** — `Identifiable.id` used `modelId` (HuggingFace repo), but Standard and Web variants share the same repo. SwiftUI `ForEach` rendered duplicate cards. Changed to `modelFile` which is unique per variant. |
 
 > [!NOTE]
 > See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.
