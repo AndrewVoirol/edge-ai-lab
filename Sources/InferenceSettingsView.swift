@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// Settings view for configuring ExperimentalFlags and inference parameters.
+/// Settings view for configuring ExperimentalFlags, inference parameters,
+/// and HuggingFace token management.
 /// Flags are user-toggleable with benchmarking defaulting to ON.
 struct InferenceSettingsView: View {
     @Bindable var viewModel: ConversationViewModel
+    @State private var hfTokenInput = ""
+    @State private var hfTokenSaved = HFTokenStorage.hasToken
+    @State private var hfTokenMessage = ""
 
     var body: some View {
         Form {
@@ -182,8 +186,92 @@ struct InferenceSettingsView: View {
                         Text("\(info.lastDecodeTokenCount)")
                             .monospacedDigit()
                     }
+
+                    // Device-level instrumentation (from Work Stream 3)
+                    if let metrics = viewModel.inferenceMetrics {
+                        LabeledContent("Thermal (Start)") {
+                            HStack(spacing: 4) {
+                                Image(systemName: metrics.startSnapshot.thermalLevel.symbolName)
+                                Text(metrics.startSnapshot.thermalLevel.label)
+                            }
+                        }
+                        if metrics.thermalStateChanged {
+                            LabeledContent("Thermal (End)") {
+                                HStack(spacing: 4) {
+                                    Image(systemName: metrics.endSnapshot.thermalLevel.symbolName)
+                                    Text(metrics.endSnapshot.thermalLevel.label)
+                                }
+                            }
+                        }
+                        LabeledContent("Memory Available") {
+                            Text(String(format: "%.0f MB", metrics.endSnapshot.availableMemoryMB))
+                                .monospacedDigit()
+                        }
+                        if !metrics.tokenLatenciesMs.isEmpty {
+                            LabeledContent("Median Latency") {
+                                Text(String(format: "%.1f ms", metrics.medianTokenLatencyMs))
+                                    .monospacedDigit()
+                            }
+                            LabeledContent("P95 Latency") {
+                                Text(String(format: "%.1f ms", metrics.p95TokenLatencyMs))
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
                 } else {
                     Text("No benchmark data yet. Run an inference with benchmarking enabled.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("HuggingFace Token") {
+                if hfTokenSaved {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Token saved in Keychain")
+                            .font(.caption)
+                    }
+
+                    Button(role: .destructive) {
+                        HFTokenStorage.delete()
+                        hfTokenSaved = false
+                        hfTokenMessage = "Token cleared."
+                    } label: {
+                        Label("Clear Token", systemImage: "trash")
+                    }
+                } else {
+                    Text("Required for downloading gated models from HuggingFace (e.g., google/* repos). Public models (litert-community/*) don't need a token.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    SecureField("hf_...", text: $hfTokenInput)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button {
+                        guard !hfTokenInput.isEmpty else { return }
+                        do {
+                            try HFTokenStorage.save(token: hfTokenInput)
+                            hfTokenSaved = true
+                            hfTokenInput = ""
+                            hfTokenMessage = "Token saved."
+
+                            // Retry pending download if there is one
+                            if let model = viewModel.downloadManager.pendingAuthModel {
+                                viewModel.downloadManager.retryWithToken(model)
+                            }
+                        } catch {
+                            hfTokenMessage = "Save failed: \(error.localizedDescription)"
+                        }
+                    } label: {
+                        Label("Save Token", systemImage: "key.fill")
+                    }
+                    .disabled(hfTokenInput.isEmpty)
+                }
+
+                if !hfTokenMessage.isEmpty {
+                    Text(hfTokenMessage)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -194,4 +282,3 @@ struct InferenceSettingsView: View {
         #endif
     }
 }
-

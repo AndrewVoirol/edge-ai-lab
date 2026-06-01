@@ -64,6 +64,12 @@ final class ConversationViewModel {
     /// Models discovered from local storage and AI Edge Gallery.
     var discoveredModels: [DiscoveredModel] = []
 
+    /// Download manager for fetching models from HuggingFace.
+    let downloadManager: ModelDownloadManager
+
+    /// The most recent device-level inference metrics (thermal, memory, per-token latency).
+    var inferenceMetrics: InferenceMetrics? { engine.lastInferenceMetrics }
+
     /// Whether the engine is initialized and ready for inference.
     var isEngineReady: Bool { engine.isReady }
 
@@ -78,12 +84,15 @@ final class ConversationViewModel {
     /// - Parameters:
     ///   - engine: The instrumented engine (real or mock).
     ///   - metricsStore: The metrics persistence layer.
+    ///   - downloadManager: The model download manager.
     init(
         engine: InstrumentedEngineProtocol = InstrumentedEngine(),
-        metricsStore: MetricsStore = MetricsStore()
+        metricsStore: MetricsStore = MetricsStore(),
+        downloadManager: ModelDownloadManager = ModelDownloadManager()
     ) {
         self.engine = engine
         self.metricsStore = metricsStore
+        self.downloadManager = downloadManager
     }
 
     // MARK: - Model Loading
@@ -219,7 +228,8 @@ final class ConversationViewModel {
                 let entry = MetricsStore.createEntry(
                     from: info,
                     modelName: modelName,
-                    flags: engine.flagsState
+                    flags: engine.flagsState,
+                    inferenceMetrics: engine.lastInferenceMetrics
                 )
                 do {
                     try metricsStore.append(entry: entry)
