@@ -160,7 +160,7 @@ final class PerformanceTests: XCTestCase {
                 } catch {
                     XCTFail("Engine initialization failed: \(error)")
                 }
-                engine.shutdown()
+                await engine.shutdown()
                 try? FileManager.default.removeItem(at: cacheDir)
                 expectation.fulfill()
             }
@@ -236,7 +236,12 @@ final class PerformanceTests: XCTestCase {
             wait(for: [inferExpectation], timeout: 300)
         }
 
-        engine.shutdown()
+        let shutdownExpectation = expectation(description: "Engine shutdown")
+        Task { @MainActor in
+            await engine.shutdown()
+            shutdownExpectation.fulfill()
+        }
+        wait(for: [shutdownExpectation], timeout: 30)
         if let cacheDir = cacheDir {
             try? FileManager.default.removeItem(at: cacheDir)
         }

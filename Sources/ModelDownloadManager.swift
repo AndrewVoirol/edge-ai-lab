@@ -73,6 +73,10 @@ final class ModelDownloadManager {
             let state = DownloadState.downloaded(fileURL)
             downloadStates[model.modelFile] = state
             return state
+        } else {
+            if let cached = downloadStates[model.modelFile], case .downloaded = cached {
+                downloadStates[model.modelFile] = .notDownloaded
+            }
         }
 
         return downloadStates[model.modelFile] ?? .notDownloaded

@@ -72,7 +72,7 @@ protocol InstrumentedEngineProtocol: AnyObject {
     func warmup() async throws
 
     /// Tear down the engine and free resources.
-    func shutdown()
+    func shutdown() async
 }
 
 // MARK: - Backend Result
@@ -140,7 +140,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         samplerConfig: SamplerConfig? = nil
     ) async throws {
         // Tear down any existing engine first
-        shutdown()
+        await shutdown()
 
         self.flagsState = flags
         self.activeSamplerConfig = samplerConfig
@@ -193,6 +193,13 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         var continuation: AsyncThrowingStream<String, Error>.Continuation!
         stream = AsyncThrowingStream { continuation = $0 }
 
+        continuation.onTermination = { [weak self] _ in
+            Task { @MainActor in
+                try? self?.conversation?.cancel()
+                self?.activeInferenceTask?.cancel()
+            }
+        }
+
         // Store the Task so resetConversation() can await its completion.
         // The Task captures `conversation` (the local binding), which prevents
         // Conversation.deinit from running until the Task body returns.
@@ -209,6 +216,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
             do {
                 for try await chunk in conversation.sendMessageStream(Message(text)) {
+                    if Task.isCancelled {
+                        break
+                    }
                     if let firstContent = chunk.contents.first {
                         switch firstContent {
                         case .text(let responseText):
@@ -225,6 +235,13 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                             break
                         }
                     }
+                }
+
+                if Task.isCancelled {
+                    os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
+                                "Inference cancelled early")
+                    continuation.finish()
+                    return
                 }
 
                 // Capture device metrics at inference end
@@ -339,10 +356,13 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
     // MARK: - Shutdown
 
-    func shutdown() {
+    func shutdown() async {
         // Cancel any active inference task to release its captured Conversation reference.
         activeInferenceTask?.cancel()
-        activeInferenceTask = nil
+        if let task = activeInferenceTask {
+            _ = await task.result
+            activeInferenceTask = nil
+        }
 
         // IMPORTANT: The native conversation handle depends on the engine being alive.
         // We must ensure Conversation.deinit (which calls litert_lm_conversation_delete)

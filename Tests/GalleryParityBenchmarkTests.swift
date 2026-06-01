@@ -489,7 +489,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         }
 
         // Shutdown after all runs complete
-        engine.shutdown()
+        await engine.shutdown()
         try? FileManager.default.removeItem(at: cacheDirURL)
 
         // Phase 4: Calculate and report averages

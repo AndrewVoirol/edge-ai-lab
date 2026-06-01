@@ -166,7 +166,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         lastBenchmarkInfo = mockBenchmarkInfo
     }
 
-    func shutdown() {
+    func shutdown() async {
         shutdownCallCount += 1
         isReady = false
         lastBenchmarkInfo = nil

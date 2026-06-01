@@ -136,7 +136,7 @@ final class ConversationViewModelTests: XCTestCase {
         await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
         XCTAssertTrue(vm.isEngineReady)
 
-        vm.shutdown()
+        await vm.shutdown()
 
         XCTAssertFalse(vm.isEngineReady)
         XCTAssertEqual(mockEngine.shutdownCallCount, 1)
@@ -504,7 +504,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
         XCTAssertNotNil(mockEngine.lastInferenceMetrics)
 
         // Shutdown should clear metrics
-        vm.shutdown()
+        await vm.shutdown()
         XCTAssertNil(mockEngine.lastInferenceMetrics, "InferenceMetrics should be nil after shutdown")
     }
 

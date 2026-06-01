@@ -86,9 +86,14 @@ struct ContentView: View {
             hfTokenAlert
         }
         .onAppear {
-            // Skip auto-loading when running under the test harness —
+            // Skip auto-loading when running under the test harness or developer automation —
             // tests manage their own engine lifecycle.
-            guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+                  !CommandLine.arguments.contains("-RunAutomationHarness"),
+                  !CommandLine.arguments.contains("-RunAllTests"),
+                  !CommandLine.arguments.contains("-RunMatrixBenchmark") else {
+                viewModel.downloadManager.refreshStates()
+                DeveloperAutomationHarness.runIfRequested(viewModel: viewModel)
                 return
             }
             viewModel.checkForLocalModels()
@@ -199,7 +204,7 @@ struct ContentView: View {
     }
 
     private func downloadableModelCard(_ model: ModelMetadata) -> some View {
-        let state = viewModel.downloadManager.checkState(for: model)
+        let state = viewModel.downloadManager.downloadStates[model.modelFile] ?? .notDownloaded
 
         return VStack(alignment: .leading, spacing: 4) {
             Text(model.name)

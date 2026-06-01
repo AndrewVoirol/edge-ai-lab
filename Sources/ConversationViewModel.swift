@@ -75,7 +75,7 @@ final class ConversationViewModel {
 
     // MARK: - Dependencies
 
-    private let engine: InstrumentedEngineProtocol
+    let engine: InstrumentedEngineProtocol
     private let metricsStore: MetricsStore
 
     // MARK: - Init
@@ -248,12 +248,12 @@ final class ConversationViewModel {
     // MARK: - Cleanup
 
     /// Shut down the engine and release resources.
-    func shutdown() {
+    func shutdown() async {
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
         activeModelMetadata = nil
         backendResult = nil
-        engine.shutdown()
+        await engine.shutdown()
         benchmarkInfo = nil
     }
 }

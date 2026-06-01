@@ -191,7 +191,9 @@ final class SmartFallbackIntegrationTests: XCTestCase {
         try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
         defer {
-            engine.shutdown()
+            Task { @MainActor in
+                await engine.shutdown()
+            }
             try? FileManager.default.removeItem(at: cacheDir)
         }
 
