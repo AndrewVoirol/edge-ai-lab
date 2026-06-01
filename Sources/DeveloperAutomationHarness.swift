@@ -139,16 +139,13 @@ struct DeveloperAutomationHarness {
                 
                 // Determine if we should only run a specific configuration (1-indexed)
                 var configIndexToRun: Int? = nil
-                for i in 1...4 {
+                for i in 1...8 {
                     if CommandLine.arguments.contains(String(i)) {
                         configIndexToRun = i
                         print("[AUTOMATION] Targeting Configuration \(i) only.")
                         break
                     }
                 }
-                
-                // Ensure the Standard model is available (Web model skipped to avoid 2GB download)
-                await ensureModelDownloaded(model: ModelRegistry.gemma4E2BStandard, docs: docs, viewModel: viewModel)
                 
                 struct Config {
                     let label: String
@@ -165,8 +162,21 @@ struct DeveloperAutomationHarness {
                     Config(label: "Standard Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: greedy),
                     Config(label: "Standard Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: true, sampler: greedy),
                     Config(label: "Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: false, enableMTP: false, sampler: greedy),
-                    Config(label: "Standard Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: sampling)
+                    Config(label: "Standard Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: sampling),
+                    Config(label: "E4B Web Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: greedy),
+                    Config(label: "E4B Web Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: true, sampler: greedy),
+                    Config(label: "E4B Web Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: sampling),
+                    Config(label: "E4B Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BStandard, useGPU: false, enableMTP: false, sampler: greedy)
                 ]
+                
+                // Ensure required model is available
+                if let target = configIndexToRun, target >= 1 && target <= matrix.count {
+                    await ensureModelDownloaded(model: matrix[target - 1].model, docs: docs, viewModel: viewModel)
+                } else {
+                    for cfg in matrix {
+                        await ensureModelDownloaded(model: cfg.model, docs: docs, viewModel: viewModel)
+                    }
+                }
                 
                 var results: [[String: Any]] = []
                 

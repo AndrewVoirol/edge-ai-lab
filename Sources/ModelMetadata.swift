@@ -146,6 +146,8 @@ enum ModelRegistry {
     static let knownModels: [ModelMetadata] = [
         gemma4E2BStandard,
         gemma4E2BWeb,
+        gemma4E4BStandard,
+        gemma4E4BWeb,
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -212,6 +214,64 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // Session 2 verified: 113.1 tok/s on macOS Metal
             iOSDevice: .gpuOnly,      // A-series Metal GPU — fastest path (42.9 tok/s)
             iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
+        )
+    )
+
+    // MARK: - Gemma 4 E4B (Standard)
+
+    /// Gemma 4 E4B standard build — larger 4B-effective model with CPU + GPU subgraphs.
+    static let gemma4E4BStandard = ModelMetadata(
+        name: "Gemma 4 E4B · Desktop GPU+CPU",
+        modelId: "litert-community/gemma-4-E4B-it-litert-lm",
+        modelFile: "gemma-4-E4B-it.litertlm",
+        description: "Gemma 4 E4B standard model (4B effective params). CPU (XNNPACK) + desktop GPU (Metal). Higher quality than E2B but requires more memory.",
+        sizeInBytes: 3_660_000_000,  // ~3.66 GB
+        minDeviceMemoryGB: 12,
+        supportsImage: true,
+        supportsAudio: true,
+        capabilities: ["llm_thinking", "speculative_decoding"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 64,
+            topP: 0.95,
+            temperature: 1.0,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu,cpu",
+            visionAccelerator: "gpu"
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuAndCpu,
+            iOSDevice: .cpuOnly,      // Assumed same pattern as E2B standard
+            iOSSimulator: .cpuOnly
+        )
+    )
+
+    // MARK: - Gemma 4 E4B (Web / Mobile GPU)
+
+    /// Gemma 4 E4B web/mobile variant — GPU-only for A-series chips.
+    static let gemma4E4BWeb = ModelMetadata(
+        name: "Gemma 4 E4B · Mobile GPU",
+        modelId: "litert-community/gemma-4-E4B-it-litert-lm",
+        modelFile: "gemma-4-E4B-it-web.litertlm",
+        description: "Mobile-optimized Gemma 4 E4B with GPU artisan shaders for A-series chips. GPU-only — no CPU subgraph.",
+        sizeInBytes: 2_970_000_000,  // ~2.97 GB
+        minDeviceMemoryGB: 12,
+        supportsImage: true,
+        supportsAudio: true,
+        capabilities: ["llm_thinking", "speculative_decoding"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 64,
+            topP: 0.95,
+            temperature: 1.0,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: "gpu"
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,          // Same architecture as E2B web
+            iOSDevice: .gpuOnly,
+            iOSSimulator: .gpuOnly    // Same architecture as E2B web
         )
     )
 

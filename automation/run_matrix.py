@@ -15,9 +15,13 @@ REPORT_FILE = os.path.join(REPORT_DIR, "benchmark_report.md")
 
 CONFIG_MAP = {
     1: "Standard Model / GPU / No MTP / Greedy",
-    2: "Standard Model / GPU / MTP / Greedy",
+    2: "Standard Model / Greedy / MTP / Greedy",
     3: "Standard Model / CPU / No MTP / Greedy",
-    4: "Standard Model / GPU / No MTP / Sampling (topK=64)"
+    4: "Standard Model / GPU / No MTP / Sampling (topK=64)",
+    5: "E4B Web Model / GPU / No MTP / Greedy",
+    6: "E4B Web Model / GPU / MTP / Greedy",
+    7: "E4B Web Model / GPU / No MTP / Sampling (topK=64)",
+    8: "E4B Standard Model / CPU / No MTP / Greedy"
 }
 
 def check_device_connected(device_id):
@@ -123,7 +127,7 @@ def format_markdown_table(results):
 def main():
     parser = argparse.ArgumentParser(description="Automate process-isolated matrix benchmarks on physical iPhone.")
     parser.add_argument("--device", default=DEFAULT_DEVICE_ID, help="Target physical device UDID")
-    parser.add_argument("--config", default="1,2,3,4", help="Comma-separated matrix config IDs to run")
+    parser.add_argument("--config", default="1,2,3,4,5,6,7,8", help="Comma-separated matrix config IDs to run")
     parser.add_argument("--cpu-only", action="store_true", help="Shortcut to run configuration 3 (CPU) only")
     
     args = parser.parse_args()
