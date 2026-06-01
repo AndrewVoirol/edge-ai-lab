@@ -24,6 +24,15 @@ final class MetricsStore {
             let prefillTokensPerSecond: Double
             let lastPrefillTokenCount: Int
             let lastDecodeTokenCount: Int
+
+            // Device-level instrumentation (optional for backward compatibility)
+            let thermalStateAtStart: String?
+            let thermalStateAtEnd: String?
+            let availableMemoryAtStartMB: Double?
+            let availableMemoryAtEndMB: Double?
+            let medianTokenLatencyMs: Double?
+            let p95TokenLatencyMs: Double?
+            let tokenLatenciesMs: [Double]?
         }
     }
 
@@ -78,11 +87,12 @@ final class MetricsStore {
         try data.write(to: fileURL, options: .atomic)
     }
 
-    /// Create an entry from BenchmarkInfo and current state.
+    /// Create an entry from BenchmarkInfo, optional InferenceMetrics, and current state.
     static func createEntry(
         from benchmarkInfo: BenchmarkInfo,
         modelName: String,
-        flags: ExperimentalFlagsState
+        flags: ExperimentalFlagsState,
+        inferenceMetrics: InferenceMetrics? = nil
     ) -> Entry {
         let platform: String
         #if os(iOS)
@@ -122,7 +132,14 @@ final class MetricsStore {
                 decodeTokensPerSecond: benchmarkInfo.lastDecodeTokensPerSecond,
                 prefillTokensPerSecond: benchmarkInfo.lastPrefillTokensPerSecond,
                 lastPrefillTokenCount: benchmarkInfo.lastPrefillTokenCount,
-                lastDecodeTokenCount: benchmarkInfo.lastDecodeTokenCount
+                lastDecodeTokenCount: benchmarkInfo.lastDecodeTokenCount,
+                thermalStateAtStart: inferenceMetrics?.startSnapshot.thermalLevel.rawValue,
+                thermalStateAtEnd: inferenceMetrics?.endSnapshot.thermalLevel.rawValue,
+                availableMemoryAtStartMB: inferenceMetrics?.startSnapshot.availableMemoryMB,
+                availableMemoryAtEndMB: inferenceMetrics?.endSnapshot.availableMemoryMB,
+                medianTokenLatencyMs: inferenceMetrics?.medianTokenLatencyMs,
+                p95TokenLatencyMs: inferenceMetrics?.p95TokenLatencyMs,
+                tokenLatenciesMs: inferenceMetrics?.tokenLatenciesMs
             ),
             flags: flags
         )

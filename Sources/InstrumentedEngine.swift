@@ -14,6 +14,9 @@ protocol InstrumentedEngineProtocol: AnyObject {
     /// The most recent BenchmarkInfo from the last completed inference, or nil.
     var lastBenchmarkInfo: BenchmarkInfo? { get }
 
+    /// The most recent device-level inference metrics (thermal, memory, per-token latency).
+    var lastInferenceMetrics: InferenceMetrics? { get }
+
     /// The current experimental flags state.
     var flagsState: ExperimentalFlagsState { get }
 
@@ -110,6 +113,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     private var engine: Engine?
     private var conversation: Conversation?
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
+    private(set) var lastInferenceMetrics: InferenceMetrics?
     private(set) var lastBackendResult: BackendResult?
     private(set) var flagsState: ExperimentalFlagsState = ExperimentalFlagsState(
         enableBenchmark: true,
@@ -197,6 +201,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                         "Starting inference for prompt length %{public}d", text.count)
 
+            // Capture device metrics at inference start
+            let startSnapshot = DeviceMetrics.captureSnapshot()
+            var tokenTimestamps: [CFAbsoluteTime] = []
+            let inferenceStartTime = CFAbsoluteTimeGetCurrent()
             var isFirstToken = true
 
             do {
@@ -204,6 +212,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     if let firstContent = chunk.contents.first {
                         switch firstContent {
                         case .text(let responseText):
+                            // Record timestamp for per-token latency
+                            tokenTimestamps.append(CFAbsoluteTimeGetCurrent())
+
                             if isFirstToken {
                                 os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
                                             "First token received")
@@ -215,6 +226,28 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                         }
                     }
                 }
+
+                // Capture device metrics at inference end
+                let endSnapshot = DeviceMetrics.captureSnapshot()
+
+                // Calculate per-token latency intervals
+                var tokenLatenciesMs: [Double] = []
+                if !tokenTimestamps.isEmpty {
+                    // First token latency: time from inference start to first token
+                    tokenLatenciesMs.append((tokenTimestamps[0] - inferenceStartTime) * 1000.0)
+                    // Subsequent tokens: inter-token intervals
+                    for i in 1..<tokenTimestamps.count {
+                        tokenLatenciesMs.append((tokenTimestamps[i] - tokenTimestamps[i - 1]) * 1000.0)
+                    }
+                }
+
+                // Build InferenceMetrics
+                self.lastInferenceMetrics = InferenceMetrics(
+                    startSnapshot: startSnapshot,
+                    endSnapshot: endSnapshot,
+                    tokenLatenciesMs: tokenLatenciesMs,
+                    totalTokenCount: tokenTimestamps.count
+                )
 
                 // Capture BenchmarkInfo after stream completes
                 if self.flagsState.enableBenchmark {
@@ -230,6 +263,15 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                             "Inference completed")
                 continuation.finish()
             } catch {
+                // Still capture metrics on failure for debugging
+                let endSnapshot = DeviceMetrics.captureSnapshot()
+                self.lastInferenceMetrics = InferenceMetrics(
+                    startSnapshot: startSnapshot,
+                    endSnapshot: endSnapshot,
+                    tokenLatenciesMs: [],
+                    totalTokenCount: 0
+                )
+
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                             "Inference FAILED: %{public}s", error.localizedDescription)
                 continuation.finish(throwing: error)
@@ -273,6 +315,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             }
         }
         lastBenchmarkInfo = nil
+        lastInferenceMetrics = nil
 
         // Step 3: Create a fresh conversation with the same sampler config.
         let convConfig = ConversationConfig(samplerConfig: activeSamplerConfig)
@@ -315,6 +358,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         }
         engine = nil
         lastBenchmarkInfo = nil
+        lastInferenceMetrics = nil
         lastBackendResult = nil
         activeSamplerConfig = nil
     }

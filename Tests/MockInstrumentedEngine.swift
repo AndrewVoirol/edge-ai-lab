@@ -16,6 +16,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// The BenchmarkInfo to return after inference. Set this before calling sendMessageStream.
     var mockBenchmarkInfo: BenchmarkInfo?
 
+    /// The InferenceMetrics to return after inference. Set this before calling sendMessageStream.
+    var mockInferenceMetrics: InferenceMetrics?
+
     /// The BackendResult to return from initializeWithFallback. Set this before calling.
     var mockBackendResult: BackendResult?
 
@@ -64,6 +67,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
 
     private(set) var isReady = false
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
+    private(set) var lastInferenceMetrics: InferenceMetrics?
     private(set) var lastBackendResult: BackendResult?
     private(set) var flagsState = ExperimentalFlagsState(
         enableBenchmark: true,
@@ -143,6 +147,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
 
                 // Simulate benchmark capture
                 self.lastBenchmarkInfo = benchmarkInfo
+                self.lastInferenceMetrics = self.mockInferenceMetrics
 
                 continuation.finish()
             }
@@ -152,6 +157,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     func resetConversation() async throws {
         resetConversationCallCount += 1
         lastBenchmarkInfo = nil
+        lastInferenceMetrics = nil
     }
 
     func warmup() async throws {
@@ -164,6 +170,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         shutdownCallCount += 1
         isReady = false
         lastBenchmarkInfo = nil
+        lastInferenceMetrics = nil
         lastBackendResult = nil
     }
 }
