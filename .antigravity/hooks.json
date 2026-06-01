@@ -13,6 +13,20 @@
       }
     ]
   },
+  "session-init": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp_xcodebuild-mcp_.*build|mcp_xcodebuild-mcp_.*test|mcp_xcodebuild-mcp_.*run|mcp_xcodebuild-mcp_.*device",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.antigravity/hooks/session-init.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "model-check": {
     "PreToolUse": [
       {

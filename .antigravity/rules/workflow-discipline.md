@@ -2,6 +2,19 @@
 
 These rules ensure safe, recoverable workflows during agent-assisted development.
 
+## Session Initialization
+
+> [!IMPORTANT]
+> **Always verify MCP session defaults before the first build or test.** Call `session_show_defaults` to confirm workspace, scheme, and simulator/device are configured.
+
+### Rules
+1. At the start of a new conversation, call `session_show_defaults` before any build/test
+2. If defaults are missing, use `session_set_defaults` with:
+   - `workspacePath`: `GemmaEdgeGallery.xcworkspace`
+   - `scheme`: `GemmaEdgeGallery_iOS` (or `GemmaEdgeGallery_macOS`)
+3. For device workflows, verify `deviceId` is set
+4. The `session-init` hook runs automatically but does not set defaults — it only warns
+
 ## Commit-Before-Change
 
 > [!IMPORTANT]
@@ -25,22 +38,37 @@ Types: `Fix`, `Feature`, `Refactor`, `Test`, `Docs`, `Chore`
 ## Test Stability on Physical Devices
 
 > [!WARNING]
-> iOS device testing via `xcodebuild` CLI has known stability issues. Follow these precautions.
+> iOS device testing has known stability issues. Follow these precautions.
 
 ### Pre-flight Checks
 1. Ensure the device is **unlocked** and the screen is on
 2. Stop any active Xcode debug sessions (press ⏹ in Xcode) before running CLI tests
-3. Verify the app is installed: `xcrun devicectl device install app --device <UUID> <app-path>`
+3. Verify device connectivity: use `list_devices` MCP tool
 4. The app must be trusted on the device (no "Untrusted Developer" dialogs)
+5. Always use MCP tools (`build_device`, `test_device`) — never raw `xcodebuild` for device workflows
+
+### Device Failure Recovery
+If device tests fail:
+1. **First**: Kill stuck processes and retry
+2. **Second**: Restart the iPhone (fixes ~90% of testmanagerd/DTDeviceKit issues)
+3. **Third**: Unpair → Re-pair → Restart iPhone
+4. See `.antigravity/skills/device-recovery/SKILL.md` for detailed procedures
 
 ### Known CLI Test Pitfalls
-- `xcodebuild test-without-building` can hang silently during "device preparation" — kill and retry if no output after 2 minutes
+- `test_device` can hang during "device preparation" — kill and retry if no output after 2 minutes
 - The host app's `onAppear` fires when the test runner launches it — any auto-loading logic (like `checkForLocalModels()`) competes with test engine instances for GPU resources
 - After a crash, the test runner may restart the app but find 0 tests — this is expected (tests are marked as failed from the first launch)
-- Use `xcodebuild test` (build+test) if `test-without-building` hangs — it handles device preparation more reliably
 
 ### Context Accumulation in Single-Conversation Tests
 When reusing a single `Conversation` across multiple inference runs:
 - Context grows with each turn (prompt + response accumulates)
 - Run 3+ can crash with `Token id X is out of range. Vocab size is Y` — a context overflow
 - **Fix**: Create a new `Conversation` per run (keep the same `Engine`) instead of reusing one conversation
+
+## macOS Testing
+
+### Rules
+1. Use `build_macos` and `test_macos` MCP tools — same session defaults pattern
+2. Switch scheme to `GemmaEdgeGallery_macOS` for macOS builds: `session_set_defaults` with `scheme: GemmaEdgeGallery_macOS`
+3. macOS tests support both GPU and CPU backends — no simulator limitations
+4. `linkd.autoShortcut` connection errors in macOS test output are noise — tests still pass, ignore them

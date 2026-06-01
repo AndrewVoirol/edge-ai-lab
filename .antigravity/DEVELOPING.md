@@ -217,23 +217,41 @@ xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS \
 
 ## MCP Architecture (for Agents)
 
-This project has **two** Xcode MCP servers:
+This project has **two** Xcode MCP servers with **9 enabled workflows** providing ~65 tools:
 
 - **`xcode-tools`** — Apple's native Xcode MCP. Use for previews, diagnostics, code nav, documentation. Requires Xcode open.
-- **`xcodebuild-mcp`** — Sentry's XcodeBuildMCP. Use for builds, tests, deployment, coverage, debugging. Works headlessly.
+- **`xcodebuild-mcp`** — Sentry's XcodeBuildMCP v2.5.2. Use for builds, tests, deployment, coverage, debugging. Works headlessly.
+
+### Enabled Workflows
+
+| Workflow | Tools | Purpose |
+|---|---|---|
+| `simulator` | 20 | iOS simulator build/test/run |
+| `device` | 15 | Physical device build/test/deploy |
+| `macos` | 13 | macOS app development |
+| `debugging` | 8 | LLDB debugging (simulator) |
+| `ui-automation` | 11 | Tap/swipe/type/screenshot |
+| `coverage` | 2 | Code coverage reports |
+| `session-management` | 5 | Session defaults and profiles |
+| `project-discovery` | 5 | Project/workspace/scheme discovery |
+| `workflow-discovery` | 1 | Runtime workflow management |
 
 See `.antigravity/skills/xcode-mcp/SKILL.md` for the full capability matrix.
 
 > [!IMPORTANT]
-> **Device workflows** require `.xcodebuildmcp/config.yaml` with `enabledWorkflows: ["simulator", "device", "ui-automation", "debugging"]`. Only simulator is enabled by default. The MCP server must be restarted after config changes.
+> Workflows are configured in **two places**: `.xcodebuildmcp/config.yaml` (project-level) and `XCODEBUILDMCP_ENABLED_WORKFLOWS` env var in `~/.gemini/config/mcp_config.json` (MCP server startup). Both must be set. The MCP server must be restarted after config changes.
+
+> [!NOTE]
+> For device testing troubleshooting (testmanagerd hangs, DTDeviceKit crashes, pairing issues), see `.antigravity/skills/device-recovery/SKILL.md`.
 
 ## Automation Hooks
 
-Three hooks fire automatically during agent workflows:
+Four hooks fire automatically during agent workflows:
 
 | Hook | Trigger | Action |
 |---|---|---|
 | Auto-tuist-generate | File write to `Project.swift` | Runs `tuist generate` |
+| Session init | Before build/test/run/device MCP calls | Verifies XcodeBuildMCP config, workflows, and device connectivity |
 | Model check | Before build/test MCP calls | Warns if no model in `models/` |
 | Metrics capture | After test MCP calls | Appends results to `metrics/history.json` |
 
@@ -330,8 +348,10 @@ gemma-edgegallery/
 │   ├── DEVELOPING.md     # This file
 │   ├── hooks.json        # Lifecycle hook configuration
 │   ├── hooks/            # Hook scripts
-│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing, gallery-parity, model-management, benchmark-comparison)
+│   ├── skills/           # Agent skills (tuist, xcode-mcp, litert-lm, performance-testing, gallery-parity, model-management, benchmark-comparison, device-recovery)
 │   └── rules/            # Always-on agent rules (project-structure, build-tool-boundaries, benchmark-methodology, workflow-discipline)
+├── .xcodebuildmcp/               # XcodeBuildMCP config
+│   └── config.yaml               # Enabled workflows + session defaults
 ├── .gitignore
 ├── GemmaEdgeGallery.xcodeproj/   # Tuist-generated (DO NOT EDIT)
 ├── GemmaEdgeGallery.xcworkspace/ # Tuist-generated (DO NOT EDIT)

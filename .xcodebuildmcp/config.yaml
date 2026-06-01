@@ -1,2 +1,15 @@
 schemaVersion: 1
-enabledWorkflows: ["simulator", "device", "ui-automation", "debugging"]
+enabledWorkflows:
+  - simulator
+  - device
+  - ui-automation
+  - debugging
+  - macos
+  - coverage
+  - session-management
+  - project-discovery
+  - workflow-discovery
+
+sessionDefaults:
+  workspacePath: GemmaEdgeGallery.xcworkspace
+  scheme: GemmaEdgeGallery_iOS
