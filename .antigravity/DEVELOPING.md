@@ -267,7 +267,7 @@ This project aims for feature parity with the [Google AI Edge Gallery](https://g
 | Benchmark capture | ✅ Done | `BenchmarkInfo` + metrics persistence |
 | Experimental flags | ✅ Done | `ExperimentalFlagsState` management |
 | Dual platform targets | ✅ Done | iOS + macOS via Tuist |
-| HuggingFace downloads | ❌ Missing | Gallery downloads models at runtime |
+| HuggingFace downloads | 🚧 In Progress | `ModelDownloadManager` implemented, needs on-device verification |
 | Multi-turn chat | ❌ Missing | Gallery maintains conversation history |
 | Multimodal input | ❌ Missing | Image + audio input support |
 | Model management UI | ❌ Missing | Download, delete, update models |
@@ -308,8 +308,10 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 12 | **resetConversation single-session race** | Discovered Session 6 | **FIXED** — `sendMessageStream` Task captured local Conversation ref. Await `activeInferenceTask` before niling |
 | 13 | **SDK benchmark() decode token cap** | No issue filed | `benchmark()` only generates 32 decode tokens despite requesting 256. Native C++ loop hardcoded to 32 iterations. **Confirmed on-device** (Session 7): canary assertion validated, 34.48 tok/s avg on iPhone 16 Pro Max |
 | 14 | **Gemma 3n SDK benchmark mode crash** | No issue filed | `benchmark()` mode crashes at `<external symbol>` for Gemma 3n models on iOS device. Natural language benchmark works fine (17.84 tok/s INT4). SDK limitation, not app code. |
-| 15 | **testmanagerd broken after device re-pairing** | Apple known issue | `devicectl manage unpair` + `pair` re-establishes CoreDevice tunnel but `testmanagerd` (XCTest connection mediator) needs a device restart. Symptom: "test runner hung before establishing connection". **Fix**: Restart iPhone after re-pairing. |
+| 15 | **testmanagerd broken on iOS/macOS 26.6 beta** | Apple known issue | XCTest runner fails to bootstrap on physical device. Three failure modes observed: (1) hang before establishing connection (338.9s timeout), (2) signal kill before establishing connection, (3) "No result" via Xcode IDE. Originally attributed to re-pairing, but persists after iPhone restart on iOS 26.6 (23G5028e) + macOS 26.6 (25G5028f). App itself builds, installs, and launches fine — only XCTest infrastructure is broken. **Wait for next beta seed.** |
 | 16 | **ModelMetadata.id collision (SwiftUI)** | Discovered Session 8 | **FIXED** — `Identifiable.id` used `modelId` (HuggingFace repo), but Standard and Web variants share the same repo. SwiftUI `ForEach` rendered duplicate cards. Changed to `modelFile` which is unique per variant. |
+| 17 | **iOS 26.6 beta test runner signal kill** | iOS 26.6 beta | Test runner process (PID visible via `devicectl`) receives SIGKILL before XCTest connection bootstraps. `codesign` shows `get-task-allow` and `increased-memory-limit` entitlements present. Likely beta-specific issue with testmanagerd trust chain or entitlement validation. |
+
 
 > [!NOTE]
 > See [LiteRT-LM #2227](https://github.com/google-ai-edge/LiteRT-LM/issues/2227) for MTP performance regression tracking. The `RunAsync` Metal decode bug may also contribute to SEGV crashes — a guard for `IsMetalMemory()` is needed on the decode path.
