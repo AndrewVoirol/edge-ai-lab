@@ -62,3 +62,6 @@ When reporting benchmark results:
 3. **CPU inference fails silently for Mobile GPU models** — They have no XNNPACK subgraph; Gallery reports zeros
 4. **MTP cold-start is ~30-40x slower** — Always note whether you're measuring first init or warm init
 5. **Simulator GPU is unreliable** — Always use CPU on simulator; GPU produces degenerate output
+6. **LiteRT-LM C++ Deallocation Deadlocks** — Re-initializing or mutating the engine configurations within a single process lifecycle can trigger deadlocks or segmentation faults (`SIGSEGV`) in the underlying binary C++ LiteRT-LM framework. **Always** run multi-configuration benchmarks in isolated process launches (e.g., using `-RunMatrixBenchmark <id>`) to allow the OS to cleanly reclaim C++ handles on exit.
+7. **Strict 256-Token Generation Cap** — For metrics parity with the Gallery baseline and to prevent OOM/timeouts on local devices, benchmarks must consume the streaming API (`sendMessageStream`) and cooperatively break as soon as exactly 256 decode tokens are output.
+

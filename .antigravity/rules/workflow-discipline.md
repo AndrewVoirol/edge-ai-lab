@@ -56,14 +56,21 @@ If device tests fail:
 
 ### Known CLI Test Pitfalls
 - `test_device` can hang during "device preparation" — kill and retry if no output after 2 minutes
-- The host app's `onAppear` fires when the test runner launches it — any auto-loading logic (like `checkForLocalModels()`) competes with test engine instances for GPU resources
-- After a crash, the test runner may restart the app but find 0 tests — this is expected (tests are marked as failed from the first launch)
+- The host app's `onAppear` fires when the test runner launches it — any auto-loading logic competes with test engine instances for GPU resources.
+- After a crash, the test runner may restart the app but find 0 tests — this is expected.
+- **SwiftUI Layout watchdogs (`0x8BADF00D`)**: Synchronously calling state check methods (such as looking up model download status) inside a view rendering body can cause layout cycles/re-render storms that lock the main thread, leading to a SIGKILL by the OS watchdog. **Fix**: Store and retrieve download states via dedicated lookups on published properties (e.g. `viewModel.downloadManager.downloadStates`) rather than querying status methods synchronously during render.
+
+### LiteRT-LM C++ Stream Cancellation & Deinit Leaks
+- Calling `conversation.cancel()` stops the background inference worker thread, but the underlying C++ LiteRT-LM framework leaks the stream context (since it doesn't trigger the Swift stream callback with `isFinal = true` or `errorMessage`).
+- Consequently, the `Conversation` object is leaked and can outlive the `Engine`, leading to a segmentation fault (`SIGSEGV`) when `Engine.deinit` runs.
+- **Workaround**: Keep references to the engine and viewmodel elements asynchronous or leverage process-isolated runners (such as our Python runner script) to run tests in discrete lifecycles where memory cleanup is cleanly handled by the OS.
 
 ### Context Accumulation in Single-Conversation Tests
 When reusing a single `Conversation` across multiple inference runs:
 - Context grows with each turn (prompt + response accumulates)
 - Run 3+ can crash with `Token id X is out of range. Vocab size is Y` — a context overflow
 - **Fix**: Create a new `Conversation` per run (keep the same `Engine`) instead of reusing one conversation
+
 
 ## macOS Testing
 
