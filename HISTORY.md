@@ -154,3 +154,95 @@ The project now supports 5 models: E2B Standard, E2B Web, E4B Standard, E4B Web,
 - Gallery macOS app at v1.0.14/v1.0.15 with MCP support, Agent Skills, Thinking Mode
 - New "Google AI Edge Eloquent" macOS app for voice dictation (Gemma 4 12B)
 - MediaPipe LLM Inference API deprecated on Android & iOS — LiteRT-LM is replacement
+
+---
+
+## Session 3 — Tool Calling, Thinking Mode, Multi-turn Chat & UI Overhaul (June 3, 2026)
+
+**Objective:** Implement the four major feature pillars identified in the Stack Audit: on-device function calling with observability, thinking mode with streaming parser, multi-turn conversation state management, and a complete conversation UI overhaul with chat bubbles.
+
+### Phase 1 — Tool Calling with Observability
+
+**6 Built-in Tools** (all side-effect-free, offline-capable):
+
+| Tool | Function Name | Description |
+|------|--------------|-------------|
+| CalculatorTool | `calculate` | NSExpression-based safe math evaluation |
+| DateTimeTool | `get_current_datetime` | Current date/time with optional IANA timezone |
+| DeviceInfoTool | `get_device_info` | Device model, OS, processor, memory, thermal state |
+| UnitConverterTool | `convert_units` | Foundation Measurement API for temp/distance/weight/data |
+| TextAnalyzerTool | `analyze_text` | Word/char/sentence counts, reading time, language detection |
+| SystemHealthTool | `get_system_health` | **Killer differentiator** — model introspects its own hardware |
+
+**Architecture:**
+- `ToolRegistry` enum with `defaultTools: [Tool]` and `createToolManager() -> ToolManager`
+- `ToolCallEvent` struct (Identifiable, Sendable) for observability: name, args, result, duration, success
+- All tools return JSON strings via shared `jsonString(from:)` helper
+- SystemHealthTool: thermal emoji indicators, memory pressure classification, battery (iOS), disk space
+
+### Phase 2 — Thinking Mode
+
+**ThinkingParser** — streaming-aware parser for `<think>`/`<|think|>` delimiter tags:
+- Two-state machine (normal/thinking) with buffer-based approach
+- `drainBuffer(isFinal:)` core loop: scans for tags, emits segments, flips state
+- `findSafeEmitBoundary()`: retains trailing `maxTagLength - 1` chars for partial tag handling
+- `finalize()` flushes buffer as literal text (incomplete tags → regular content)
+- Convenience `ThinkingParser.parse(_:)` static method for non-streaming use cases
+
+### Phase 3 — Multi-turn Chat Data Model
+
+**ChatMessage** — Identifiable message model:
+- `Role` enum: `.user`, `.assistant`, `.system`, `.toolResult`
+- `Attachment` enum: `.image(Data)`, `.audio(Data)` with convenience predicates
+- `BenchmarkSnapshot` — frozen copy of `BenchmarkInfo` at message completion time
+- Factory methods: `.user(_:imageData:audioData:)`, `.assistant()`, `.system(_:)`
+
+**ConversationState** — collection wrapper:
+- `messages: [ChatMessage]` with `append`, `clear`, `count`, `isEmpty`
+- `updateLastAssistantMessage(content:thinkingContent:toolCalls:isStreaming:benchmarkInfo:)`
+- `isAssistantStreaming` computed property for UI binding
+
+### Phase 4 — Conversation UI Overhaul
+
+**ChatBubbleView** component:
+- Role-based styling: user (right/blue), assistant (left/gray), system (yellow), tool result (orange)
+- Collapsible thinking section with pulsing brain icon (`DisclosureGroup`)
+- Inline tool call chips with expandable details (arguments + result + timing)
+- Multimodal attachment previews (image thumbnails, audio waveform badge)
+- Per-message benchmark mini-badge (tok/s, TTFT, token count)
+- Cross-platform image handling (`#if os(iOS)` / `#elseif os(macOS)`)
+
+**ContentView** updates:
+- Chat bubble list replaces raw text dump (`LazyVStack` + `ScrollViewReader`)
+- Auto-scroll to latest message on new messages and during streaming
+- "New Chat" button with conversation reset
+- Enter-to-send (`.onSubmit` on TextField)
+- Thinking mode pulsing indicator in action bar
+- Tool calling & thinking mode capability badges in header
+
+**InferenceSettingsView** updates:
+- "Thinking Mode" section with enable toggle and description
+- "Tool Calling" section with enable toggle and tool list display
+- Tool list shows all 6 tools with names and descriptions
+
+**ConversationViewModel** rewrite:
+- `ConversationState` replaces single `responseText` (backward-compatible via computed property)
+- ThinkingParser integration in streaming loop
+- `newConversation()` method clears chat + resets engine conversation
+- Tool call event collection and per-message benchmark snapshots
+
+### Phase 5 — Testing
+
+**35 new tests (107 → 142 total):**
+- `ToolCallingTests` (16 tests): Calculator, DateTime, UnitConverter, TextAnalyzer, ToolRegistry, ToolCallEvent
+- `ThinkingParserTests` (11 tests): streaming parsing, tag variants, split tags, multiple blocks, reset, HTML pass-through
+- `ChatMessageTests` (8 tests): message creation, ConversationState, streaming state
+- `UnitTests.xctestplan` updated with all new test classes
+
+### Key Decisions
+- Tools are side-effect-free and offline-only — no network calls, no file writes
+- SystemHealthTool is the differentiator: on-device model reasons about its own hardware
+- ThinkingParser handles both `<think>` and `<|think|>` tag variants
+- `enableThinking` and `enableToolCalling` are `var` properties (not init params) for binary/struct compatibility
+- Conversation UI uses `LazyVStack` for performance with long conversations
+
