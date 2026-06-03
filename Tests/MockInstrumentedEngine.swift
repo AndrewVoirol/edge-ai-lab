@@ -63,6 +63,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// Number of times warmup was called.
     private(set) var warmupCallCount = 0
 
+    /// The last system message passed to initialize.
+    private(set) var lastSystemMessage: String?
+
     // MARK: - Protocol Conformance
 
     private(set) var isReady = false
@@ -81,12 +84,14 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         useGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
     ) async throws {
         initializeCallCount += 1
         lastModelPath = modelPath
         lastFlags = flags
         lastSamplerConfig = samplerConfig
+        lastSystemMessage = systemMessage
         flagsState = flags
 
         if let error = initError {
@@ -101,7 +106,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         preferGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
     ) async throws -> BackendResult {
         // Delegate to regular initialize
         try await initialize(
@@ -109,7 +115,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
             useGPU: preferGPU,
             cacheDir: cacheDir,
             flags: flags,
-            samplerConfig: samplerConfig
+            samplerConfig: samplerConfig,
+            systemMessage: systemMessage
         )
 
         let result = mockBackendResult ?? BackendResult(

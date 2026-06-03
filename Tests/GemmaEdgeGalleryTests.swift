@@ -798,8 +798,28 @@ final class ModelMetadataTests: XCTestCase {
 
 
 
-    func testKnownModelCountIsTwo() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 2)
+    func testKnownModelCount() {
+        XCTAssertEqual(ModelRegistry.knownModels.count, 5)
+    }
+
+    func testLookup12BByFilename() {
+        let metadata = ModelRegistry.lookup(filename: "gemma-4-12B-it.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 4 12B · Dense Multimodal")
+        XCTAssertEqual(metadata?.minDeviceMemoryGB, 16)
+    }
+
+    func test12BContextWindow() {
+        let metadata = ModelRegistry.gemma4_12B
+        XCTAssertEqual(metadata.defaultConfig.maxContextLength, 256_000)
+        XCTAssertEqual(metadata.defaultConfig.maxTokens, 8_000)
+    }
+
+    func test12BSupportsMTP() {
+        let metadata = ModelRegistry.gemma4_12B
+        XCTAssertTrue(metadata.supportsMTP)
+        XCTAssertTrue(metadata.supportsImage)
+        XCTAssertTrue(metadata.supportsAudio)
     }
 
     func testBackendCapabilitySupportsGPU() {

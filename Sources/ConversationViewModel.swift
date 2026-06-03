@@ -56,6 +56,12 @@ final class ConversationViewModel {
     /// Temperature for sampling. Higher = more random.
     var temperature: Float = 1.0
 
+    /// Seed for reproducible generation. 0 = non-deterministic (SDK default).
+    var seed: Int = 0
+
+    /// Optional system message to set model persona/instructions.
+    var systemMessage: String = ""
+
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
@@ -175,7 +181,8 @@ final class ConversationViewModel {
             let samplerConfig = try? SamplerConfig(
                 topK: topK,
                 topP: topP,
-                temperature: temperature
+                temperature: temperature,
+                seed: seed
             )
 
             // Use smart fallback initialization
@@ -184,7 +191,8 @@ final class ConversationViewModel {
                 preferGPU: useGPU,
                 cacheDir: modelCacheDirectory.path,
                 flags: experimentalFlags,
-                samplerConfig: samplerConfig
+                samplerConfig: samplerConfig,
+                systemMessage: systemMessage.isEmpty ? nil : systemMessage
             )
 
             backendResult = result

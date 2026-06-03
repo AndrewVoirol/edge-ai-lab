@@ -6,10 +6,10 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // Session 4: Upgraded from 3a97cbf to main HEAD (aeefa9b, 2026-05-29).
-        // Includes: macOS Swift API support, MTP byte-mapping fix (Windows),
-        // sampler config in CLI, version bump to 0.13.0-dev.
-        // v0.12.0 tag still has packaging issues. Will re-evaluate at v0.13.0 release.
+        // Stack Audit (June 3, 2026): Confirmed at main HEAD (aeefa9b, 2026-05-29).
+        // SDK is at 0.13.0-dev. v0.12.0 tag still has SPM packaging issues (Issue #2407).
+        // v0.13.0 not yet released. Staying on .branch("main") for bleeding-edge fixes.
+        // Added: Gemma 4 12B to model registry, expanded test plans, new SDK feature probing.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
     ],
     settings: .settings(

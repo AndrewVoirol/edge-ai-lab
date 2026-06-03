@@ -36,7 +36,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
         useGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
     ) async throws
 
     /// Initialize with smart fallback: try the preferred backend, fall back if it fails.
@@ -52,7 +53,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
         preferGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
     ) async throws -> BackendResult
 
     /// Send a message and receive a streamed response.
@@ -94,6 +96,45 @@ struct BackendResult: Sendable {
     }
 }
 
+// MARK: - Protocol Defaults
+
+extension InstrumentedEngineProtocol {
+    /// Default systemMessage to nil for callers that don't need system instructions.
+    func initialize(
+        modelPath: String,
+        useGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
+    ) async throws {
+        try await initialize(
+            modelPath: modelPath,
+            useGPU: useGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: nil
+        )
+    }
+
+    func initializeWithFallback(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
+    ) async throws -> BackendResult {
+        try await initializeWithFallback(
+            modelPath: modelPath,
+            preferGPU: preferGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: nil
+        )
+    }
+}
+
 // MARK: - Concrete Implementation
 
 /// Concrete implementation wrapping LiteRTLM Engine + Conversation with
@@ -123,6 +164,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     )
     /// The sampler config used for the current conversation.
     private var activeSamplerConfig: SamplerConfig?
+    /// The system message for the current conversation.
+    private var activeSystemMessage: String?
     /// Tracks the active inference Task so resetConversation() can await its completion.
     /// This is critical because the Task captures a local strong reference to the Conversation,
     /// and the native session won't be deleted until that reference is released.
@@ -137,13 +180,15 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         useGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig? = nil
+        samplerConfig: SamplerConfig? = nil,
+        systemMessage: String? = nil
     ) async throws {
         // Tear down any existing engine first
         await shutdown()
 
         self.flagsState = flags
         self.activeSamplerConfig = samplerConfig
+        self.activeSystemMessage = systemMessage
 
         // Configure experimental flags — MUST opt in first
         ExperimentalFlags.optIntoExperimentalAPIs()
@@ -167,8 +212,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
             self.engine = newEngine
 
-            // Create conversation with optional sampler config
-            let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+            // Create conversation with optional sampler config and system message
+            let sysMsg: Message? = systemMessage.flatMap { text in
+                text.isEmpty ? nil : Message(text, role: .system)
+            }
+            let convConfig = ConversationConfig(
+                systemMessage: sysMsg,
+                samplerConfig: samplerConfig
+            )
             self.conversation = try await newEngine.createConversation(with: convConfig)
 
             os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
@@ -334,8 +385,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         lastBenchmarkInfo = nil
         lastInferenceMetrics = nil
 
-        // Step 3: Create a fresh conversation with the same sampler config.
-        let convConfig = ConversationConfig(samplerConfig: activeSamplerConfig)
+        // Step 3: Create a fresh conversation with the same sampler config and system message.
+        let sysMsg: Message? = activeSystemMessage.flatMap { text in
+            text.isEmpty ? nil : Message(text, role: .system)
+        }
+        let convConfig = ConversationConfig(
+            systemMessage: sysMsg,
+            samplerConfig: activeSamplerConfig
+        )
         self.conversation = try await engine.createConversation(with: convConfig)
     }
 
@@ -381,6 +438,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         lastInferenceMetrics = nil
         lastBackendResult = nil
         activeSamplerConfig = nil
+        activeSystemMessage = nil
     }
 
     // MARK: - Smart Backend Initialization with Fallback
@@ -390,7 +448,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         preferGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig? = nil
+        samplerConfig: SamplerConfig? = nil,
+        systemMessage: String? = nil
     ) async throws -> BackendResult {
         // Check known model registry first for pre-verified guidance
         let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
@@ -412,7 +471,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 useGPU: shouldTryGPU,
                 cacheDir: cacheDir,
                 flags: flags,
-                samplerConfig: samplerConfig
+                samplerConfig: samplerConfig,
+                systemMessage: systemMessage
             )
 
             let result = BackendResult(
@@ -441,7 +501,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     useGPU: fallbackUseGPU,
                     cacheDir: cacheDir,
                     flags: flags,
-                    samplerConfig: samplerConfig
+                    samplerConfig: samplerConfig,
+                    systemMessage: systemMessage
                 )
 
                 let result = BackendResult(

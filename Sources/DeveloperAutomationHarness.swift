@@ -139,7 +139,7 @@ struct DeveloperAutomationHarness {
                 
                 // Determine if we should only run a specific configuration (1-indexed)
                 var configIndexToRun: Int? = nil
-                for i in 1...8 {
+                for i in 1...10 {
                     if CommandLine.arguments.contains(String(i)) {
                         configIndexToRun = i
                         print("[AUTOMATION] Targeting Configuration \(i) only.")
@@ -166,7 +166,9 @@ struct DeveloperAutomationHarness {
                     Config(label: "E4B Web Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: greedy),
                     Config(label: "E4B Web Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: true, sampler: greedy),
                     Config(label: "E4B Web Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: sampling),
-                    Config(label: "E4B Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BStandard, useGPU: false, enableMTP: false, sampler: greedy)
+                    Config(label: "E4B Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BStandard, useGPU: false, enableMTP: false, sampler: greedy),
+                    Config(label: "12B Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4_12B, useGPU: true, enableMTP: false, sampler: greedy),
+                    Config(label: "12B Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4_12B, useGPU: true, enableMTP: true, sampler: greedy)
                 ]
                 
                 // Ensure required model is available

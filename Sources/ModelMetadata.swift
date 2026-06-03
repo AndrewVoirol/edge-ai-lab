@@ -148,6 +148,7 @@ enum ModelRegistry {
         gemma4E2BWeb,
         gemma4E4BStandard,
         gemma4E4BWeb,
+        gemma4_12B,
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -272,6 +273,41 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // Same architecture as E2B web
             iOSDevice: .gpuOnly,
             iOSSimulator: .gpuOnly    // Same architecture as E2B web
+        )
+    )
+
+    // MARK: - Gemma 4 12B (Dense Multimodal)
+
+    /// Gemma 4 12B — Dense encoder-free multimodal model (text + image + audio).
+    /// Released June 3, 2026. 256K context window. Requires 16GB+ unified memory.
+    /// Outperforms Gemma 3 27B on multiple benchmarks. Apache 2.0 license.
+    ///
+    /// This model is primarily intended for macOS (M-series with 16GB+) and
+    /// iPad Pro, but iOS device loading is not blocked — the increased-memory-limit
+    /// entitlement may allow it on high-RAM iPhones. Let the engine try and report.
+    static let gemma4_12B = ModelMetadata(
+        name: "Gemma 4 12B · Dense Multimodal",
+        modelId: "litert-community/gemma-4-12B-it-litert-lm",
+        modelFile: "gemma-4-12B-it.litertlm",
+        description: "Dense 12B model with native text, image, and audio. 256K context. Requires 16GB+ unified memory. Best quality on-device.",
+        sizeInBytes: 6_547_589_312,
+        minDeviceMemoryGB: 16,
+        supportsImage: true,
+        supportsAudio: true,
+        capabilities: ["llm_thinking", "speculative_decoding"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 64,
+            topP: 0.95,
+            temperature: 1.0,
+            maxContextLength: 256_000,
+            maxTokens: 8_000,
+            accelerators: "gpu,cpu",
+            visionAccelerator: "gpu"
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuAndCpu,        // M-series with 16GB+ — primary target
+            iOSDevice: .gpuAndCpu,    // Allow attempt — increased-memory-limit entitlement may help
+            iOSSimulator: .cpuOnly    // Simulator Metal unreliable
         )
     )
 

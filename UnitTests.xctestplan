@@ -21,8 +21,14 @@
       },
       "selectedTests" : [
         "ConversationViewModelTests",
+        "DeviceMetricsSnapshotTests",
         "ExperimentalFlagsStateTests",
-        "MetricsStoreTests"
+        "InferenceMetricsIntegrationTests",
+        "InferenceMetricsTests",
+        "MetricsStoreInferenceMetricsTests",
+        "MetricsStoreTests",
+        "ModelMetadataTests",
+        "ThermalLevelTests"
       ]
     }
   ],
