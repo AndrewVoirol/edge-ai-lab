@@ -49,3 +49,4 @@ Packages/
 # --- Benchmark Metrics ---
 # Machine-local benchmark data captured by capture-metrics.sh hook
 metrics/
+default.profraw

@@ -2,16 +2,16 @@ import SwiftUI
 
 // MARK: - Chat Bubble View
 
-/// A reusable chat bubble component that renders a single message
+/// A premium chat bubble component that renders a single message
 /// in the conversation thread. Handles all message types: user, assistant,
 /// system, and tool result messages.
 ///
-/// Features:
-/// - Role-based styling (user=right/blue, assistant=left/gray)
-/// - Collapsible thinking section with pulsing indicator
-/// - Inline tool call chips with expandable details
-/// - Per-message benchmark mini-badge
-/// - Multimodal attachment previews
+/// Design: Dark-mode-first with gradient user bubbles, glass assistant bubbles,
+/// animated thinking sections, and inline tool call chips with status indicators.
+/// Follows Apple's Liquid Glass design language with custom AppColors palette.
+///
+/// Accessibility: Every interactive element has an `.accessibilityIdentifier`
+/// for agent and test discoverability.
 struct ChatBubbleView: View {
     let message: ChatMessage
     let enableThinking: Bool
@@ -20,11 +20,11 @@ struct ChatBubbleView: View {
     @State private var expandedToolCall: UUID?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            if message.role == .user { Spacer(minLength: 40) }
+        HStack(alignment: .top, spacing: AppSpacing.sm) {
+            if message.role == .user { Spacer(minLength: 48) }
 
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 6) {
-                // Role label
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: AppSpacing.sm) {
+                // Role label with timestamp
                 roleLabel
 
                 // Thinking section (assistant only)
@@ -52,54 +52,56 @@ struct ChatBubbleView: View {
                 }
             }
 
-            if message.role != .user { Spacer(minLength: 40) }
+            if message.role != .user { Spacer(minLength: 48) }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.xs)
+        .messageEntrance()
+        .accessibilityIdentifier("chatBubble_\(message.id)")
     }
 
     // MARK: - Role Label
 
     @ViewBuilder
     private var roleLabel: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xs) {
             switch message.role {
             case .user:
                 Image(systemName: "person.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.accentGold)
                 Text("You")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
             case .assistant:
                 Image(systemName: "sparkles")
-                    .font(.caption2)
-                    .foregroundStyle(.purple)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.accentTeal)
                 Text("Gemma")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
             case .system:
                 Image(systemName: "gear")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
                 Text("System")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
             case .toolResult:
-                Image(systemName: "wrench.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                Image(systemName: "wrench.and.screwdriver.fill")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.toolCall)
                 Text("Tool Result")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             Spacer()
 
-            // Timestamp
+            // Relative timestamp
             Text(message.timestamp, style: .time)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
         }
     }
 
@@ -109,47 +111,49 @@ struct ChatBubbleView: View {
     private var contentBubble: some View {
         Group {
             if message.content.isEmpty && message.isStreaming {
-                // Streaming placeholder
-                HStack(spacing: 4) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle()
-                            .fill(.secondary)
-                            .frame(width: 6, height: 6)
-                            .opacity(0.5)
-                            .animation(
-                                .easeInOut(duration: 0.6)
-                                .repeatForever()
-                                .delay(Double(i) * 0.2),
-                                value: message.isStreaming
-                            )
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                // Animated streaming indicator
+                StreamingIndicator()
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
             } else {
                 Text(message.content)
-                    .font(.body)
+                    .font(AppTypography.body)
+                    .foregroundStyle(message.role == .user ? .white : AppColors.textPrimary)
                     .textSelection(.enabled)
                     .multilineTextAlignment(message.role == .user ? .trailing : .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
             }
         }
         .background(bubbleBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous)
+                .stroke(bubbleBorderColor, lineWidth: 0.5)
+        )
+        .accessibilityIdentifier("messageBubble_\(message.role)")
     }
 
     @ViewBuilder
     private var bubbleBackground: some View {
         switch message.role {
         case .user:
-            Color.accentColor.opacity(0.2)
+            AppGradients.userBubble
         case .assistant:
-            Color(.systemGray).opacity(0.15)
+            AppColors.assistantBubble
         case .system:
-            Color.yellow.opacity(0.1)
+            AppColors.backgroundTertiary.opacity(0.6)
         case .toolResult:
-            Color.orange.opacity(0.1)
+            AppColors.toolCall.opacity(0.08)
+        }
+    }
+
+    private var bubbleBorderColor: Color {
+        switch message.role {
+        case .user:      return AppColors.userBubbleStart.opacity(0.3)
+        case .assistant:  return AppColors.border
+        case .system:    return AppColors.warning.opacity(0.15)
+        case .toolResult: return AppColors.toolCall.opacity(0.15)
         }
     }
 
@@ -157,39 +161,74 @@ struct ChatBubbleView: View {
 
     @ViewBuilder
     private func thinkingSection(_ thinking: String) -> some View {
-        DisclosureGroup(isExpanded: $showThinking) {
-            Text(thinking)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.purple.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "brain.head.profile")
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            // Tap to expand/collapse
+            Button {
+                withAnimation(AppAnimation.standard) {
+                    showThinking.toggle()
+                }
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "brain.head.profile")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.thinking)
+                        .symbolEffect(.pulse, isActive: message.isStreaming)
+
+                    Text("Reasoning")
+                        .font(AppTypography.badge)
+                        .foregroundStyle(AppColors.thinking)
+
+                    Text("·")
+                        .foregroundStyle(AppColors.textTertiary)
+
+                    // Word count instead of char count
+                    let wordCount = thinking.split(separator: " ").count
+                    Text("\(wordCount) words")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+
+                    Spacer()
+
+                    Image(systemName: showThinking ? "chevron.up" : "chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary)
+                        .rotationEffect(.degrees(showThinking ? 0 : 0))
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.sm)
+                .background(AppColors.thinking.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.sm)
+                        .stroke(AppColors.thinking.opacity(0.1), lineWidth: 0.5)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("thinkingToggle_\(message.id)")
+
+            // Expanded thinking content
+            if showThinking {
+                Text(thinking)
                     .font(.caption)
-                    .foregroundStyle(.purple)
-                    .symbolEffect(.pulse, isActive: message.isStreaming)
-                Text("Thinking")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.purple)
-                Text("(\(thinking.count) chars)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .textSelection(.enabled)
+                    .padding(AppSpacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppColors.thinking.opacity(0.04))
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                        removal: .opacity
+                    ))
             }
         }
-        .tint(.purple)
-        .padding(.horizontal, 4)
     }
 
     // MARK: - Tool Call Chips
 
     @ViewBuilder
     private var toolCallSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             ForEach(message.toolCalls) { event in
                 toolCallChip(event)
             }
@@ -198,70 +237,83 @@ struct ChatBubbleView: View {
 
     @ViewBuilder
     private func toolCallChip(_ event: ToolCallEvent) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Chip header
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            // Chip header — tap to expand
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    if expandedToolCall == event.id {
-                        expandedToolCall = nil
-                    } else {
-                        expandedToolCall = event.id
-                    }
+                withAnimation(AppAnimation.standard) {
+                    expandedToolCall = expandedToolCall == event.id ? nil : event.id
                 }
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: event.succeeded ? "wrench.fill" : "exclamationmark.triangle.fill")
+                HStack(spacing: AppSpacing.sm) {
+                    // Status indicator
+                    Circle()
+                        .fill(event.succeeded ? AppColors.success : AppColors.danger)
+                        .frame(width: 6, height: 6)
+                        .glow(event.succeeded ? AppColors.success : AppColors.danger, radius: 4, opacity: 0.6)
+
+                    Image(systemName: "wrench.and.screwdriver")
                         .font(.caption2)
-                        .foregroundStyle(event.succeeded ? .orange : .red)
+                        .foregroundStyle(AppColors.toolCall)
+
                     Text(event.toolName)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
+                        .font(AppTypography.badge)
+                        .foregroundStyle(AppColors.textPrimary)
+
                     Spacer()
+
                     Text(String(format: "%.0fms", event.durationMs))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+
                     Image(systemName: expandedToolCall == event.id ? "chevron.up" : "chevron.down")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColors.textTertiary)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    (event.succeeded ? Color.orange : Color.red).opacity(0.08)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.sm)
+                .background(AppColors.toolCall.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppRadius.sm)
+                        .stroke(AppColors.toolCall.opacity(0.1), lineWidth: 0.5)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("toolCallChip_\(event.toolName)")
 
             // Expanded details
             if expandedToolCall == event.id {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     if !event.arguments.isEmpty {
-                        Text("Arguments:")
-                            .font(.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        Text(event.arguments)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Input")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textTertiary)
+                            Text(event.arguments)
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(AppColors.textSecondary)
+                                .textSelection(.enabled)
+                        }
                     }
-                    Text("Result:")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                    Text(event.result)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .lineLimit(10)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Output")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                        Text(event.result)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(AppColors.textSecondary)
+                            .textSelection(.enabled)
+                            .lineLimit(12)
+                    }
                 }
-                .padding(8)
+                .padding(AppSpacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(.systemGray).opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .background(AppColors.backgroundTertiary.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                    removal: .opacity
+                ))
             }
         }
     }
@@ -270,7 +322,7 @@ struct ChatBubbleView: View {
 
     @ViewBuilder
     private var attachmentPreviews: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.sm) {
             ForEach(Array(message.attachments.enumerated()), id: \.offset) { _, attachment in
                 switch attachment {
                 case .image(let data):
@@ -279,29 +331,43 @@ struct ChatBubbleView: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 60, height: 60)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppRadius.md)
+                                    .stroke(AppColors.border, lineWidth: 0.5)
+                            )
                     }
                     #elseif os(macOS)
                     if let nsImage = NSImage(data: data) {
                         Image(nsImage: nsImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 60, height: 60)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppRadius.md)
+                                    .stroke(AppColors.border, lineWidth: 0.5)
+                            )
                     }
                     #endif
                 case .audio:
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "waveform")
                             .font(.caption)
+                            .foregroundStyle(AppColors.accentTeal)
                         Text("Audio")
-                            .font(.caption2)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textSecondary)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(AppColors.accentTeal.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.sm)
+                            .stroke(AppColors.accentTeal.opacity(0.12), lineWidth: 0.5)
+                    )
                 }
             }
         }
@@ -311,49 +377,65 @@ struct ChatBubbleView: View {
 
     @ViewBuilder
     private func benchmarkBadge(_ benchmark: ChatMessage.BenchmarkSnapshot) -> some View {
-        HStack(spacing: 8) {
+        let tier = PerformanceTier(decodeSpeed: benchmark.decodeTokensPerSecond)
+
+        HStack(spacing: AppSpacing.md) {
+            // Decode speed — the hero metric
             HStack(spacing: 3) {
-                Image(systemName: "speedometer")
+                Image(systemName: "bolt.fill")
                     .font(.system(size: 8))
+                    .foregroundStyle(tier.color)
                 Text(String(format: "%.1f tok/s", benchmark.decodeTokensPerSecond))
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(AppTypography.metric)
+                    .foregroundStyle(tier.color)
             }
+
+            // TTFT
             HStack(spacing: 3) {
                 Image(systemName: "timer")
                     .font(.system(size: 8))
-                Text(String(format: "%.2fs TTFT", benchmark.timeToFirstToken))
-                    .font(.system(size: 9, design: .monospaced))
+                Text(String(format: "%.2fs", benchmark.timeToFirstToken))
+                    .font(AppTypography.metric)
             }
+            .foregroundStyle(AppColors.textTertiary)
+
+            // Token count
             HStack(spacing: 3) {
-                Image(systemName: "number")
-                    .font(.system(size: 8))
-                Text("\(benchmark.tokenCount) tokens")
-                    .font(.system(size: 9, design: .monospaced))
+                Text("\(benchmark.tokenCount)")
+                    .font(AppTypography.metric)
+                Text("tok")
+                    .font(AppTypography.caption)
             }
+            .foregroundStyle(AppColors.textTertiary)
         }
-        .foregroundStyle(.tertiary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color(.systemGray).opacity(0.06))
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.xs)
+        .background(tier.color.opacity(0.06))
         .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(tier.color.opacity(0.1), lineWidth: 0.5)
+        )
+        .accessibilityIdentifier("benchmarkBadge_\(message.id)")
     }
 }
 
 // MARK: - Streaming Indicator
 
 /// Animated typing indicator shown while the assistant is generating.
+/// Three dots with staggered pulse animations in the accent teal color.
 struct StreamingIndicator: View {
     @State private var isAnimating = false
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
-                    .fill(Color.purple.opacity(0.6))
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(isAnimating ? 1.0 : 0.5)
+                    .fill(AppColors.accentTeal.opacity(0.7))
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(isAnimating ? 1.0 : 0.4)
                     .animation(
-                        .easeInOut(duration: 0.6)
+                        .easeInOut(duration: 0.5)
                         .repeatForever()
                         .delay(Double(i) * 0.15),
                         value: isAnimating
@@ -361,5 +443,6 @@ struct StreamingIndicator: View {
             }
         }
         .onAppear { isAnimating = true }
+        .accessibilityIdentifier("streamingIndicator")
     }
 }

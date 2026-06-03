@@ -71,6 +71,15 @@ struct ModelMetadata: Codable, Sendable, Identifiable {
     /// Minimum device memory required in GB
     let minDeviceMemoryGB: Int
 
+    /// Context window size in tokens (e.g., 128_000 or 256_000).
+    let contextWindowSize: Int
+
+    /// Architecture type for display (e.g., "MoE Edge", "Dense Multimodal").
+    let architectureType: String
+
+    /// Human-readable recommendation (e.g., "Mobile chat", "Desktop coding").
+    let recommendedFor: String
+
     /// Whether the model supports image input
     let supportsImage: Bool
 
@@ -143,12 +152,13 @@ struct PlatformSupport: Codable, Sendable {
 enum ModelRegistry {
 
     /// All known models in the registry.
+    /// Ordered by recommendation: 12B first (flagship), then E4B, then E2B.
     static let knownModels: [ModelMetadata] = [
-        gemma4E2BStandard,
-        gemma4E2BWeb,
+        gemma4_12B,           // Flagship — released today
         gemma4E4BStandard,
         gemma4E4BWeb,
-        gemma4_12B,
+        gemma4E2BStandard,
+        gemma4E2BWeb,
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -170,6 +180,9 @@ enum ModelRegistry {
         description: "Standard Gemma 4 E2B model with CPU (XNNPACK) and desktop GPU (Metal) support. Desktop Metal shaders also work on A-series iOS GPUs (verified on iPhone 16 Pro Max).",
         sizeInBytes: 2_588_147_712,
         minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective)",
+        recommendedFor: "Mobile chat, quick responses",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -199,6 +212,9 @@ enum ModelRegistry {
         description: "Mobile-optimized Gemma 4 E2B with GPU artisan shaders for A-series and M-series chips. GPU-only — no CPU subgraph. Fastest decode on iOS device (39.9 tok/s).",
         sizeInBytes: 2_008_432_640,
         minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective)",
+        recommendedFor: "Fastest mobile inference",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -228,6 +244,9 @@ enum ModelRegistry {
         description: "Gemma 4 E4B standard model (4B effective params). CPU (XNNPACK) + desktop GPU (Metal). Higher quality than E2B but requires more memory.",
         sizeInBytes: 3_660_000_000,  // ~3.66 GB
         minDeviceMemoryGB: 12,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (4B effective)",
+        recommendedFor: "Balanced quality and speed",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -257,6 +276,9 @@ enum ModelRegistry {
         description: "Mobile-optimized Gemma 4 E4B with GPU artisan shaders for A-series chips. GPU-only — no CPU subgraph.",
         sizeInBytes: 2_970_000_000,  // ~2.97 GB
         minDeviceMemoryGB: 12,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (4B effective)",
+        recommendedFor: "Mobile text workflows",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -292,6 +314,9 @@ enum ModelRegistry {
         description: "Dense 12B model with native text, image, and audio. 256K context. Requires 16GB+ unified memory. Best quality on-device.",
         sizeInBytes: 6_547_589_312,
         minDeviceMemoryGB: 16,
+        contextWindowSize: 256_000,
+        architectureType: "Dense Multimodal",
+        recommendedFor: "Desktop power users, coding, deep analysis",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],

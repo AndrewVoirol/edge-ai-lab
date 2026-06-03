@@ -75,6 +75,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// Number of times multimodal sendMessageStream was called.
     private(set) var multimodalSendCallCount = 0
 
+    /// The last tools array passed to initialize.
+    private(set) var lastTools: [Tool]?
+
     // MARK: - Protocol Conformance
 
     private(set) var isReady = false
@@ -94,13 +97,15 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig?,
-        systemMessage: String?
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws {
         initializeCallCount += 1
         lastModelPath = modelPath
         lastFlags = flags
         lastSamplerConfig = samplerConfig
         lastSystemMessage = systemMessage
+        lastTools = tools
         flagsState = flags
 
         if let error = initError {
@@ -116,7 +121,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig?,
-        systemMessage: String?
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws -> BackendResult {
         // Delegate to regular initialize
         try await initialize(
@@ -125,7 +131,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
             cacheDir: cacheDir,
             flags: flags,
             samplerConfig: samplerConfig,
-            systemMessage: systemMessage
+            systemMessage: systemMessage,
+            tools: tools
         )
 
         let result = mockBackendResult ?? BackendResult(

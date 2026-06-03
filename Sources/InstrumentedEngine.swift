@@ -31,13 +31,16 @@ protocol InstrumentedEngineProtocol: AnyObject {
     ///   - flags: Experimental flags configuration to apply.
     ///   - samplerConfig: Optional sampler configuration (topK, topP, temperature).
     ///     If nil, uses the SDK's defaults.
+    ///   - systemMessage: Optional system message for model persona.
+    ///   - tools: Optional array of Tool definitions for function calling.
     func initialize(
         modelPath: String,
         useGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig?,
-        systemMessage: String?
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws
 
     /// Initialize with smart fallback: try the preferred backend, fall back if it fails.
@@ -47,6 +50,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
     ///   - cacheDir: Cache directory path for the engine.
     ///   - flags: Experimental flags configuration to apply.
     ///   - samplerConfig: Optional sampler configuration (topK, topP, temperature).
+    ///   - systemMessage: Optional system message for model persona.
+    ///   - tools: Optional array of Tool definitions for function calling.
     /// - Returns: The result describing which backend was actually used.
     func initializeWithFallback(
         modelPath: String,
@@ -54,7 +59,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig?,
-        systemMessage: String?
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws -> BackendResult
 
     /// Send a message and receive a streamed response.
@@ -111,7 +117,7 @@ struct BackendResult: Sendable {
 // MARK: - Protocol Defaults
 
 extension InstrumentedEngineProtocol {
-    /// Default systemMessage to nil for callers that don't need system instructions.
+    /// Default systemMessage and tools to nil for callers that don't need them.
     func initialize(
         modelPath: String,
         useGPU: Bool,
@@ -125,7 +131,28 @@ extension InstrumentedEngineProtocol {
             cacheDir: cacheDir,
             flags: flags,
             samplerConfig: samplerConfig,
-            systemMessage: nil
+            systemMessage: nil,
+            tools: nil
+        )
+    }
+
+    /// Default tools to nil for callers that don't need tool calling.
+    func initialize(
+        modelPath: String,
+        useGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
+    ) async throws {
+        try await initialize(
+            modelPath: modelPath,
+            useGPU: useGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: systemMessage,
+            tools: nil
         )
     }
 
@@ -142,7 +169,28 @@ extension InstrumentedEngineProtocol {
             cacheDir: cacheDir,
             flags: flags,
             samplerConfig: samplerConfig,
-            systemMessage: nil
+            systemMessage: nil,
+            tools: nil
+        )
+    }
+
+    /// Default tools to nil for callers that don't need tool calling.
+    func initializeWithFallback(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?
+    ) async throws -> BackendResult {
+        try await initializeWithFallback(
+            modelPath: modelPath,
+            preferGPU: preferGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: systemMessage,
+            tools: nil
         )
     }
 
@@ -188,6 +236,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     private var activeSamplerConfig: SamplerConfig?
     /// The system message for the current conversation.
     private var activeSystemMessage: String?
+    /// The tools used for the current conversation (function calling).
+    private var activeTools: [Tool]?
     /// Tracks the active inference Task so resetConversation() can await its completion.
     /// This is critical because the Task captures a local strong reference to the Conversation,
     /// and the native session won't be deleted until that reference is released.
@@ -203,7 +253,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig? = nil,
-        systemMessage: String? = nil
+        systemMessage: String? = nil,
+        tools: [Tool]? = nil
     ) async throws {
         // Tear down any existing engine first
         await shutdown()
@@ -211,6 +262,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         self.flagsState = flags
         self.activeSamplerConfig = samplerConfig
         self.activeSystemMessage = systemMessage
+        self.activeTools = tools
 
         // Configure experimental flags — MUST opt in first
         ExperimentalFlags.optIntoExperimentalAPIs()
@@ -234,12 +286,13 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
             self.engine = newEngine
 
-            // Create conversation with optional sampler config and system message
+            // Create conversation with optional sampler config, system message, and tools
             let sysMsg: Message? = systemMessage.flatMap { text in
                 text.isEmpty ? nil : Message(text, role: .system)
             }
             let convConfig = ConversationConfig(
                 systemMessage: sysMsg,
+                tools: tools ?? [],
                 samplerConfig: samplerConfig
             )
             self.conversation = try await newEngine.createConversation(with: convConfig)
@@ -532,12 +585,13 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         lastBenchmarkInfo = nil
         lastInferenceMetrics = nil
 
-        // Step 3: Create a fresh conversation with the same sampler config and system message.
+        // Step 3: Create a fresh conversation with the same sampler config, system message, and tools.
         let sysMsg: Message? = activeSystemMessage.flatMap { text in
             text.isEmpty ? nil : Message(text, role: .system)
         }
         let convConfig = ConversationConfig(
             systemMessage: sysMsg,
+            tools: activeTools ?? [],
             samplerConfig: activeSamplerConfig
         )
         self.conversation = try await engine.createConversation(with: convConfig)
@@ -586,6 +640,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         lastBackendResult = nil
         activeSamplerConfig = nil
         activeSystemMessage = nil
+        activeTools = nil
     }
 
     // MARK: - Smart Backend Initialization with Fallback
@@ -596,7 +651,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         cacheDir: String,
         flags: ExperimentalFlagsState,
         samplerConfig: SamplerConfig? = nil,
-        systemMessage: String? = nil
+        systemMessage: String? = nil,
+        tools: [Tool]? = nil
     ) async throws -> BackendResult {
         // Check known model registry first for pre-verified guidance
         let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
@@ -619,7 +675,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 cacheDir: cacheDir,
                 flags: flags,
                 samplerConfig: samplerConfig,
-                systemMessage: systemMessage
+                systemMessage: systemMessage,
+                tools: tools
             )
 
             let result = BackendResult(
@@ -649,7 +706,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     cacheDir: cacheDir,
                     flags: flags,
                     samplerConfig: samplerConfig,
-                    systemMessage: systemMessage
+                    systemMessage: systemMessage,
+                    tools: tools
                 )
 
                 let result = BackendResult(

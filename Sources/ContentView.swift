@@ -3,9 +3,21 @@ import SwiftUI
 import UniformTypeIdentifiers
 import PhotosUI
 
+// MARK: - Content View
+
+/// The main application view — a premium on-device AI inference lab.
+///
+/// Layout: Dark-mode-first with a top header bar, horizontal model card strip,
+/// scrollable chat area with glass-effect bubbles, and a frosted input bar.
+/// The benchmark bar at the bottom uses performance tier coloring.
+///
+/// Accessibility: Every interactive element has `.accessibilityIdentifier`
+/// for agent discoverability and UI testing.
 struct ContentView: View {
     @State private var viewModel = ConversationViewModel()
     @State private var showSettings = false
+    @State private var showDashboard = false
+    @State private var showcaseModel: ModelMetadata?
     @State private var isBenchmarkExpanded = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
@@ -13,148 +25,69 @@ struct ContentView: View {
     @Namespace private var bottomAnchor
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            headerView
-                .padding()
+        ZStack {
+            // Full-bleed dark background
+            AppColors.backgroundPrimary
+                .ignoresSafeArea()
 
-            Divider()
+            VStack(spacing: 0) {
+                // Header bar
+                headerView
+                    #if os(iOS)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    #else
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
+                    #endif
 
-            // Model management section (discovered + downloadable)
-            modelManagementSection
-            Divider()
+                // Subtle separator
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
 
-            // Prompt input with multimodal attachment strip
-            VStack(spacing: 8) {
-                // Multimodal attachment preview
-                if viewModel.hasMultimodalAttachment {
-                    multimodalAttachmentStrip
+                // Model card strip
+                modelManagementSection
+
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
+
+                // Conversation area — chat bubbles
+                conversationArea
+                    .frame(maxHeight: .infinity)
+
+                // Benchmark bar (shown when data is available)
+                if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                    Rectangle()
+                        .fill(AppColors.border)
+                        .frame(height: 0.5)
+                    benchmarkBar(info: info)
+                        #if os(iOS)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.xs)
+                        #else
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.sm)
+                        #endif
                 }
 
-                HStack(spacing: 8) {
-                    // Image attachment button (only for image-capable models)
-                    if viewModel.supportsImageInput {
-                        PhotosPicker(
-                            selection: $selectedPhotoItem,
-                            matching: .images,
-                            photoLibrary: .shared()
-                        ) {
-                            Image(systemName: "photo.badge.plus")
-                                .foregroundStyle(selectedPhotoItem != nil ? .blue : .secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Attach an image")
-                    }
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
 
-                    // Audio attachment button (only for audio-capable models)
-                    if viewModel.supportsAudioInput {
-                        Button {
-                            showAudioPicker = true
-                        } label: {
-                            Image(systemName: "waveform.badge.plus")
-                                .foregroundStyle(viewModel.selectedAudioData != nil ? .blue : .secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("Attach an audio file")
-                    }
-
-                    TextField("Enter your prompt here", text: $viewModel.prompt)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit {
-                            guard viewModel.isEngineReady && !viewModel.isGenerating else { return }
-                            Task { await viewModel.generateText() }
-                        }
-                }
-            }
-            .padding()
-
-            // Action bar: Generate + New Conversation
-            HStack(spacing: 12) {
-                Button {
-                    Task { await viewModel.generateText() }
-                } label: {
-                    HStack(spacing: 4) {
-                        if viewModel.isGenerating {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Generating...")
-                        } else {
-                            Image(systemName: "paperplane.fill")
-                            Text("Send")
-                        }
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
-
-                if !viewModel.conversation.isEmpty {
-                    Button {
-                        Task { await viewModel.newConversation() }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus.bubble")
-                            Text("New Chat")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isGenerating)
-                }
-
-                // Thinking mode indicator
-                if viewModel.isThinking {
-                    HStack(spacing: 4) {
-                        Image(systemName: "brain.head.profile")
-                            .symbolEffect(.pulse)
-                            .foregroundStyle(.purple)
-                        Text("Thinking...")
-                            .font(.caption)
-                            .foregroundStyle(.purple)
-                    }
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 4)
-
-            // Conversation area — chat bubbles
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(viewModel.conversation.messages) { message in
-                            ChatBubbleView(
-                                message: message,
-                                enableThinking: viewModel.experimentalFlags.enableThinking
-                            )
-                        }
-
-                        // Invisible anchor for auto-scroll
-                        Color.clear
-                            .frame(height: 1)
-                            .id("conversationBottom")
-                    }
-                    .padding(.vertical, 8)
-                }
-                .frame(maxHeight: .infinity)
-                .onChange(of: viewModel.conversation.messages.count) { _, _ in
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        proxy.scrollTo("conversationBottom", anchor: .bottom)
-                    }
-                }
-                .onChange(of: viewModel.responseText) { _, _ in
-                    // Scroll during streaming too
-                    proxy.scrollTo("conversationBottom", anchor: .bottom)
-                }
-                .onAppear { scrollProxy = proxy }
-            }
-
-            // Benchmark bar (shown when data is available)
-            if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
-                Divider()
-                benchmarkBar(info: info)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
+                // Input area with multimodal attachments
+                inputArea
+                    #if os(iOS)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    #else
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
+                    #endif
             }
         }
-        .padding()
+        .foregroundStyle(AppColors.textPrimary)
         .fileImporter(
             isPresented: $viewModel.isFilePickerPresented,
             allowedContentTypes: [UTType.data],
@@ -181,6 +114,27 @@ struct ContentView: View {
             }
             #if os(macOS)
             .frame(minWidth: 400, minHeight: 500)
+            #endif
+        }
+        .sheet(isPresented: $showDashboard) {
+            NavigationStack {
+                PerformanceDashboardView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showDashboard = false }
+                        }
+                    }
+            }
+            #if os(macOS)
+            .frame(minWidth: 600, minHeight: 500)
+            #endif
+        }
+        .sheet(item: $showcaseModel) { model in
+            NavigationStack {
+                ModelShowcaseView(metadata: model)
+            }
+            #if os(macOS)
+            .frame(minWidth: 450, minHeight: 550)
             #endif
         }
         .alert("HuggingFace Token Required", isPresented: Binding(
@@ -220,84 +174,346 @@ struct ContentView: View {
             viewModel.checkForLocalModels()
             viewModel.downloadManager.refreshStates()
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Header
 
     private var headerView: some View {
-        HStack {
-            Text(viewModel.statusMessage)
-                .font(.headline)
+        HStack(spacing: AppSpacing.sm) {
+            // Status / model name
+            VStack(alignment: .leading, spacing: 2) {
+                Text(viewModel.statusMessage)
+                    .font(.system(.headline, design: .default, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-            // Capability badges for loaded model
-            if let metadata = viewModel.activeModelMetadata {
-                HStack(spacing: 4) {
-                    if metadata.supportsImage {
-                        Image(systemName: "photo")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
-                            .help("Image input supported")
-                    }
-                    if metadata.supportsAudio {
-                        Image(systemName: "waveform")
-                            .font(.caption2)
-                            .foregroundStyle(.purple)
-                            .help("Audio input supported")
-                    }
-                    if metadata.supportsMTP {
-                        Image(systemName: "hare")
-                            .font(.caption2)
-                            .foregroundStyle(.green)
-                            .help("Multi-Token Prediction supported")
-                    }
-                    if viewModel.experimentalFlags.enableToolCalling {
-                        Image(systemName: "wrench.and.screwdriver")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                            .help("Tool calling enabled (\(ToolRegistry.defaultTools.count) tools)")
-                    }
-                    if viewModel.experimentalFlags.enableThinking {
-                        Image(systemName: "brain.head.profile")
-                            .font(.caption2)
-                            .foregroundStyle(.purple)
-                            .help("Thinking mode enabled")
+                // Capability badges for loaded model
+                if let metadata = viewModel.activeModelMetadata {
+                    HStack(spacing: AppSpacing.xs) {
+                        if metadata.supportsImage {
+                            Label("Vision", systemImage: "eye")
+                                .badge(AppColors.accentCyan)
+                                .accessibilityIdentifier("badge_vision")
+                        }
+                        if metadata.supportsAudio {
+                            Label("Audio", systemImage: "waveform")
+                                .badge(AppColors.accentTeal)
+                                .accessibilityIdentifier("badge_audio")
+                        }
+                        if metadata.supportsMTP {
+                            Label("MTP", systemImage: "hare")
+                                .badge(AppColors.success)
+                                .accessibilityIdentifier("badge_mtp")
+                        }
+                        if viewModel.experimentalFlags.enableToolCalling {
+                            Label("Tools", systemImage: "wrench.and.screwdriver")
+                                .badge(AppColors.toolCall)
+                                .accessibilityIdentifier("badge_tools")
+                        }
+                        if viewModel.experimentalFlags.enableThinking {
+                            Label("Thinking", systemImage: "brain.head.profile")
+                                .badge(AppColors.thinking)
+                                .accessibilityIdentifier("badge_thinking")
+                        }
                     }
                 }
             }
 
             Spacer()
-            Button {
-                viewModel.refreshDiscoveredModels()
-                viewModel.downloadManager.refreshStates()
-            } label: {
-                Image(systemName: "arrow.clockwise")
+
+            // Action buttons
+            HStack(spacing: AppSpacing.sm) {
+                Button {
+                    viewModel.refreshDiscoveredModels()
+                    viewModel.downloadManager.refreshStates()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Refresh discovered models")
+                .accessibilityIdentifier("button_refresh")
+
+                Button {
+                    showDashboard = true
+                } label: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Performance Dashboard")
+                .accessibilityIdentifier("button_dashboard")
+
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .help("Inference Settings")
+                .accessibilityIdentifier("button_settings")
+
+                Button {
+                    viewModel.isFilePickerPresented = true
+                } label: {
+                    #if os(iOS)
+                    // Icon-only capsule on iPhone to save horizontal space
+                    Image(systemName: "plus.square")
+                        .foregroundStyle(AppColors.accentGold)
+                        .padding(AppSpacing.sm)
+                        .background(AppColors.accentGold.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(AppColors.accentGold.opacity(0.2), lineWidth: 0.5))
+                    #else
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "plus.square")
+                        Text("Load Model")
+                            .font(.system(.caption, weight: .semibold))
+                    }
+                    .foregroundStyle(AppColors.accentGold)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(AppColors.accentGold.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(AppColors.accentGold.opacity(0.2), lineWidth: 0.5))
+                    #endif
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("button_loadModel")
             }
-            .help("Refresh discovered models")
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
+        }
+    }
+
+    // MARK: - Conversation Area
+
+    private var conversationArea: some View {
+        Group {
+            if viewModel.conversation.isEmpty {
+                // Empty state
+                emptyState
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 2) {
+                            ForEach(viewModel.conversation.messages) { message in
+                                ChatBubbleView(
+                                    message: message,
+                                    enableThinking: viewModel.experimentalFlags.enableThinking
+                                )
+                            }
+
+                            // Invisible anchor for auto-scroll
+                            Color.clear
+                                .frame(height: 1)
+                                .id("conversationBottom")
+                        }
+                        .padding(.vertical, AppSpacing.sm)
+                    }
+                    .scrollContentBackground(.hidden)
+                    .onChange(of: viewModel.conversation.messages.count) { _, _ in
+                        withAnimation(AppAnimation.gentleSpring) {
+                            proxy.scrollTo("conversationBottom", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: viewModel.responseText) { _, _ in
+                        // Scroll during streaming too
+                        proxy.scrollTo("conversationBottom", anchor: .bottom)
+                    }
+                    .onAppear { scrollProxy = proxy }
+                }
             }
-            .help("Inference Settings")
-            Button("Load Model") {
-                viewModel.isFilePickerPresented = true
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: AppSpacing.xl) {
+            Spacer()
+
+            Image(systemName: "sparkles")
+                .font(.system(size: 48))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppColors.accentGold, AppColors.accentTeal],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .pulsingGlow(AppColors.accentTeal)
+
+            VStack(spacing: AppSpacing.sm) {
+                Text("Edge AI Lab")
+                    .font(.system(.title2, design: .default, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Text("On-device Gemma 4 inference")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
             }
-            .buttonStyle(.borderedProminent)
+
+            // Quick action hints
+            VStack(spacing: AppSpacing.md) {
+                quickActionHint(icon: "text.bubble", text: "Start a conversation", color: AppColors.accentCyan)
+                quickActionHint(icon: "photo", text: "Analyze an image", color: AppColors.accentGold)
+                quickActionHint(icon: "wrench.and.screwdriver", text: "Use built-in tools", color: AppColors.toolCall)
+                quickActionHint(icon: "brain.head.profile", text: "Watch the model think", color: AppColors.thinking)
+            }
+            .padding(.horizontal, AppSpacing.xxl)
+
+            Spacer()
+        }
+    }
+
+    private func quickActionHint(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: AppSpacing.md) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(color)
+                .frame(width: 28)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(AppColors.textSecondary)
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.vertical, AppSpacing.md)
+        .glassCard(cornerRadius: AppRadius.md)
+    }
+
+    // MARK: - Input Area
+
+    private var inputArea: some View {
+        VStack(spacing: AppSpacing.sm) {
+            // Multimodal attachment preview
+            if viewModel.hasMultimodalAttachment {
+                multimodalAttachmentStrip
+            }
+
+            HStack(spacing: AppSpacing.sm) {
+                // Attachment buttons
+                HStack(spacing: AppSpacing.xs) {
+                    if viewModel.supportsImageInput {
+                        PhotosPicker(
+                            selection: $selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            Image(systemName: "photo.badge.plus")
+                                .foregroundStyle(
+                                    selectedPhotoItem != nil ? AppColors.accentCyan : AppColors.textTertiary
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help("Attach an image")
+                        .accessibilityIdentifier("button_attachImage")
+                    }
+
+                    if viewModel.supportsAudioInput {
+                        Button {
+                            showAudioPicker = true
+                        } label: {
+                            Image(systemName: "waveform.badge.plus")
+                                .foregroundStyle(
+                                    viewModel.selectedAudioData != nil ? AppColors.accentTeal : AppColors.textTertiary
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .help("Attach an audio file")
+                        .accessibilityIdentifier("button_attachAudio")
+                    }
+                }
+
+                // Text input
+                TextField("Ask Gemma anything...", text: $viewModel.prompt)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .padding(.horizontal, AppSpacing.sm)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(AppColors.backgroundTertiary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md)
+                            .stroke(AppColors.borderActive, lineWidth: 0.5)
+                    )
+                    .onSubmit {
+                        guard viewModel.isEngineReady && !viewModel.isGenerating else { return }
+                        Task { await viewModel.generateText() }
+                    }
+                    .accessibilityIdentifier("textField_prompt")
+
+                // Send button
+                Button {
+                    Task { await viewModel.generateText() }
+                } label: {
+                    Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(
+                            viewModel.isEngineReady && !viewModel.isGenerating
+                                ? AppColors.accentGold
+                                : AppColors.textTertiary
+                        )
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
+                .accessibilityIdentifier("button_send")
+            }
+
+            // Action bar below input
+            HStack(spacing: AppSpacing.md) {
+                if !viewModel.conversation.isEmpty {
+                    Button {
+                        Task { await viewModel.newConversation() }
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "plus.bubble")
+                            Text("New Chat")
+                                .font(AppTypography.caption)
+                        }
+                        .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isGenerating)
+                    .accessibilityIdentifier("button_newChat")
+                }
+
+                // Thinking mode indicator
+                if viewModel.isThinking {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "brain.head.profile")
+                            .symbolEffect(.pulse)
+                            .foregroundStyle(AppColors.thinking)
+                        Text("Reasoning...")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.thinking)
+                    }
+                    .transition(.opacity)
+                }
+
+                Spacer()
+            }
         }
     }
 
     // MARK: - Model Management (Discovered + Downloadable)
 
     private var modelManagementSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Models")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .padding(.horizontal)
-                .padding(.top, 8)
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack {
+                Text("Models")
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.top, AppSpacing.sm)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: AppSpacing.md) {
                     // On-disk discovered models
                     ForEach(viewModel.discoveredModels) { model in
                         discoveredModelCard(model)
@@ -308,10 +524,11 @@ struct ContentView: View {
                         downloadableModelCard(model)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.bottom, AppSpacing.sm)
             }
         }
+        .accessibilityIdentifier("section_models")
     }
 
     /// Registry models that are not yet discovered on disk.
@@ -328,46 +545,55 @@ struct ContentView: View {
                 await viewModel.handleModelSelection(model.url)
             }
         } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                HStack(spacing: AppSpacing.xs) {
                     Text(model.metadata?.name ?? model.filename)
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
                     if model.source == .edgeGallery {
                         Text("Gallery")
-                            .font(.caption2)
-                            .padding(.horizontal, 4)
+                            .font(AppTypography.badge)
+                            .foregroundStyle(AppColors.accentCyan)
+                            .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, 1)
-                            .background(.blue.opacity(0.15))
-                            .foregroundStyle(.blue)
+                            .background(AppColors.accentCyan.opacity(0.1))
                             .clipShape(Capsule())
                     }
                 }
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption2)
+                HStack(spacing: AppSpacing.xs) {
+                    Circle()
+                        .fill(AppColors.success)
+                        .frame(width: 5, height: 5)
                     Text(model.formattedSize)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.quaternary.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
+            .glassCard(cornerRadius: AppRadius.md)
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if let metadata = model.metadata {
+                Button {
+                    showcaseModel = metadata
+                } label: {
+                    Label("Model Info", systemImage: "info.circle")
+                }
+            }
+        }
+        .accessibilityIdentifier("modelCard_\(model.filename)")
     }
 
     private func downloadableModelCard(_ model: ModelMetadata) -> some View {
         let state = viewModel.downloadManager.downloadStates[model.modelFile] ?? .notDownloaded
 
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(model.name)
-                .font(.caption)
-                .fontWeight(.medium)
+                .font(.system(.caption, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
 
             switch state {
@@ -375,54 +601,57 @@ struct ContentView: View {
                 Button {
                     viewModel.downloadManager.download(model)
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "arrow.down.circle")
                         Text(ByteCountFormatter.string(fromByteCount: model.sizeInBytes, countStyle: .file))
-                            .font(.caption2)
+                            .font(AppTypography.caption)
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.blue)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.accentCyan)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("download_\(model.modelFile)")
 
             case .downloading(let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
+                        .tint(AppColors.accentTeal)
                         .frame(width: 80)
                     HStack {
                         Text("\(Int(progress * 100))%")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
                         Spacer()
                         Button {
                             viewModel.downloadManager.cancelDownload(model)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppColors.textTertiary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("cancelDownload_\(model.modelFile)")
                     }
                 }
 
             case .downloaded:
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.caption2)
+                HStack(spacing: AppSpacing.xs) {
+                    Circle()
+                        .fill(AppColors.success)
+                        .frame(width: 5, height: 5)
                     Text("Ready")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
                 }
 
             case .failed(let message):
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(AppColors.danger)
                         .font(.caption2)
                     Text(message)
-                        .font(.caption2)
-                        .foregroundStyle(.red)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.danger)
                         .lineLimit(1)
                 }
 
@@ -431,87 +660,83 @@ struct ContentView: View {
                     viewModel.downloadManager.showTokenPrompt = true
                     viewModel.downloadManager.pendingAuthModel = model
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "lock.fill")
                         Text("Auth required")
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.warning)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("auth_\(model.modelFile)")
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.quaternary.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(.quaternary, lineWidth: 1)
-        )
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
+        .glassCard(cornerRadius: AppRadius.md)
     }
 
     // MARK: - Multimodal Attachment Strip
 
     private var multimodalAttachmentStrip: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: AppSpacing.sm) {
             if let imageData = viewModel.selectedImageData {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     #if os(iOS)
                     if let uiImage = UIImage(data: imageData) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     }
                     #elseif os(macOS)
                     if let nsImage = NSImage(data: imageData) {
                         Image(nsImage: nsImage)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 32, height: 32)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .frame(width: 36, height: 36)
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     }
                     #endif
                     Text("Image attached")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
                     Button {
                         viewModel.selectedImageData = nil
                         selectedPhotoItem = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.textTertiary)
                             .font(.caption)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_removeImage")
                 }
-                .padding(4)
-                .background(.quaternary.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(AppSpacing.xs)
+                .glassCard(cornerRadius: AppRadius.sm)
             }
 
             if viewModel.selectedAudioData != nil {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "waveform")
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(AppColors.accentTeal)
                         .font(.caption)
                     Text("Audio attached")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
                     Button {
                         viewModel.selectedAudioData = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppColors.textTertiary)
                             .font(.caption)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_removeAudio")
                 }
-                .padding(4)
-                .background(.quaternary.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(AppSpacing.xs)
+                .glassCard(cornerRadius: AppRadius.sm)
             }
 
             Spacer()
@@ -536,59 +761,95 @@ struct ContentView: View {
     // MARK: - Benchmark Bar
 
     private func benchmarkBar(info: BenchmarkInfo) -> some View {
-        VStack(spacing: 4) {
+        let decodeTier = PerformanceTier(decodeSpeed: info.lastDecodeTokensPerSecond)
+
+        return VStack(spacing: AppSpacing.xs) {
             // Compact bar (always visible)
-            HStack(spacing: 12) {
+            #if os(iOS)
+            // iOS: Two-row wrapped grid to fit narrow screens
+            iosBenchmarkCompactBar(info: info, decodeTier: decodeTier)
+            #else
+            HStack(spacing: AppSpacing.md) {
                 // Backend indicator
                 if let result = viewModel.backendResult {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                            .foregroundStyle(result.activeBackend == .gpu ? .green : .orange)
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                         Text(result.activeBackend == .gpu ? "GPU" : "CPU")
-                            .fontWeight(.semibold)
+                            .font(AppTypography.badge)
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     }
-                    Divider().frame(height: 20)
+                    .accessibilityIdentifier("badge_backend")
+
+                    Rectangle()
+                        .fill(AppColors.border)
+                        .frame(width: 0.5, height: 18)
                 }
 
                 // Thermal state indicator
                 thermalIndicator
+                    .accessibilityIdentifier("indicator_thermal")
 
-                Divider().frame(height: 20)
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(width: 0.5, height: 18)
 
                 benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
-                Divider().frame(height: 20)
-                benchmarkItem(label: "Decode", value: String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
-                Divider().frame(height: 20)
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(width: 0.5, height: 18)
+
+                // Hero metric: decode speed with tier color
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Decode")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                        .font(AppTypography.metric)
+                        .foregroundStyle(decodeTier.color)
+                        .contentTransition(.numericText())
+                }
+
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(width: 0.5, height: 18)
+
                 benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
 
                 // Memory indicator
-                Divider().frame(height: 20)
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(width: 0.5, height: 18)
                 memoryIndicator
 
                 Spacer()
 
                 // Expand/collapse button
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(AppAnimation.standard) {
                         isBenchmarkExpanded.toggle()
                     }
                 } label: {
                     Image(systemName: isBenchmarkExpanded ? "chevron.down" : "chevron.up")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.textTertiary)
+                        .font(.caption)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("button_benchmarkExpand")
             }
+            #endif
 
             // Fallback warning
             if let result = viewModel.backendResult, result.didFallback, let reason = result.fallbackReason {
-                HStack {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(AppColors.warning)
                     Text(reason)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
                     Spacer()
                 }
+                .padding(.vertical, AppSpacing.xs)
             }
 
             // Expanded detail view
@@ -597,51 +858,164 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .font(.caption)
+        .font(AppTypography.caption)
     }
+
+    // MARK: - iOS Benchmark Compact Bar
+
+    #if os(iOS)
+    /// Two-row layout for the benchmark bar on narrow iPhone screens.
+    private func iosBenchmarkCompactBar(info: BenchmarkInfo, decodeTier: PerformanceTier) -> some View {
+        VStack(spacing: AppSpacing.xs) {
+            // Row 1: Backend, Thermal, TTFT, Expand button
+            HStack(spacing: AppSpacing.sm) {
+                if let result = viewModel.backendResult {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                        Text(result.activeBackend == .gpu ? "GPU" : "CPU")
+                            .font(AppTypography.badge)
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                    }
+                    .accessibilityIdentifier("badge_backend")
+                }
+
+                thermalIndicator
+                    .accessibilityIdentifier("indicator_thermal")
+
+                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
+
+                Spacer()
+
+                Button {
+                    withAnimation(AppAnimation.standard) {
+                        isBenchmarkExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: isBenchmarkExpanded ? "chevron.down" : "chevron.up")
+                        .foregroundStyle(AppColors.textTertiary)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("button_benchmarkExpand")
+            }
+
+            // Row 2: Decode (hero), Prefill, Memory
+            HStack(spacing: AppSpacing.sm) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Decode")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                        .font(AppTypography.metric)
+                        .foregroundStyle(decodeTier.color)
+                        .contentTransition(.numericText())
+                }
+
+                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
+
+                memoryIndicator
+
+                Spacer()
+            }
+        }
+    }
+    #endif
 
     // MARK: - Thermal Indicator
 
     private var thermalIndicator: some View {
         let level = DeviceMetrics.currentThermalLevel
-        return HStack(spacing: 4) {
+        return HStack(spacing: AppSpacing.xs) {
             Image(systemName: level.symbolName)
                 .foregroundStyle(thermalColor(for: level))
             Text(level.label)
-                .fontWeight(.medium)
+                .font(AppTypography.badge)
+                .foregroundStyle(thermalColor(for: level))
         }
     }
 
     private func thermalColor(for level: ThermalLevel) -> Color {
         switch level {
-        case .nominal:  return .green
-        case .fair:     return .yellow
-        case .serious:  return .orange
-        case .critical: return .red
+        case .nominal:  return AppColors.success
+        case .fair:     return AppColors.warning
+        case .serious:  return AppColors.toolCall
+        case .critical: return AppColors.danger
         }
     }
 
     // MARK: - Memory Indicator
 
     private var memoryIndicator: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
             Text("Memory")
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
             Text(DeviceMetrics.formattedAvailableMemory)
-                .monospacedDigit()
-                .fontWeight(.medium)
+                .font(AppTypography.metric)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
     // MARK: - Expanded Metrics Detail
 
     private func expandedMetricsView(metrics: InferenceMetrics, info: BenchmarkInfo) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Divider()
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 0.5)
+
+            #if os(iOS)
+            // iOS: 2-column grid to avoid horizontal overflow on narrow screens
+            let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
 
             // Token latency statistics
             if !metrics.tokenLatenciesMs.isEmpty {
-                HStack(spacing: 16) {
+                LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                    statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
+                    statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))
+                    statItem(label: "Min", value: String(format: "%.1f ms", metrics.minTokenLatencyMs))
+                    statItem(label: "Max", value: String(format: "%.1f ms", metrics.maxTokenLatencyMs))
+                }
+            }
+
+            // Memory delta
+            LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                statItem(
+                    label: "Mem Start",
+                    value: String(format: "%.0f MB", metrics.startSnapshot.availableMemoryMB)
+                )
+                statItem(
+                    label: "Mem End",
+                    value: String(format: "%.0f MB", metrics.endSnapshot.availableMemoryMB)
+                )
+                statItem(
+                    label: "Δ Memory",
+                    value: String(format: "%+.0f MB", metrics.memoryDeltaMB)
+                )
+            }
+
+            // Thermal transition
+            if metrics.thermalStateChanged {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColors.warning)
+                    Text("Thermal: \(metrics.startSnapshot.thermalLevel.label) → \(metrics.endSnapshot.thermalLevel.label)")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+            }
+
+            // Token counts
+            LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                statItem(label: "Tokens", value: "\(metrics.totalTokenCount)")
+                statItem(label: "Init", value: String(format: "%.2fs", info.initTimeInSecond))
+                statItem(label: "Prefill", value: "\(info.lastPrefillTokenCount) tok")
+                statItem(label: "Decode", value: "\(info.lastDecodeTokenCount) tok")
+            }
+            #else
+            // Token latency statistics
+            if !metrics.tokenLatenciesMs.isEmpty {
+                HStack(spacing: AppSpacing.lg) {
                     statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
                     statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))
                     statItem(label: "Min", value: String(format: "%.1f ms", metrics.minTokenLatencyMs))
@@ -651,7 +1025,7 @@ struct ContentView: View {
             }
 
             // Memory delta
-            HStack(spacing: 16) {
+            HStack(spacing: AppSpacing.lg) {
                 statItem(
                     label: "Mem Start",
                     value: String(format: "%.0f MB", metrics.startSnapshot.availableMemoryMB)
@@ -669,43 +1043,46 @@ struct ContentView: View {
 
             // Thermal transition
             if metrics.thermalStateChanged {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppColors.warning)
                     Text("Thermal: \(metrics.startSnapshot.thermalLevel.label) → \(metrics.endSnapshot.thermalLevel.label)")
+                        .foregroundStyle(AppColors.textSecondary)
                 }
             }
 
             // Token counts
-            HStack(spacing: 16) {
+            HStack(spacing: AppSpacing.lg) {
                 statItem(label: "Tokens", value: "\(metrics.totalTokenCount)")
                 statItem(label: "Init", value: String(format: "%.2fs", info.initTimeInSecond))
                 statItem(label: "Prefill", value: "\(info.lastPrefillTokenCount) tok")
                 statItem(label: "Decode", value: "\(info.lastDecodeTokenCount) tok")
                 Spacer()
             }
+            #endif
         }
-        .font(.caption2)
-        .padding(.top, 4)
+        .padding(.top, AppSpacing.xs)
     }
 
     private func statItem(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
             Text(value)
-                .monospacedDigit()
-                .fontWeight(.medium)
+                .font(AppTypography.metric)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
     private func benchmarkItem(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
             Text(value)
-                .monospacedDigit()
-                .fontWeight(.medium)
+                .font(AppTypography.metric)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 }

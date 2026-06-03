@@ -14,7 +14,7 @@ final class ConversationViewModel {
     var statusMessage = "Please select a model file..."
 
     /// User's current prompt text.
-    var prompt = "Explain quantum computing in one sentence."
+    var prompt = ""
 
     /// Multi-turn conversation state — replaces the old single `responseText`.
     var conversation = ConversationState()
@@ -233,6 +233,11 @@ final class ConversationViewModel {
                 seed: seed
             )
 
+            // Prepare tools if tool calling is enabled
+            let tools: [Tool]? = experimentalFlags.enableToolCalling
+                ? ToolRegistry.defaultTools
+                : nil
+
             // Use smart fallback initialization
             let result = try await engine.initializeWithFallback(
                 modelPath: modelPath,
@@ -240,7 +245,8 @@ final class ConversationViewModel {
                 cacheDir: modelCacheDirectory.path,
                 flags: experimentalFlags,
                 samplerConfig: samplerConfig,
-                systemMessage: systemMessage.isEmpty ? nil : systemMessage
+                systemMessage: systemMessage.isEmpty ? nil : systemMessage,
+                tools: tools
             )
 
             backendResult = result
@@ -317,16 +323,20 @@ final class ConversationViewModel {
                     for segment in segments {
                         switch segment {
                         case .thinking(let text):
-                            accumulatedThinking += text
+                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                            accumulatedThinking += cleaned
                             currentThinkingText = accumulatedThinking
                             isThinking = true
                         case .response(let text):
-                            accumulatedResponse += text
+                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                            accumulatedResponse += cleaned
                             isThinking = false
                         }
                     }
                 } else {
-                    accumulatedResponse += chunk
+                    // Strip SDK padding tokens from output
+                    let cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
+                    accumulatedResponse += cleaned
                 }
 
                 // Update the streaming assistant message

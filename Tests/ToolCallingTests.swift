@@ -98,7 +98,7 @@ final class ToolCallingTests: XCTestCase {
     // MARK: - DateTimeTool Tests
 
     func testDateTimeReturnsCurrentDate() async throws {
-        var tool = DateTimeTool()
+        let tool = DateTimeTool()
         let result = try await tool.run()
         let resultString = result as! String
         // The JSON response includes "date" and "time" keys
