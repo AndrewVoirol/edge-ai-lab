@@ -102,8 +102,8 @@ When running XCTests on a physical device, the test runner launches the host app
 
 ### Usage
 ```swift
-let samplerConfig = try SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
-let convConfig = ConversationConfig(samplerConfig: samplerConfig)
+let samplerConfig = try SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0, seed: 42)
+let convConfig = ConversationConfig(systemMessage: Message("You are a helpful assistant.", role: .system), samplerConfig: samplerConfig)
 let conversation = try await engine.createConversation(with: convConfig)
 ```
 
@@ -113,9 +113,93 @@ let conversation = try await engine.createConversation(with: convConfig)
 | `topK` | 64 | 1 (greedy) | topK=1 forces deterministic output |
 | `topP` | 0.95 | 1.0 | No nucleus filtering |
 | `temperature` | 1.0 | 1.0 | No temperature scaling |
+| `seed` | 0 | — | 0 = non-deterministic; positive = reproducible generation |
 
 > [!WARNING]
 > **topK=1 (greedy) vs topK=64 (sampling) affects benchmark speed.** Greedy decoding is faster because the sampler does less work. When comparing against Gallery numbers, always use topK=1 for parity.
+
+## ConversationConfig
+
+`ConversationConfig` controls conversation-level settings including system messages, initial history, and tool definitions.
+
+### Parameters
+| Parameter | Type | Default | Notes |
+|-----------|------|---------|-------|
+| `systemMessage` | `Message?` | `nil` | Sets model persona/instructions. Auto-converts role to `.system`. |
+| `initialMessages` | `[Message]` | `[]` | Pre-populate conversation history |
+| `tools` | `[Tool]` | `[]` | Function calling tool definitions (NEW — see Tool Use section) |
+| `samplerConfig` | `SamplerConfig?` | `nil` | Override sampler for this conversation |
+
+> [!WARNING]
+> Do NOT put a system message both in `systemMessage` AND in `initialMessages` — the SDK will throw an error for duplicate system messages.
+
+## EngineConfig Updates (v0.13.0-dev)
+
+New parameters available on `EngineConfig`:
+| Parameter | Type | Default | Notes |
+|-----------|------|---------|-------|
+| `maxNumTokens` | `Int?` | `nil` | KV-cache size control. Throws if ≤ 0. |
+| `cacheDir` | `String?` | `nil` | Cache directory for compiled artifacts |
+| `audioBackend` | `Backend?` | `nil` | Separate backend for audio processing |
+
+## Conversation API Updates (v0.13.0-dev)
+
+New methods available on `Conversation`:
+| Method | Signature | Notes |
+|--------|-----------|-------|
+| `cancel()` | `func cancel() throws` | Cancel ongoing inference. **Leaks stream context** — see Known Issues. |
+| `renderMessageIntoString()` | `func renderMessageIntoString(_ message: Message) throws -> String` | Debug message rendering |
+| `sendMessage` / `sendMessageStream` | `extraContext: [String: Any]?` parameter | Pass extra context alongside messages |
+
+## Message Content Types (v0.13.0-dev)
+
+The `Content` enum now supports multimodal input:
+```swift
+public enum Content {
+    case text(String)
+    case imageData(Data)     // Raw image bytes
+    case imageFile(String)   // Image by file path
+    case audioData(Data)     // Raw audio bytes
+    case audioFile(String)   // Audio by file path
+}
+```
+
+> [!TIP]
+> Combined with Gemma 4 12B's native multimodal support (`supportsImage: true`, `supportsAudio: true`), these content types enable image and audio input without external preprocessing.
+
+## Tool Use / Function Calling (v0.13.0-dev — NEW)
+
+The SDK now supports native function calling via the `Tool` protocol:
+
+```swift
+struct GetWeatherTool: Tool {
+    static let name = "get_current_weather"
+    static let description = "Get the current weather"
+
+    @ToolParam(description: "The city and state")
+    var location: String
+
+    @ToolParam(description: "Temperature unit")
+    var unit: String = "celsius"  // default value = optional param
+
+    func run() async throws -> Any {
+        return ["temperature": 72, "unit": unit]
+    }
+}
+
+// Pass tools to conversation:
+let config = ConversationConfig(tools: [GetWeatherTool()])
+let conversation = try await engine.createConversation(with: config)
+```
+
+### Key Points:
+- `@ToolParam` property wrapper auto-generates OpenAPI-compliant JSON schemas
+- `ToolManager` handles the tool call loop (up to 25 iterations) automatically
+- `ExperimentalFlags.convertCamelToSnakeCaseInToolDescription` (default `true`) auto-converts Swift camelCase to snake_case
+- Built-in `Role.tool` for tool response messages
+
+> [!IMPORTANT]
+> Tool calling is fully available in the SDK but **not yet integrated** in GemmaEdgeGallery. This is a high-priority feature for Gallery parity.
 
 ## ExperimentalFlags API
 
@@ -132,6 +216,7 @@ ExperimentalFlags.enableBenchmark = true          // Enables BenchmarkInfo captu
 ExperimentalFlags.enableSpeculativeDecoding = true // Speculative decoding
 ExperimentalFlags.enableConversationConstrainedDecoding = false
 ExperimentalFlags.visualTokenBudget = 256          // For multimodal models
+ExperimentalFlags.convertCamelToSnakeCaseInToolDescription = true  // NEW: auto snake_case for tool names
 ```
 
 ### ExperimentalFlagsState
@@ -179,6 +264,7 @@ let benchmarkInfo = try conversation.getBenchmarkInfo()
 | Gemma-4-E2B-it (Mobile GPU) | gemma-4-E2B-it-web.litertlm | 2.01 GB | ✅ Mobile | ❌ | GPU-only (43.5 tok/s) | GPU Only (113.1 tok/s) | GPU Only (degenerate) | ✅ | litert-community/gemma-4-E2B-it-litert-lm |
 | Gemma-4-E4B-it (Standard) | gemma-4-E4B-it.litertlm | 3.66 GB | ✅ Desktop | ✅ XNNPACK | GPU+CPU | GPU+CPU | CPU only | ✅ | litert-community/gemma-4-E4B-it-litert-lm |
 | Gemma-4-E4B-it (Mobile GPU) | gemma-4-E4B-it-web.litertlm | 2.97 GB | ✅ Mobile | ❌ | GPU-only | GPU Only | GPU Only (degenerate) | ✅ | litert-community/gemma-4-E4B-it-litert-lm |
+| **Gemma-4-12B-it (Dense)** | gemma-4-12B-it.litertlm | 6.50 GB | ✅ Desktop | ✅ XNNPACK | GPU+CPU (≥16GB RAM) | GPU+CPU | CPU only | ✅ | google/gemma-4-12b-it-litert-lm |
 
 > [!NOTE]
 > **Standard models** use desktop Metal GPU shaders — they work on both macOS and iOS devices (verified on iPhone 16 Pro Max, loads in ~2.33s on GPU). **Web/mobile models** use mobile Metal shaders optimized for A-series chips — they work on iOS devices but have no CPU fallback.
@@ -242,8 +328,21 @@ The project tracks LiteRT-LM `main` branch from the upstream Google repo:
 ### Version History
 | Commit | Date | Status | Notes |
 |--------|------|--------|-------|
-| `aeefa9b` | 2026-05-31 | **Current** | Main HEAD. SamplerConfig, ConversationConfig APIs. Verified on macOS + iPhone 16 Pro Max. |
-| `3a97cbf` | 2026-05-30 | Previous | Initial known-good. |
+| `aeefa9b` | 2026-05-29 | **Current** | Main HEAD. Includes: `seed`, `systemMessage`, `tools`, `Capabilities`, multimodal Content types, `cancel()`, `extraContext`. Verified on macOS + iPhone 16 Pro Max. |
+| `3a97cbf` | 2026-05-28 | Previous | Initial known-good. |
+
+### New API Surface (v0.13.0-dev at aeefa9b)
+| API | Status in App | Category |
+|-----|---------------|----------|
+| `SamplerConfig.seed` | ✅ Integrated | Reproducibility |
+| `ConversationConfig.systemMessage` | ✅ Integrated | Persona/instructions |
+| `ConversationConfig.tools` | 🟡 Available, not integrated | Function calling |
+| `Content.imageData/imageFile` | 🟡 Available, not integrated | Multimodal |
+| `Content.audioData/audioFile` | 🟡 Available, not integrated | Multimodal |
+| `Capabilities` class | 🟡 Available, not integrated | Model capability queries |
+| `EngineConfig.maxNumTokens` | 🟡 Available, not integrated | KV-cache control |
+| `Conversation.cancel()` | ✅ Already using | Inference cancellation |
+| `Conversation.renderMessageIntoString()` | 🟡 Available, not integrated | Debug rendering |
 
 ### Upgrade Procedure
 1. Commit current working state

@@ -72,6 +72,20 @@ When reusing a single `Conversation` across multiple inference runs:
 - **Fix**: Create a new `Conversation` per run (keep the same `Engine`) instead of reusing one conversation
 
 
+## Stack Audit Workflow
+
+> [!TIP]
+> When performing a stack audit or SDK update, follow this procedure:
+
+1. **Safety net**: Create a branch and tag the pre-audit state
+2. **SDK update**: Run `tuist generate` to pull latest `main` HEAD, build both targets
+3. **API discovery**: Read SDK source files in `DerivedData/SourcePackages/checkouts/LiteRT-LM/swift/` for new APIs
+4. **Integration**: Wire new APIs through `InstrumentedEngineProtocol` → `InstrumentedEngine` → `ConversationViewModel`
+5. **Protocol defaults**: Add protocol extensions for backward-compatible new parameters (Swift protocols don't inherit default values from implementations)
+6. **Test expansion**: Update test plans, add new test methods, verify count assertions
+7. **Automation**: Update `DeveloperAutomationHarness.swift` and `automation/run_matrix.py` with new configs
+8. **Verify**: Build iOS + macOS, run full unit test suite, commit
+
 ## macOS Testing
 
 ### Rules

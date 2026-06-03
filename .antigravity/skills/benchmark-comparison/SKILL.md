@@ -72,9 +72,10 @@ When producing comparison tables, use this format:
 > [!WARNING]
 > **These numbers are NOT directly comparable without matching methodology:**
 > - HuggingFace uses 1024 prefill tokens; Gallery uses 256; our short tests use ~10
-> - Gallery uses `topK: 1` (greedy); our app uses `topK: 64` (sampling)
+> - Gallery uses `topK: 1` (greedy); our app uses `topK: 64` (sampling). Use `seed: 42` for reproducibility.
 > - Gallery enables MTP by default; our tests run both with and without
 > - Prefill speed scales with token count (GPU parallelism saturation)
+> - **12B model** (configs 9-10 in automation matrix) requires ≥16GB RAM — not all devices can run it
 
 ## Trend Tracking
 

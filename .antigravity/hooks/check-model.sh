@@ -52,6 +52,9 @@ else
       "gemma-4-E4B-it-web.litertlm")
         compat="iOS: GPU ✅ | macOS: Unknown | Sim: Unknown | [GPU-only, no CPU]"
         ;;
+      "gemma-4-12B-it.litertlm")
+        compat="iOS: GPU ⚠️ (≥16GB RAM) | macOS: GPU+CPU ✅ | Sim: Unknown | [12B Dense Multimodal, 6.5GB]"
+        ;;
       *)
         compat="Unknown model — backend compatibility will be probed at runtime"
         ;;

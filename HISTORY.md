@@ -66,12 +66,45 @@ Parity achieved — our SDK integration matches the official Gallery app within 
 
 ---
 
+## Stack Audit — June 3, 2026
+
+**Objective:** Full stack audit to catch up with LiteRT-LM SDK development velocity and recent model releases.
+
+### Changes Made
+1. **SDK updated** to latest `main` HEAD (`aeefa9b`, v0.13.0-dev) — no breaking API changes
+2. **Gemma 4 12B Dense Multimodal** added to `ModelRegistry` (released June 3, 2026)
+   - 6.5GB, 256K context window, native text + image + audio
+   - Allowed on both macOS and iOS (test, don't assume OOM)
+   - Added to automation benchmark matrix as configs 9 and 10
+3. **`SamplerConfig.seed`** integrated for reproducible generation
+4. **`ConversationConfig.systemMessage`** integrated for model persona/instructions
+5. **Protocol extension pattern** used for backward-compatible API evolution
+6. **Test hardening**: UnitTests.xctestplan expanded from 3 → 9 test classes (~49 tests)
+7. **PerformanceTests.xctestplan** expanded to include SmartFallbackIntegrationTests
+
+### SDK API Discovery
+The SDK at `aeefa9b` includes significant new capabilities:
+- `Tool` protocol + `@ToolParam` property wrapper — native function calling
+- `ToolManager` — auto-handles tool call loop (up to 25 iterations)
+- `Content.imageData/imageFile/audioData/audioFile` — multimodal input types
+- `Capabilities` class — query model capabilities before loading
+- `EngineConfig.maxNumTokens` — KV-cache size control
+- `Conversation.cancel()` — cancel ongoing inference
+- `Conversation.renderMessageIntoString()` — debug rendering
+- `ExperimentalFlags.convertCamelToSnakeCaseInToolDescription` — tool name format
+
+### Key Decision
+- SDK tracked on `.branch("main")` — v0.12.0 tag has SPM packaging issues (Issue #2407), v0.13.0 not yet released
+
+---
+
 ## Models Removed in Phase 2 Cleanup
 
-The following models and registry entries were removed during the Gemma 3n cleanup:
-- `gemma3nE2B` — Gemma 3n E2B INT4 variant (3.39 GB)
-- `gemma3nE2BHW` — Gemma 3n E2B hardware-optimized variant (2.83 GB)
-- `gemma4E4BStandard` — Gemma 4 E4B standard build (3.66 GB)
-- `gemma4E4BWeb` — Gemma 4 E4B web/mobile variant (2.97 GB)
+The following models and registry entries were removed during the Gemma 3n cleanup, then **partially restored** during the Stack Audit:
+- `gemma3nE2B` — Gemma 3n E2B INT4 variant (3.39 GB) — **removed, not re-added**
+- `gemma3nE2BHW` — Gemma 3n E2B hardware-optimized variant (2.83 GB) — **removed, not re-added**
+- `gemma4E4BStandard` — Gemma 4 E4B standard build (3.66 GB) — **restored to ModelRegistry**
+- `gemma4E4BWeb` — Gemma 4 E4B web/mobile variant (2.97 GB) — **restored to ModelRegistry**
+- `gemma4_12B` — Gemma 4 12B Dense Multimodal (6.50 GB) — **NEW, added in Stack Audit**
 
-The project now focuses exclusively on **Gemma 4 E2B** (Standard and Web variants).
+The project now supports 5 models: E2B Standard, E2B Web, E4B Standard, E4B Web, and 12B Dense.
