@@ -128,8 +128,6 @@ struct DateTimeTool: Tool {
                 tz = TimeZone.current
             }
 
-            let calendar = Calendar.current
-            var components = calendar.dateComponents(in: tz, from: now)
 
             let dateFormatter = DateFormatter()
             dateFormatter.timeZone = tz
@@ -183,7 +181,7 @@ struct DeviceInfoTool: Tool {
             let osVersion: String
             #if os(iOS)
             platform = "iOS"
-            osVersion = UIDevice.current.systemVersion
+            osVersion = await UIDevice.current.systemVersion
             #elseif os(macOS)
             platform = "macOS"
             osVersion = ProcessInfo.processInfo.operatingSystemVersionString
