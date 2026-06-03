@@ -1,0 +1,62 @@
+{
+  "name": "Multimodal Inference Flow",
+  "description": "Tests image and audio input with multimodal-capable models (e.g., Gemma 4 12B).",
+  "prerequisites": ["Model with supportsImage=true loaded", "Image file available in Documents/"],
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify the app is launched and a multimodal model is loaded.",
+      "expected_elements": ["photo.badge.plus", "Generate Response"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Tap the image attachment button.",
+      "target_element": "photo.badge.plus"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for the photo picker to appear.",
+      "condition": "element_exists:Photos"
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Select the first available photo.",
+      "target_element": "first_photo"
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify the image attachment preview appears.",
+      "expected_elements": ["Image attached", "xmark.circle.fill"]
+    },
+    {
+      "step": 6,
+      "action": "type_text",
+      "description": "Type a prompt about the attached image.",
+      "target_element": "Enter your prompt here",
+      "value": "Describe what you see in this image in detail."
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Tap 'Generate Response' to run multimodal inference.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 8,
+      "action": "wait",
+      "description": "Wait for multimodal generation to complete.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 9,
+      "action": "verify_ui",
+      "description": "Verify response text is generated and image attachment is cleared.",
+      "expected_elements": ["TTFT", "Decode"]
+    }
+  ]
+}

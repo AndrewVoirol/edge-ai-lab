@@ -149,7 +149,8 @@ xcrun devicectl device copy to \
 
 | Plan | Model Required | Speed | What It Tests | Test Classes |
 |---|---|---|---|---|
-| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management | 9 classes, ~49 tests |
+| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management | 13 classes, ~107 tests |
+| **IntegrationTests** | ✅ Yes | Medium (minutes) | Functional verification, model registry, fallback | 3 classes |
 | **PerformanceTests** | ✅ Yes | Slow (minutes) | Real inference, latency, memory, smart fallback | 2 classes |
 | **SimulatorCompatibilityTests** | ✅ Yes | Slow (minutes) | Model/backend compatibility matrix | 1 class |
 
@@ -272,14 +273,17 @@ This project aims for feature parity with the [Google AI Edge Gallery](https://g
 | Benchmark capture | ✅ Done | `BenchmarkInfo` + metrics persistence |
 | Experimental flags | ✅ Done | `ExperimentalFlagsState` management |
 | Dual platform targets | ✅ Done | iOS + macOS via Tuist |
-| System message support | ✅ Done | `ConversationConfig(systemMessage:)` — Stack Audit June 2026 |
-| Reproducible generation | ✅ Done | `SamplerConfig(seed:)` — Stack Audit June 2026 |
+| System message support | ✅ Done | Backend + UI (TextEditor in Settings) — Stack Audit + Session 2 |
+| Reproducible generation | ✅ Done | Backend + UI (Seed stepper in Settings) — Stack Audit + Session 2 |
 | Gemma 4 12B support | ✅ Done | 6.5GB, 256K context, multimodal — Stack Audit June 2026 |
 | Inference cancellation | ✅ Done | `Conversation.cancel()` |
+| **Multimodal input** | ✅ Done | Image (PhotosPicker) + Audio (file importer) — Session 2 June 2026 |
 | HuggingFace downloads | 🚧 In Progress | `ModelDownloadManager` implemented, needs on-device verification |
 | Multi-turn chat | 🟡 SDK Ready | `ConversationConfig.initialMessages` — SDK supports it |
-| Multimodal input | 🟡 SDK Ready | `Content.imageData/audioData` — SDK + 12B model support it |
-| Tool use / Function calling | 🟡 SDK Ready | `Tool` protocol + `@ToolParam` + `ToolManager` — full SDK support |
+| Tool use / Function calling | 🟡 SDK Ready | `Tool` protocol + `@ToolParam` + `ToolManager` — needs observability layer |
+| Thinking Mode | ❌ Missing | Gallery v1.0.14+ shows step-by-step reasoning |
+| Agent Skills | ❌ Missing | Gallery v1.0.14+ has Wikipedia, maps, visual summaries |
+| MCP Support | ❌ Missing | Gallery v1.0.14+ has experimental Model Context Protocol |
 | Model management UI | ❌ Missing | Download, delete, update models |
 | Remote allowlist | ❌ Missing | Fetch model catalog from remote config |
 

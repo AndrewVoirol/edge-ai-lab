@@ -108,3 +108,49 @@ The following models and registry entries were removed during the Gemma 3n clean
 - `gemma4_12B` — Gemma 4 12B Dense Multimodal (6.50 GB) — **NEW, added in Stack Audit**
 
 The project now supports 5 models: E2B Standard, E2B Web, E4B Standard, E4B Web, and 12B Dense.
+
+---
+
+## Feature Expansion & Testing Overhaul (June 3, 2026 — Session 2)
+
+**Objective:** Comprehensive modernization following the Stack Audit. Focused on multimodal input, UI completion, testing infrastructure expansion, and automation hardening.
+
+### Changes Made
+
+**Multimodal Input Support:**
+- Added `sendMessageStream(_:imageData:audioData:)` to `InstrumentedEngineProtocol` with full os_signpost instrumentation
+- Image input via `PhotosPicker` (iOS) and photo library (macOS)
+- Audio input via file importer for `.wav`/`.mp3`/`.aac` files
+- Visual attachment strip with image thumbnail preview and remove buttons
+- Capability badges in header: 📷 image, 🎵 audio, 🐰 MTP icons
+- Attachments auto-clear after each generation
+
+**UI Polish (Stack Audit Completion):**
+- Seed stepper in Sampler Configuration section (reproducible generation)
+- System Message TextEditor with clear button and examples
+- Both take effect on next model load (documented with warnings)
+
+**Testing Infrastructure (49 → 107 tests):**
+- `ModelRegistryTests` (12 tests) — exhaustive registry validation
+- `ConversationViewModelSamplerTests` (9 tests) — seed/systemMessage/preset coverage
+- `DownloadManagerTests` (10 tests) — state management and auth flow
+- `GalleryModelDiscoveryTests` (9 tests) — file scanning and lookup matching
+- `MockInstrumentedEngine` updated with multimodal tracking (imageData/audioData)
+- `UnitTests.xctestplan` expanded from 9 → 13 test classes
+
+**Automation Expansion:**
+- `automation/flows/multimodal_flow.json` — UI flow for image+text inference
+- `automation/flows/settings_flow.json` — UI flow for all settings verification
+- `IntegrationTests.xctestplan` — functional tests requiring a model
+- `automation/ci_test_runner.sh` — full test pyramid orchestrator (Unit → Integration → Performance)
+
+### Key Decisions
+- Stay on `.branch("main")` for SDK — v0.13.0 decision from Stack Audit session continued
+- Focus on E2B/E4B/12B models — 26B MoE and 31B Dense deferred
+- Tool calling deferred to next session — need observability layer first
+- Device testing required — simulators insufficient per user direction
+
+### Competitive Context
+- Gallery macOS app at v1.0.14/v1.0.15 with MCP support, Agent Skills, Thinking Mode
+- New "Google AI Edge Eloquent" macOS app for voice dictation (Gemma 4 12B)
+- MediaPipe LLM Inference API deprecated on Android & iOS — LiteRT-LM is replacement

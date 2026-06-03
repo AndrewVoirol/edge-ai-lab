@@ -66,6 +66,15 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// The last system message passed to initialize.
     private(set) var lastSystemMessage: String?
 
+    /// The last image data passed to sendMessageStream.
+    private(set) var lastImageData: Data?
+
+    /// The last audio data passed to sendMessageStream.
+    private(set) var lastAudioData: Data?
+
+    /// Number of times multimodal sendMessageStream was called.
+    private(set) var multimodalSendCallCount = 0
+
     // MARK: - Protocol Conformance
 
     private(set) var isReady = false
@@ -159,6 +168,18 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
                 continuation.finish()
             }
         }
+    }
+
+    func sendMessageStream(
+        _ text: String,
+        imageData: Data?,
+        audioData: Data?
+    ) -> AsyncThrowingStream<String, Error> {
+        multimodalSendCallCount += 1
+        lastImageData = imageData
+        lastAudioData = audioData
+        // Delegate to text-only path for response generation
+        return sendMessageStream(text)
     }
 
     func resetConversation() async throws {

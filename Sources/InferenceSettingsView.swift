@@ -118,6 +118,9 @@ struct InferenceSettingsView: View {
                 }
                 .help("Controls randomness. 0 = deterministic, higher = more creative.")
 
+                Stepper("Seed: \(viewModel.seed)", value: $viewModel.seed, in: 0...Int.max)
+                    .help("Seed for reproducible generation. 0 = non-deterministic (random). Same seed + same prompt = same output.")
+
                 Button {
                     viewModel.topK = 1
                     viewModel.topP = 1.0
@@ -137,6 +140,29 @@ struct InferenceSettingsView: View {
                 .help("Reset to SDK defaults: topK=64, topP=0.95, temperature=1.0.")
 
                 Text("⚠️ Sampler changes take effect on next model load.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("System Message") {
+                TextEditor(text: $viewModel.systemMessage)
+                    .frame(minHeight: 60, maxHeight: 120)
+                    .font(.body)
+                    .help("Set the model's persona or instructions. Applied on next model load.")
+
+                if !viewModel.systemMessage.isEmpty {
+                    Button(role: .destructive) {
+                        viewModel.systemMessage = ""
+                    } label: {
+                        Label("Clear System Message", systemImage: "trash")
+                    }
+                }
+
+                Text("Examples: \"You are a helpful coding assistant.\", \"Respond only in JSON format.\"")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text("⚠️ System message takes effect on next model load.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

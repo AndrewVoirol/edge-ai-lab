@@ -1,11 +1,14 @@
 import LiteRTLM
 import SwiftUI
 import UniformTypeIdentifiers
+import PhotosUI
 
 struct ContentView: View {
     @State private var viewModel = ConversationViewModel()
     @State private var showSettings = false
     @State private var isBenchmarkExpanded = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showAudioPicker = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,10 +22,45 @@ struct ContentView: View {
             modelManagementSection
             Divider()
 
-            // Prompt input
-            TextField("Enter your prompt here", text: $viewModel.prompt)
-                .textFieldStyle(.roundedBorder)
-                .padding()
+            // Prompt input with multimodal attachment strip
+            VStack(spacing: 8) {
+                // Multimodal attachment preview
+                if viewModel.hasMultimodalAttachment {
+                    multimodalAttachmentStrip
+                }
+
+                HStack(spacing: 8) {
+                    // Image attachment button (only for image-capable models)
+                    if viewModel.supportsImageInput {
+                        PhotosPicker(
+                            selection: $selectedPhotoItem,
+                            matching: .images,
+                            photoLibrary: .shared()
+                        ) {
+                            Image(systemName: "photo.badge.plus")
+                                .foregroundStyle(selectedPhotoItem != nil ? .blue : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Attach an image")
+                    }
+
+                    // Audio attachment button (only for audio-capable models)
+                    if viewModel.supportsAudioInput {
+                        Button {
+                            showAudioPicker = true
+                        } label: {
+                            Image(systemName: "waveform.badge.plus")
+                                .foregroundStyle(viewModel.selectedAudioData != nil ? .blue : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Attach an audio file")
+                    }
+
+                    TextField("Enter your prompt here", text: $viewModel.prompt)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            .padding()
 
             // Generate button
             Button(viewModel.isGenerating ? "Generating..." : "Generate Response") {
@@ -85,6 +123,23 @@ struct ContentView: View {
         )) {
             hfTokenAlert
         }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            guard let newItem = newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    viewModel.selectedImageData = data
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $showAudioPicker,
+            allowedContentTypes: [UTType.audio],
+            allowsMultipleSelection: false
+        ) { result in
+            if let url = try? result.get().first {
+                viewModel.selectedAudioData = try? Data(contentsOf: url)
+            }
+        }
         .onAppear {
             // Skip auto-loading when running under the test harness or developer automation —
             // tests manage their own engine lifecycle.
@@ -107,6 +162,31 @@ struct ContentView: View {
         HStack {
             Text(viewModel.statusMessage)
                 .font(.headline)
+
+            // Capability badges for loaded model
+            if let metadata = viewModel.activeModelMetadata {
+                HStack(spacing: 4) {
+                    if metadata.supportsImage {
+                        Image(systemName: "photo")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .help("Image input supported")
+                    }
+                    if metadata.supportsAudio {
+                        Image(systemName: "waveform")
+                            .font(.caption2)
+                            .foregroundStyle(.purple)
+                            .help("Audio input supported")
+                    }
+                    if metadata.supportsMTP {
+                        Image(systemName: "hare")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                            .help("Multi-Token Prediction supported")
+                    }
+                }
+            }
+
             Spacer()
             Button {
                 viewModel.refreshDiscoveredModels()
@@ -291,6 +371,73 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(.quaternary, lineWidth: 1)
         )
+    }
+
+    // MARK: - Multimodal Attachment Strip
+
+    private var multimodalAttachmentStrip: some View {
+        HStack(spacing: 8) {
+            if let imageData = viewModel.selectedImageData {
+                HStack(spacing: 4) {
+                    #if os(iOS)
+                    if let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    #elseif os(macOS)
+                    if let nsImage = NSImage(data: imageData) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 32, height: 32)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    #endif
+                    Text("Image attached")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        viewModel.selectedImageData = nil
+                        selectedPhotoItem = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(4)
+                .background(.quaternary.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+
+            if viewModel.selectedAudioData != nil {
+                HStack(spacing: 4) {
+                    Image(systemName: "waveform")
+                        .foregroundStyle(.purple)
+                        .font(.caption)
+                    Text("Audio attached")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        viewModel.selectedAudioData = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(4)
+                .background(.quaternary.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+
+            Spacer()
+        }
     }
 
     // MARK: - HF Token Alert

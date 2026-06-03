@@ -62,6 +62,31 @@ final class ConversationViewModel {
     /// Optional system message to set model persona/instructions.
     var systemMessage: String = ""
 
+    // MARK: - Multimodal Attachments
+
+    /// Image data attached by the user for multimodal inference.
+    /// Cleared after each generation.
+    var selectedImageData: Data?
+
+    /// Audio data attached by the user for multimodal inference.
+    /// Cleared after each generation.
+    var selectedAudioData: Data?
+
+    /// Whether the user has any multimodal attachments pending.
+    var hasMultimodalAttachment: Bool {
+        selectedImageData != nil || selectedAudioData != nil
+    }
+
+    /// Whether the currently loaded model supports image input.
+    var supportsImageInput: Bool {
+        activeModelMetadata?.supportsImage ?? false
+    }
+
+    /// Whether the currently loaded model supports audio input.
+    var supportsAudioInput: Bool {
+        activeModelMetadata?.supportsAudio ?? false
+    }
+
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
@@ -221,8 +246,25 @@ final class ConversationViewModel {
         responseText = ""
         benchmarkInfo = nil
 
+        // Capture and clear multimodal attachments before inference
+        let imageData = selectedImageData
+        let audioData = selectedAudioData
+        selectedImageData = nil
+        selectedAudioData = nil
+
         do {
-            for try await chunk in engine.sendMessageStream(prompt) {
+            let stream: AsyncThrowingStream<String, Error>
+            if imageData != nil || audioData != nil {
+                stream = engine.sendMessageStream(
+                    prompt,
+                    imageData: imageData,
+                    audioData: audioData
+                )
+            } else {
+                stream = engine.sendMessageStream(prompt)
+            }
+
+            for try await chunk in stream {
                 responseText += chunk
             }
 
