@@ -9,6 +9,8 @@ struct ContentView: View {
     @State private var isBenchmarkExpanded = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
+    @State private var scrollProxy: ScrollViewProxy?
+    @Namespace private var bottomAnchor
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,27 +60,91 @@ struct ContentView: View {
 
                     TextField("Enter your prompt here", text: $viewModel.prompt)
                         .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            guard viewModel.isEngineReady && !viewModel.isGenerating else { return }
+                            Task { await viewModel.generateText() }
+                        }
                 }
             }
             .padding()
 
-            // Generate button
-            Button(viewModel.isGenerating ? "Generating..." : "Generate Response") {
-                Task {
-                    await viewModel.generateText()
+            // Action bar: Generate + New Conversation
+            HStack(spacing: 12) {
+                Button {
+                    Task { await viewModel.generateText() }
+                } label: {
+                    HStack(spacing: 4) {
+                        if viewModel.isGenerating {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Generating...")
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                            Text("Send")
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
+
+                if !viewModel.conversation.isEmpty {
+                    Button {
+                        Task { await viewModel.newConversation() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.bubble")
+                            Text("New Chat")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isGenerating)
+                }
+
+                // Thinking mode indicator
+                if viewModel.isThinking {
+                    HStack(spacing: 4) {
+                        Image(systemName: "brain.head.profile")
+                            .symbolEffect(.pulse)
+                            .foregroundStyle(.purple)
+                        Text("Thinking...")
+                            .font(.caption)
+                            .foregroundStyle(.purple)
+                    }
                 }
             }
-            .buttonStyle(.bordered)
-            .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
+            .padding(.horizontal)
+            .padding(.vertical, 4)
 
-            // Response area
-            ScrollView {
-                Text(viewModel.responseText)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
+            // Conversation area — chat bubbles
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 2) {
+                        ForEach(viewModel.conversation.messages) { message in
+                            ChatBubbleView(
+                                message: message,
+                                enableThinking: viewModel.experimentalFlags.enableThinking
+                            )
+                        }
+
+                        // Invisible anchor for auto-scroll
+                        Color.clear
+                            .frame(height: 1)
+                            .id("conversationBottom")
+                    }
+                    .padding(.vertical, 8)
+                }
+                .frame(maxHeight: .infinity)
+                .onChange(of: viewModel.conversation.messages.count) { _, _ in
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        proxy.scrollTo("conversationBottom", anchor: .bottom)
+                    }
+                }
+                .onChange(of: viewModel.responseText) { _, _ in
+                    // Scroll during streaming too
+                    proxy.scrollTo("conversationBottom", anchor: .bottom)
+                }
+                .onAppear { scrollProxy = proxy }
             }
-            .frame(maxHeight: .infinity)
 
             // Benchmark bar (shown when data is available)
             if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
@@ -183,6 +249,18 @@ struct ContentView: View {
                             .font(.caption2)
                             .foregroundStyle(.green)
                             .help("Multi-Token Prediction supported")
+                    }
+                    if viewModel.experimentalFlags.enableToolCalling {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .help("Tool calling enabled (\(ToolRegistry.defaultTools.count) tools)")
+                    }
+                    if viewModel.experimentalFlags.enableThinking {
+                        Image(systemName: "brain.head.profile")
+                            .font(.caption2)
+                            .foregroundStyle(.purple)
+                            .help("Thinking mode enabled")
                     }
                 }
             }

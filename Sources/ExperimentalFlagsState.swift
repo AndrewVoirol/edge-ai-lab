@@ -10,13 +10,26 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
     let enableConversationConstrainedDecoding: Bool
     let visualTokenBudget: Int32?
 
+    /// Whether thinking mode is enabled in the UI.
+    /// When true, the model's `<think>...</think>` output is parsed and displayed
+    /// separately from the response. This is a UI-level flag — the model may still
+    /// emit thinking tokens even when disabled; we just don't surface them.
+    var enableThinking: Bool = true
+
+    /// Whether tool calling is enabled for the current session.
+    /// When true, the engine is initialized with ToolManager and the model can
+    /// invoke registered tools during inference.
+    var enableToolCalling: Bool = true
+
     /// Captures the current state from the global ExperimentalFlags statics.
     static func captureCurrentState() -> ExperimentalFlagsState {
         ExperimentalFlagsState(
             enableBenchmark: ExperimentalFlags.enableBenchmark,
             enableSpeculativeDecoding: ExperimentalFlags.enableSpeculativeDecoding,
             enableConversationConstrainedDecoding: ExperimentalFlags.enableConversationConstrainedDecoding,
-            visualTokenBudget: ExperimentalFlags.visualTokenBudget
+            visualTokenBudget: ExperimentalFlags.visualTokenBudget,
+            enableThinking: true,
+            enableToolCalling: true
         )
     }
 

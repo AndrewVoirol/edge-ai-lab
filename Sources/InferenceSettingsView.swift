@@ -1,4 +1,5 @@
 import SwiftUI
+import LiteRTLM
 
 /// Settings view for configuring ExperimentalFlags, inference parameters,
 /// and HuggingFace token management.
@@ -8,6 +9,25 @@ struct InferenceSettingsView: View {
     @State private var hfTokenInput = ""
     @State private var hfTokenSaved = HFTokenStorage.hasToken
     @State private var hfTokenMessage = ""
+
+    /// Helper for displaying tool information in a ForEach.
+    /// Tool protocol has static properties, so we need to extract them at build time.
+    private struct ToolDisplayItem {
+        let name: String
+        let desc: String
+    }
+
+    private var toolDisplayItems: [ToolDisplayItem] {
+        [
+            ToolDisplayItem(name: CalculatorTool.name, desc: CalculatorTool.description),
+            ToolDisplayItem(name: DateTimeTool.name, desc: DateTimeTool.description),
+            ToolDisplayItem(name: DeviceInfoTool.name, desc: DeviceInfoTool.description),
+            ToolDisplayItem(name: UnitConverterTool.name, desc: UnitConverterTool.description),
+            ToolDisplayItem(name: TextAnalyzerTool.name, desc: TextAnalyzerTool.description),
+            ToolDisplayItem(name: SystemHealthTool.name, desc: SystemHealthTool.description),
+        ]
+    }
+
 
     var body: some View {
         Form {
@@ -100,6 +120,63 @@ struct InferenceSettingsView: View {
                     }
                 ))
                 .help("Enable constrained decoding for structured outputs.")
+            }
+
+            Section("Thinking Mode") {
+                Toggle("Enable Thinking", isOn: Binding(
+                    get: { viewModel.experimentalFlags.enableThinking },
+                    set: { newValue in
+                        viewModel.experimentalFlags.enableThinking = newValue
+                    }
+                ))
+                .help("When enabled, the model's reasoning is displayed in a collapsible 'Thinking' section before the response.")
+
+                Label(
+                    "The model may output reasoning in <think> blocks. When enabled, these are parsed and shown separately from the response.",
+                    systemImage: "brain.head.profile"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Section("Tool Calling") {
+                Toggle("Enable Tool Calling", isOn: Binding(
+                    get: { viewModel.experimentalFlags.enableToolCalling },
+                    set: { newValue in
+                        viewModel.experimentalFlags.enableToolCalling = newValue
+                    }
+                ))
+                .help("Allow the model to invoke built-in tools during inference.")
+
+                if viewModel.experimentalFlags.enableToolCalling {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Available Tools (\(ToolRegistry.defaultTools.count))")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        ForEach(toolDisplayItems, id: \.name) { item in
+                            HStack(spacing: 6) {
+                                Image(systemName: "wrench.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                                Text(item.name)
+                                    .font(.caption)
+                                    .fontDesign(.monospaced)
+                                Text("— \(item.desc)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+
+                    Label(
+                        "Tools are side-effect-free and work fully offline. The model can invoke tools to calculate, check time, analyze text, convert units, and introspect device health.",
+                        systemImage: "checkmark.shield"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
 
             Section("Sampler Configuration") {

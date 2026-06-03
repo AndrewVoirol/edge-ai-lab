@@ -16,8 +16,14 @@ final class ConversationViewModel {
     /// User's current prompt text.
     var prompt = "Explain quantum computing in one sentence."
 
-    /// Accumulated response text from the current inference.
-    var responseText = ""
+    /// Multi-turn conversation state — replaces the old single `responseText`.
+    var conversation = ConversationState()
+
+    /// Legacy accessor: accumulated response text from the current/last inference.
+    /// Now derived from the last assistant message for backward compatibility.
+    var responseText: String {
+        conversation.lastMessage?.content ?? ""
+    }
 
     /// Whether an inference is currently in progress.
     var isGenerating = false
@@ -86,6 +92,23 @@ final class ConversationViewModel {
     var supportsAudioInput: Bool {
         activeModelMetadata?.supportsAudio ?? false
     }
+
+    // MARK: - Thinking Mode State
+
+    /// Accumulated thinking content from the current streaming inference.
+    /// Populated by the ThinkingParser as `<think>` blocks are received.
+    var currentThinkingText: String = ""
+
+    /// Whether the model is currently in the "thinking" phase of its response.
+    var isThinking: Bool = false
+
+    /// Parser instance for the current streaming response.
+    private var thinkingParser = ThinkingParser()
+
+    // MARK: - Tool Calling State
+
+    /// Tool call events from the current/last inference (for observability).
+    var toolCallEvents: [ToolCallEvent] = []
 
     // MARK: - Internal State
 
@@ -230,6 +253,10 @@ final class ConversationViewModel {
             } else {
                 statusMessage = "\(modelLabel) ready (\(backendLabel)) 🎉"
             }
+
+            // Start a new conversation when loading a new model
+            conversation.clear()
+
         } catch {
             backendResult = nil
             statusMessage = "Failed to initialize: \(error.localizedDescription)"
@@ -239,18 +266,37 @@ final class ConversationViewModel {
     // MARK: - Inference
 
     /// Generate a response for the current prompt via streaming.
+    /// Integrates thinking mode parsing and multi-turn chat state.
     func generateText() async {
         guard engine.isReady else { return }
 
         isGenerating = true
-        responseText = ""
         benchmarkInfo = nil
+        currentThinkingText = ""
+        isThinking = false
+        toolCallEvents = []
+        thinkingParser.reset()
 
         // Capture and clear multimodal attachments before inference
         let imageData = selectedImageData
         let audioData = selectedAudioData
         selectedImageData = nil
         selectedAudioData = nil
+
+        // Append user message to conversation
+        let userMessage = ChatMessage.user(
+            prompt,
+            imageData: imageData,
+            audioData: audioData
+        )
+        conversation.append(userMessage)
+
+        // Create placeholder assistant message for streaming
+        conversation.append(.assistant())
+
+        // Accumulated text for updating the assistant message
+        var accumulatedResponse = ""
+        var accumulatedThinking = ""
 
         do {
             let stream: AsyncThrowingStream<String, Error>
@@ -265,11 +311,58 @@ final class ConversationViewModel {
             }
 
             for try await chunk in stream {
-                responseText += chunk
+                // Parse thinking tags from streaming chunks
+                if experimentalFlags.enableThinking {
+                    let segments = thinkingParser.feed(chunk)
+                    for segment in segments {
+                        switch segment {
+                        case .thinking(let text):
+                            accumulatedThinking += text
+                            currentThinkingText = accumulatedThinking
+                            isThinking = true
+                        case .response(let text):
+                            accumulatedResponse += text
+                            isThinking = false
+                        }
+                    }
+                } else {
+                    accumulatedResponse += chunk
+                }
+
+                // Update the streaming assistant message
+                conversation.updateLastAssistantMessage(
+                    content: accumulatedResponse,
+                    thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking
+                )
             }
+
+            // Finalize thinking parser
+            if experimentalFlags.enableThinking {
+                let finalSegments = thinkingParser.finalize()
+                for segment in finalSegments {
+                    switch segment {
+                    case .thinking(let text):
+                        accumulatedThinking += text
+                    case .response(let text):
+                        accumulatedResponse += text
+                    }
+                }
+            }
+
+            isThinking = false
 
             // Capture benchmark data after inference completes
             benchmarkInfo = engine.lastBenchmarkInfo
+
+            // Finalize the assistant message
+            let benchmarkSnapshot = benchmarkInfo.map { ChatMessage.BenchmarkSnapshot(from: $0) }
+            conversation.updateLastAssistantMessage(
+                content: accumulatedResponse,
+                thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking,
+                toolCalls: toolCallEvents.isEmpty ? nil : toolCallEvents,
+                isStreaming: false,
+                benchmarkInfo: benchmarkSnapshot
+            )
 
             // Persist to metrics store if benchmark data is available
             if let info = benchmarkInfo {
@@ -289,10 +382,34 @@ final class ConversationViewModel {
                 }
             }
         } catch {
-            responseText = "Inference error: \(error.localizedDescription)"
+            // Update the assistant message with the error
+            conversation.updateLastAssistantMessage(
+                content: "Inference error: \(error.localizedDescription)",
+                isStreaming: false
+            )
         }
 
         isGenerating = false
+    }
+
+    // MARK: - Conversation Management
+
+    /// Start a new conversation — clears chat history and resets the engine conversation.
+    func newConversation() async {
+        conversation.clear()
+        currentThinkingText = ""
+        isThinking = false
+        toolCallEvents = []
+        benchmarkInfo = nil
+
+        // Reset the engine conversation (preserves model weights, clears context window)
+        if engine.isReady {
+            do {
+                try await engine.resetConversation()
+            } catch {
+                statusMessage = "Failed to reset conversation: \(error.localizedDescription)"
+            }
+        }
     }
 
     // MARK: - Cleanup
@@ -305,5 +422,6 @@ final class ConversationViewModel {
         backendResult = nil
         await engine.shutdown()
         benchmarkInfo = nil
+        conversation.clear()
     }
 }
