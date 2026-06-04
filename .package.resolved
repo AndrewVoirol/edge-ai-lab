@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google-ai-edge/LiteRT-LM.git",
       "state" : {
-        "branch" : "241be8db",
-        "revision" : "241be8db1e9de41328f06e3467dc01d708d781a5"
+        "branch" : "release/v0.13",
+        "revision" : "a0afb5a56acd106b23a2b2385b8469834dc268c0"
       }
     }
   ],

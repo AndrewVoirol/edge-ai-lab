@@ -6,12 +6,11 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // LiteRT-LM: Pinned to 241be8db — latest main commit before LoRA Swift API change.
-        // Includes all v0.13.0 features + sampler improvements (GPU top-k limits).
-        // The next commit (c07066c1) added LoRA Swift APIs not yet in the prebuilt
-        // iOS CLiteRTLM.xcframework, breaking iOS builds.
-        // macOS builds from source; iOS uses prebuilt binary from v0.13.0 release.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("241be8db"))
+        // LiteRT-LM v0.13.1 — patch release (June 3 2026) with bug fixes on v0.13.0.
+        // Pinned by branch (not semver) because the SDK uses .unsafeFlags(["-Xlinker",
+        // "-all_load"]) which SPM blocks for versioned dependencies but allows for
+        // branch/revision pins. The release/v0.13 branch tracks the v0.13.1 tag.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("release/v0.13"))
     ],
     settings: .settings(
         base: [
