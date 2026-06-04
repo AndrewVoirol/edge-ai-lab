@@ -6,11 +6,12 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // LiteRT-LM v0.13.1 — patch release (June 3 2026) with bug fixes on v0.13.0.
-        // Pinned by branch (not semver) because the SDK uses .unsafeFlags(["-Xlinker",
-        // "-all_load"]) which SPM blocks for versioned dependencies but allows for
-        // branch/revision pins. The release/v0.13 branch tracks the v0.13.1 tag.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("release/v0.13"))
+        // LiteRT-LM: Pinned to 241be8db (pre-v0.13.1).
+        // v0.13.1 (branch release/v0.13) has a 52x GPU decode regression on macOS:
+        //   old SDK: 26.2 tok/s decode, 38ms/token median latency
+        //   v0.13.1: ~0.5 tok/s decode, ~1700ms/token — verified via A/B benchmark
+        // Includes v0.13.0 features + sampler improvements. macOS builds from source.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("241be8db"))
     ],
     settings: .settings(
         base: [
