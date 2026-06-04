@@ -219,6 +219,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     private static let inferenceLog = OSLog(subsystem: subsystem, category: "inference")
     private static let firstTokenLog = OSLog(subsystem: subsystem, category: "first-token")
 
+    /// Console logger for runtime diagnostics (visible in Xcode debug console and Console.app).
+    /// Complements os_signpost, which only appears in Instruments.
+    private static let logger = Logger(subsystem: subsystem, category: "engine")
+
     // MARK: - State
 
     private var engine: Engine?
@@ -264,6 +268,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         self.activeSystemMessage = systemMessage
         self.activeTools = tools
 
+        let modelFilename = (modelPath as NSString).lastPathComponent
+        Self.logger.info("⏳ Engine init: \(modelFilename, privacy: .public) backend=\(useGPU ? "GPU" : "CPU", privacy: .public) tools=\(tools?.count ?? 0) sampler=\(samplerConfig != nil ? "custom" : "default", privacy: .public)")
+
         // Configure experimental flags — MUST opt in first
         ExperimentalFlags.optIntoExperimentalAPIs()
         flags.applyToGlobalFlags()
@@ -297,9 +304,11 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             )
             self.conversation = try await newEngine.createConversation(with: convConfig)
 
+            Self.logger.info("✅ Engine ready: \(modelFilename, privacy: .public) backend=\(useGPU ? "GPU" : "CPU", privacy: .public)")
             os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
                         "Model loaded successfully")
         } catch {
+            Self.logger.error("❌ Engine init FAILED: \(error.localizedDescription, privacy: .public)")
             os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
                         "Model load FAILED: %{public}s", error.localizedDescription)
             throw error
@@ -329,7 +338,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         // Store the Task so resetConversation() can await its completion.
         // The Task captures `conversation` (the local binding), which prevents
         // Conversation.deinit from running until the Task body returns.
-        let task = Task { @MainActor [conversation] in
+        //
+        // IMPORTANT: This Task intentionally does NOT use @MainActor. The SDK's
+        // sendMessageStream() loop (including any internal tool-calling iterations)
+        // runs on a background cooperative thread pool, keeping the UI responsive
+        // during the potentially long prefill + decode phases. Only state mutations
+        // (lastInferenceMetrics, lastBenchmarkInfo) hop to MainActor.
+        let task = Task { [conversation, weak self] in
+            Self.logger.info("🚀 Inference start: prompt=\(text.prefix(80), privacy: .public)...")
             let signpostID = OSSignpostID(log: Self.inferenceLog)
             os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                         "Starting inference for prompt length %{public}d", text.count)
@@ -352,6 +368,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                             tokenTimestamps.append(CFAbsoluteTimeGetCurrent())
 
                             if isFirstToken {
+                                Self.logger.info("⚡ First token received")
                                 os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
                                             "First token received")
                                 isFirstToken = false
@@ -384,37 +401,42 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     }
                 }
 
-                // Build InferenceMetrics
-                self.lastInferenceMetrics = InferenceMetrics(
+                // Build metrics and capture benchmark — hop to MainActor for state updates only
+                let metrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
                     tokenLatenciesMs: tokenLatenciesMs,
                     totalTokenCount: tokenTimestamps.count
                 )
+                let benchmarkEnabled = self?.flagsState.enableBenchmark ?? false
+                let benchmarkInfo: BenchmarkInfo? = benchmarkEnabled
+                    ? (try? conversation.getBenchmarkInfo())
+                    : nil
 
-                // Capture BenchmarkInfo after stream completes
-                if self.flagsState.enableBenchmark {
-                    do {
-                        self.lastBenchmarkInfo = try conversation.getBenchmarkInfo()
-                    } catch {
-                        // Gracefully degrade — benchmark data unavailable but inference succeeded
-                        self.lastBenchmarkInfo = nil
-                    }
+                await MainActor.run {
+                    self?.lastInferenceMetrics = metrics
+                    self?.lastBenchmarkInfo = benchmarkInfo
                 }
 
+                Self.logger.info("✅ Inference complete: \(tokenTimestamps.count) tokens")
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                             "Inference completed")
                 continuation.finish()
             } catch {
                 // Still capture metrics on failure for debugging
                 let endSnapshot = DeviceMetrics.captureSnapshot()
-                self.lastInferenceMetrics = InferenceMetrics(
+                let failureMetrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
                     tokenLatenciesMs: [],
                     totalTokenCount: 0
                 )
 
+                await MainActor.run {
+                    self?.lastInferenceMetrics = failureMetrics
+                }
+
+                Self.logger.error("❌ Inference FAILED: \(error.localizedDescription, privacy: .public)")
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                             "Inference FAILED: %{public}s", error.localizedDescription)
                 continuation.finish(throwing: error)
@@ -454,7 +476,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             }
         }
 
-        let task = Task { @MainActor [conversation] in
+        let task = Task { [conversation, weak self] in
             let signpostID = OSSignpostID(log: Self.inferenceLog)
             let modalityLabel = [
                 imageData != nil ? "image" : nil,
@@ -514,19 +536,21 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     }
                 }
 
-                self.lastInferenceMetrics = InferenceMetrics(
+                // Build metrics and capture benchmark — hop to MainActor for state updates only
+                let metrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
                     tokenLatenciesMs: tokenLatenciesMs,
                     totalTokenCount: tokenTimestamps.count
                 )
+                let benchmarkEnabled = self?.flagsState.enableBenchmark ?? false
+                let benchmarkInfo: BenchmarkInfo? = benchmarkEnabled
+                    ? (try? conversation.getBenchmarkInfo())
+                    : nil
 
-                if self.flagsState.enableBenchmark {
-                    do {
-                        self.lastBenchmarkInfo = try conversation.getBenchmarkInfo()
-                    } catch {
-                        self.lastBenchmarkInfo = nil
-                    }
+                await MainActor.run {
+                    self?.lastInferenceMetrics = metrics
+                    self?.lastBenchmarkInfo = benchmarkInfo
                 }
 
                 os_signpost(.end, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
@@ -534,12 +558,17 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 continuation.finish()
             } catch {
                 let endSnapshot = DeviceMetrics.captureSnapshot()
-                self.lastInferenceMetrics = InferenceMetrics(
+                let failureMetrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
                     tokenLatenciesMs: [],
                     totalTokenCount: 0
                 )
+
+                await MainActor.run {
+                    self?.lastInferenceMetrics = failureMetrics
+                }
+
                 os_signpost(.end, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
                             "Multimodal inference FAILED: %{public}s", error.localizedDescription)
                 continuation.finish(throwing: error)

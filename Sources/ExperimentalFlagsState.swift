@@ -19,7 +19,7 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
     /// Whether tool calling is enabled for the current session.
     /// When true, the engine is initialized with ToolManager and the model can
     /// invoke registered tools during inference.
-    var enableToolCalling: Bool = true
+    var enableToolCalling: Bool = false
 
     /// Captures the current state from the global ExperimentalFlags statics.
     static func captureCurrentState() -> ExperimentalFlagsState {
@@ -29,7 +29,7 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
             enableConversationConstrainedDecoding: ExperimentalFlags.enableConversationConstrainedDecoding,
             visualTokenBudget: ExperimentalFlags.visualTokenBudget,
             enableThinking: true,
-            enableToolCalling: true
+            enableToolCalling: false
         )
     }
 

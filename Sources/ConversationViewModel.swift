@@ -226,12 +226,19 @@ final class ConversationViewModel {
             }
 
             // Build sampler config from current settings
-            let samplerConfig = try? SamplerConfig(
-                topK: topK,
-                topP: topP,
-                temperature: temperature,
-                seed: seed
-            )
+            let samplerConfig: SamplerConfig?
+            do {
+                samplerConfig = try SamplerConfig(
+                    topK: topK,
+                    topP: topP,
+                    temperature: temperature,
+                    seed: seed
+                )
+            } catch {
+                // Log the error rather than silently swallowing it
+                print("[ConversationViewModel] ⚠️ SamplerConfig creation failed: \(error.localizedDescription). Using SDK defaults.")
+                samplerConfig = nil
+            }
 
             // Prepare tools if tool calling is enabled
             let tools: [Tool]? = experimentalFlags.enableToolCalling
@@ -289,9 +296,13 @@ final class ConversationViewModel {
         selectedImageData = nil
         selectedAudioData = nil
 
+        // Capture prompt text and clear the input field immediately
+        let currentPrompt = prompt
+        prompt = ""
+
         // Append user message to conversation
         let userMessage = ChatMessage.user(
-            prompt,
+            currentPrompt,
             imageData: imageData,
             audioData: audioData
         )
@@ -308,12 +319,12 @@ final class ConversationViewModel {
             let stream: AsyncThrowingStream<String, Error>
             if imageData != nil || audioData != nil {
                 stream = engine.sendMessageStream(
-                    prompt,
+                    currentPrompt,
                     imageData: imageData,
                     audioData: audioData
                 )
             } else {
-                stream = engine.sendMessageStream(prompt)
+                stream = engine.sendMessageStream(currentPrompt)
             }
 
             for try await chunk in stream {

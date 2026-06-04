@@ -60,8 +60,42 @@ enum GalleryModelDiscovery {
         }
 
         #if os(macOS) || targetEnvironment(simulator)
-        // On macOS/simulator, also check the project's models/ directory
-        // (used for development, not available on device)
+        // On macOS/simulator, also check common model locations:
+        // 1. User's Caches (where ModelDownloadManager saves)
+        // 2. User's Downloads folder
+        // 3. App container Caches (sandbox)
+        let additionalDirs: [URL] = [
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+            FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first,
+        ].compactMap { $0 }
+
+        for dir in additionalDirs {
+            let found = scanDirectory(dir, source: .local)
+            for m in found where !seenFilenames.contains(m.filename) {
+                seenFilenames.insert(m.filename)
+                models.append(m)
+            }
+        }
+
+        // Also check the project workspace models/ directory (development only)
+        if let bundlePath = Bundle.main.resourceURL?.deletingLastPathComponent() {
+            // Walk up from .app bundle to find a sibling or parent "models" directory
+            let candidates = [
+                bundlePath.appendingPathComponent("models"),
+                bundlePath.deletingLastPathComponent().appendingPathComponent("models"),
+                bundlePath.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("models"),
+            ]
+            for candidate in candidates {
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
+                    let found = scanDirectory(candidate, source: .local)
+                    for m in found where !seenFilenames.contains(m.filename) {
+                        seenFilenames.insert(m.filename)
+                        models.append(m)
+                    }
+                }
+            }
+        }
         #endif
 
         // 2. Check for Gallery's shared folder
@@ -91,11 +125,12 @@ enum GalleryModelDiscovery {
     // MARK: - Directory Scanning
 
     /// Scan a directory for .litertlm model files.
+    /// Resolves symlinks so linked models are correctly discovered.
     private static func scanDirectory(_ directory: URL, source: DiscoveredModel.DiscoverySource) -> [DiscoveredModel] {
         let fileManager = FileManager.default
         guard let contents = try? fileManager.contentsOfDirectory(
             at: directory,
-            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey],
             options: [.skipsHiddenFiles]
         ) else {
             return []
@@ -104,7 +139,9 @@ enum GalleryModelDiscovery {
         return contents.compactMap { url -> DiscoveredModel? in
             guard url.pathExtension == "litertlm" else { return nil }
 
-            let resourceValues = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            // Resolve symlinks so we check the actual target file
+            let resolvedURL = url.resolvingSymlinksInPath()
+            let resourceValues = try? resolvedURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
             guard resourceValues?.isRegularFile == true else { return nil }
 
             let size = Int64(resourceValues?.fileSize ?? 0)
