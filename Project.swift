@@ -79,6 +79,28 @@ let project = Project(
             dependencies: [
                 .target(name: "GemmaEdgeGallery_macOS")
             ]
+        ),
+        .target(
+            name: "RawBenchmark",
+            destinations: .macOS,
+            product: .commandLineTool,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.RawBenchmark",
+            deploymentTargets: .macOS("26.0"),
+            infoPlist: .default,
+            sources: ["RawBenchmark/**"],
+            dependencies: [
+                .package(product: "LiteRTLM")
+            ],
+            settings: .settings(
+                base: [
+                    "LD_RUNPATH_SEARCH_PATHS": .array([
+                        "@executable_path",
+                        "@executable_path/../lib",
+                        "$(BUILT_PRODUCTS_DIR)"
+                    ]),
+                    "HEADERPAD_MAX_INSTALL_NAMES": "YES"
+                ]
+            )
         )
     ],
     schemes: [
@@ -103,6 +125,12 @@ let project = Project(
                 options: .options(coverage: true)
             ),
             runAction: .runAction(configuration: .debug)
+        ),
+        .scheme(
+            name: "RawBenchmark",
+            shared: true,
+            buildAction: .buildAction(targets: ["RawBenchmark"]),
+            runAction: .runAction(configuration: .release)
         )
     ]
 )
