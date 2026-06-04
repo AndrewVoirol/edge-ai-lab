@@ -183,11 +183,29 @@ struct ContentView: View {
         HStack(spacing: AppSpacing.sm) {
             // Status / model name
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.statusMessage)
-                    .font(.system(.headline, design: .default, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                HStack(spacing: AppSpacing.sm) {
+                    if viewModel.isLoadingModel {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityIdentifier("progress_loading")
+                    }
+
+                    Text(viewModel.statusMessage)
+                        .font(.system(.headline, design: .default, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    if viewModel.isLoadingModel {
+                        Button("Cancel") {
+                            viewModel.cancelModelLoad()
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        .controlSize(.small)
+                        .accessibilityIdentifier("button_cancelLoad")
+                    }
+                }
 
                 // Capability badges for loaded model
                 if let metadata = viewModel.activeModelMetadata {

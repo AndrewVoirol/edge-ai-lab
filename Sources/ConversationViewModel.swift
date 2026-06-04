@@ -1,12 +1,19 @@
 import Foundation
 import LiteRTLM
 import Observation
+import os
 
 /// ViewModel managing the inference engine lifecycle, conversation state,
 /// and benchmark data. Consumes InstrumentedEngineProtocol for testability.
 @Observable
 @MainActor
 final class ConversationViewModel {
+
+    /// Console logger for runtime diagnostics (visible in Console.app).
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.GemmaEdgeGallery.performance",
+        category: "viewmodel"
+    )
 
     // MARK: - Published State
 
@@ -27,6 +34,9 @@ final class ConversationViewModel {
 
     /// Whether an inference is currently in progress.
     var isGenerating = false
+
+    /// Whether a model is currently being loaded.
+    var isLoadingModel = false
 
     /// Whether GPU backend is preferred.
     var useGPU = true
@@ -115,6 +125,9 @@ final class ConversationViewModel {
     /// The URL of the currently loaded model file (for security scope management).
     private(set) var activeModelURL: URL?
 
+    /// Tracks the active model load task for cancellation support.
+    private var modelLoadTask: Task<Void, Never>?
+
     /// Models discovered from local storage and AI Edge Gallery.
     var discoveredModels: [DiscoveredModel] = []
 
@@ -153,6 +166,7 @@ final class ConversationViewModel {
 
     /// Handle a model file selection from the file picker.
     func handleModelSelection(_ url: URL) async {
+        Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
 
@@ -173,6 +187,7 @@ final class ConversationViewModel {
     /// Discover available models from local storage and Gallery, auto-load if possible.
     func checkForLocalModels() {
         discoveredModels = GalleryModelDiscovery.discoverModels()
+        Self.logger.info("🔍 Discovered \(self.discoveredModels.count) model(s)")
 
         if let firstModel = discoveredModels.first {
             statusMessage = "Found model: \(firstModel.filename)"
@@ -180,6 +195,7 @@ final class ConversationViewModel {
                 statusMessage += " (via Edge Gallery)"
             }
             activeModelURL = firstModel.url
+            Self.logger.info("⚡ Auto-loading: \(firstModel.filename, privacy: .public)")
             Task {
                 await initializeEngine(modelPath: firstModel.url.path)
             }
@@ -193,7 +209,22 @@ final class ConversationViewModel {
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
     func initializeEngine(modelPath: String) async {
+        // Cancel any in-progress load
+        modelLoadTask?.cancel()
+
+        isLoadingModel = true
         statusMessage = "Initializing Engine..."
+
+        // Start a timeout timer that updates the status message
+        let timeoutTask = Task {
+            try? await Task.sleep(for: .seconds(30))
+            if !Task.isCancelled && self.isLoadingModel {
+                self.statusMessage += " (taking longer than expected…)"
+            }
+        }
+
+        let modelName = (modelPath as NSString).lastPathComponent
+        Self.logger.info("⏳ initializeEngine: \(modelName, privacy: .public) GPU=\(self.useGPU)")
 
         // Look up model metadata for known models
         activeModelMetadata = ModelRegistry.lookup(path: modelPath)
@@ -211,6 +242,8 @@ final class ConversationViewModel {
                 for: .cachesDirectory, in: .userDomainMask
             ).first else {
                 statusMessage = "Could not find caches directory"
+                isLoadingModel = false
+                timeoutTask.cancel()
                 return
             }
 
@@ -236,7 +269,7 @@ final class ConversationViewModel {
                 )
             } catch {
                 // Log the error rather than silently swallowing it
-                print("[ConversationViewModel] ⚠️ SamplerConfig creation failed: \(error.localizedDescription). Using SDK defaults.")
+                Self.logger.warning("⚠️ SamplerConfig creation failed: \(error.localizedDescription, privacy: .public). Using SDK defaults.")
                 samplerConfig = nil
             }
 
@@ -267,13 +300,27 @@ final class ConversationViewModel {
                 statusMessage = "\(modelLabel) ready (\(backendLabel)) 🎉"
             }
 
+            Self.logger.info("✅ Engine initialized: \(self.statusMessage, privacy: .public)")
+
             // Start a new conversation when loading a new model
             conversation.clear()
 
         } catch {
             backendResult = nil
             statusMessage = "Failed to initialize: \(error.localizedDescription)"
+            Self.logger.error("❌ Engine init failed: \(error.localizedDescription, privacy: .public)")
         }
+
+        timeoutTask.cancel()
+        isLoadingModel = false
+    }
+
+    /// Cancel an in-progress model load.
+    func cancelModelLoad() {
+        modelLoadTask?.cancel()
+        modelLoadTask = nil
+        isLoadingModel = false
+        statusMessage = "Model load cancelled"
     }
 
     // MARK: - Inference
@@ -282,6 +329,7 @@ final class ConversationViewModel {
     /// Integrates thinking mode parsing and multi-turn chat state.
     func generateText() async {
         guard engine.isReady else { return }
+        Self.logger.info("🚀 generateText: prompt=\(self.prompt.prefix(80), privacy: .public) attachments=\(self.hasMultimodalAttachment)")
 
         isGenerating = true
         benchmarkInfo = nil
@@ -374,6 +422,7 @@ final class ConversationViewModel {
 
             // Capture benchmark data after inference completes
             benchmarkInfo = engine.lastBenchmarkInfo
+            Self.logger.info("✅ Generation complete: \(accumulatedResponse.count) chars")
 
             // Finalize the assistant message
             let benchmarkSnapshot = benchmarkInfo.map { ChatMessage.BenchmarkSnapshot(from: $0) }
@@ -399,10 +448,11 @@ final class ConversationViewModel {
                     try metricsStore.append(entry: entry)
                 } catch {
                     // Don't fail inference over metrics persistence errors
-                    print("[MetricsStore] Failed to persist entry: \(error.localizedDescription)")
+                    Self.logger.error("❌ MetricsStore persistence failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
         } catch {
+            Self.logger.error("❌ Generation failed: \(error.localizedDescription, privacy: .public)")
             // Update the assistant message with the error
             conversation.updateLastAssistantMessage(
                 content: "Inference error: \(error.localizedDescription)",
@@ -417,6 +467,7 @@ final class ConversationViewModel {
 
     /// Start a new conversation — clears chat history and resets the engine conversation.
     func newConversation() async {
+        Self.logger.info("🔄 New conversation requested")
         conversation.clear()
         currentThinkingText = ""
         isThinking = false
@@ -437,6 +488,7 @@ final class ConversationViewModel {
 
     /// Shut down the engine and release resources.
     func shutdown() async {
+        Self.logger.info("🛑 Shutdown initiated")
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
         activeModelMetadata = nil
