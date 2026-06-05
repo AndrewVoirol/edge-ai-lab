@@ -10,6 +10,13 @@ struct InferenceSettingsView: View {
     @State private var hfTokenSaved = HFTokenStorage.hasToken
     @State private var hfTokenMessage = ""
 
+    @State private var isShowingAddEditForm = false
+    @State private var editingConfig: MCPServerConfig? = nil
+    @State private var serverName = ""
+    @State private var serverCommand = ""
+    @State private var serverArgs = ""
+    @State private var serverEnv = ""
+
     /// Helper for displaying tool information in a ForEach.
     /// Tool protocol has static properties, so we need to extract them at build time.
     private struct ToolDisplayItem {
@@ -18,7 +25,7 @@ struct InferenceSettingsView: View {
     }
 
     private var toolDisplayItems: [ToolDisplayItem] {
-        [
+        var items = [
             ToolDisplayItem(name: CalculatorTool.name, desc: CalculatorTool.description),
             ToolDisplayItem(name: DateTimeTool.name, desc: DateTimeTool.description),
             ToolDisplayItem(name: DeviceInfoTool.name, desc: DeviceInfoTool.description),
@@ -26,6 +33,11 @@ struct InferenceSettingsView: View {
             ToolDisplayItem(name: TextAnalyzerTool.name, desc: TextAnalyzerTool.description),
             ToolDisplayItem(name: SystemHealthTool.name, desc: SystemHealthTool.description),
         ]
+        if viewModel.experimentalFlags.enableAgentSkills {
+            items.append(ToolDisplayItem(name: WikipediaSkillTool.name, desc: WikipediaSkillTool.description))
+            items.append(ToolDisplayItem(name: MapSkillTool.name, desc: MapSkillTool.description))
+        }
+        return items
     }
 
 
@@ -76,29 +88,12 @@ struct InferenceSettingsView: View {
             }
 
             Section("Experimental Flags") {
-                Toggle("Enable Benchmarking", isOn: Binding(
-                    get: { viewModel.experimentalFlags.enableBenchmark },
-                    set: { newValue in
-                        viewModel.experimentalFlags = ExperimentalFlagsState(
-                            enableBenchmark: newValue,
-                            enableSpeculativeDecoding: viewModel.experimentalFlags.enableSpeculativeDecoding,
-                            enableConversationConstrainedDecoding: viewModel.experimentalFlags.enableConversationConstrainedDecoding,
-                            visualTokenBudget: viewModel.experimentalFlags.visualTokenBudget
-                        )
-                    }
-                ))
+                Toggle("Enable Benchmarking", isOn: $viewModel.experimentalFlags.enableBenchmark)
                 .help("Collect TTFT, decode speed, and prefill speed after each inference.")
 
                 Toggle("Multi-Token Prediction (MTP)", isOn: Binding(
                     get: { viewModel.experimentalFlags.enableSpeculativeDecoding ?? false },
-                    set: { newValue in
-                        viewModel.experimentalFlags = ExperimentalFlagsState(
-                            enableBenchmark: viewModel.experimentalFlags.enableBenchmark,
-                            enableSpeculativeDecoding: newValue,
-                            enableConversationConstrainedDecoding: viewModel.experimentalFlags.enableConversationConstrainedDecoding,
-                            visualTokenBudget: viewModel.experimentalFlags.visualTokenBudget
-                        )
-                    }
+                    set: { viewModel.experimentalFlags.enableSpeculativeDecoding = $0 }
                 ))
                 .help("Enable speculative decoding (Multi-Token Prediction) for faster decode speeds on GPU backends. Recommended for GPU/Metal.")
 
@@ -108,27 +103,12 @@ struct InferenceSettingsView: View {
                         .foregroundStyle(.green)
                 }
 
-                Toggle("Constrained Decoding", isOn: Binding(
-                    get: { viewModel.experimentalFlags.enableConversationConstrainedDecoding },
-                    set: { newValue in
-                        viewModel.experimentalFlags = ExperimentalFlagsState(
-                            enableBenchmark: viewModel.experimentalFlags.enableBenchmark,
-                            enableSpeculativeDecoding: viewModel.experimentalFlags.enableSpeculativeDecoding,
-                            enableConversationConstrainedDecoding: newValue,
-                            visualTokenBudget: viewModel.experimentalFlags.visualTokenBudget
-                        )
-                    }
-                ))
+                Toggle("Constrained Decoding", isOn: $viewModel.experimentalFlags.enableConversationConstrainedDecoding)
                 .help("Enable constrained decoding for structured outputs.")
             }
 
             Section("Thinking Mode") {
-                Toggle("Enable Thinking", isOn: Binding(
-                    get: { viewModel.experimentalFlags.enableThinking },
-                    set: { newValue in
-                        viewModel.experimentalFlags.enableThinking = newValue
-                    }
-                ))
+                Toggle("Enable Thinking", isOn: $viewModel.experimentalFlags.enableThinking)
                 .help("When enabled, the model's reasoning is displayed in a collapsible 'Thinking' section before the response.")
 
                 Label(
@@ -140,17 +120,15 @@ struct InferenceSettingsView: View {
             }
 
             Section("Tool Calling") {
-                Toggle("Enable Tool Calling", isOn: Binding(
-                    get: { viewModel.experimentalFlags.enableToolCalling },
-                    set: { newValue in
-                        viewModel.experimentalFlags.enableToolCalling = newValue
-                    }
-                ))
+                Toggle("Enable Tool Calling", isOn: $viewModel.experimentalFlags.enableToolCalling)
                 .help("Allow the model to invoke built-in tools during inference.")
 
                 if viewModel.experimentalFlags.enableToolCalling {
+                    Toggle("Enable Agent Skills", isOn: $viewModel.experimentalFlags.enableAgentSkills)
+                    .help("Enable built-in agent skills: Wikipedia search and Apple Maps rendering.")
+
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Available Tools (\(ToolRegistry.defaultTools.count))")
+                        Text("Available Tools (\(toolDisplayItems.count))")
                             .font(.caption)
                             .fontWeight(.semibold)
 
@@ -176,8 +154,117 @@ struct InferenceSettingsView: View {
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    
+                    Text("⚠️ Tool Calling changes take effect on next model load.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
+
+            #if os(macOS)
+            if viewModel.experimentalFlags.enableToolCalling {
+                Section("MCP Servers (macOS Only)") {
+                    ForEach(viewModel.mcpServers) { config in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(config.name)
+                                        .fontWeight(.medium)
+                                    Text("\(config.command) \(config.args.joined(separator: " "))")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+
+                                // State Indicator
+                                let state = viewModel.getMCPClientState(for: config.id)
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .frame(width: 8, height: 8)
+                                        .foregroundStyle(statusColor(for: state))
+                                    Text(statusText(for: state))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Toggle("", isOn: Binding(
+                                    get: { config.enabled },
+                                    set: { newValue in
+                                        var updated = config
+                                        updated.enabled = newValue
+                                        viewModel.updateMCPServerConfig(updated)
+                                    }
+                                ))
+                                .labelsHidden()
+                            }
+
+                            // Tools list if connected
+                            let tools = viewModel.getMCPTools(for: config.id)
+                            if !tools.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Registered Tools:")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.secondary)
+                                    ForEach(tools, id: \.name) { tool in
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "circle.grid.cross.fill")
+                                                .font(.caption2)
+                                                .foregroundStyle(.blue)
+                                            Text(tool.name)
+                                                .font(.caption2)
+                                                .monospaced()
+                                            Text("— \(tool.description)")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                }
+                                .padding(.leading, 8)
+                            }
+
+                            // Edit & Delete button
+                            HStack {
+                                Button("Edit") {
+                                    editingConfig = config
+                                    serverName = config.name
+                                    serverCommand = config.command
+                                    serverArgs = config.args.joined(separator: " ")
+                                    serverEnv = config.env.map { "\($0.key)=\($0.value)" }.joined(separator: "\n")
+                                    isShowingAddEditForm = true
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption2)
+
+                                Spacer()
+
+                                Button("Delete", role: .destructive) {
+                                    viewModel.deleteMCPServerConfig(id: config.id)
+                                }
+                                .buttonStyle(.borderless)
+                                .font(.caption2)
+                                .foregroundStyle(.red)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+
+                    Button(action: {
+                        editingConfig = nil
+                        serverName = ""
+                        serverCommand = ""
+                        serverArgs = ""
+                        serverEnv = ""
+                        isShowingAddEditForm = true
+                    }) {
+                        Label("Add MCP Server", systemImage: "plus")
+                    }
+                }
+            }
+            #endif
 
             Section("Sampler Configuration") {
                 Stepper("Top-K: \(viewModel.topK)", value: $viewModel.topK, in: 1...128)
@@ -383,5 +470,88 @@ struct InferenceSettingsView: View {
         #if os(macOS)
         .frame(minWidth: 350)
         #endif
+        .sheet(isPresented: $isShowingAddEditForm) {
+            NavigationStack {
+                Form {
+                    Section("Basic Info") {
+                        TextField("Name", text: $serverName)
+                        TextField("Executable/Interpreter (e.g. /usr/local/bin/node)", text: $serverCommand)
+                        TextField("Arguments (space-separated)", text: $serverArgs)
+                    }
+
+                    Section("Environment Variables (One per line: KEY=VALUE)") {
+                        TextEditor(text: $serverEnv)
+                            .frame(minHeight: 80)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                }
+                .navigationTitle(editingConfig == nil ? "Add MCP Server" : "Edit MCP Server")
+                #if os(macOS)
+                .frame(minWidth: 400, minHeight: 350)
+                #endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isShowingAddEditForm = false
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            saveServer()
+                            isShowingAddEditForm = false
+                        }
+                        .disabled(serverName.isEmpty || serverCommand.isEmpty)
+                    }
+                }
+            }
+        }
+    }
+
+    private func saveServer() {
+        var env: [String: String] = [:]
+        let lines = serverEnv.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        for line in lines {
+            let parts = line.split(separator: "=", maxSplits: 1).map { String($0) }
+            if parts.count == 2 {
+                env[parts[0]] = parts[1]
+            }
+        }
+
+        let argsArray = serverArgs.split(separator: " ").map { String($0) }
+
+        if var config = editingConfig {
+            config.name = serverName
+            config.command = serverCommand
+            config.args = argsArray
+            config.env = env
+            viewModel.updateMCPServerConfig(config)
+        } else {
+            let newConfig = MCPServerConfig(
+                name: serverName,
+                enabled: true,
+                command: serverCommand,
+                args: argsArray,
+                env: env
+            )
+            viewModel.addMCPServerConfig(newConfig)
+        }
+    }
+
+    private func statusColor(for state: MCPClientState) -> Color {
+        switch state {
+        case .stopped: return .gray
+        case .starting: return .yellow
+        case .connected: return .green
+        case .failed: return .red
+        }
+    }
+
+    private func statusText(for state: MCPClientState) -> String {
+        switch state {
+        case .stopped: return "Stopped"
+        case .starting: return "Connecting"
+        case .connected: return "Connected"
+        case .failed(let err): return "Error: \(err.prefix(30))..."
+        }
     }
 }

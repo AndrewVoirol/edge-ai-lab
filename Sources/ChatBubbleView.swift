@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 // MARK: - Chat Bubble View
 
@@ -45,6 +46,11 @@ struct ChatBubbleView: View {
 
                 // Message content bubble
                 contentBubble
+
+                // Special Tool Cards (Wikipedia, Maps)
+                if message.role == .assistant && !message.toolCalls.isEmpty {
+                    specialToolCardsSection
+                }
 
                 // Benchmark mini-badge (assistant only)
                 if message.role == .assistant, let benchmark = message.benchmarkInfo {
@@ -125,27 +131,26 @@ struct ChatBubbleView: View {
                     .padding(.vertical, AppSpacing.md)
             }
         }
-        .background(bubbleBackground)
+        .background(
+            Group {
+                switch message.role {
+                case .user:
+                    AppGradients.userBubble
+                case .assistant:
+                    Rectangle().fill(AppColors.assistantBubble.opacity(0.3)).background(.ultraThinMaterial)
+                case .system:
+                    Rectangle().fill(AppColors.backgroundTertiary.opacity(0.4)).background(.ultraThinMaterial)
+                case .toolResult:
+                    Rectangle().fill(AppColors.toolCall.opacity(0.08)).background(.ultraThinMaterial)
+                }
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous)
                 .stroke(bubbleBorderColor, lineWidth: 0.5)
         )
         .accessibilityIdentifier("messageBubble_\(message.role)")
-    }
-
-    @ViewBuilder
-    private var bubbleBackground: some View {
-        switch message.role {
-        case .user:
-            AppGradients.userBubble
-        case .assistant:
-            AppColors.assistantBubble
-        case .system:
-            AppColors.backgroundTertiary.opacity(0.6)
-        case .toolResult:
-            AppColors.toolCall.opacity(0.08)
-        }
     }
 
     private var bubbleBorderColor: Color {
@@ -444,5 +449,181 @@ struct StreamingIndicator: View {
         }
         .onAppear { isAnimating = true }
         .accessibilityIdentifier("streamingIndicator")
+    }
+}
+
+// MARK: - Special Tool Result Views & Models
+
+private struct SpecialResult: Decodable {
+    let type: String
+    // Wikipedia fields
+    let query: String?
+    let title: String?
+    let extract: String?
+    let url: String?
+    let thumbnail_url: String?
+    // Map fields
+    let latitude: Double?
+    let longitude: Double?
+    let subtitle: String?
+}
+
+struct WikipediaSummaryCard: View {
+    let title: String
+    let extract: String
+    let urlString: String
+    let thumbnailUrlString: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(alignment: .top, spacing: AppSpacing.md) {
+                if let urlStr = thumbnailUrlString, let url = URL(string: urlStr) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                        default:
+                            Image(systemName: "book.pages")
+                                .font(.largeTitle)
+                                .frame(width: 80, height: 80)
+                                .background(AppColors.backgroundSecondary)
+                                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                        }
+                    }
+                } else {
+                    Image(systemName: "book.pages.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(AppColors.accentTeal)
+                        .frame(width: 80, height: 80)
+                        .background(AppColors.accentTeal.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .lineLimit(2)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.up.forward.app")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    
+                    Text(extract)
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(4)
+                }
+            }
+            
+            if let url = URL(string: urlString) {
+                Link(destination: url) {
+                    HStack {
+                        Text("Read full Wikipedia article")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(AppColors.accentTeal)
+                }
+            }
+        }
+        .padding(AppSpacing.md)
+        .background(AppColors.assistantBubble.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .stroke(AppColors.border, lineWidth: 1)
+        )
+    }
+}
+
+struct SimpleMapView: View {
+    let latitude: Double
+    let longitude: Double
+    let title: String
+    let subtitle: String?
+
+    @State private var position: MapCameraPosition
+
+    init(latitude: Double, longitude: Double, title: String, subtitle: String?) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.title = title
+        self.subtitle = subtitle
+        
+        let center = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let span = MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+        _position = State(initialValue: .region(MKCoordinateRegion(center: center, span: span)))
+    }
+
+    var body: some View {
+        Map(position: $position) {
+            Marker(title, coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+        }
+        .frame(height: 200)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .stroke(AppColors.border, lineWidth: 1)
+        )
+    }
+}
+
+extension ChatBubbleView {
+    @ViewBuilder
+    private var specialToolCardsSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            ForEach(message.toolCalls) { event in
+                if event.succeeded, let cardView = renderSpecialToolResult(event) {
+                    cardView
+                        .padding(.horizontal, AppSpacing.lg)
+                }
+            }
+        }
+    }
+
+    private func renderSpecialToolResult(_ event: ToolCallEvent) -> AnyView? {
+        guard let data = event.result.data(using: .utf8),
+              let special = try? JSONDecoder().decode(SpecialResult.self, from: data) else {
+            return nil
+        }
+
+        switch special.type {
+        case "wikipedia":
+            if let title = special.title, let extract = special.extract, let url = special.url {
+                return AnyView(
+                    WikipediaSummaryCard(
+                        title: title,
+                        extract: extract,
+                        urlString: url,
+                        thumbnailUrlString: special.thumbnail_url
+                    )
+                )
+            }
+        case "map":
+            if let lat = special.latitude, let lon = special.longitude {
+                return AnyView(
+                    SimpleMapView(
+                        latitude: lat,
+                        longitude: lon,
+                        title: special.title ?? "Location",
+                        subtitle: special.subtitle
+                    )
+                )
+            }
+        default:
+            break
+        }
+        return nil
     }
 }

@@ -26,10 +26,10 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Full-bleed dark background
-            AppColors.backgroundPrimary
+            // Full-bleed vibrant animated background for premium feel
+            VibrantBackgroundView()
                 .ignoresSafeArea()
-
+                .overlay(.black.opacity(0.2)) // Subtle dimming so glass cards pop
             VStack(spacing: 0) {
                 // Header bar
                 headerView
@@ -90,7 +90,7 @@ struct ContentView: View {
         .foregroundStyle(AppColors.textPrimary)
         .fileImporter(
             isPresented: $viewModel.isFilePickerPresented,
-            allowedContentTypes: [UTType.data],
+            allowedContentTypes: [.data],
             allowsMultipleSelection: false
         ) { result in
             do {
@@ -451,20 +451,29 @@ struct ContentView: View {
                     .font(.body)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.backgroundTertiary)
+                    .background(AppColors.backgroundTertiary.opacity(0.5).background(.ultraThinMaterial))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
                             .stroke(AppColors.borderActive, lineWidth: 0.5)
                     )
                     .onSubmit {
-                        guard viewModel.isEngineReady && !viewModel.isGenerating else { return }
+                        guard viewModel.isEngineReady else {
+                            viewModel.statusMessage = "Please select or download a model first."
+                            return
+                        }
+                        guard !viewModel.isGenerating else { return }
                         Task { await viewModel.generateText() }
                     }
                     .accessibilityIdentifier("textField_prompt")
 
                 // Send button
                 Button {
+                    guard viewModel.isEngineReady else {
+                        viewModel.statusMessage = "Please select or download a model first."
+                        return
+                    }
+                    guard !viewModel.isGenerating else { return }
                     Task { await viewModel.generateText() }
                 } label: {
                     Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
@@ -1101,6 +1110,33 @@ struct ContentView: View {
             Text(value)
                 .font(AppTypography.metric)
                 .foregroundStyle(AppColors.textSecondary)
+        }
+    }
+}
+
+// MARK: - Vibrant Background
+
+struct VibrantBackgroundView: View {
+    var body: some View {
+        ZStack {
+            // Elegant dark base
+            Color(red: 0.03, green: 0.03, blue: 0.05)
+            
+            // Subtle premium glow (top left)
+            RadialGradient(
+                gradient: Gradient(colors: [Color.indigo.opacity(0.15), .clear]),
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 800
+            )
+            
+            // Subtle premium glow (bottom right)
+            RadialGradient(
+                gradient: Gradient(colors: [Color.teal.opacity(0.1), .clear]),
+                center: .bottomTrailing,
+                startRadius: 0,
+                endRadius: 800
+            )
         }
     }
 }

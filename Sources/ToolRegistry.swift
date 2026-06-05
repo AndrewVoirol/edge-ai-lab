@@ -6,29 +6,68 @@ import UIKit
 
 // MARK: - Tool Call Observability
 
-/// Records a single tool invocation for debugging, analytics, and UI display.
-/// Captures the tool name, serialized arguments, result, timing, and success status.
-struct ToolCallEvent: Identifiable, Sendable {
+/// Thread-safe tracker to intercept tool executions at runtime.
+public final class ToolExecutionTracker: @unchecked Sendable {
+    public static let shared = ToolExecutionTracker()
+    
+    private let lock = NSRecursiveLock()
+    private var callback: ((ToolCallEvent) -> Void)?
+    
+    private init() {}
+    
+    /// Register a callback to be notified when a tool executes.
+    public func registerCallback(_ callback: @escaping (ToolCallEvent) -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.callback = callback
+    }
+    
+    /// Remove the active callback.
+    public func clearCallback() {
+        lock.lock()
+        defer { lock.unlock() }
+        self.callback = nil
+    }
+    
+    /// Notify the tracker that a tool was executed.
+    public func notify(_ event: ToolCallEvent) {
+        lock.lock()
+        let activeCallback = self.callback
+        lock.unlock()
+        activeCallback?(event)
+    }
+}
+
+public struct ToolCallEvent: Identifiable, Sendable {
     /// Unique identifier for this tool call event.
-    let id = UUID()
+    public let id = UUID()
 
     /// The name of the tool that was invoked (e.g., "calculate", "get_device_info").
-    let toolName: String
+    public let toolName: String
 
     /// JSON-serialized string of the arguments passed to the tool.
-    let arguments: String
+    public let arguments: String
 
     /// JSON-serialized string of the tool's return value.
-    let result: String
+    public let result: String
 
     /// Wall-clock duration of the tool execution in milliseconds.
-    let durationMs: Double
+    public let durationMs: Double
 
     /// When this tool call occurred.
-    let timestamp: Date
+    public let timestamp: Date
 
     /// Whether the tool completed without throwing an error.
-    let succeeded: Bool
+    public let succeeded: Bool
+
+    public init(toolName: String, arguments: String, result: String, durationMs: Double, timestamp: Date, succeeded: Bool) {
+        self.toolName = toolName
+        self.arguments = arguments
+        self.result = result
+        self.durationMs = durationMs
+        self.timestamp = timestamp
+        self.succeeded = succeeded
+    }
 }
 
 // MARK: - JSON Serialization Helper
@@ -64,35 +103,48 @@ struct CalculatorTool: Tool {
     var expression: String
 
     func run() async throws -> Any {
-        do {
-            let nsExpression = NSExpression(format: expression)
-            guard let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber else {
-                return jsonString(from: [
-                    "error": "Expression did not evaluate to a number",
-                    "expression": expression
-                ])
-            }
-
-            let doubleResult = result.doubleValue
-            // Format nicely: strip trailing .0 for integer results
-            let formatted: String
-            if doubleResult == doubleResult.rounded() && !doubleResult.isInfinite && !doubleResult.isNaN {
-                formatted = String(format: "%.0f", doubleResult)
-            } else {
-                formatted = String(format: "%.6g", doubleResult)
-            }
-
-            return jsonString(from: [
-                "expression": expression,
-                "result": doubleResult,
-                "formatted_result": formatted
-            ])
-        } catch {
-            return jsonString(from: [
-                "error": "Failed to evaluate expression: \(error.localizedDescription)",
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict = ["expression": expression]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
+        }
+                let regex = try! NSRegularExpression(pattern: "(?<!\\.)\\b(\\d+)\\b(?!\\.)")
+        let doubleExpression = regex.stringByReplacingMatches(in: expression, range: NSRange(expression.startIndex..., in: expression), withTemplate: "$1.0")
+        let nsExpression = NSExpression(format: doubleExpression)
+        guard let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber else {
+            resultString = jsonString(from: [
+                "error": "Expression did not evaluate to a number",
                 "expression": expression
             ])
+            return resultString
         }
+
+        let doubleResult = result.doubleValue
+        // Format nicely: strip trailing .0 for integer results
+        let formatted: String
+        if doubleResult == doubleResult.rounded() && !doubleResult.isInfinite && !doubleResult.isNaN {
+            formatted = String(format: "%.0f", doubleResult)
+        } else {
+            formatted = String(format: "%.6g", doubleResult)
+        }
+
+        resultString = jsonString(from: [
+            "expression": expression,
+            "result": doubleResult,
+            "formatted_result": formatted
+        ])
+        return resultString
     }
 }
 
@@ -114,51 +166,65 @@ struct DateTimeTool: Tool {
     var timezone: String = ""
 
     func run() async throws -> Any {
-        do {
-            let now = Date()
-            let tz: TimeZone
-            if !timezone.isEmpty, let requested = TimeZone(identifier: timezone) {
-                tz = requested
-            } else if !timezone.isEmpty {
-                return jsonString(from: [
-                    "error": "Unknown timezone identifier: '\(timezone)'",
-                    "available_example": "America/New_York, Europe/London, Asia/Tokyo"
-                ])
-            } else {
-                tz = TimeZone.current
-            }
-
-
-            let dateFormatter = DateFormatter()
-            dateFormatter.timeZone = tz
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            let dateString = dateFormatter.string(from: now)
-
-            dateFormatter.dateFormat = "HH:mm:ss"
-            let timeString = dateFormatter.string(from: now)
-
-            dateFormatter.dateFormat = "EEEE"
-            let dayOfWeek = dateFormatter.string(from: now)
-
-            let offsetSeconds = tz.secondsFromGMT(for: now)
-            let offsetHours = offsetSeconds / 3600
-            let offsetMinutes = abs(offsetSeconds % 3600) / 60
-            let utcOffset = String(format: "%+03d:%02d", offsetHours, offsetMinutes)
-
-            return jsonString(from: [
-                "date": dateString,
-                "time": timeString,
-                "timezone": tz.identifier,
-                "utc_offset": utcOffset,
-                "unix_timestamp": now.timeIntervalSince1970,
-                "day_of_week": dayOfWeek,
-                "is_dst": tz.isDaylightSavingTime(for: now)
-            ])
-        } catch {
-            return jsonString(from: [
-                "error": "Failed to get date/time: \(error.localizedDescription)"
-            ])
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict = ["timezone": timezone]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
         }
+        let now = Date()
+        let tz: TimeZone
+        if !timezone.isEmpty, let requested = TimeZone(identifier: timezone) {
+            tz = requested
+        } else if !timezone.isEmpty {
+            resultString = jsonString(from: [
+                "error": "Unknown timezone identifier: '\(timezone)'",
+                "available_example": "America/New_York, Europe/London, Asia/Tokyo"
+            ])
+            return resultString
+        } else {
+            tz = TimeZone.current
+        }
+
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.timeZone = tz
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: now)
+
+        dateFormatter.dateFormat = "HH:mm:ss"
+        let timeString = dateFormatter.string(from: now)
+
+        dateFormatter.dateFormat = "EEEE"
+        let dayOfWeek = dateFormatter.string(from: now)
+
+        let offsetSeconds = tz.secondsFromGMT(for: now)
+                let sign = offsetSeconds < 0 ? "-" : "+"
+        let absSeconds = abs(offsetSeconds)
+        let offsetHours = absSeconds / 3600
+        let offsetMinutes = (absSeconds % 3600) / 60
+        let utcOffset = String(format: "%@%02d:%02d", sign, offsetHours, offsetMinutes)
+
+        resultString = jsonString(from: [
+            "date": dateString,
+            "time": timeString,
+            "timezone": tz.identifier,
+            "utc_offset": utcOffset,
+            "unix_timestamp": now.timeIntervalSince1970,
+            "day_of_week": dayOfWeek,
+            "is_dst": tz.isDaylightSavingTime(for: now)
+        ])
+        return resultString
     }
 }
 
@@ -173,43 +239,54 @@ struct DeviceInfoTool: Tool {
     static let description = "Get device hardware and software information including model, OS version, processor, memory, and thermal state"
 
     func run() async throws -> Any {
-        do {
-            let thermalLevel = DeviceMetrics.currentThermalLevel
-            let availableMemory = DeviceMetrics.formattedAvailableMemory
-
-            let platform: String
-            let osVersion: String
-            #if os(iOS)
-            platform = "iOS"
-            osVersion = await UIDevice.current.systemVersion
-            #elseif os(macOS)
-            platform = "macOS"
-            osVersion = ProcessInfo.processInfo.operatingSystemVersionString
-            #else
-            platform = "unknown"
-            osVersion = "unknown"
-            #endif
-
-            let processorCount = ProcessInfo.processInfo.processorCount
-            let activeProcessorCount = ProcessInfo.processInfo.activeProcessorCount
-            let physicalMemoryGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824.0
-
-            return jsonString(from: [
-                "device_model": DeviceMetrics.deviceModel,
-                "platform": platform,
-                "os_version": osVersion,
-                "processor_count": processorCount,
-                "active_processor_count": activeProcessorCount,
-                "physical_memory_gb": String(format: "%.1f", physicalMemoryGB),
-                "available_memory": availableMemory,
-                "thermal_state": thermalLevel.label,
-                "thermal_symbol": thermalLevel.symbolName
-            ])
-        } catch {
-            return jsonString(from: [
-                "error": "Failed to get device info: \(error.localizedDescription)"
-            ])
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict: [String: Any] = [:]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
         }
+        let thermalLevel = DeviceMetrics.currentThermalLevel
+        let availableMemory = DeviceMetrics.formattedAvailableMemory
+
+        let platform: String
+        let osVersion: String
+        #if os(iOS)
+        platform = "iOS"
+        osVersion = await UIDevice.current.systemVersion
+        #elseif os(macOS)
+        platform = "macOS"
+        osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        #else
+        platform = "unknown"
+        osVersion = "unknown"
+        #endif
+
+        let processorCount = ProcessInfo.processInfo.processorCount
+        let activeProcessorCount = ProcessInfo.processInfo.activeProcessorCount
+        let physicalMemoryGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824.0
+
+        resultString = jsonString(from: [
+            "device_model": DeviceMetrics.deviceModel,
+            "platform": platform,
+            "os_version": osVersion,
+            "processor_count": processorCount,
+            "active_processor_count": activeProcessorCount,
+            "physical_memory_gb": String(format: "%.1f", physicalMemoryGB),
+            "available_memory": availableMemory,
+            "thermal_state": thermalLevel.label,
+            "thermal_symbol": thermalLevel.symbolName
+        ])
+        return resultString
     }
 }
 
@@ -239,48 +316,71 @@ struct UnitConverterTool: Tool {
     var toUnit: String
 
     func run() async throws -> Any {
-        do {
-            let from = fromUnit.lowercased().trimmingCharacters(in: .whitespaces)
-            let to = toUnit.lowercased().trimmingCharacters(in: .whitespaces)
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict: [String: Any] = [
+            "value": value,
+            "fromUnit": fromUnit,
+            "toUnit": toUnit
+        ]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
+        }
+        let from = fromUnit.lowercased().trimmingCharacters(in: .whitespaces)
+        let to = toUnit.lowercased().trimmingCharacters(in: .whitespaces)
 
-            // Attempt to resolve both units to the same dimension
-            guard let sourceDimUnit = Self.resolveUnit(from),
-                  let targetDimUnit = Self.resolveUnit(to) else {
-                return jsonString(from: [
-                    "error": "Unknown unit. Supported units: celsius, fahrenheit, kelvin, meters, kilometers, miles, feet, inches, yards, kg, lbs, oz, grams, bytes, kb, mb, gb, tb",
-                    "from_unit": fromUnit,
-                    "to_unit": toUnit
-                ])
-            }
-
-            // Verify units are in the same dimension by attempting conversion
-            // Foundation Measurement handles cross-dimension errors
-            let sourceMeasurement = Measurement(value: value, unit: sourceDimUnit)
-            let converted = sourceMeasurement.converted(to: targetDimUnit)
-
-            let formatted: String
-            if converted.value == converted.value.rounded() &&
-                !converted.value.isInfinite && !converted.value.isNaN &&
-                abs(converted.value) < 1e15 {
-                formatted = String(format: "%.0f", converted.value)
-            } else {
-                formatted = String(format: "%.6g", converted.value)
-            }
-
-            return jsonString(from: [
-                "original_value": value,
-                "original_unit": fromUnit,
-                "converted_value": converted.value,
-                "converted_unit": toUnit,
-                "formatted_result": "\(formatted) \(toUnit)"
-            ])
-        } catch {
-            return jsonString(from: [
-                "error": "Conversion failed: \(error.localizedDescription)",
+        // Attempt to resolve both units to the same dimension
+        guard let sourceDimUnit = Self.resolveUnit(from),
+              let targetDimUnit = Self.resolveUnit(to) else {
+            resultString = jsonString(from: [
+                "error": "Unknown unit. Supported units: celsius, fahrenheit, kelvin, meters, kilometers, miles, feet, inches, yards, kg, lbs, oz, grams, bytes, kb, mb, gb, tb",
                 "from_unit": fromUnit,
                 "to_unit": toUnit
             ])
+            return resultString
         }
+
+        // Verify units are in the same dimension by attempting conversion
+        // Foundation Measurement handles cross-dimension errors
+                guard type(of: sourceDimUnit) == type(of: targetDimUnit) else {
+            resultString = jsonString(from: [
+                "error": "Cannot convert between different unit types (e.g. temperature to distance)",
+                "from_unit": fromUnit,
+                "to_unit": toUnit
+            ])
+            return resultString
+        }
+
+        let sourceMeasurement = Measurement(value: value, unit: sourceDimUnit)
+        let converted = sourceMeasurement.converted(to: targetDimUnit)
+
+        let formatted: String
+        if converted.value == converted.value.rounded() &&
+            !converted.value.isInfinite && !converted.value.isNaN &&
+            abs(converted.value) < 1e15 {
+            formatted = String(format: "%.0f", converted.value)
+        } else {
+            formatted = String(format: "%.6g", converted.value)
+        }
+
+        resultString = jsonString(from: [
+            "original_value": value,
+            "original_unit": fromUnit,
+            "converted_value": converted.value,
+            "converted_unit": toUnit,
+            "formatted_result": "\(formatted) \(toUnit)"
+        ])
+        return resultString
     }
 
     // MARK: Unit Resolution
@@ -356,82 +456,93 @@ struct TextAnalyzerTool: Tool {
     var text: String
 
     func run() async throws -> Any {
-        do {
-            // Word count — split on whitespace and newlines, filter empties
-            let words = text.components(separatedBy: .whitespacesAndNewlines)
-                .filter { !$0.isEmpty }
-            let wordCount = words.count
-
-            // Character counts
-            let characterCount = text.count
-            let characterCountNoSpaces = text.filter { !$0.isWhitespace }.count
-
-            // Sentence count — use linguistic tagger for accuracy
-            var sentenceCount = 0
-            text.enumerateSubstrings(
-                in: text.startIndex...,
-                options: [.bySentences, .localized]
-            ) { _, _, _, _ in
-                sentenceCount += 1
-            }
-            // Fallback: at least 1 sentence if there's text
-            if sentenceCount == 0 && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                sentenceCount = 1
-            }
-
-            // Paragraph count — split by double newlines or single newlines
-            let paragraphs = text.components(separatedBy: "\n")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
-            let paragraphCount = max(paragraphs.count, text.isEmpty ? 0 : 1)
-
-            // Average word length
-            let totalCharacters = words.reduce(0) { $0 + $1.count }
-            let averageWordLength = wordCount > 0
-                ? Double(totalCharacters) / Double(wordCount)
-                : 0.0
-
-            // Reading time estimate (250 words per minute average)
-            let readingTimeMinutes = Double(wordCount) / 250.0
-            let readingTimeFormatted: String
-            if readingTimeMinutes < 1.0 {
-                let seconds = Int(readingTimeMinutes * 60)
-                readingTimeFormatted = "\(max(seconds, 1)) seconds"
-            } else {
-                readingTimeFormatted = String(format: "%.1f minutes", readingTimeMinutes)
-            }
-
-            // Language detection using NLLanguageRecognizer
-            let detectedLanguage: String
-            if #available(iOS 12.0, macOS 10.14, *) {
-                let recognizer = NLLanguageRecognizer()
-                recognizer.processString(text)
-                if let language = recognizer.dominantLanguage {
-                    detectedLanguage = Locale.current.localizedString(
-                        forLanguageCode: language.rawValue
-                    ) ?? language.rawValue
-                } else {
-                    detectedLanguage = "undetermined"
-                }
-            } else {
-                detectedLanguage = "unavailable"
-            }
-
-            return jsonString(from: [
-                "word_count": wordCount,
-                "character_count": characterCount,
-                "character_count_no_spaces": characterCountNoSpaces,
-                "sentence_count": sentenceCount,
-                "paragraph_count": paragraphCount,
-                "average_word_length": String(format: "%.1f", averageWordLength),
-                "estimated_reading_time": readingTimeFormatted,
-                "detected_language": detectedLanguage
-            ])
-        } catch {
-            return jsonString(from: [
-                "error": "Failed to analyze text: \(error.localizedDescription)"
-            ])
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict = ["text": text]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
         }
+        // Word count — split on whitespace and newlines, filter empties
+        let words = text.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+        let wordCount = words.count
+
+        // Character counts
+        let characterCount = text.count
+        let characterCountNoSpaces = text.filter { !$0.isWhitespace }.count
+
+        // Sentence count — use linguistic tagger for accuracy
+        var sentenceCount = 0
+        text.enumerateSubstrings(
+            in: text.startIndex...,
+            options: [.bySentences, .localized]
+        ) { _, _, _, _ in
+            sentenceCount += 1
+        }
+        // Fallback: at least 1 sentence if there's text
+        if sentenceCount == 0 && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sentenceCount = 1
+        }
+
+        // Paragraph count — split by double newlines or single newlines
+        let paragraphs = text.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let paragraphCount = max(paragraphs.count, text.isEmpty ? 0 : 1)
+
+        // Average word length
+        let totalCharacters = words.reduce(0) { $0 + $1.count }
+        let averageWordLength = wordCount > 0
+            ? Double(totalCharacters) / Double(wordCount)
+            : 0.0
+
+        // Reading time estimate (250 words per minute average)
+        let readingTimeMinutes = Double(wordCount) / 250.0
+        let readingTimeFormatted: String
+        if readingTimeMinutes < 1.0 {
+            let seconds = Int(readingTimeMinutes * 60)
+            readingTimeFormatted = "\(max(seconds, 1)) seconds"
+        } else {
+            readingTimeFormatted = String(format: "%.1f minutes", readingTimeMinutes)
+        }
+
+        // Language detection using NLLanguageRecognizer
+        let detectedLanguage: String
+        if #available(iOS 12.0, macOS 10.14, *) {
+            let recognizer = NLLanguageRecognizer()
+            recognizer.processString(text)
+            if let language = recognizer.dominantLanguage {
+                detectedLanguage = Locale.current.localizedString(
+                    forLanguageCode: language.rawValue
+                ) ?? language.rawValue
+            } else {
+                detectedLanguage = "undetermined"
+            }
+        } else {
+            detectedLanguage = "unavailable"
+        }
+
+        resultString = jsonString(from: [
+            "word_count": wordCount,
+            "character_count": characterCount,
+            "character_count_no_spaces": characterCountNoSpaces,
+            "sentence_count": sentenceCount,
+            "paragraph_count": paragraphCount,
+            "average_word_length": String(format: "%.1f", averageWordLength),
+            "estimated_reading_time": readingTimeFormatted,
+            "detected_language": detectedLanguage
+        ])
+        return resultString
     }
 }
 
@@ -457,83 +568,94 @@ struct SystemHealthTool: Tool {
     static let description = "Get the system health status including thermal state, memory, battery, and disk space. Useful for understanding the device's current operational constraints."
 
     func run() async throws -> Any {
-        do {
-            let thermalLevel = DeviceMetrics.currentThermalLevel
-            let availableMemoryMB = DeviceMetrics.availableMemoryMB
-            let totalMemoryGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824.0
-
-            // Thermal state with emoji indicator
-            let thermalEmoji: String
-            switch thermalLevel {
-            case .nominal:  thermalEmoji = "🟢"
-            case .fair:     thermalEmoji = "🟡"
-            case .serious:  thermalEmoji = "🟠"
-            case .critical: thermalEmoji = "🔴"
-            }
-
-            var result: [String: Any] = [
-                "thermal_state": thermalLevel.label,
-                "thermal_indicator": thermalEmoji,
-                "thermal_symbol": thermalLevel.symbolName,
-                "available_memory_mb": String(format: "%.0f", availableMemoryMB),
-                "total_memory_gb": String(format: "%.1f", totalMemoryGB),
-                "memory_pressure": availableMemoryMB < 500 ? "high" :
-                                   availableMemoryMB < 1500 ? "moderate" : "low",
-                "processor_count": ProcessInfo.processInfo.processorCount,
-                "active_processor_count": ProcessInfo.processInfo.activeProcessorCount
-            ]
-
-            // Battery info — iOS only via UIDevice
-            #if os(iOS)
-            await MainActor.run {
-                UIDevice.current.isBatteryMonitoringEnabled = true
-            }
-            let batteryLevel = await MainActor.run { UIDevice.current.batteryLevel }
-            let batteryState = await MainActor.run { UIDevice.current.batteryState }
-
-            if batteryLevel >= 0 {
-                result["battery_level_percent"] = Int(batteryLevel * 100)
-            } else {
-                result["battery_level_percent"] = "unavailable"
-            }
-
-            let batteryStateString: String
-            switch batteryState {
-            case .unknown:    batteryStateString = "unknown"
-            case .unplugged:  batteryStateString = "unplugged"
-            case .charging:   batteryStateString = "charging"
-            case .full:       batteryStateString = "full"
-            @unknown default: batteryStateString = "unknown"
-            }
-            result["battery_state"] = batteryStateString
-            #else
-            result["battery_level_percent"] = "not_available_on_macos"
-            result["battery_state"] = "not_available_on_macos"
-            #endif
-
-            // Disk space available
-            if let attributes = try? FileManager.default.attributesOfFileSystem(
-                forPath: NSHomeDirectory()
-            ),
-               let freeSpace = attributes[.systemFreeSize] as? Int64 {
-                let freeSpaceGB = Double(freeSpace) / 1_073_741_824.0
-                result["disk_space_available_gb"] = String(format: "%.1f", freeSpaceGB)
-            } else {
-                result["disk_space_available_gb"] = "unavailable"
-            }
-
-            // System uptime
-            let uptime = ProcessInfo.processInfo.systemUptime
-            let uptimeHours = Int(uptime / 3600)
-            let uptimeMinutes = Int((uptime.truncatingRemainder(dividingBy: 3600)) / 60)
-            result["system_uptime"] = "\(uptimeHours)h \(uptimeMinutes)m"
-
-            return jsonString(from: result)
-        } catch {
-            return jsonString(from: [
-                "error": "Failed to get system health: \(error.localizedDescription)"
-            ])
+        let startTime = CFAbsoluteTimeGetCurrent()
+        let argumentsDict: [String: Any] = [:]
+        var resultString = ""
+        defer {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000.0
+            let succeeded = !resultString.isEmpty && !resultString.contains("\"error\"")
+            let event = ToolCallEvent(
+                toolName: Self.name,
+                arguments: jsonString(from: argumentsDict),
+                result: resultString,
+                durationMs: duration,
+                timestamp: Date(),
+                succeeded: succeeded
+            )
+            ToolExecutionTracker.shared.notify(event)
         }
+        let thermalLevel = DeviceMetrics.currentThermalLevel
+        let availableMemoryMB = DeviceMetrics.availableMemoryMB
+        let totalMemoryGB = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824.0
+
+        // Thermal state with emoji indicator
+        let thermalEmoji: String
+        switch thermalLevel {
+        case .nominal:  thermalEmoji = "🟢"
+        case .fair:     thermalEmoji = "🟡"
+        case .serious:  thermalEmoji = "🟠"
+        case .critical: thermalEmoji = "🔴"
+        }
+
+        var result: [String: Any] = [
+            "thermal_state": thermalLevel.label,
+            "thermal_indicator": thermalEmoji,
+            "thermal_symbol": thermalLevel.symbolName,
+            "available_memory_mb": String(format: "%.0f", availableMemoryMB),
+            "total_memory_gb": String(format: "%.1f", totalMemoryGB),
+            "memory_pressure": availableMemoryMB < 500 ? "high" :
+                               availableMemoryMB < 1500 ? "moderate" : "low",
+            "processor_count": ProcessInfo.processInfo.processorCount,
+            "active_processor_count": ProcessInfo.processInfo.activeProcessorCount
+        ]
+
+        // Battery info — iOS only via UIDevice
+        #if os(iOS)
+        await MainActor.run {
+            UIDevice.current.isBatteryMonitoringEnabled = true
+        }
+        let batteryLevel = await MainActor.run { UIDevice.current.batteryLevel }
+        let batteryState = await MainActor.run { UIDevice.current.batteryState }
+
+        if batteryLevel >= 0 {
+            result["battery_level_percent"] = Int(batteryLevel * 100)
+        } else {
+            result["battery_level_percent"] = "unavailable"
+        }
+
+        let batteryStateString: String
+        switch batteryState {
+        case .unknown:    batteryStateString = "unknown"
+        case .unplugged:  batteryStateString = "unplugged"
+        case .charging:   batteryStateString = "charging"
+        case .full:       batteryStateString = "full"
+        @unknown default: batteryStateString = "unknown"
+        }
+        result["battery_state"] = batteryStateString
+        #else
+        result["battery_level_percent"] = "not_available_on_macos"
+        result["battery_state"] = "not_available_on_macos"
+        #endif
+
+        // Disk space available
+        if let attributes = try? FileManager.default.attributesOfFileSystem(
+            forPath: NSHomeDirectory()
+        ),
+           let freeSpace = attributes[.systemFreeSize] as? Int64 {
+            let freeSpaceGB = Double(freeSpace) / 1_073_741_824.0
+            result["disk_space_available_gb"] = String(format: "%.1f", freeSpaceGB)
+        } else {
+            result["disk_space_available_gb"] = "unavailable"
+        }
+
+        // System uptime
+        let uptime = ProcessInfo.processInfo.systemUptime
+        let uptimeHours = Int(uptime / 3600)
+        let uptimeMinutes = Int((uptime.truncatingRemainder(dividingBy: 3600)) / 60)
+        result["system_uptime"] = "\(uptimeHours)h \(uptimeMinutes)m"
+
+        resultString = jsonString(from: result)
+        return resultString
     }
 }
 

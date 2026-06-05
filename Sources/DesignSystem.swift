@@ -182,7 +182,9 @@ struct GlassCardModifier: ViewModifier {
         content
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(AppColors.backgroundSecondary.opacity(0.6))
+                    .fill(AppColors.backgroundSecondary.opacity(0.4))
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(AppColors.border, lineWidth: 0.5)

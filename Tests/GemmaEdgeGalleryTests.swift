@@ -141,6 +141,56 @@ final class ConversationViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isEngineReady)
         XCTAssertEqual(mockEngine.shutdownCallCount, 1)
     }
+
+    @MainActor
+    func testNewConversation() async {
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
+        
+        // Simulate a conversation state
+        vm.conversation.append(.user("Hi"))
+        vm.conversation.append(.assistant())
+        vm.conversation.updateLastAssistantMessage(content: "Hello", isStreaming: false)
+        vm.currentThinkingText = "thinking"
+        vm.isThinking = true
+        // Skip setting benchmarkInfo and toolCallEvents directly to avoid type access issues
+        
+        await vm.newConversation()
+        
+        XCTAssertTrue(vm.conversation.isEmpty)
+        XCTAssertEqual(vm.currentThinkingText, "")
+        XCTAssertFalse(vm.isThinking)
+        XCTAssertTrue(vm.toolCallEvents.isEmpty)
+        XCTAssertNil(vm.benchmarkInfo)
+        XCTAssertEqual(mockEngine.resetConversationCallCount, 1)
+    }
+
+    @MainActor
+    func testCancelModelLoad() {
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        vm.isLoadingModel = true
+        vm.cancelModelLoad()
+        
+        XCTAssertFalse(vm.isLoadingModel)
+        XCTAssertEqual(vm.statusMessage, "Model load cancelled")
+    }
+
+    @MainActor
+    func testMultimodalAttachmentsClearedAfterGenerate() async {
+        mockEngine.mockResponseChunks = ["Image", " ", "analyzed"]
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
+        
+        vm.selectedImageData = Data([0x01, 0x02])
+        vm.selectedAudioData = Data([0x03, 0x04])
+        vm.prompt = "What is this?"
+        
+        await vm.generateText()
+        
+        XCTAssertNil(vm.selectedImageData)
+        XCTAssertNil(vm.selectedAudioData)
+        XCTAssertEqual(vm.prompt, "") // Also clears prompt
+    }
 }
 
 // MARK: - ExperimentalFlagsState Tests

@@ -5,10 +5,10 @@ import LiteRTLM
 /// Each benchmark run records the active flags alongside the results, enabling
 /// comparative analysis (e.g., "How does speculative decoding impact decode speed?").
 struct ExperimentalFlagsState: Codable, Equatable, Sendable {
-    let enableBenchmark: Bool
-    let enableSpeculativeDecoding: Bool?
-    let enableConversationConstrainedDecoding: Bool
-    let visualTokenBudget: Int32?
+    var enableBenchmark: Bool
+    var enableSpeculativeDecoding: Bool?
+    var enableConversationConstrainedDecoding: Bool
+    var visualTokenBudget: Int32?
 
     /// Whether thinking mode is enabled in the UI.
     /// When true, the model's `<think>...</think>` output is parsed and displayed
@@ -21,6 +21,27 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
     /// invoke registered tools during inference.
     var enableToolCalling: Bool = false
 
+    /// Whether Wikipedia search and Apple Maps grounding/rendering are enabled.
+    var enableAgentSkills: Bool = false
+
+    public init(
+        enableBenchmark: Bool,
+        enableSpeculativeDecoding: Bool?,
+        enableConversationConstrainedDecoding: Bool,
+        visualTokenBudget: Int32?,
+        enableThinking: Bool = true,
+        enableToolCalling: Bool = false,
+        enableAgentSkills: Bool = false
+    ) {
+        self.enableBenchmark = enableBenchmark
+        self.enableSpeculativeDecoding = enableSpeculativeDecoding
+        self.enableConversationConstrainedDecoding = enableConversationConstrainedDecoding
+        self.visualTokenBudget = visualTokenBudget
+        self.enableThinking = enableThinking
+        self.enableToolCalling = enableToolCalling
+        self.enableAgentSkills = enableAgentSkills
+    }
+
     /// Captures the current state from the global ExperimentalFlags statics.
     static func captureCurrentState() -> ExperimentalFlagsState {
         ExperimentalFlagsState(
@@ -29,7 +50,8 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
             enableConversationConstrainedDecoding: ExperimentalFlags.enableConversationConstrainedDecoding,
             visualTokenBudget: ExperimentalFlags.visualTokenBudget,
             enableThinking: true,
-            enableToolCalling: false
+            enableToolCalling: false,
+            enableAgentSkills: false
         )
     }
 

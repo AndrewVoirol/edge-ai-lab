@@ -6,12 +6,8 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // LiteRT-LM: Pinned to 241be8db (pre-v0.13.1).
-        // v0.13.1 (branch release/v0.13) has a 52x GPU decode regression on macOS:
-        //   old SDK: 26.2 tok/s decode, 38ms/token median latency
-        //   v0.13.1: ~0.5 tok/s decode, ~1700ms/token — verified via A/B benchmark
-        // Includes v0.13.0 features + sampler improvements. macOS builds from source.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("241be8db"))
+        // LiteRT-LM: Tracking main branch for the latest fixes and features.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
     ],
     settings: .settings(
         base: [
@@ -64,6 +60,7 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["Sources/**"],
+            entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM")
             ]
@@ -76,6 +73,18 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
+            dependencies: [
+                .target(name: "GemmaEdgeGallery_macOS")
+            ]
+        ),
+        .target(
+            name: "GemmaEdgeGallery_macOSUITests",
+            destinations: .macOS,
+            product: .uiTests,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.UITests",
+            deploymentTargets: .macOS("26.0"),
+            infoPlist: .default,
+            sources: ["UITests/**"],
             dependencies: [
                 .target(name: "GemmaEdgeGallery_macOS")
             ]
@@ -120,7 +129,10 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["GemmaEdgeGallery_macOS"]),
             testAction: .targets(
-                ["GemmaEdgeGallery_macOSTests"],
+                [
+                    "GemmaEdgeGallery_macOSTests",
+                    "GemmaEdgeGallery_macOSUITests"
+                ],
                 configuration: .debug,
                 options: .options(coverage: true)
             ),

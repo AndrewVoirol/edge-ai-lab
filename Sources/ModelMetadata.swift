@@ -261,7 +261,7 @@ enum ModelRegistry {
         ),
         platformSupport: PlatformSupport(
             macOS: .gpuAndCpu,
-            iOSDevice: .cpuOnly,      // Assumed same pattern as E2B standard
+            iOSDevice: .gpuAndCpu,      // Standard models support Metal GPUs on iOS
             iOSSimulator: .cpuOnly
         )
     )

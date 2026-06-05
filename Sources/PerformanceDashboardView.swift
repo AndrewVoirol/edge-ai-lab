@@ -46,7 +46,15 @@ struct PerformanceDashboardView: View {
             }
             .padding(AppSpacing.lg)
         }
-        .background(AppColors.backgroundPrimary)
+        .background(
+            LinearGradient(
+                colors: [AppColors.backgroundPrimary, AppColors.backgroundSecondary, Color(red: 0.1, green: 0.15, blue: 0.25)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .overlay(.ultraThinMaterial)
+        )
         .onAppear { loadData() }
         .navigationTitle("Performance")
     }
@@ -143,11 +151,6 @@ struct PerformanceDashboardView: View {
             }
             .chartYAxisLabel("Tokens/sec")
             .chartXAxisLabel("Run #")
-            .chartForegroundStyleScale([
-                "Gemma 4 E2B": AppColors.accentCyan,
-                "Gemma 4 E4B": AppColors.accentGold,
-                "Gemma 4 12B": AppColors.accentTeal,
-            ])
             .frame(height: 200)
             .padding(AppSpacing.md)
             .glassCard()

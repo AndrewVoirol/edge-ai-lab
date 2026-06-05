@@ -140,6 +140,14 @@ final class ConversationViewModel {
     /// Whether the engine is initialized and ready for inference.
     var isEngineReady: Bool { engine.isReady }
 
+    // MARK: - MCP Servers Support
+
+    var mcpServers: [MCPServerConfig] = []
+
+    #if os(macOS)
+    private var activeClients: [UUID: MCPClient] = [:]
+    #endif
+
     // MARK: - Dependencies
 
     let engine: InstrumentedEngineProtocol
@@ -160,6 +168,13 @@ final class ConversationViewModel {
         self.engine = engine
         self.metricsStore = metricsStore
         self.downloadManager = downloadManager
+        
+        self.mcpServers = MCPServerStorage.load()
+        #if os(macOS)
+        Task {
+            await startEnabledMCPServers()
+        }
+        #endif
     }
 
     // MARK: - Model Loading
@@ -274,16 +289,43 @@ final class ConversationViewModel {
             }
 
             // Prepare tools if tool calling is enabled
-            let tools: [Tool]? = experimentalFlags.enableToolCalling
-                ? ToolRegistry.defaultTools
-                : nil
+            var activeTools: [Tool] = []
+            if experimentalFlags.enableToolCalling {
+                activeTools.append(contentsOf: ToolRegistry.defaultTools)
+                
+                if experimentalFlags.enableAgentSkills {
+                    activeTools.append(WikipediaSkillTool())
+                    activeTools.append(MapSkillTool())
+                }
+                
+                #if os(macOS)
+                // Bridge MCP tools
+                MCPBridgeManager.shared.clear()
+                for (_, client) in activeClients {
+                    if case .connected(let toolsList) = client.state {
+                        let bridged = MCPBridgeManager.shared.bridge(tools: toolsList, client: client)
+                        activeTools.append(contentsOf: bridged)
+                    }
+                }
+                #endif
+            }
+            let tools: [Tool]? = activeTools.isEmpty ? nil : activeTools
+
+            var activeFlags = experimentalFlags
+            
+            // Optimize TTFT by automatically enabling MTP if the model supports it.
+            // MTP + CPU crashes on iOS devices. On macOS, 12B models can also crash if memory is constrained.
+            if activeFlags.enableSpeculativeDecoding == nil, activeModelMetadata?.supportsMTP == true {
+                // Safest to leave it off by default and let user manually enable it if desired.
+                activeFlags.enableSpeculativeDecoding = false
+            }
 
             // Use smart fallback initialization
             let result = try await engine.initializeWithFallback(
                 modelPath: modelPath,
                 preferGPU: useGPU,
                 cacheDir: modelCacheDirectory.path,
-                flags: experimentalFlags,
+                flags: activeFlags,
                 samplerConfig: samplerConfig,
                 systemMessage: systemMessage.isEmpty ? nil : systemMessage,
                 tools: tools
@@ -329,6 +371,7 @@ final class ConversationViewModel {
     /// Integrates thinking mode parsing and multi-turn chat state.
     func generateText() async {
         guard engine.isReady else { return }
+        guard !isGenerating else { return }
         Self.logger.info("🚀 generateText: prompt=\(self.prompt.prefix(80), privacy: .public) attachments=\(self.hasMultimodalAttachment)")
 
         isGenerating = true
@@ -337,6 +380,19 @@ final class ConversationViewModel {
         isThinking = false
         toolCallEvents = []
         thinkingParser.reset()
+
+        ToolExecutionTracker.shared.registerCallback { [weak self] event in
+            Task { @MainActor in
+                guard let self = self else { return }
+                self.toolCallEvents.append(event)
+                self.conversation.updateLastAssistantMessage(
+                    toolCalls: self.toolCallEvents
+                )
+            }
+        }
+        defer {
+            ToolExecutionTracker.shared.clearCallback()
+        }
 
         // Capture and clear multimodal attachments before inference
         let imageData = selectedImageData
@@ -496,5 +552,100 @@ final class ConversationViewModel {
         await engine.shutdown()
         benchmarkInfo = nil
         conversation.clear()
+        
+        #if os(macOS)
+        for client in activeClients.values {
+            client.stop()
+        }
+        activeClients.removeAll()
+        #endif
+    }
+
+    // MARK: - MCP Management Methods
+
+    #if os(macOS)
+    func startEnabledMCPServers() async {
+        for config in mcpServers where config.enabled {
+            await startMCPServer(config)
+        }
+    }
+
+    func startMCPServer(_ config: MCPServerConfig) async {
+        if let existing = activeClients[config.id] {
+            existing.stop()
+        }
+
+        let client = MCPClient(config: config)
+        activeClients[config.id] = client
+
+        client.onStateChange = { [weak self] _ in
+            Task { @MainActor in
+                if let idx = self?.mcpServers.firstIndex(where: { $0.id == config.id }) {
+                    // Mutate to trigger UI update
+                    self?.mcpServers[idx] = config
+                }
+            }
+        }
+
+        await client.start()
+    }
+
+    func stopMCPServer(id: UUID) {
+        if let client = activeClients.removeValue(forKey: id) {
+            client.stop()
+        }
+    }
+    #endif
+
+    func updateMCPServerConfig(_ config: MCPServerConfig) {
+        if let idx = mcpServers.firstIndex(where: { $0.id == config.id }) {
+            mcpServers[idx] = config
+            MCPServerStorage.save(mcpServers)
+
+            #if os(macOS)
+            if config.enabled {
+                Task {
+                    await startMCPServer(config)
+                }
+            } else {
+                stopMCPServer(id: config.id)
+            }
+            #endif
+        }
+    }
+
+    func addMCPServerConfig(_ config: MCPServerConfig) {
+        mcpServers.append(config)
+        MCPServerStorage.save(mcpServers)
+        #if os(macOS)
+        if config.enabled {
+            Task {
+                await startMCPServer(config)
+            }
+        }
+        #endif
+    }
+
+    func deleteMCPServerConfig(id: UUID) {
+        #if os(macOS)
+        stopMCPServer(id: id)
+        #endif
+        mcpServers.removeAll(where: { $0.id == id })
+        MCPServerStorage.save(mcpServers)
+    }
+
+    func getMCPClientState(for id: UUID) -> MCPClientState {
+        #if os(macOS)
+        return activeClients[id]?.state ?? .stopped
+        #else
+        return .stopped
+        #endif
+    }
+
+    func getMCPTools(for id: UUID) -> [MCPToolInfo] {
+        if case .connected(let tools) = getMCPClientState(for: id) {
+            return tools
+        }
+        return []
     }
 }

@@ -342,9 +342,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         // IMPORTANT: This Task intentionally does NOT use @MainActor. The SDK's
         // sendMessageStream() loop (including any internal tool-calling iterations)
         // runs on a background cooperative thread pool, keeping the UI responsive
-        // during the potentially long prefill + decode phases. Only state mutations
-        // (lastInferenceMetrics, lastBenchmarkInfo) hop to MainActor.
-        let task = Task { [conversation, weak self] in
+        // Wait, prioritizing inference at .userInitiated prevents iOS from starvation 
+        // down to background QoS, which drops performance to zero.
+        let task = Task(priority: .userInitiated) { [conversation, weak self] in
             Self.logger.info("🚀 Inference start: prompt=\(text.prefix(80), privacy: .public)...")
             let signpostID = OSSignpostID(log: Self.inferenceLog)
             os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
@@ -413,7 +413,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     ? (try? conversation.getBenchmarkInfo())
                     : nil
 
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     self?.lastInferenceMetrics = metrics
                     self?.lastBenchmarkInfo = benchmarkInfo
                 }
@@ -432,7 +432,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     totalTokenCount: 0
                 )
 
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     self?.lastInferenceMetrics = failureMetrics
                 }
 
@@ -476,7 +476,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             }
         }
 
-        let task = Task { [conversation, weak self] in
+        let task = Task(priority: .userInitiated) { [conversation, weak self] in
             let signpostID = OSSignpostID(log: Self.inferenceLog)
             let modalityLabel = [
                 imageData != nil ? "image" : nil,
@@ -548,7 +548,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     ? (try? conversation.getBenchmarkInfo())
                     : nil
 
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     self?.lastInferenceMetrics = metrics
                     self?.lastBenchmarkInfo = benchmarkInfo
                 }
@@ -565,7 +565,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     totalTokenCount: 0
                 )
 
-                await MainActor.run {
+                await MainActor.run { [weak self] in
                     self?.lastInferenceMetrics = failureMetrics
                 }
 

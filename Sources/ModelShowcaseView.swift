@@ -27,7 +27,15 @@ struct ModelShowcaseView: View {
             }
             .padding(AppSpacing.lg)
         }
-        .background(AppColors.backgroundPrimary)
+        .background(
+            LinearGradient(
+                colors: [AppColors.backgroundPrimary, AppColors.backgroundSecondary, Color(red: 0.1, green: 0.15, blue: 0.25)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .overlay(.ultraThinMaterial)
+        )
         .navigationTitle(metadata.name)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
