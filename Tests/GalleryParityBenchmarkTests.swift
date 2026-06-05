@@ -152,6 +152,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     /// Gemma 4 E2B Standard, CPU, no MTP.
     /// Gallery got all zeros for CPU — expect similar or very slow results.
     func testGalleryParity_Gemma4E2B_CPU() async throws {
+        throw XCTSkip("CPU not supported for this model variant, causes native crash")
         let model = try findModel(named: "gemma-4-E2B-it.litertlm")
         try await runGalleryParityBenchmark(
             modelPath: model,

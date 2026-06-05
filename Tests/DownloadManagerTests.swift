@@ -165,12 +165,27 @@ final class DownloadManagerTests: XCTestCase {
         }
     }
 
-    // MARK: - Delete Model (No-Op for Missing File)
-
     /// Deleting a model that doesn't exist should set state to .notDownloaded without crashing.
     func testDeleteNonExistentModelSetsNotDownloaded() {
         let manager = ModelDownloadManager()
-        let model = ModelRegistry.gemma4E2BStandard
+        
+        // Use a dummy model that definitely does not exist on disk
+        let model = ModelMetadata(
+            name: "Dummy",
+            modelId: "dummy/dummy",
+            modelFile: "dummy-not-real.litertlm",
+            description: "",
+            sizeInBytes: 0,
+            minDeviceMemoryGB: 0,
+            contextWindowSize: 0,
+            architectureType: "Dummy",
+            recommendedFor: "",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: [],
+            defaultConfig: ModelDefaultConfig(topK: 1, topP: 1.0, temperature: 1.0, maxContextLength: 1024, maxTokens: 0, accelerators: "", visionAccelerator: nil),
+            platformSupport: PlatformSupport(macOS: .unknown, iOSDevice: .unknown, iOSSimulator: .unknown)
+        )
 
         manager.deleteModel(model)
 

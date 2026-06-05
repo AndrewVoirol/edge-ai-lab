@@ -288,4 +288,51 @@ final class SmartFallbackIntegrationTests: XCTestCase {
         print("✅ [\(label)] Smart fallback integration test PASSED")
         print("   Path: Registry(\(capability.rawValue)) → Recommend(\(recommendation.rawValue)) → Active(\(result.activeBackend.rawValue)) → Inference ✓")
     }
+    func testMultiTurnInference() async throws {
+        // Find E4B model in the models/ directory
+        let sourceFileURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let modelPath = projectRoot.appendingPathComponent("models/gemma-4-E4B-it.litertlm").path
+        
+        guard FileManager.default.fileExists(atPath: modelPath) else {
+            throw XCTSkip("E4B model not found at \(modelPath). Skipping test.")
+        }
+
+        print("🚀 Initializing engine...")
+        let engine = InstrumentedEngine()
+        let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
+        
+        try await engine.initialize(
+            modelPath: modelPath,
+            useGPU: true,
+            cacheDir: NSTemporaryDirectory(),
+            flags: flags,
+            samplerConfig: SamplerConfig(topK: 64, topP: 0.95, temperature: 1.0, seed: 0)
+        )
+
+        XCTAssertTrue(engine.isReady, "Engine should be ready")
+
+        print("🚀 Sending turn 1...")
+        var response1 = ""
+        for try await chunk in engine.sendMessageStream("Hi, what is your name?") {
+            response1 += chunk
+            print(chunk, terminator: "")
+        }
+        print("\n✅ Turn 1 finished. Response: \(response1.count) chars")
+
+        print("🚀 Sending turn 2...")
+        var response2 = ""
+        do {
+            for try await chunk in engine.sendMessageStream("Can you repeat what I just asked?") {
+                response2 += chunk
+                print(chunk, terminator: "")
+            }
+            print("\n✅ Turn 2 finished. Response: \(response2.count) chars")
+        } catch {
+            print("\n❌ Turn 2 failed with error: \(error)")
+            XCTFail("Turn 2 failed: \(error)")
+        }
+    }
 }

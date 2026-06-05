@@ -48,9 +48,15 @@ final class MetricsStore {
         if let url = fileURL {
             self.fileURL = url
         } else {
-            // Default to documents directory for the app
+            // Default to safe app storage directory
+            #if os(macOS)
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.GemmaEdgeGallery")
+            self.fileURL = appDir.appendingPathComponent("metrics").appendingPathComponent("history.json")
+            #else
             let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             self.fileURL = docs.appendingPathComponent("metrics").appendingPathComponent("history.json")
+            #endif
         }
 
         self.encoder = JSONEncoder()

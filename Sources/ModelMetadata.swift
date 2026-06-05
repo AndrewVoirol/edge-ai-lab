@@ -219,8 +219,8 @@ enum ModelRegistry {
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
         defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
+            topK: 1,
+            topP: 1.0,
             temperature: 1.0,
             maxContextLength: 32_000,
             maxTokens: 4_000,
@@ -283,8 +283,8 @@ enum ModelRegistry {
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
         defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
+            topK: 1,
+            topP: 1.0,
             temperature: 1.0,
             maxContextLength: 32_000,
             maxTokens: 4_000,

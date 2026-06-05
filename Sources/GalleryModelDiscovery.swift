@@ -50,50 +50,25 @@ enum GalleryModelDiscovery {
         var models: [DiscoveredModel] = []
         var seenFilenames = Set<String>()
 
-        // 1. Check our own Documents directory
-        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let localModels = scanDirectory(docs, source: .local)
-            for model in localModels where !seenFilenames.contains(model.filename) {
-                seenFilenames.insert(model.filename)
-                models.append(model)
-            }
+        // 1. Check the app's designated models directory
+        let modelsDir = getAppModelsDirectory()
+        let localModels = scanDirectory(modelsDir, source: .local)
+        for model in localModels where !seenFilenames.contains(model.filename) {
+            seenFilenames.insert(model.filename)
+            models.append(model)
         }
 
         #if os(macOS) || targetEnvironment(simulator)
-        // On macOS/simulator, also check common model locations:
-        // 1. User's Caches (where ModelDownloadManager saves)
-        // 2. User's Downloads folder
-        // 3. App container Caches (sandbox)
+        // On macOS/simulator, also check Caches
         let additionalDirs: [URL] = [
             FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
-            FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first,
         ].compactMap { $0 }
-
+        
         for dir in additionalDirs {
             let found = scanDirectory(dir, source: .local)
             for m in found where !seenFilenames.contains(m.filename) {
                 seenFilenames.insert(m.filename)
                 models.append(m)
-            }
-        }
-
-        // Also check the project workspace models/ directory (development only)
-        if let bundlePath = Bundle.main.resourceURL?.deletingLastPathComponent() {
-            // Walk up from .app bundle to find a sibling or parent "models" directory
-            let candidates = [
-                bundlePath.appendingPathComponent("models"),
-                bundlePath.deletingLastPathComponent().appendingPathComponent("models"),
-                bundlePath.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("models"),
-            ]
-            for candidate in candidates {
-                var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDir), isDir.boolValue {
-                    let found = scanDirectory(candidate, source: .local)
-                    for m in found where !seenFilenames.contains(m.filename) {
-                        seenFilenames.insert(m.filename)
-                        models.append(m)
-                    }
-                }
             }
         }
         #endif
@@ -120,6 +95,28 @@ enum GalleryModelDiscovery {
         }
 
         return models.sorted { $0.filename < $1.filename }
+    }
+
+    /// Returns the primary directory where the app expects to read/write models.
+    static func getAppModelsDirectory() -> URL {
+        #if DEBUG && os(macOS)
+        let sourceFileURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceFileURL
+            .deletingLastPathComponent() // removes GalleryModelDiscovery.swift
+            .deletingLastPathComponent() // removes Sources/
+        return projectRoot.appendingPathComponent("models")
+        #else
+        #if os(macOS)
+        // Use Application Support on macOS to avoid TCC prompts for Documents
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.GemmaEdgeGallery")
+        try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
+        return appDir.appendingPathComponent("models")
+        #else
+        // Use Documents on iOS so it shows up in the Files app
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        #endif
+        #endif
     }
 
     // MARK: - Directory Scanning

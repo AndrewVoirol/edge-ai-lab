@@ -274,10 +274,16 @@ final class ConversationViewModel {
             }
 
             // Build sampler config from current settings
+            // LiteRTLM WebGPU sampler expects topK <= 1 if temperature is 0.0 (greedy decoding)
+            // Additionally, Mobile GPU (web) variants are hard-compiled with topK=1 limitation.
+            var actualTopK = topK
+            if temperature == 0.0 || modelFilename.contains("-web") {
+                actualTopK = 1
+            }
             let samplerConfig: SamplerConfig?
             do {
                 samplerConfig = try SamplerConfig(
-                    topK: topK,
+                    topK: actualTopK,
                     topP: topP,
                     temperature: temperature,
                     seed: seed

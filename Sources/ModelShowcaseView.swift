@@ -8,6 +8,7 @@ import SwiftUI
 /// Accessed by tapping a model card in the model management section.
 struct ModelShowcaseView: View {
     let metadata: ModelMetadata
+    var fileURL: URL? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -132,6 +133,9 @@ struct ModelShowcaseView: View {
                 .foregroundStyle(AppColors.textSecondary)
 
             VStack(spacing: 0) {
+                if let url = fileURL {
+                    specRow(label: "Location", value: url.path)
+                }
                 specRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file))
                 specRow(label: "Context Window", value: formatTokenCount(metadata.contextWindowSize))
                 specRow(label: "Max Output Tokens", value: formatTokenCount(metadata.defaultConfig.maxTokens))

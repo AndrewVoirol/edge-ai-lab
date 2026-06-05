@@ -92,7 +92,7 @@ struct DeveloperAutomationHarness {
         print("[AUTOMATION] Developer Automation Harness activated.")
         
         Task {
-            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let docs = GalleryModelDiscovery.getAppModelsDirectory()
             
             if isAllTests {
                 // Single Clean-Slate Run

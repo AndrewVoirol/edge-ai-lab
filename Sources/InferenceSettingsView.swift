@@ -335,6 +335,14 @@ struct InferenceSettingsView: View {
             if let metadata = viewModel.activeModelMetadata {
                 Section("Model Info") {
                     LabeledContent("Name") { Text(metadata.name) }
+                    if let path = viewModel.activeModelURL?.path {
+                        LabeledContent("Path") {
+                            Text(path)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                                .lineLimit(3)
+                        }
+                    }
                     LabeledContent("Size") {
                         Text(ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file))
                     }

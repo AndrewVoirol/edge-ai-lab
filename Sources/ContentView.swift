@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showDashboard = false
     @State private var showcaseModel: ModelMetadata?
+    @State private var showcaseModelURL: URL?
     @State private var isBenchmarkExpanded = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
@@ -88,20 +89,6 @@ struct ContentView: View {
             }
         }
         .foregroundStyle(AppColors.textPrimary)
-        .fileImporter(
-            isPresented: $viewModel.isFilePickerPresented,
-            allowedContentTypes: [.data],
-            allowsMultipleSelection: false
-        ) { result in
-            do {
-                guard let selectedFile = try result.get().first else { return }
-                Task {
-                    await viewModel.handleModelSelection(selectedFile)
-                }
-            } catch {
-                viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
-            }
-        }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
@@ -131,7 +118,7 @@ struct ContentView: View {
         }
         .sheet(item: $showcaseModel) { model in
             NavigationStack {
-                ModelShowcaseView(metadata: model)
+                ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)
             }
             #if os(macOS)
             .frame(minWidth: 450, minHeight: 550)
@@ -149,15 +136,6 @@ struct ContentView: View {
                 if let data = try? await newItem.loadTransferable(type: Data.self) {
                     viewModel.selectedImageData = data
                 }
-            }
-        }
-        .fileImporter(
-            isPresented: $showAudioPicker,
-            allowedContentTypes: [UTType.audio],
-            allowsMultipleSelection: false
-        ) { result in
-            if let url = try? result.get().first {
-                viewModel.selectedAudioData = try? Data(contentsOf: url)
             }
         }
         .onAppear {
@@ -205,6 +183,14 @@ struct ContentView: View {
                         .controlSize(.small)
                         .accessibilityIdentifier("button_cancelLoad")
                     }
+                }
+
+                if let path = viewModel.activeModelURL?.path {
+                    Text(path)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
 
                 // Capability badges for loaded model
@@ -301,6 +287,20 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_loadModel")
+                .fileImporter(
+                    isPresented: $viewModel.isFilePickerPresented,
+                    allowedContentTypes: [.data],
+                    allowsMultipleSelection: false
+                ) { result in
+                    do {
+                        guard let selectedFile = try result.get().first else { return }
+                        Task {
+                            await viewModel.handleModelSelection(selectedFile)
+                        }
+                    } catch {
+                        viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
+                    }
+                }
             }
         }
     }
@@ -442,6 +442,15 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         .help("Attach an audio file")
                         .accessibilityIdentifier("button_attachAudio")
+                        .fileImporter(
+                            isPresented: $showAudioPicker,
+                            allowedContentTypes: [UTType.audio],
+                            allowsMultipleSelection: false
+                        ) { result in
+                            if let url = try? result.get().first {
+                                viewModel.selectedAudioData = try? Data(contentsOf: url)
+                            }
+                        }
                     }
                 }
 
@@ -535,6 +544,11 @@ struct ContentView: View {
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
                 Spacer()
+                Text(viewModel.downloadManager.documentsDirectory.path)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.top, AppSpacing.sm)
@@ -567,7 +581,8 @@ struct ContentView: View {
     // MARK: - Model Cards
 
     private func discoveredModelCard(_ model: DiscoveredModel) -> some View {
-        Button {
+        let isActive = viewModel.activeModelURL == model.url
+        return Button {
             Task {
                 await viewModel.handleModelSelection(model.url)
             }
@@ -576,7 +591,7 @@ struct ContentView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Text(model.metadata?.name ?? model.filename)
                         .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                         .lineLimit(1)
                     if model.source == .edgeGallery {
                         Text("Gallery")
@@ -590,21 +605,27 @@ struct ContentView: View {
                 }
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
-                        .fill(AppColors.success)
+                        .fill(isActive ? AppColors.accentCyan : AppColors.success)
                         .frame(width: 5, height: 5)
-                    Text(model.formattedSize)
+                    Text(isActive ? "Loaded Engine" : "Click to Load Engine")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
+                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textTertiary)
                 }
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.sm)
+            .contentShape(Rectangle())
             .glassCard(cornerRadius: AppRadius.md)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppRadius.md)
+                    .stroke(isActive ? AppColors.accentCyan : Color.clear, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {
             if let metadata = model.metadata {
                 Button {
+                    showcaseModelURL = model.url
                     showcaseModel = metadata
                 } label: {
                     Label("Model Info", systemImage: "info.circle")
@@ -700,6 +721,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
+        .contentShape(Rectangle())
         .glassCard(cornerRadius: AppRadius.md)
     }
 
