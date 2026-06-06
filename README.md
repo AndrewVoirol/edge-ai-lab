@@ -153,7 +153,9 @@ Measured on MacBook Pro (M4 Max, 36 GB RAM), macOS 26.0:
 |-------|---------|-------------|------|-------|
 | E2B Standard | GPU (Metal) | 109.9 tok/s | 0.43s | MTP enabled |
 | E2B Web | GPU (Metal) | 112.3 tok/s | 0.38s | MTP enabled |
-| 12B Dense | GPU (Metal) | TBD | TBD | First benchmark today |
+| E2B Standard | CPU (XNNPACK) | 28.7 tok/s | 1.65s | Fallback backend |
+| E4B Standard | GPU (Metal) | — | — | Awaiting formal benchmark |
+| 12B Dense | GPU (Metal) | — | — | Awaiting formal benchmark (requires 16 GB+ RAM) |
 
 The in-app benchmark bar shows real-time metrics including:
 - **Decode speed** (color-coded by performance tier)

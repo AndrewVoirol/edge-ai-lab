@@ -7,7 +7,9 @@ let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
         // LiteRT-LM: Tracking main branch for the latest fixes and features.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
+        // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
+        .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
     ],
     settings: .settings(
         base: [
@@ -37,7 +39,8 @@ let project = Project(
             // increased-memory-limit works with personal teams (matches zealous-bose config).
             entitlements: .file(path: "GemmaEdgeGallery_iOS.entitlements"),
             dependencies: [
-                .package(product: "LiteRTLM")
+                .package(product: "LiteRTLM"),
+                .package(product: "MarkdownUI")
             ]
         ),
         .target(
@@ -62,7 +65,8 @@ let project = Project(
             sources: ["Sources/**"],
             entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
             dependencies: [
-                .package(product: "LiteRTLM")
+                .package(product: "LiteRTLM"),
+                .package(product: "MarkdownUI")
             ]
         ),
         .target(

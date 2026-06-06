@@ -147,7 +147,7 @@ New parameters available on `EngineConfig`:
 New methods available on `Conversation`:
 | Method | Signature | Notes |
 |--------|-----------|-------|
-| `cancel()` | `func cancel() throws` | Cancel ongoing inference. **Leaks stream context** — see Known Issues. |
+| `cancel()` | `func cancel() throws` | Cancel ongoing inference. **Mandatory** when cancelling async Swift Tasks to forcefully interrupt the synchronous C++ `LiteRTLM` loop. |
 | `renderMessageIntoString()` | `func renderMessageIntoString(_ message: Message) throws -> String` | Debug message rendering |
 | `sendMessage` / `sendMessageStream` | `extraContext: [String: Any]?` parameter | Pass extra context alongside messages |
 
