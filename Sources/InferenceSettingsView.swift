@@ -45,7 +45,9 @@ struct InferenceSettingsView: View {
                 experimentalFlagsSection
             }
             .formStyle(.grouped)
+            .tag("tab_general")
             .tabItem { Label("General", systemImage: "gearshape") }
+            .accessibilityIdentifier("tab_general")
 
             Form {
                 thinkingModeSection
@@ -53,14 +55,18 @@ struct InferenceSettingsView: View {
                 mcpServersSection
             }
             .formStyle(.grouped)
+            .tag("tab_aiFeatures")
             .tabItem { Label("AI Features", systemImage: "brain.head.profile") }
+            .accessibilityIdentifier("tab_aiFeatures")
 
             Form {
                 samplerSection
                 systemMessageSection
             }
             .formStyle(.grouped)
+            .tag("tab_sampler")
             .tabItem { Label("Sampler", systemImage: "slider.horizontal.3") }
+            .accessibilityIdentifier("tab_sampler")
 
             Form {
                 modelInfoSection
@@ -68,7 +74,9 @@ struct InferenceSettingsView: View {
                 hfTokenSection
             }
             .formStyle(.grouped)
+            .tag("tab_data")
             .tabItem { Label("Data", systemImage: "chart.bar") }
+            .accessibilityIdentifier("tab_data")
         }
         .frame(minWidth: 480, minHeight: 400)
         #else
