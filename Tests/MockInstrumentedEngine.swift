@@ -201,6 +201,10 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         lastBenchmarkInfo = mockBenchmarkInfo
     }
 
+    func cancelGeneration() {
+        // Mock cancellation: could set a flag or throw if needed in specific tests
+    }
+
     func shutdown() async {
         shutdownCallCount += 1
         isReady = false

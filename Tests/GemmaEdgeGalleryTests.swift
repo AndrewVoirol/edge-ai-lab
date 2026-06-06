@@ -874,6 +874,31 @@ final class ModelMetadataTests: XCTestCase {
         XCTAssertTrue(metadata.supportsAudio)
     }
 
+    /// Web variants are text-only GPU-optimized models — they should NOT support multimodal input.
+    func testE2BWebDoesNotSupportMultimodal() {
+        let metadata = ModelRegistry.gemma4E2BWeb
+        XCTAssertFalse(metadata.supportsImage, "E2B Web should not support image input")
+        XCTAssertFalse(metadata.supportsAudio, "E2B Web should not support audio input")
+        XCTAssertNil(metadata.defaultConfig.visionAccelerator, "E2B Web should have no vision accelerator")
+    }
+
+    func testE4BWebDoesNotSupportMultimodal() {
+        let metadata = ModelRegistry.gemma4E4BWeb
+        XCTAssertFalse(metadata.supportsImage, "E4B Web should not support image input")
+        XCTAssertFalse(metadata.supportsAudio, "E4B Web should not support audio input")
+        XCTAssertNil(metadata.defaultConfig.visionAccelerator, "E4B Web should have no vision accelerator")
+    }
+
+    /// Standard variants SHOULD support multimodal input.
+    func testStandardVariantsSupportMultimodal() {
+        let e2b = ModelRegistry.gemma4E2BStandard
+        XCTAssertTrue(e2b.supportsImage, "E2B Standard should support image input")
+        XCTAssertTrue(e2b.supportsAudio, "E2B Standard should support audio input")
+
+        let e4b = ModelRegistry.gemma4E4BStandard
+        XCTAssertTrue(e4b.supportsImage, "E4B Standard should support image input")
+        XCTAssertTrue(e4b.supportsAudio, "E4B Standard should support audio input")
+    }
     func testBackendCapabilitySupportsGPU() {
         XCTAssertTrue(BackendCapability.gpuOnly.supportsGPU)
         XCTAssertTrue(BackendCapability.gpuAndCpu.supportsGPU)
