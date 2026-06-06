@@ -98,11 +98,13 @@ struct ContentView: View {
             }
         }
         .foregroundStyle(AppColors.textPrimary)
-        #if os(iOS)
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
                     .navigationTitle("Settings")
+                    #if os(macOS)
+                    .frame(minWidth: 550, minHeight: 600)
+                    #endif
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showSettings = false }
@@ -111,7 +113,6 @@ struct ContentView: View {
                     }
             }
         }
-        #endif
         .sheet(isPresented: $showDashboard) {
             NavigationStack {
                 PerformanceDashboardView()
@@ -184,12 +185,17 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .loadModelRequested)) { _ in
             viewModel.isFilePickerPresented = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showSettingsRequested)) { _ in
+            showSettings = true
+        }
         #endif
         #if os(macOS)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if #available(macOS 13.0, *) {
-                    SettingsLink {
+                    Button {
+                        showSettings = true
+                    } label: {
                         Image(systemName: "gearshape")
                     }
                     .help("Settings")

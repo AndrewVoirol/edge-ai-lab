@@ -25,37 +25,35 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-RunAutomationHarness"]
         app.launch()
-        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5.0))
+        
+        // On macOS, the window may take a moment to appear in the accessibility tree.
+        // If it doesn't appear quickly, try activating the app to bring it to focus.
+        if !app.windows.firstMatch.waitForExistence(timeout: 10.0) {
+            app.activate()
+            XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10.0),
+                          "App window should appear after launch and activation")
+        }
         return app
     }
 
-    /// Opens the Settings window and optionally navigates to a specific tab.
+    /// Opens the Settings sheet and optionally navigates to a specific tab.
     /// Tab indices: 0 = General, 1 = AI Features, 2 = Sampler, 3 = Data
+    /// On macOS, settings opens as a sheet with a TabView.
     /// On iOS, tab navigation is a no-op (single form layout).
     func openSettingsAndNavigateToTab(_ app: XCUIApplication, tabIndex: Int = 0) throws {
-        #if os(macOS)
-        // On macOS, Settings opens as a native separate-window scene.
-        // Try both SettingsLink click and ⌘, keyboard shortcut.
         app.buttons["button_settings"].click()
-        sleep(2)
-        
-        let gpuToggle = app.switches["toggle_useGPU"]
-        if !gpuToggle.waitForExistence(timeout: 5.0) {
-            // Try keyboard shortcut as fallback
-            app.typeKey(",", modifierFlags: .command)
-            sleep(2)
-            if !gpuToggle.waitForExistence(timeout: 5.0) {
-                throw XCTSkip("macOS Settings window is not accessible via XCUITest in this environment. Settings TabView works correctly at runtime.")
-            }
-        }
 
-        // Switch to the desired tab using Ctrl+Tab (universal macOS tab navigation)
+        #if os(macOS)
+        // Settings opens as a sheet on the main window — elements are directly accessible.
+        let doneButton = app.buttons["button_doneSettings"]
+        XCTAssertTrue(doneButton.waitForExistence(timeout: 5.0),
+                      "Settings sheet should open with a Done button")
+
+        // Navigate to the desired tab using Ctrl+Tab (universal macOS tab navigation)
         for _ in 0..<tabIndex {
             app.typeKey(.tab, modifierFlags: .control)
             usleep(500_000)
         }
-        #else
-        app.buttons["button_settings"].click()
         #endif
     }
 
@@ -63,22 +61,12 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
     func testBasicNavigation() throws {
         let app = launchApp()
 
-        #if os(macOS)
-        let settingsButton = app.buttons["button_settings"]
-        XCTAssertTrue(settingsButton.exists, "Settings button should exist in the toolbar")
-        try openSettingsAndNavigateToTab(app, tabIndex: 0)
-        let useGPUToggle = app.switches["toggle_useGPU"]
-        XCTAssertTrue(useGPUToggle.exists)
-        app.typeKey("w", modifierFlags: .command)
-        #else
         let settingsButton = app.buttons["button_settings"]
         XCTAssertTrue(settingsButton.exists, "Settings button should exist")
-        settingsButton.click()
-        
-        let doneButton = app.buttons["button_doneSettings"]
-        XCTAssertTrue(doneButton.waitForExistence(timeout: 2.0))
-        doneButton.click()
-        #endif
+        try openSettingsAndNavigateToTab(app, tabIndex: 0)
+        let useGPUToggle = app.switches["toggle_useGPU"]
+        XCTAssertTrue(useGPUToggle.waitForExistence(timeout: 3.0))
+        app.buttons["button_doneSettings"].click()
 
         let dashboardButton = app.buttons["button_dashboard"]
         XCTAssertTrue(dashboardButton.exists, "Dashboard button should exist")
@@ -120,11 +108,7 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
     func testSettingsInteractions() throws {
         let app = launchApp()
 
-        #if os(macOS)
         try openSettingsAndNavigateToTab(app, tabIndex: 0)
-        #else
-        app.buttons["button_settings"].click()
-        #endif
         
         let useGPUToggle = app.switches["toggle_useGPU"]
         XCTAssertTrue(useGPUToggle.waitForExistence(timeout: 5.0))
@@ -156,12 +140,7 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         }
         
         
-        #if os(macOS)
-        app.typeKey("w", modifierFlags: .command)
-        #else
-        let doneButton = app.buttons["button_doneSettings"]
-        doneButton.click()
-        #endif
+        app.buttons["button_doneSettings"].click()
     }
 
     func testQuickActionsAndModelShowcase() throws {
@@ -192,12 +171,8 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
     func testAddMCPServer() throws {
         let app = launchApp()
 
-        #if os(macOS)
-        // MCP controls are on the "AI Features" tab (index 1)
+        // MCP controls are on the "AI Features" tab (index 1) on macOS
         try openSettingsAndNavigateToTab(app, tabIndex: 1)
-        #else
-        app.buttons["button_settings"].click()
-        #endif
         
         let addMCPButton = app.buttons["button_addMCP"]
         if !addMCPButton.waitForExistence(timeout: 2.0) {
@@ -232,11 +207,7 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
     func testAllSettingsTogglesExist() throws {
         let app = launchApp()
 
-        #if os(macOS)
         try openSettingsAndNavigateToTab(app, tabIndex: 0)
-        #else
-        app.buttons["button_settings"].click()
-        #endif
 
         // Wait for settings to load - General tab items
         let gpuToggle = app.switches["toggle_useGPU"]
@@ -287,24 +258,15 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
             XCTAssertTrue(agentSkillsToggle.isHittable, "Agent skills toggle should be hittable")
         }
 
-        #if os(macOS)
-        app.typeKey("w", modifierFlags: .command)
-        #else
         app.buttons["button_doneSettings"].click()
-        #endif
     }
 
     /// Verifies sampler controls (steppers, sliders, preset buttons) exist in Settings.
     func testSamplerControls() throws {
         let app = launchApp()
 
-        #if os(macOS)
-        // Sampler controls are on the "Sampler" tab (index 2)
+        // Sampler controls are on the "Sampler" tab (index 2) on macOS
         try openSettingsAndNavigateToTab(app, tabIndex: 2)
-        #else
-        app.buttons["button_settings"].click()
-        XCTAssertTrue(app.switches["toggle_useGPU"].waitForExistence(timeout: 3.0))
-        #endif
 
         // Sampler controls
         let topKStepper = app.steppers["stepper_topK"]
@@ -329,24 +291,15 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         // Test clicking greedy preset
         greedyButton.click()
 
-        #if os(macOS)
-        app.typeKey("w", modifierFlags: .command)
-        #else
         app.buttons["button_doneSettings"].click()
-        #endif
     }
 
     /// Verifies the system message editor exists and can be interacted with.
     func testSystemMessageEditor() throws {
         let app = launchApp()
 
-        #if os(macOS)
-        // System message is on the "Sampler" tab (index 2)
+        // System message is on the "Sampler" tab (index 2) on macOS
         try openSettingsAndNavigateToTab(app, tabIndex: 2)
-        #else
-        app.buttons["button_settings"].click()
-        XCTAssertTrue(app.switches["toggle_useGPU"].waitForExistence(timeout: 3.0))
-        #endif
 
         let systemEditor = app.textViews["textEditor_systemMessage"]
         XCTAssertTrue(systemEditor.waitForExistence(timeout: 3.0), "System message editor should exist")
@@ -362,11 +315,7 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         // Clear the message
         clearButton.click()
 
-        #if os(macOS)
-        app.typeKey("w", modifierFlags: .command)
-        #else
         app.buttons["button_doneSettings"].click()
-        #endif
     }
 
     /// Verifies the model card strip section exists.
