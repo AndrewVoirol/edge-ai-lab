@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 // MARK: - Edge AI Lab Design System
 //
@@ -252,6 +253,21 @@ struct BadgeModifier: ViewModifier {
     }
 }
 
+/// A subtle scaling and brightness hover effect for macOS interactive elements.
+struct InteractiveHoverModifier: ViewModifier {
+    @State private var isHovered = false
+    
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .brightness(isHovered ? 0.05 : 0.0)
+            .animation(AppAnimation.quick, value: isHovered)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+    }
+}
+
 // MARK: - View Extensions
 
 extension View {
@@ -283,6 +299,15 @@ extension View {
     /// Apply the app's dark background.
     func appBackground() -> some View {
         self.background(AppColors.backgroundPrimary)
+    }
+
+    /// Add subtle scale and brightness on hover (macOS 26+ native feel).
+    func interactiveHover() -> some View {
+        #if os(macOS)
+        modifier(InteractiveHoverModifier())
+        #else
+        self
+        #endif
     }
 }
 
@@ -324,5 +349,87 @@ enum PerformanceTier {
         case .fair:      return "Fair"
         case .slow:      return "Slow"
         }
+    }
+}
+
+// MARK: - MarkdownUI Theme
+
+extension Theme {
+    /// A custom MarkdownUI theme that maps directly to our AppColors and AppTypography.
+    static func appDefault(isUser: Bool) -> Theme {
+        Theme()
+            .text {
+                ForegroundColor(isUser ? .white : AppColors.textPrimary)
+                FontSize(15) // Matches AppTypography.body
+            }
+            .code {
+                FontFamilyVariant(.monospaced)
+                ForegroundColor(AppColors.accentCyan)
+                BackgroundColor(AppColors.backgroundTertiary.opacity(0.5))
+            }
+            .strong {
+                FontWeight(.semibold)
+            }
+            .link {
+                ForegroundColor(AppColors.accentGold)
+            }
+            .heading1 { configuration in
+                VStack(alignment: .leading, spacing: 0) {
+                    configuration.label
+                        .font(.system(size: 24, weight: .bold, design: .default))
+                        .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                        .padding(.bottom, AppSpacing.sm)
+                    Divider().overlay(AppColors.border)
+                        .padding(.bottom, AppSpacing.sm)
+                }
+            }
+            .heading2 { configuration in
+                VStack(alignment: .leading, spacing: 0) {
+                    configuration.label
+                        .font(.system(size: 20, weight: .semibold, design: .default))
+                        .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                        .padding(.bottom, AppSpacing.xs)
+                    Divider().overlay(AppColors.border)
+                        .padding(.bottom, AppSpacing.sm)
+                }
+            }
+            .heading3 { configuration in
+                configuration.label
+                    .font(.system(size: 18, weight: .semibold, design: .default))
+                    .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                    .padding(.bottom, AppSpacing.xs)
+            }
+            .blockquote { configuration in
+                HStack(spacing: 0) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(AppColors.accentTeal)
+                        .frame(width: 4)
+                    configuration.label
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.sm)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .background(AppColors.backgroundTertiary.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .padding(.vertical, AppSpacing.xs)
+            }
+            .table { configuration in
+                configuration.label
+                    .padding(AppSpacing.sm)
+                    .background(AppColors.backgroundSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.md)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+            }
+            .tableCell { configuration in
+                configuration.label
+                    .padding(AppSpacing.sm)
+            }
+            .listItem { configuration in
+                configuration.label
+                    .padding(.bottom, AppSpacing.xs)
+            }
     }
 }

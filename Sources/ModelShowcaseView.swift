@@ -41,8 +41,10 @@ struct ModelShowcaseView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
+                    .accessibilityIdentifier("button_closeShowcase")
             }
         }
+        .accessibilityIdentifier("view_modelShowcase")
     }
 
     // MARK: - Hero Section

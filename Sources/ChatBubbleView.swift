@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import MarkdownUI
 
 // MARK: - Chat Bubble View
 
@@ -112,23 +113,55 @@ struct ChatBubbleView: View {
     }
 
     // MARK: - Content Bubble
+    
+    // MARK: - Markdown Support
+    
+    // Removed legacy chunking logic in favor of MarkdownUI
 
     @ViewBuilder
     private var contentBubble: some View {
-        Group {
-            if message.content.isEmpty && message.isStreaming {
-                // Animated streaming indicator
-                StreamingIndicator()
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.vertical, AppSpacing.md)
-            } else {
-                Text(message.content)
-                    .font(AppTypography.body)
-                    .foregroundStyle(message.role == .user ? .white : AppColors.textPrimary)
-                    .textSelection(.enabled)
-                    .multilineTextAlignment(message.role == .user ? .trailing : .leading)
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.vertical, AppSpacing.md)
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                if message.content.isEmpty && message.isStreaming {
+                    // Animated streaming indicator
+                    StreamingIndicator()
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
+                } else {
+                    Markdown(message.content)
+                        .markdownTheme(.appDefault(isUser: message.role == .user))
+                        .markdownBlockStyle(\.codeBlock) { configuration in
+                            CodeBlockView(code: configuration.content, language: configuration.language)
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.md)
+                }
+            }
+            
+            if message.role == .assistant && !message.content.isEmpty && !message.isStreaming {
+                HStack {
+                    Spacer()
+                    Button {
+                        #if os(macOS)
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(message.content, forType: .string)
+                        #else
+                        UIPasteboard.general.string = message.content
+                        #endif
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.textTertiary)
+                            .padding(AppSpacing.xs)
+                            .background(AppColors.backgroundTertiary.opacity(0.3))
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_copyMessage")
+                    .help("Copy Response")
+                }
+                .padding(.horizontal, AppSpacing.sm)
+                .padding(.bottom, AppSpacing.xs)
             }
         }
         .background(
@@ -187,8 +220,7 @@ struct ChatBubbleView: View {
                         .foregroundStyle(AppColors.textTertiary)
 
                     // Word count instead of char count
-                    let wordCount = thinking.split(separator: " ").count
-                    Text("\(wordCount) words")
+                    Text("\(message.thinkingWordCount) words")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
 
@@ -454,20 +486,6 @@ struct StreamingIndicator: View {
 
 // MARK: - Special Tool Result Views & Models
 
-private struct SpecialResult: Decodable {
-    let type: String
-    // Wikipedia fields
-    let query: String?
-    let title: String?
-    let extract: String?
-    let url: String?
-    let thumbnail_url: String?
-    // Map fields
-    let latitude: Double?
-    let longitude: Double?
-    let subtitle: String?
-}
-
 struct WikipediaSummaryCard: View {
     let title: String
     let extract: String
@@ -584,7 +602,7 @@ extension ChatBubbleView {
     private var specialToolCardsSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             ForEach(message.toolCalls) { event in
-                if event.succeeded, let cardView = renderSpecialToolResult(event) {
+                if event.succeeded, let cardView = renderSpecialToolResult(event, special: message.specialResults[event.id]) {
                     cardView
                         .padding(.horizontal, AppSpacing.lg)
                 }
@@ -592,9 +610,8 @@ extension ChatBubbleView {
         }
     }
 
-    private func renderSpecialToolResult(_ event: ToolCallEvent) -> AnyView? {
-        guard let data = event.result.data(using: .utf8),
-              let special = try? JSONDecoder().decode(SpecialResult.self, from: data) else {
+    private func renderSpecialToolResult(_ event: ToolCallEvent, special: ChatMessage.SpecialResult?) -> AnyView? {
+        guard let special = special else {
             return nil
         }
 
@@ -625,5 +642,73 @@ extension ChatBubbleView {
             break
         }
         return nil
+    }
+}
+
+// MARK: - Markdown Support
+
+struct MessageChunk: Identifiable, Equatable {
+    let id: Int
+    let isCode: Bool
+    let text: String
+    let language: String?
+}
+
+// MARK: - Code Block View
+
+struct CodeBlockView: View {
+    let code: String
+    let language: String?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                if let language = language, !language.isEmpty {
+                    Text(language.lowercased())
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundStyle(AppColors.textSecondary)
+                } else {
+                    Text("code")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                
+                Spacer()
+                
+                Button {
+                    #if os(macOS)
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(code, forType: .string)
+                    #else
+                    UIPasteboard.general.string = code
+                    #endif
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy Code")
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.xs)
+            .background(Color.black.opacity(0.3))
+            
+            // Code Content
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(code)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .textSelection(.enabled)
+                    .padding(AppSpacing.md)
+            }
+        }
+        .background(AppColors.backgroundTertiary.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.sm)
+                .stroke(AppColors.border, lineWidth: 0.5)
+        )
     }
 }

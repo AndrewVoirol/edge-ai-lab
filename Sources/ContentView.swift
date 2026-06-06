@@ -14,7 +14,7 @@ import PhotosUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct ContentView: View {
-    @State private var viewModel = ConversationViewModel()
+    @Bindable private var viewModel = ConversationViewModel.shared
     @State private var showSettings = false
     @State private var showDashboard = false
     @State private var showcaseModel: ModelMetadata?
@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
     @State private var scrollProxy: ScrollViewProxy?
+    @FocusState private var isPromptFocused: Bool
     @Namespace private var bottomAnchor
 
     var body: some View {
@@ -32,20 +33,17 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 .overlay(.black.opacity(0.2)) // Subtle dimming so glass cards pop
             VStack(spacing: 0) {
+                #if os(iOS)
                 // Header bar
                 headerView
-                    #if os(iOS)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
-                    #else
-                    .padding(.horizontal, AppSpacing.lg)
-                    .padding(.vertical, AppSpacing.md)
-                    #endif
 
                 // Subtle separator
                 Rectangle()
                     .fill(AppColors.border)
                     .frame(height: 0.5)
+                #endif
 
                 // Model card strip
                 modelManagementSection
@@ -86,9 +84,17 @@ struct ContentView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.vertical, AppSpacing.md)
                     #endif
+                    
+                #if os(macOS)
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
+                statusBarView
+                #endif
             }
         }
         .foregroundStyle(AppColors.textPrimary)
+        #if os(iOS)
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
@@ -96,19 +102,19 @@ struct ContentView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showSettings = false }
+                                .accessibilityIdentifier("button_doneSettings")
                         }
                     }
             }
-            #if os(macOS)
-            .frame(minWidth: 400, minHeight: 500)
-            #endif
         }
+        #endif
         .sheet(isPresented: $showDashboard) {
             NavigationStack {
                 PerformanceDashboardView()
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showDashboard = false }
+                                .accessibilityIdentifier("button_doneDashboard")
                         }
                     }
             }
@@ -139,6 +145,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            isPromptFocused = true
             // Skip auto-loading when running under the test harness or developer automation —
             // tests manage their own engine lifecycle.
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
@@ -153,7 +160,105 @@ struct ContentView: View {
             viewModel.downloadManager.refreshStates()
         }
         .preferredColorScheme(.dark)
+        .fileImporter(
+            isPresented: $viewModel.isFilePickerPresented,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: false
+        ) { result in
+            do {
+                guard let selectedFile = try result.get().first else { return }
+                Task {
+                    await viewModel.handleModelSelection(selectedFile)
+                }
+            } catch {
+                viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
+            }
+        }
+        #if os(macOS)
+        .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
+            Task { await viewModel.newConversation() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showDashboardRequested)) { _ in
+            showDashboard = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshModelsRequested)) { _ in
+            viewModel.refreshDiscoveredModels()
+            viewModel.downloadManager.refreshStates()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .loadModelRequested)) { _ in
+            viewModel.isFilePickerPresented = true
+        }
+        #endif
+        #if os(macOS)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                if #available(macOS 13.0, *) {
+                    SettingsLink {
+                        Image(systemName: "gearshape")
+                    }
+                    .help("Settings")
+                    .accessibilityIdentifier("button_settings")
+                }
+                Button {
+                    viewModel.refreshDiscoveredModels()
+                    viewModel.downloadManager.refreshStates()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Refresh discovered models")
+                .accessibilityIdentifier("button_refresh")
+                
+                Button {
+                    showDashboard = true
+                } label: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                }
+                .help("Performance Dashboard")
+                .accessibilityIdentifier("button_dashboard")
+                
+                Button {
+                    viewModel.isFilePickerPresented = true
+                } label: {
+                    Image(systemName: "plus.square")
+                    Text("Load Model")
+                }
+                .help("Load a custom model from disk")
+                .accessibilityIdentifier("button_loadModel")
+            }
+        }
+        #endif
     }
+    
+    // MARK: - Status Bar (macOS)
+    
+    #if os(macOS)
+    private var statusBarView: some View {
+        HStack {
+            if viewModel.isLoadingModel {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityIdentifier("progress_loading")
+            }
+            Text(viewModel.statusMessage)
+                .font(.system(.caption, design: .default, weight: .semibold))
+                .foregroundStyle(AppColors.textSecondary)
+                
+            if let metadata = viewModel.activeModelMetadata, viewModel.isEngineReady {
+                HStack(spacing: 4) {
+                    if metadata.supportsMTP { Text("MTP").badge(AppColors.accentTeal) }
+                    if metadata.supportsImage { Text("Vision").badge(AppColors.accentCyan) }
+                    if metadata.supportsAudio { Text("Audio").badge(AppColors.accentGold) }
+                    if metadata.supportsToolCalling { Text("Tools").badge(AppColors.toolCall) }
+                }
+                .padding(.leading, AppSpacing.sm)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.vertical, AppSpacing.xs)
+        .background(AppColors.backgroundTertiary)
+    }
+    #endif
 
     // MARK: - Header
 
@@ -193,36 +298,8 @@ struct ContentView: View {
                         .truncationMode(.middle)
                 }
 
-                // Capability badges for loaded model
-                if let metadata = viewModel.activeModelMetadata {
-                    HStack(spacing: AppSpacing.xs) {
-                        if metadata.supportsImage {
-                            Label("Vision", systemImage: "eye")
-                                .badge(AppColors.accentCyan)
-                                .accessibilityIdentifier("badge_vision")
-                        }
-                        if metadata.supportsAudio {
-                            Label("Audio", systemImage: "waveform")
-                                .badge(AppColors.accentTeal)
-                                .accessibilityIdentifier("badge_audio")
-                        }
-                        if metadata.supportsMTP {
-                            Label("MTP", systemImage: "hare")
-                                .badge(AppColors.success)
-                                .accessibilityIdentifier("badge_mtp")
-                        }
-                        if viewModel.experimentalFlags.enableToolCalling {
-                            Label("Tools", systemImage: "wrench.and.screwdriver")
-                                .badge(AppColors.toolCall)
-                                .accessibilityIdentifier("badge_tools")
-                        }
-                        if viewModel.experimentalFlags.enableThinking {
-                            Label("Thinking", systemImage: "brain.head.profile")
-                                .badge(AppColors.thinking)
-                                .accessibilityIdentifier("badge_thinking")
-                        }
-                    }
-                }
+                // Capability badges are now displayed directly on the model cards
+                // inside the modelManagementSection to ensure they are visible on both iOS and macOS.
             }
 
             Spacer()
@@ -287,20 +364,6 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_loadModel")
-                .fileImporter(
-                    isPresented: $viewModel.isFilePickerPresented,
-                    allowedContentTypes: [.data],
-                    allowsMultipleSelection: false
-                ) { result in
-                    do {
-                        guard let selectedFile = try result.get().first else { return }
-                        Task {
-                            await viewModel.handleModelSelection(selectedFile)
-                        }
-                    } catch {
-                        viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
-                    }
-                }
             }
         }
     }
@@ -375,10 +438,10 @@ struct ContentView: View {
 
             // Quick action hints
             VStack(spacing: AppSpacing.md) {
-                quickActionHint(icon: "text.bubble", text: "Start a conversation", color: AppColors.accentCyan)
-                quickActionHint(icon: "photo", text: "Analyze an image", color: AppColors.accentGold)
-                quickActionHint(icon: "wrench.and.screwdriver", text: "Use built-in tools", color: AppColors.toolCall)
-                quickActionHint(icon: "brain.head.profile", text: "Watch the model think", color: AppColors.thinking)
+                quickActionHint(icon: "text.bubble", text: "Start a conversation", color: AppColors.accentCyan, id: "hint_chat")
+                quickActionHint(icon: "photo", text: "Analyze an image", color: AppColors.accentGold, id: "hint_image")
+                quickActionHint(icon: "wrench.and.screwdriver", text: "Use built-in tools", color: AppColors.toolCall, id: "hint_tools")
+                quickActionHint(icon: "brain.head.profile", text: "Watch the model think", color: AppColors.thinking, id: "hint_thinking")
             }
             .padding(.horizontal, AppSpacing.xxl)
 
@@ -386,7 +449,7 @@ struct ContentView: View {
         }
     }
 
-    private func quickActionHint(icon: String, text: String, color: Color) -> some View {
+    private func quickActionHint(icon: String, text: String, color: Color, id: String) -> some View {
         HStack(spacing: AppSpacing.md) {
             Image(systemName: icon)
                 .font(.body)
@@ -400,6 +463,8 @@ struct ContentView: View {
         .padding(.horizontal, AppSpacing.lg)
         .padding(.vertical, AppSpacing.md)
         .glassCard(cornerRadius: AppRadius.md)
+        .interactiveHover()
+        .accessibilityIdentifier(id)
     }
 
     // MARK: - Input Area
@@ -455,9 +520,21 @@ struct ContentView: View {
                 }
 
                 // Text input
-                TextField("Ask Gemma anything...", text: $viewModel.prompt)
+                #if os(macOS)
+                let placeholder = "Ask Gemma anything... (Cmd+Enter to send)"
+                #else
+                let placeholder = "Ask Gemma anything..."
+                #endif
+                TextField(placeholder, text: $viewModel.prompt, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.body)
+                    .lineLimit(1...8)
+                    .focused($isPromptFocused)
+                    .onSubmit {
+                        // Intentionally empty: suppress default Return key submission
+                        // so Enter inserts a newline. Send is triggered by Cmd+Enter
+                        // (via .keyboardShortcut on the Send button) or by clicking Send.
+                    }
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.sm)
                     .background(AppColors.backgroundTertiary.opacity(0.5).background(.ultraThinMaterial))
@@ -466,23 +543,18 @@ struct ContentView: View {
                         RoundedRectangle(cornerRadius: AppRadius.md)
                             .stroke(AppColors.borderActive, lineWidth: 0.5)
                     )
-                    .onSubmit {
-                        guard viewModel.isEngineReady else {
-                            viewModel.statusMessage = "Please select or download a model first."
-                            return
-                        }
-                        guard !viewModel.isGenerating else { return }
-                        Task { await viewModel.generateText() }
-                    }
                     .accessibilityIdentifier("textField_prompt")
 
-                // Send button
+                // Send/Stop button
                 Button {
+                    if viewModel.isGenerating {
+                        viewModel.stopGenerating()
+                        return
+                    }
                     guard viewModel.isEngineReady else {
                         viewModel.statusMessage = "Please select or download a model first."
                         return
                     }
-                    guard !viewModel.isGenerating else { return }
                     Task { await viewModel.generateText() }
                 } label: {
                     Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
@@ -495,8 +567,9 @@ struct ContentView: View {
                         .contentTransition(.symbolEffect(.replace))
                 }
                 .buttonStyle(.plain)
-                .disabled(!viewModel.isEngineReady || viewModel.isGenerating)
+                .disabled(!viewModel.isEngineReady)
                 .accessibilityIdentifier("button_send")
+                .keyboardShortcut(.return, modifiers: .command)
             }
 
             // Action bar below input
@@ -603,6 +676,11 @@ struct ContentView: View {
                             .clipShape(Capsule())
                     }
                 }
+                
+                if let metadata = model.metadata {
+                    ModelCapabilityBadges(metadata: metadata, experimentalFlags: viewModel.experimentalFlags)
+                }
+                
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
                         .fill(isActive ? AppColors.accentCyan : AppColors.success)
@@ -616,6 +694,7 @@ struct ContentView: View {
             .padding(.vertical, AppSpacing.sm)
             .contentShape(Rectangle())
             .glassCard(cornerRadius: AppRadius.md)
+            .interactiveHover()
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.md)
                     .stroke(isActive ? AppColors.accentCyan : Color.clear, lineWidth: 1)
@@ -630,6 +709,16 @@ struct ContentView: View {
                 } label: {
                     Label("Model Info", systemImage: "info.circle")
                 }
+                
+                if model.source != .edgeGallery {
+                    Button(role: .destructive) {
+                        viewModel.downloadManager.deleteModel(metadata)
+                        viewModel.refreshDiscoveredModels()
+                    } label: {
+                        Label("Delete Model", systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("context_deleteModel_\(model.filename)")
+                }
             }
         }
         .accessibilityIdentifier("modelCard_\(model.filename)")
@@ -643,6 +732,9 @@ struct ContentView: View {
                 .font(.system(.caption, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
+                
+            ModelCapabilityBadges(metadata: model, experimentalFlags: viewModel.experimentalFlags)
+
 
             switch state {
             case .notDownloaded:
@@ -690,6 +782,19 @@ struct ContentView: View {
                     Text("Ready")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
+                    
+                    Spacer()
+                    
+                    Button {
+                        viewModel.downloadManager.deleteModel(model)
+                        viewModel.refreshDiscoveredModels()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.danger)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_deleteModel_\(model.modelFile)")
                 }
 
             case .failed(let message):
@@ -1134,6 +1239,49 @@ struct ContentView: View {
                 .foregroundStyle(AppColors.textSecondary)
         }
     }
+}
+
+// MARK: - Reusable Views
+
+struct ModelCapabilityBadges: View {
+    let metadata: ModelMetadata
+    let experimentalFlags: ExperimentalFlagsState
+    
+    var body: some View {
+        HStack(spacing: AppSpacing.xs) {
+            if metadata.supportsImage {
+                Text("Vision")
+                    .badge(AppColors.accentCyan)
+                    .accessibilityIdentifier("badge_vision")
+            }
+            if metadata.supportsAudio {
+                Text("Audio")
+                    .badge(AppColors.accentTeal)
+                    .accessibilityIdentifier("badge_audio")
+            }
+            if metadata.supportsMTP {
+                Text("MTP")
+                    .badge(AppColors.success)
+                    .accessibilityIdentifier("badge_mtp")
+            }
+            if experimentalFlags.enableToolCalling {
+                Text("Tools")
+                    .badge(AppColors.toolCall)
+                    .accessibilityIdentifier("badge_tools")
+            }
+            if experimentalFlags.enableThinking {
+                Text("Thinking")
+                    .badge(AppColors.thinking)
+                    .accessibilityIdentifier("badge_thinking")
+            }
+        }
+    }
+}
+
+// MARK: - Previews
+
+#Preview {
+    ContentView()
 }
 
 // MARK: - Vibrant Background
