@@ -13,7 +13,7 @@ struct GemmaEdgeGalleryApp: App {
                 .preferredColorScheme(.dark)
         }
         #if os(macOS)
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.titleBar)
         .defaultSize(width: 900, height: 700)
         .windowResizability(.contentMinSize)
         .commands {
@@ -43,6 +43,18 @@ struct GemmaEdgeGalleryApp: App {
                 .keyboardShortcut("r", modifiers: .command)
                 Divider()
             }
+            
+            CommandGroup(replacing: .help) {
+                Text("Keyboard Shortcuts")
+                    .font(.headline)
+                Divider()
+                Text("⌘N  New Chat")
+                Text("⌘O  Load Model")
+                Text("⌘⏎  Send Message")
+                Text("⌘D  Performance Dashboard")
+                Text("⌘R  Refresh Models")
+                Text("⌘,  Settings")
+            }
         }
         #endif
         
@@ -71,7 +83,7 @@ struct SettingsWrapper: View {
     
     var body: some View {
         InferenceSettingsView(viewModel: viewModel)
-            .frame(width: 500, height: 600)
+            .frame(width: 550, height: 650)
     }
 }
 #endif

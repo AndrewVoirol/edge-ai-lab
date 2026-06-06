@@ -170,6 +170,7 @@ struct ContentView: View {
             }
         }
         #if os(macOS)
+        .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
         .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
             Task { await viewModel.newConversation() }
         }
@@ -220,6 +221,17 @@ struct ContentView: View {
                 .help("Load a custom model from disk")
                 .accessibilityIdentifier("button_loadModel")
             }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url = url,
+                      url.pathExtension == "litertlm" else { return }
+                Task { @MainActor in
+                    await viewModel.handleModelSelection(url)
+                }
+            }
+            return true
         }
         #endif
     }

@@ -166,8 +166,22 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         
         let addMCPButton = app.buttons["button_addMCP"]
         if !addMCPButton.waitForExistence(timeout: 1.0) {
+            // On macOS, MCP controls are on the "AI Features" tab
+            #if os(macOS)
+            // Try multiple selector approaches for tab navigation
+            let aiTab = app.radioButtons["AI Features"]
+            if aiTab.waitForExistence(timeout: 2.0) {
+                aiTab.click()
+            } else if app.buttons["AI Features"].exists {
+                app.buttons["AI Features"].click()
+            } else if app.staticTexts["AI Features"].exists {
+                app.staticTexts["AI Features"].click()
+            }
+            #endif
             let toolCallingToggle = app.switches["toggle_enableToolCalling"]
-            toolCallingToggle.click()
+            if toolCallingToggle.waitForExistence(timeout: 2.0) {
+                toolCallingToggle.click()
+            }
         }
         XCTAssertTrue(addMCPButton.waitForExistence(timeout: 2.0))
         addMCPButton.click()
@@ -214,8 +228,20 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         let constrainedToggle = app.switches["toggle_constrainedDecoding"]
         XCTAssertTrue(constrainedToggle.exists, "Constrained decoding toggle should exist")
 
+        // On macOS with TabView, Thinking and Tool Calling are on the "AI Features" tab
+        #if os(macOS)
+        let aiTab = app.radioButtons["AI Features"]
+        if aiTab.waitForExistence(timeout: 2.0) {
+            aiTab.click()
+        } else if app.buttons["AI Features"].exists {
+            app.buttons["AI Features"].click()
+        } else if app.staticTexts["AI Features"].exists {
+            app.staticTexts["AI Features"].click()
+        }
+        #endif
+
         let thinkingToggle = app.switches["toggle_enableThinking"]
-        XCTAssertTrue(thinkingToggle.exists, "Thinking toggle should exist")
+        XCTAssertTrue(thinkingToggle.waitForExistence(timeout: 2.0), "Thinking toggle should exist")
 
         let toolCallingToggle = app.switches["toggle_enableToolCalling"]
         XCTAssertTrue(toolCallingToggle.exists, "Tool calling toggle should exist")
@@ -263,9 +289,21 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         // Wait for settings to load
         XCTAssertTrue(app.switches["toggle_useGPU"].waitForExistence(timeout: 3.0))
 
+        // On macOS with TabView, sampler controls are on the "Sampler" tab
+        #if os(macOS)
+        let samplerTab = app.radioButtons["Sampler"]
+        if samplerTab.waitForExistence(timeout: 2.0) {
+            samplerTab.click()
+        } else if app.buttons["Sampler"].exists {
+            app.buttons["Sampler"].click()
+        } else if app.staticTexts["Sampler"].exists {
+            app.staticTexts["Sampler"].click()
+        }
+        #endif
+
         // Sampler controls
         let topKStepper = app.steppers["stepper_topK"]
-        XCTAssertTrue(topKStepper.exists, "Top-K stepper should exist")
+        XCTAssertTrue(topKStepper.waitForExistence(timeout: 2.0), "Top-K stepper should exist")
 
         let topPSlider = app.sliders["slider_topP"]
         XCTAssertTrue(topPSlider.exists, "Top-P slider should exist")
@@ -305,8 +343,20 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
 
         XCTAssertTrue(app.switches["toggle_useGPU"].waitForExistence(timeout: 3.0))
 
+        // On macOS with TabView, system message is on the "Sampler" tab
+        #if os(macOS)
+        let samplerTab = app.radioButtons["Sampler"]
+        if samplerTab.waitForExistence(timeout: 2.0) {
+            samplerTab.click()
+        } else if app.buttons["Sampler"].exists {
+            app.buttons["Sampler"].click()
+        } else if app.staticTexts["Sampler"].exists {
+            app.staticTexts["Sampler"].click()
+        }
+        #endif
+
         let systemEditor = app.textViews["textEditor_systemMessage"]
-        XCTAssertTrue(systemEditor.exists, "System message editor should exist")
+        XCTAssertTrue(systemEditor.waitForExistence(timeout: 2.0), "System message editor should exist")
 
         // Type a system message
         systemEditor.click()
