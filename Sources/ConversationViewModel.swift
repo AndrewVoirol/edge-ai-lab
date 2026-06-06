@@ -1,12 +1,22 @@
 import Foundation
 import LiteRTLM
 import Observation
+import os
 
 /// ViewModel managing the inference engine lifecycle, conversation state,
 /// and benchmark data. Consumes InstrumentedEngineProtocol for testability.
 @Observable
 @MainActor
 final class ConversationViewModel {
+    
+    /// Global shared instance to synchronize settings and engine state across the app.
+    static let shared = ConversationViewModel()
+
+    /// Console logger for runtime diagnostics (visible in Console.app).
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.GemmaEdgeGallery.performance",
+        category: "viewmodel"
+    )
 
     // MARK: - Published State
 
@@ -14,16 +24,29 @@ final class ConversationViewModel {
     var statusMessage = "Please select a model file..."
 
     /// User's current prompt text.
-    var prompt = "Explain quantum computing in one sentence."
+    var prompt = ""
 
-    /// Accumulated response text from the current inference.
-    var responseText = ""
+    /// Multi-turn conversation state — replaces the old single `responseText`.
+    var conversation = ConversationState()
+
+    /// Legacy accessor: accumulated response text from the current/last inference.
+    /// Now derived from the last assistant message for backward compatibility.
+    var responseText: String {
+        conversation.lastMessage?.content ?? ""
+    }
 
     /// Whether an inference is currently in progress.
     var isGenerating = false
 
+    /// Whether a model is currently being loaded.
+    var isLoadingModel = false
+
     /// Whether GPU backend is preferred.
-    var useGPU = true
+    var useGPU = true {
+        didSet {
+            Task { await reinitializeEngineIfNeeded() }
+        }
+    }
 
     /// The most recent BenchmarkInfo from completed inference.
     var benchmarkInfo: BenchmarkInfo?
@@ -43,7 +66,11 @@ final class ConversationViewModel {
         enableSpeculativeDecoding: nil,
         enableConversationConstrainedDecoding: false,
         visualTokenBudget: nil
-    )
+    ) {
+        didSet {
+            Task { await reinitializeEngineIfNeeded() }
+        }
+    }
 
     // MARK: - Sampler Configuration
 
@@ -56,10 +83,61 @@ final class ConversationViewModel {
     /// Temperature for sampling. Higher = more random.
     var temperature: Float = 1.0
 
+    /// Seed for reproducible generation. 0 = non-deterministic (SDK default).
+    var seed: Int = 0
+
+    /// Optional system message to set model persona/instructions.
+    var systemMessage: String = ""
+
+    // MARK: - Multimodal Attachments
+
+    /// Image data attached by the user for multimodal inference.
+    /// Cleared after each generation.
+    var selectedImageData: Data?
+
+    /// Audio data attached by the user for multimodal inference.
+    /// Cleared after each generation.
+    var selectedAudioData: Data?
+
+    /// Whether the user has any multimodal attachments pending.
+    var hasMultimodalAttachment: Bool {
+        selectedImageData != nil || selectedAudioData != nil
+    }
+
+    /// Whether the currently loaded model supports image input.
+    var supportsImageInput: Bool {
+        activeModelMetadata?.supportsImage ?? false
+    }
+
+    /// Whether the currently loaded model supports audio input.
+    var supportsAudioInput: Bool {
+        activeModelMetadata?.supportsAudio ?? false
+    }
+
+    // MARK: - Thinking Mode State
+
+    /// Accumulated thinking content from the current streaming inference.
+    /// Populated by the ThinkingParser as `<think>` blocks are received.
+    var currentThinkingText: String = ""
+
+    /// Whether the model is currently in the "thinking" phase of its response.
+    var isThinking: Bool = false
+
+    /// Parser instance for the current streaming response.
+    private var thinkingParser = ThinkingParser()
+
+    // MARK: - Tool Calling State
+
+    /// Tool call events from the current/last inference (for observability).
+    var toolCallEvents: [ToolCallEvent] = []
+
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
     private(set) var activeModelURL: URL?
+
+    /// Tracks the active model load task for cancellation support.
+    private var modelLoadTask: Task<Void, Never>?
 
     /// Models discovered from local storage and AI Edge Gallery.
     var discoveredModels: [DiscoveredModel] = []
@@ -72,6 +150,14 @@ final class ConversationViewModel {
 
     /// Whether the engine is initialized and ready for inference.
     var isEngineReady: Bool { engine.isReady }
+
+    // MARK: - MCP Servers Support
+
+    var mcpServers: [MCPServerConfig] = []
+
+    #if os(macOS)
+    private var activeClients: [UUID: MCPClient] = [:]
+    #endif
 
     // MARK: - Dependencies
 
@@ -93,12 +179,20 @@ final class ConversationViewModel {
         self.engine = engine
         self.metricsStore = metricsStore
         self.downloadManager = downloadManager
+        
+        self.mcpServers = MCPServerStorage.load()
+        #if os(macOS)
+        Task {
+            await startEnabledMCPServers()
+        }
+        #endif
     }
 
     // MARK: - Model Loading
 
     /// Handle a model file selection from the file picker.
     func handleModelSelection(_ url: URL) async {
+        Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
 
@@ -119,6 +213,7 @@ final class ConversationViewModel {
     /// Discover available models from local storage and Gallery, auto-load if possible.
     func checkForLocalModels() {
         discoveredModels = GalleryModelDiscovery.discoverModels()
+        Self.logger.info("🔍 Discovered \(self.discoveredModels.count) model(s)")
 
         if let firstModel = discoveredModels.first {
             statusMessage = "Found model: \(firstModel.filename)"
@@ -126,6 +221,7 @@ final class ConversationViewModel {
                 statusMessage += " (via Edge Gallery)"
             }
             activeModelURL = firstModel.url
+            Self.logger.info("⚡ Auto-loading: \(firstModel.filename, privacy: .public)")
             Task {
                 await initializeEngine(modelPath: firstModel.url.path)
             }
@@ -139,7 +235,22 @@ final class ConversationViewModel {
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
     func initializeEngine(modelPath: String) async {
+        // Cancel any in-progress load
+        modelLoadTask?.cancel()
+
+        isLoadingModel = true
         statusMessage = "Initializing Engine..."
+
+        // Start a timeout timer that updates the status message
+        let timeoutTask = Task {
+            try? await Task.sleep(for: .seconds(30))
+            if !Task.isCancelled && self.isLoadingModel {
+                self.statusMessage += " (taking longer than expected…)"
+            }
+        }
+
+        let modelName = (modelPath as NSString).lastPathComponent
+        Self.logger.info("⏳ initializeEngine: \(modelName, privacy: .public) GPU=\(self.useGPU)")
 
         // Look up model metadata for known models
         activeModelMetadata = ModelRegistry.lookup(path: modelPath)
@@ -157,6 +268,8 @@ final class ConversationViewModel {
                 for: .cachesDirectory, in: .userDomainMask
             ).first else {
                 statusMessage = "Could not find caches directory"
+                isLoadingModel = false
+                timeoutTask.cancel()
                 return
             }
 
@@ -172,19 +285,67 @@ final class ConversationViewModel {
             }
 
             // Build sampler config from current settings
-            let samplerConfig = try? SamplerConfig(
-                topK: topK,
-                topP: topP,
-                temperature: temperature
-            )
+            // LiteRTLM WebGPU sampler expects topK <= 1 if temperature is 0.0 (greedy decoding)
+            // Additionally, Mobile GPU (web) variants are hard-compiled with topK=1 limitation.
+            var actualTopK = topK
+            if temperature == 0.0 || modelFilename.contains("-web") {
+                actualTopK = 1
+            }
+            let samplerConfig: SamplerConfig?
+            do {
+                samplerConfig = try SamplerConfig(
+                    topK: actualTopK,
+                    topP: topP,
+                    temperature: temperature,
+                    seed: seed
+                )
+            } catch {
+                // Log the error rather than silently swallowing it
+                Self.logger.warning("⚠️ SamplerConfig creation failed: \(error.localizedDescription, privacy: .public). Using SDK defaults.")
+                samplerConfig = nil
+            }
+
+            // Prepare tools if tool calling is enabled
+            var activeTools: [Tool] = []
+            if experimentalFlags.enableToolCalling {
+                activeTools.append(contentsOf: ToolRegistry.defaultTools)
+                
+                if experimentalFlags.enableAgentSkills {
+                    activeTools.append(WikipediaSkillTool())
+                    activeTools.append(MapSkillTool())
+                }
+                
+                #if os(macOS)
+                // Bridge MCP tools
+                MCPBridgeManager.shared.clear()
+                for (_, client) in activeClients {
+                    if case .connected(let toolsList) = client.state {
+                        let bridged = MCPBridgeManager.shared.bridge(tools: toolsList, client: client)
+                        activeTools.append(contentsOf: bridged)
+                    }
+                }
+                #endif
+            }
+            let tools: [Tool]? = activeTools.isEmpty ? nil : activeTools
+
+            var activeFlags = experimentalFlags
+            
+            // Optimize TTFT by automatically enabling MTP if the model supports it.
+            // MTP + CPU crashes on iOS devices. On macOS, 12B models can also crash if memory is constrained.
+            if activeFlags.enableSpeculativeDecoding == nil, activeModelMetadata?.supportsMTP == true {
+                // Safest to leave it off by default and let user manually enable it if desired.
+                activeFlags.enableSpeculativeDecoding = false
+            }
 
             // Use smart fallback initialization
             let result = try await engine.initializeWithFallback(
                 modelPath: modelPath,
                 preferGPU: useGPU,
                 cacheDir: modelCacheDirectory.path,
-                flags: experimentalFlags,
-                samplerConfig: samplerConfig
+                flags: activeFlags,
+                samplerConfig: samplerConfig,
+                systemMessage: systemMessage.isEmpty ? nil : systemMessage,
+                tools: tools
             )
 
             backendResult = result
@@ -197,29 +358,163 @@ final class ConversationViewModel {
             } else {
                 statusMessage = "\(modelLabel) ready (\(backendLabel)) 🎉"
             }
+
+            Self.logger.info("✅ Engine initialized: \(self.statusMessage, privacy: .public)")
+
+            // Start a new conversation when loading a new model
+            conversation.clear()
+
         } catch {
             backendResult = nil
             statusMessage = "Failed to initialize: \(error.localizedDescription)"
+            Self.logger.error("❌ Engine init failed: \(error.localizedDescription, privacy: .public)")
         }
+
+        timeoutTask.cancel()
+        isLoadingModel = false
+    }
+
+    /// Cancel an in-progress model load.
+    func cancelModelLoad() {
+        modelLoadTask?.cancel()
+        modelLoadTask = nil
+        isLoadingModel = false
+        statusMessage = "Model load cancelled"
+    }
+
+    /// Reboots the engine to apply new core settings if a model is currently loaded.
+    private func reinitializeEngineIfNeeded() async {
+        guard engine.isReady, let url = activeModelURL else { return }
+        Self.logger.info("♻️ Settings changed, rebooting engine to apply new configuration...")
+        statusMessage = "Applying new settings..."
+        await engine.shutdown()
+        await initializeEngine(modelPath: url.path)
     }
 
     // MARK: - Inference
 
     /// Generate a response for the current prompt via streaming.
+    /// Integrates thinking mode parsing and multi-turn chat state.
     func generateText() async {
         guard engine.isReady else { return }
+        guard !isGenerating else { return }
+        Self.logger.info("🚀 generateText: prompt=\(self.prompt.prefix(80), privacy: .public) attachments=\(self.hasMultimodalAttachment)")
 
         isGenerating = true
-        responseText = ""
         benchmarkInfo = nil
+        currentThinkingText = ""
+        isThinking = false
+        toolCallEvents = []
+        thinkingParser.reset()
+
+        ToolExecutionTracker.shared.registerCallback { [weak self] event in
+            Task { @MainActor in
+                guard let self = self else { return }
+                self.toolCallEvents.append(event)
+                self.conversation.updateLastAssistantMessage(
+                    toolCalls: self.toolCallEvents
+                )
+            }
+        }
+        defer {
+            ToolExecutionTracker.shared.clearCallback()
+        }
+
+        // Capture and clear multimodal attachments before inference
+        let imageData = selectedImageData
+        let audioData = selectedAudioData
+        selectedImageData = nil
+        selectedAudioData = nil
+
+        // Capture prompt text and clear the input field immediately
+        let currentPrompt = prompt
+        prompt = ""
+
+        // Append user message to conversation
+        let userMessage = ChatMessage.user(
+            currentPrompt,
+            imageData: imageData,
+            audioData: audioData
+        )
+        conversation.append(userMessage)
+
+        // Create placeholder assistant message for streaming
+        conversation.append(.assistant())
+
+        // Accumulated text for updating the assistant message
+        var accumulatedResponse = ""
+        var accumulatedThinking = ""
 
         do {
-            for try await chunk in engine.sendMessageStream(prompt) {
-                responseText += chunk
+            let stream: AsyncThrowingStream<String, Error>
+            if imageData != nil || audioData != nil {
+                stream = engine.sendMessageStream(
+                    currentPrompt,
+                    imageData: imageData,
+                    audioData: audioData
+                )
+            } else {
+                stream = engine.sendMessageStream(currentPrompt)
             }
+
+            for try await chunk in stream {
+                // Parse thinking tags from streaming chunks
+                if experimentalFlags.enableThinking {
+                    let segments = thinkingParser.feed(chunk)
+                    for segment in segments {
+                        switch segment {
+                        case .thinking(let text):
+                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                            accumulatedThinking += cleaned
+                            currentThinkingText = accumulatedThinking
+                            isThinking = true
+                        case .response(let text):
+                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                            accumulatedResponse += cleaned
+                            isThinking = false
+                        }
+                    }
+                } else {
+                    // Strip SDK padding tokens from output
+                    let cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
+                    accumulatedResponse += cleaned
+                }
+
+                // Update the streaming assistant message
+                conversation.updateLastAssistantMessage(
+                    content: accumulatedResponse,
+                    thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking
+                )
+            }
+
+            // Finalize thinking parser
+            if experimentalFlags.enableThinking {
+                let finalSegments = thinkingParser.finalize()
+                for segment in finalSegments {
+                    switch segment {
+                    case .thinking(let text):
+                        accumulatedThinking += text
+                    case .response(let text):
+                        accumulatedResponse += text
+                    }
+                }
+            }
+
+            isThinking = false
 
             // Capture benchmark data after inference completes
             benchmarkInfo = engine.lastBenchmarkInfo
+            Self.logger.info("✅ Generation complete: \(accumulatedResponse.count) chars")
+
+            // Finalize the assistant message
+            let benchmarkSnapshot = benchmarkInfo.map { ChatMessage.BenchmarkSnapshot(from: $0) }
+            conversation.updateLastAssistantMessage(
+                content: accumulatedResponse,
+                thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking,
+                toolCalls: toolCallEvents.isEmpty ? nil : toolCallEvents,
+                isStreaming: false,
+                benchmarkInfo: benchmarkSnapshot
+            )
 
             // Persist to metrics store if benchmark data is available
             if let info = benchmarkInfo {
@@ -235,25 +530,162 @@ final class ConversationViewModel {
                     try metricsStore.append(entry: entry)
                 } catch {
                     // Don't fail inference over metrics persistence errors
-                    print("[MetricsStore] Failed to persist entry: \(error.localizedDescription)")
+                    Self.logger.error("❌ MetricsStore persistence failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
         } catch {
-            responseText = "Inference error: \(error.localizedDescription)"
+            Self.logger.error("❌ Generation failed: \(error.localizedDescription, privacy: .public)")
+            // Update the assistant message with the error
+            conversation.updateLastAssistantMessage(
+                content: "Inference error: \(error.localizedDescription)",
+                isStreaming: false
+            )
         }
 
         isGenerating = false
+    }
+
+    /// Stop an active text generation.
+    func stopGenerating() {
+        guard isGenerating else { return }
+        Self.logger.info("🛑 stopGenerating called")
+        engine.cancelGeneration()
+        isGenerating = false
+        isThinking = false
+        statusMessage = "Generation stopped"
+        conversation.updateLastAssistantMessage(
+            content: "\n[Inference stopped by user]",
+            isStreaming: false
+        )
+    }
+
+    // MARK: - Conversation Management
+
+    /// Start a new conversation — clears chat history and resets the engine conversation.
+    func newConversation() async {
+        Self.logger.info("🔄 New conversation requested")
+        conversation.clear()
+        currentThinkingText = ""
+        isThinking = false
+        toolCallEvents = []
+        benchmarkInfo = nil
+
+        // Reset the engine conversation (preserves model weights, clears context window)
+        if engine.isReady {
+            do {
+                try await engine.resetConversation()
+            } catch {
+                statusMessage = "Failed to reset conversation: \(error.localizedDescription)"
+            }
+        }
     }
 
     // MARK: - Cleanup
 
     /// Shut down the engine and release resources.
     func shutdown() async {
+        Self.logger.info("🛑 Shutdown initiated")
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
         activeModelMetadata = nil
         backendResult = nil
         await engine.shutdown()
         benchmarkInfo = nil
+        conversation.clear()
+        
+        #if os(macOS)
+        for client in activeClients.values {
+            client.stop()
+        }
+        activeClients.removeAll()
+        #endif
+    }
+
+    // MARK: - MCP Management Methods
+
+    #if os(macOS)
+    func startEnabledMCPServers() async {
+        for config in mcpServers where config.enabled {
+            await startMCPServer(config)
+        }
+    }
+
+    func startMCPServer(_ config: MCPServerConfig) async {
+        if let existing = activeClients[config.id] {
+            existing.stop()
+        }
+
+        let client = MCPClient(config: config)
+        activeClients[config.id] = client
+
+        client.onStateChange = { [weak self] _ in
+            Task { @MainActor in
+                if let idx = self?.mcpServers.firstIndex(where: { $0.id == config.id }) {
+                    // Mutate to trigger UI update
+                    self?.mcpServers[idx] = config
+                }
+            }
+        }
+
+        await client.start()
+    }
+
+    func stopMCPServer(id: UUID) {
+        if let client = activeClients.removeValue(forKey: id) {
+            client.stop()
+        }
+    }
+    #endif
+
+    func updateMCPServerConfig(_ config: MCPServerConfig) {
+        if let idx = mcpServers.firstIndex(where: { $0.id == config.id }) {
+            mcpServers[idx] = config
+            MCPServerStorage.save(mcpServers)
+
+            #if os(macOS)
+            if config.enabled {
+                Task {
+                    await startMCPServer(config)
+                }
+            } else {
+                stopMCPServer(id: config.id)
+            }
+            #endif
+        }
+    }
+
+    func addMCPServerConfig(_ config: MCPServerConfig) {
+        mcpServers.append(config)
+        MCPServerStorage.save(mcpServers)
+        #if os(macOS)
+        if config.enabled {
+            Task {
+                await startMCPServer(config)
+            }
+        }
+        #endif
+    }
+
+    func deleteMCPServerConfig(id: UUID) {
+        #if os(macOS)
+        stopMCPServer(id: id)
+        #endif
+        mcpServers.removeAll(where: { $0.id == id })
+        MCPServerStorage.save(mcpServers)
+    }
+
+    func getMCPClientState(for id: UUID) -> MCPClientState {
+        #if os(macOS)
+        return activeClients[id]?.state ?? .stopped
+        #else
+        return .stopped
+        #endif
+    }
+
+    func getMCPTools(for id: UUID) -> [MCPToolInfo] {
+        if case .connected(let tools) = getMCPClientState(for: id) {
+            return tools
+        }
+        return []
     }
 }

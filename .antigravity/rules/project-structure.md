@@ -17,7 +17,8 @@ These constraints protect the project from structural corruption.
 ## Model Files
 - Model files (`*.litertlm`) live in `models/` directory
 - `models/` is gitignored — models are locally provisioned, not committed
-- Never commit model files to git (they are 2.0-3.7GB each)
+- Never commit model files to git (they are 2.0-6.5GB each)
+- Current models: Gemma 4 E2B (Standard + Web), E4B (Standard + Web), **12B Dense Multimodal (new)**
 - See `.antigravity/skills/performance-testing/scripts/provision-model.sh` for availability checks
 
 ### Physical Device Provisioning
@@ -36,4 +37,5 @@ xcrun devicectl device copy to --device <UDID> \
 ## Dependencies
 - Swift package dependencies are declared in `Project.swift`
 - `.package.resolved` is committed for dependency locking
-- The only external dependency is `LiteRT-LM` from google-ai-edge
+- The only external dependency is `LiteRT-LM` from google-ai-edge (pinned to `main` branch, current HEAD: `aeefa9b`)
+- SDK version: `0.13.0-dev` — v0.12.0 tag has SPM packaging issues (Issue #2407)

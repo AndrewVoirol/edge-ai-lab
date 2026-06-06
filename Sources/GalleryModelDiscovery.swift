@@ -50,18 +50,27 @@ enum GalleryModelDiscovery {
         var models: [DiscoveredModel] = []
         var seenFilenames = Set<String>()
 
-        // 1. Check our own Documents directory
-        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let localModels = scanDirectory(docs, source: .local)
-            for model in localModels where !seenFilenames.contains(model.filename) {
-                seenFilenames.insert(model.filename)
-                models.append(model)
-            }
+        // 1. Check the app's designated models directory
+        let modelsDir = getAppModelsDirectory()
+        let localModels = scanDirectory(modelsDir, source: .local)
+        for model in localModels where !seenFilenames.contains(model.filename) {
+            seenFilenames.insert(model.filename)
+            models.append(model)
         }
 
         #if os(macOS) || targetEnvironment(simulator)
-        // On macOS/simulator, also check the project's models/ directory
-        // (used for development, not available on device)
+        // On macOS/simulator, also check Caches
+        let additionalDirs: [URL] = [
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
+        ].compactMap { $0 }
+        
+        for dir in additionalDirs {
+            let found = scanDirectory(dir, source: .local)
+            for m in found where !seenFilenames.contains(m.filename) {
+                seenFilenames.insert(m.filename)
+                models.append(m)
+            }
+        }
         #endif
 
         // 2. Check for Gallery's shared folder
@@ -88,14 +97,37 @@ enum GalleryModelDiscovery {
         return models.sorted { $0.filename < $1.filename }
     }
 
+    /// Returns the primary directory where the app expects to read/write models.
+    static func getAppModelsDirectory() -> URL {
+        #if DEBUG && os(macOS)
+        let sourceFileURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceFileURL
+            .deletingLastPathComponent() // removes GalleryModelDiscovery.swift
+            .deletingLastPathComponent() // removes Sources/
+        return projectRoot.appendingPathComponent("models")
+        #else
+        #if os(macOS)
+        // Use Application Support on macOS to avoid TCC prompts for Documents
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.GemmaEdgeGallery")
+        try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
+        return appDir.appendingPathComponent("models")
+        #else
+        // Use Documents on iOS so it shows up in the Files app
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        #endif
+        #endif
+    }
+
     // MARK: - Directory Scanning
 
     /// Scan a directory for .litertlm model files.
+    /// Resolves symlinks so linked models are correctly discovered.
     private static func scanDirectory(_ directory: URL, source: DiscoveredModel.DiscoverySource) -> [DiscoveredModel] {
         let fileManager = FileManager.default
         guard let contents = try? fileManager.contentsOfDirectory(
             at: directory,
-            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey],
             options: [.skipsHiddenFiles]
         ) else {
             return []
@@ -104,7 +136,9 @@ enum GalleryModelDiscovery {
         return contents.compactMap { url -> DiscoveredModel? in
             guard url.pathExtension == "litertlm" else { return nil }
 
-            let resourceValues = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+            // Resolve symlinks so we check the actual target file
+            let resolvedURL = url.resolvingSymlinksInPath()
+            let resourceValues = try? resolvedURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
             guard resourceValues?.isRegularFile == true else { return nil }
 
             let size = Int64(resourceValues?.fileSize ?? 0)

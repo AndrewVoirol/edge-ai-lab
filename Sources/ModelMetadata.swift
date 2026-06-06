@@ -71,6 +71,15 @@ struct ModelMetadata: Codable, Sendable, Identifiable {
     /// Minimum device memory required in GB
     let minDeviceMemoryGB: Int
 
+    /// Context window size in tokens (e.g., 128_000 or 256_000).
+    let contextWindowSize: Int
+
+    /// Architecture type for display (e.g., "MoE Edge", "Dense Multimodal").
+    let architectureType: String
+
+    /// Human-readable recommendation (e.g., "Mobile chat", "Desktop coding").
+    let recommendedFor: String
+
     /// Whether the model supports image input
     let supportsImage: Bool
 
@@ -101,6 +110,11 @@ struct ModelMetadata: Codable, Sendable, Identifiable {
     /// Whether speculative decoding (MTP) is available for this model.
     var supportsMTP: Bool {
         capabilities.contains("speculative_decoding")
+    }
+
+    /// Whether tool calling is supported (assumed true for -it instruction tuned models).
+    var supportsToolCalling: Bool {
+        modelId.contains("-it")
     }
 }
 
@@ -143,11 +157,13 @@ struct PlatformSupport: Codable, Sendable {
 enum ModelRegistry {
 
     /// All known models in the registry.
+    /// Ordered by recommendation: 12B first (flagship), then E4B, then E2B.
     static let knownModels: [ModelMetadata] = [
-        gemma4E2BStandard,
-        gemma4E2BWeb,
+        gemma4_12B,           // Flagship — released today
         gemma4E4BStandard,
         gemma4E4BWeb,
+        gemma4E2BStandard,
+        gemma4E2BWeb,
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -169,6 +185,9 @@ enum ModelRegistry {
         description: "Standard Gemma 4 E2B model with CPU (XNNPACK) and desktop GPU (Metal) support. Desktop Metal shaders also work on A-series iOS GPUs (verified on iPhone 16 Pro Max).",
         sizeInBytes: 2_588_147_712,
         minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective)",
+        recommendedFor: "Mobile chat, quick responses",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -198,17 +217,20 @@ enum ModelRegistry {
         description: "Mobile-optimized Gemma 4 E2B with GPU artisan shaders for A-series and M-series chips. GPU-only — no CPU subgraph. Fastest decode on iOS device (39.9 tok/s).",
         sizeInBytes: 2_008_432_640,
         minDeviceMemoryGB: 8,
-        supportsImage: true,
-        supportsAudio: true,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective)",
+        recommendedFor: "Fastest mobile inference",
+        supportsImage: false,
+        supportsAudio: false,
         capabilities: ["llm_thinking", "speculative_decoding"],
         defaultConfig: ModelDefaultConfig(
-            topK: 64,
-            topP: 0.95,
+            topK: 1,
+            topP: 1.0,
             temperature: 1.0,
             maxContextLength: 32_000,
             maxTokens: 4_000,
             accelerators: "gpu",
-            visionAccelerator: "gpu"
+            visionAccelerator: nil
         ),
         platformSupport: PlatformSupport(
             macOS: .gpuOnly,          // Session 2 verified: 113.1 tok/s on macOS Metal
@@ -227,6 +249,9 @@ enum ModelRegistry {
         description: "Gemma 4 E4B standard model (4B effective params). CPU (XNNPACK) + desktop GPU (Metal). Higher quality than E2B but requires more memory.",
         sizeInBytes: 3_660_000_000,  // ~3.66 GB
         minDeviceMemoryGB: 12,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (4B effective)",
+        recommendedFor: "Balanced quality and speed",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -241,7 +266,7 @@ enum ModelRegistry {
         ),
         platformSupport: PlatformSupport(
             macOS: .gpuAndCpu,
-            iOSDevice: .cpuOnly,      // Assumed same pattern as E2B standard
+            iOSDevice: .gpuAndCpu,      // Standard models support Metal GPUs on iOS
             iOSSimulator: .cpuOnly
         )
     )
@@ -256,6 +281,47 @@ enum ModelRegistry {
         description: "Mobile-optimized Gemma 4 E4B with GPU artisan shaders for A-series chips. GPU-only — no CPU subgraph.",
         sizeInBytes: 2_970_000_000,  // ~2.97 GB
         minDeviceMemoryGB: 12,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (4B effective)",
+        recommendedFor: "Mobile text workflows",
+        supportsImage: false,
+        supportsAudio: false,
+        capabilities: ["llm_thinking", "speculative_decoding"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 1,
+            topP: 1.0,
+            temperature: 1.0,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: nil
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,          // Same architecture as E2B web
+            iOSDevice: .gpuOnly,
+            iOSSimulator: .gpuOnly    // Same architecture as E2B web
+        )
+    )
+
+    // MARK: - Gemma 4 12B (Dense Multimodal)
+
+    /// Gemma 4 12B — Dense encoder-free multimodal model (text + image + audio).
+    /// Released June 3, 2026. 256K context window. Requires 16GB+ unified memory.
+    /// Outperforms Gemma 3 27B on multiple benchmarks. Apache 2.0 license.
+    ///
+    /// This model is primarily intended for macOS (M-series with 16GB+) and
+    /// iPad Pro, but iOS device loading is not blocked — the increased-memory-limit
+    /// entitlement may allow it on high-RAM iPhones. Let the engine try and report.
+    static let gemma4_12B = ModelMetadata(
+        name: "Gemma 4 12B · Dense Multimodal",
+        modelId: "litert-community/gemma-4-12B-it-litert-lm",
+        modelFile: "gemma-4-12B-it.litertlm",
+        description: "Dense 12B model with native text, image, and audio. 256K context. Requires 16GB+ unified memory. Best quality on-device.",
+        sizeInBytes: 6_547_589_312,
+        minDeviceMemoryGB: 16,
+        contextWindowSize: 256_000,
+        architectureType: "Dense Multimodal",
+        recommendedFor: "Desktop power users, coding, deep analysis",
         supportsImage: true,
         supportsAudio: true,
         capabilities: ["llm_thinking", "speculative_decoding"],
@@ -263,15 +329,15 @@ enum ModelRegistry {
             topK: 64,
             topP: 0.95,
             temperature: 1.0,
-            maxContextLength: 32_000,
-            maxTokens: 4_000,
-            accelerators: "gpu",
+            maxContextLength: 256_000,
+            maxTokens: 8_000,
+            accelerators: "gpu,cpu",
             visionAccelerator: "gpu"
         ),
         platformSupport: PlatformSupport(
-            macOS: .gpuOnly,          // Same architecture as E2B web
-            iOSDevice: .gpuOnly,
-            iOSSimulator: .gpuOnly    // Same architecture as E2B web
+            macOS: .gpuAndCpu,        // M-series with 16GB+ — primary target
+            iOSDevice: .gpuAndCpu,    // Allow attempt — increased-memory-limit entitlement may help
+            iOSSimulator: .cpuOnly    // Simulator Metal unreliable
         )
     )
 

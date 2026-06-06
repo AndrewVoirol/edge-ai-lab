@@ -23,6 +23,16 @@ final class GalleryParityBenchmarkTests: XCTestCase {
 
     // MARK: - Configuration
 
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        #if targetEnvironment(simulator)
+        // Metal GPU delegate crashes on iOS Simulator with "texture binding has argument
+        // index 31 that is greater than 30" — these tests require real device hardware.
+        // See: HISTORY.md "Metal GPU on Simulator" for context.
+        throw XCTSkip("GalleryParityBenchmarkTests require real device hardware (Metal GPU unavailable on Simulator)")
+        #endif
+    }
+
     /// Number of benchmark runs per test (matches Gallery setting).
     private let numberOfRuns = 3
 
@@ -142,6 +152,7 @@ final class GalleryParityBenchmarkTests: XCTestCase {
     /// Gemma 4 E2B Standard, CPU, no MTP.
     /// Gallery got all zeros for CPU — expect similar or very slow results.
     func testGalleryParity_Gemma4E2B_CPU() async throws {
+        throw XCTSkip("CPU not supported for this model variant, causes native crash")
         let model = try findModel(named: "gemma-4-E2B-it.litertlm")
         try await runGalleryParityBenchmark(
             modelPath: model,

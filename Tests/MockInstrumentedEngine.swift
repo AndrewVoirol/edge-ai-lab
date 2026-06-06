@@ -63,6 +63,21 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// Number of times warmup was called.
     private(set) var warmupCallCount = 0
 
+    /// The last system message passed to initialize.
+    private(set) var lastSystemMessage: String?
+
+    /// The last image data passed to sendMessageStream.
+    private(set) var lastImageData: Data?
+
+    /// The last audio data passed to sendMessageStream.
+    private(set) var lastAudioData: Data?
+
+    /// Number of times multimodal sendMessageStream was called.
+    private(set) var multimodalSendCallCount = 0
+
+    /// The last tools array passed to initialize.
+    private(set) var lastTools: [Tool]?
+
     // MARK: - Protocol Conformance
 
     private(set) var isReady = false
@@ -81,12 +96,16 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         useGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws {
         initializeCallCount += 1
         lastModelPath = modelPath
         lastFlags = flags
         lastSamplerConfig = samplerConfig
+        lastSystemMessage = systemMessage
+        lastTools = tools
         flagsState = flags
 
         if let error = initError {
@@ -101,7 +120,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         preferGPU: Bool,
         cacheDir: String,
         flags: ExperimentalFlagsState,
-        samplerConfig: SamplerConfig?
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?,
+        tools: [Tool]?
     ) async throws -> BackendResult {
         // Delegate to regular initialize
         try await initialize(
@@ -109,7 +130,9 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
             useGPU: preferGPU,
             cacheDir: cacheDir,
             flags: flags,
-            samplerConfig: samplerConfig
+            samplerConfig: samplerConfig,
+            systemMessage: systemMessage,
+            tools: tools
         )
 
         let result = mockBackendResult ?? BackendResult(
@@ -154,6 +177,18 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         }
     }
 
+    func sendMessageStream(
+        _ text: String,
+        imageData: Data?,
+        audioData: Data?
+    ) -> AsyncThrowingStream<String, Error> {
+        multimodalSendCallCount += 1
+        lastImageData = imageData
+        lastAudioData = audioData
+        // Delegate to text-only path for response generation
+        return sendMessageStream(text)
+    }
+
     func resetConversation() async throws {
         resetConversationCallCount += 1
         lastBenchmarkInfo = nil
@@ -164,6 +199,10 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         warmupCallCount += 1
         // Simulate benchmark priming — set lastBenchmarkInfo after warmup
         lastBenchmarkInfo = mockBenchmarkInfo
+    }
+
+    func cancelGeneration() {
+        // Mock cancellation: could set a flag or throw if needed in specific tests
     }
 
     func shutdown() async {

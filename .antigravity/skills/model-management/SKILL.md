@@ -17,6 +17,7 @@ This skill covers the full lifecycle of Gemma model management: catalog, downloa
 | Gemma-4-E2B-it (Mobile GPU) | gemma-4-E2B-it-web.litertlm | 2.01 GB | ✅ Mobile | ❌ | GPU-only (43.5 tok/s) | Unknown | Unknown | ✅ | litert-community/gemma-4-E2B-it-litert-lm |
 | Gemma-4-E4B-it (Standard) | gemma-4-E4B-it.litertlm | 3.66 GB | ✅ Desktop | ✅ XNNPACK | GPU+CPU | GPU+CPU | CPU only | ✅ | litert-community/gemma-4-E4B-it-litert-lm |
 | Gemma-4-E4B-it (Mobile GPU) | gemma-4-E4B-it-web.litertlm | 2.97 GB | ✅ Mobile | ❌ | GPU-only | Unknown | Unknown | ✅ | litert-community/gemma-4-E4B-it-litert-lm |
+| **Gemma-4-12B-it (Dense)** | gemma-4-12B-it.litertlm | 6.50 GB | ✅ Desktop | ✅ XNNPACK | GPU+CPU (≥16GB) | GPU+CPU | CPU only | ✅ | google/gemma-4-12b-it-litert-lm |
 
 ### GPU Variant Notes
 
@@ -45,6 +46,9 @@ huggingface-cli download litert-community/gemma-4-E4B-it-litert-lm gemma-4-E4B-i
 # Download Gemma 3n (requires authentication — gated model)
 huggingface-cli login
 huggingface-cli download google/gemma-3n-E2B-it-litert-lm gemma-3n-E2B-it-int4.litertlm --local-dir ./models
+
+# Download Gemma 4 12B (Dense Multimodal — 6.5GB)
+huggingface-cli download google/gemma-4-12b-it-litert-lm gemma-4-12B-it.litertlm --local-dir ./models
 ```
 
 ### Using curl
@@ -82,6 +86,7 @@ gemma-edgegallery/
 └── models/
     ├── gemma-4-E2B-it.litertlm       # Standard (recommended for dev)
     ├── gemma-4-E2B-it-web.litertlm   # Mobile GPU variant
+    ├── gemma-4-12B-it.litertlm       # 12B Dense Multimodal (≥16GB RAM)
     └── gemma-3n-E2B-it-int4.litertlm # Gallery-compatible model
 ```
 

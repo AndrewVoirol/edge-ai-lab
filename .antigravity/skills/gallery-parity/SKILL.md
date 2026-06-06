@@ -184,21 +184,29 @@ The Gallery and GemmaEdgeGallery benchmarks use **different methodologies** and 
 | Experimental flags management | ✅ `ExperimentalFlagsState` |
 | Dual iOS + macOS targets | ✅ Via Tuist |
 | os_signpost instrumentation | ✅ Model load, inference, TTFT |
+| System message support | ✅ `ConversationConfig(systemMessage:)` |
+| Reproducible generation | ✅ `SamplerConfig(seed:)` |
+| Gemma 4 12B model support | ✅ `ModelRegistry.gemma4_12B` — 256K context, multimodal |
+| Inference cancellation | ✅ `Conversation.cancel()` |
 
 ### What We're Missing ❌
-| Feature | Priority | Notes |
-|---|---|---|
-| HuggingFace download system | 🔴 High | Gallery downloads models at runtime from HF repos |
-| Remote allowlist fetching | 🔴 High | Gallery fetches model catalog from remote config |
-| Multi-turn chat | 🔴 High | Gallery maintains conversation history |
-| Image input (multimodal) | 🟡 Medium | Requires `llmSupportImage` capable models |
-| Audio input (multimodal) | 🟡 Medium | Requires `llmSupportAudio` capable models |
-| Agent skills / tool use | 🟡 Medium | Gallery supports agent-style interactions |
-| MCP integration | 🟡 Medium | Model Context Protocol for tool calling |
-| Model management UI | 🟡 Medium | Download, delete, update models from UI |
-| Thinking mode UI | 🟢 Low | Show/hide model reasoning steps |
-| Task type routing | 🟢 Low | Route to best model per task type |
-| Remote config updates | 🟢 Low | Hot-update model catalog without app update |
+| Feature | Priority | SDK Ready? | Notes |
+|---|---|---|---|
+| Multi-turn chat | 🔴 High | ✅ Yes | `ConversationConfig.initialMessages` supports history |
+| Image input (multimodal) | 🔴 High | ✅ Yes | `Content.imageData/imageFile` — SDK ready, 12B supports it |
+| Audio input (multimodal) | 🔴 High | ✅ Yes | `Content.audioData/audioFile` — SDK ready, 12B supports it |
+| Tool use / Function calling | 🔴 High | ✅ Yes | `Tool` protocol + `@ToolParam` + `ToolManager` — full SDK support |
+| System message / persona | ✅ Done | ✅ Yes | `ConversationConfig.systemMessage` — integrated in stack audit |
+| Reproducible generation | ✅ Done | ✅ Yes | `SamplerConfig.seed` — integrated in stack audit |
+| HuggingFace download system | 🟡 Medium | — | Gallery downloads models at runtime from HF repos |
+| Remote allowlist fetching | 🟡 Medium | — | Gallery fetches model catalog from remote config |
+| Model management UI | 🟡 Medium | — | Download, delete, update models from UI |
+| Thinking mode UI | 🟢 Low | — | Show/hide model reasoning steps |
+| Task type routing | 🟢 Low | — | Route to best model per task type |
+| Remote config updates | 🟢 Low | — | Hot-update model catalog without app update |
+
+> [!TIP]
+> **The June 2026 stack audit revealed that the SDK now has full support for multimodal input, function calling, and system messages.** These were previously listed as medium-priority because the SDK didn't support them. They are now unblocked and promoted to high priority.
 
 ## Reference Links
 

@@ -36,6 +36,9 @@ To compare results across our app, the AI Edge Gallery, and HuggingFace model ca
 > [!WARNING]
 > **topK=1 (greedy) vs topK=64 (sampling) affects benchmark speed.** Greedy decoding is typically faster because the sampler does less work. When comparing against Gallery numbers, note this discrepancy.
 
+> [!NOTE]
+> **Gemma 4 12B (6.5GB)** is available for benchmarking. It requires ≥16GB device RAM and is only recommended for GPU backends. Configs 9-10 in the automation matrix target 12B.
+
 ## Test Classes
 
 | Test Class | Purpose | Token Config |
@@ -43,6 +46,7 @@ To compare results across our app, the AI Edge Gallery, and HuggingFace model ca
 | `PerformanceTests` | XCTMetric-based (memory, CPU, clock) | Short prompt |
 | `SimulatorCompatibilityTests` | Model/backend compatibility matrix | Short prompt |
 | `GalleryParityBenchmarkTests` | Gallery-comparable benchmarks | 256 prefill, 256 decode, 3 runs |
+| `SmartFallbackIntegrationTests` | End-to-end registry→engine→inference | Short prompt |
 
 ## Reporting Standards
 
@@ -64,4 +68,6 @@ When reporting benchmark results:
 5. **Simulator GPU is unreliable** — Always use CPU on simulator; GPU produces degenerate output
 6. **LiteRT-LM C++ Deallocation Deadlocks** — Re-initializing or mutating the engine configurations within a single process lifecycle can trigger deadlocks or segmentation faults (`SIGSEGV`) in the underlying binary C++ LiteRT-LM framework. **Always** run multi-configuration benchmarks in isolated process launches (e.g., using `-RunMatrixBenchmark <id>`) to allow the OS to cleanly reclaim C++ handles on exit.
 7. **Strict 256-Token Generation Cap** — For metrics parity with the Gallery baseline and to prevent OOM/timeouts on local devices, benchmarks must consume the streaming API (`sendMessageStream`) and cooperatively break as soon as exactly 256 decode tokens are output.
+8. **12B model memory pressure** — The 12B model requires ≥16GB RAM. On iOS devices with less memory, the system may OOM-kill the process. Use `increased-memory-limit` entitlement and test on supported hardware only.
+9. **SamplerConfig.seed for reproducibility** — Set `seed` to a non-zero value (e.g., `42`) for reproducible benchmark runs. Default `0` means non-deterministic.
 

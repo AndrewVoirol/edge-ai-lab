@@ -20,7 +20,7 @@ GemmaEdgeGallery is a SwiftUI app that runs Google Gemma 4 models on-device usin
 - **Developer Team ID:** `Y7J7WUK693` (Free Personal Team)
 - **Bundle ID Base:** `com.andrewvoirol.GemmaEdgeGallery`
 - **Project Generator:** Tuist — edit `Project.swift`, never `.xcodeproj`
-- **Dependencies:** LiteRT-LM (via Swift Package Manager, branch: `main`)
+- **Dependencies:** LiteRT-LM (via Swift Package Manager, branch: `main`, HEAD: `aeefa9b`, v0.13.0-dev)
 
 ## Quick Start
 
@@ -63,7 +63,7 @@ Project.swift → tuist generate → XcodeBuildMCP (build/test/deploy)
 
 ## Model Provisioning
 
-LLM weights are large (~2.0-3.7GB) and are **not committed to git**. Models live in the `models/` directory.
+LLM weights are large (~2.0-6.5GB) and are **not committed to git**. Models live in the `models/` directory.
 
 ### Full Model Catalog
 
@@ -75,6 +75,7 @@ LLM weights are large (~2.0-3.7GB) and are **not committed to git**. Models live
 | Gemma-4-E2B-it (Mobile GPU) | `gemma-4-E2B-it-web.litertlm` | 2.01 GB | ✅ Mobile | ❌ | GPU-only | GPU Only (113.1 tok/s) | GPU Only (degenerate) | [litert-community/gemma-4-E2B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm) |
 | Gemma-4-E4B-it (Standard) | `gemma-4-E4B-it.litertlm` | 3.66 GB | ✅ Desktop | ✅ XNNPACK | CPU only | GPU+CPU | CPU only | [litert-community/gemma-4-E4B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm) |
 | Gemma-4-E4B-it (Mobile GPU) | `gemma-4-E4B-it-web.litertlm` | 2.97 GB | ✅ Mobile | ❌ | GPU-only | GPU Only | GPU Only (degenerate) | [litert-community/gemma-4-E4B-it-litert-lm](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm) |
+| **Gemma-4-12B-it (Dense)** | `gemma-4-12B-it.litertlm` | 6.50 GB | ✅ Desktop | ✅ XNNPACK | GPU+CPU (≥16GB RAM) | GPU+CPU | CPU only | [google/gemma-4-12b-it-litert-lm](https://huggingface.co/google/gemma-4-12b-it-litert-lm) |
 
 ### Model Naming Convention
 
@@ -99,6 +100,9 @@ LLM weights are large (~2.0-3.7GB) and are **not committed to git**. Models live
 # Using HuggingFace CLI (recommended)
 pip install huggingface-hub
 huggingface-cli download litert-community/gemma-4-E2B-it-litert-lm gemma-4-E2B-it.litertlm --local-dir ./models
+
+# Download Gemma 4 12B (Dense Multimodal — 6.5GB, requires ≥16GB RAM)
+huggingface-cli download google/gemma-4-12b-it-litert-lm gemma-4-12B-it.litertlm --local-dir ./models
 
 # Using curl
 curl -L https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm -o ./models/gemma-4-E2B-it.litertlm
@@ -129,6 +133,7 @@ xcrun devicectl device copy to \
 | Platform | Recommended Model | Backend | Notes |
 |---|---|---|---|
 | macOS (development) | `gemma-4-E2B-it.litertlm` | GPU + CPU | Full flexibility, both backends work |
+| macOS (12B testing) | `gemma-4-12B-it.litertlm` | GPU + CPU | 256K context, multimodal, requires ≥16GB RAM |
 | iOS Simulator | `gemma-4-E2B-it.litertlm` | CPU only | Only standard models have CPU subgraph |
 | iOS Device (GPU perf) | `gemma-4-E2B-it-web.litertlm` | GPU only | Mobile Metal shaders, best GPU perf |
 | iOS Device (Standard GPU) | `gemma-4-E2B-it.litertlm` | GPU + CPU | GPU works on iPhone 16 Pro Max (2.33s load) |
@@ -142,11 +147,12 @@ xcrun devicectl device copy to \
 
 ## Test Plans
 
-| Plan | Model Required | Speed | What It Tests |
-|---|---|---|---|
-| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management |
-| **PerformanceTests** | ✅ Yes | Slow (minutes) | Real inference, latency, memory |
-| **SimulatorCompatibilityTests** | ✅ Yes | Slow (minutes) | Model/backend compatibility matrix |
+| Plan | Model Required | Speed | What It Tests | Test Classes |
+|---|---|---|---|---|
+| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management | 13 classes, ~107 tests |
+| **IntegrationTests** | ✅ Yes | Medium (minutes) | Functional verification, model registry, fallback | 3 classes |
+| **PerformanceTests** | ✅ Yes | Slow (minutes) | Real inference, latency, memory, smart fallback | 2 classes |
+| **SimulatorCompatibilityTests** | ✅ Yes | Slow (minutes) | Model/backend compatibility matrix | 1 class |
 
 ### Model Discovery (PerformanceTests)
 
@@ -263,13 +269,21 @@ This project aims for feature parity with the [Google AI Edge Gallery](https://g
 | Feature | Status | Notes |
 |---|---|---|
 | LiteRT-LM inference | ✅ Done | GPU + CPU with smart fallback |
-| Model metadata registry | ✅ Done | `ModelRegistry` with variant detection |
+| Model metadata registry | ✅ Done | `ModelRegistry` with variant detection (5 models incl. 12B) |
 | Benchmark capture | ✅ Done | `BenchmarkInfo` + metrics persistence |
 | Experimental flags | ✅ Done | `ExperimentalFlagsState` management |
 | Dual platform targets | ✅ Done | iOS + macOS via Tuist |
+| System message support | ✅ Done | Backend + UI (TextEditor in Settings) — Stack Audit + Session 2 |
+| Reproducible generation | ✅ Done | Backend + UI (Seed stepper in Settings) — Stack Audit + Session 2 |
+| Gemma 4 12B support | ✅ Done | 6.5GB, 256K context, multimodal — Stack Audit June 2026 |
+| Inference cancellation | ✅ Done | `Conversation.cancel()` |
+| **Multimodal input** | ✅ Done | Image (PhotosPicker) + Audio (file importer) — Session 2 June 2026 |
 | HuggingFace downloads | 🚧 In Progress | `ModelDownloadManager` implemented, needs on-device verification |
-| Multi-turn chat | ❌ Missing | Gallery maintains conversation history |
-| Multimodal input | ❌ Missing | Image + audio input support |
+| Multi-turn chat | 🟡 SDK Ready | `ConversationConfig.initialMessages` — SDK supports it |
+| Tool use / Function calling | 🟡 SDK Ready | `Tool` protocol + `@ToolParam` + `ToolManager` — needs observability layer |
+| Thinking Mode | ❌ Missing | Gallery v1.0.14+ shows step-by-step reasoning |
+| Agent Skills | ❌ Missing | Gallery v1.0.14+ has Wikipedia, maps, visual summaries |
+| MCP Support | ❌ Missing | Gallery v1.0.14+ has experimental Model Context Protocol |
 | Model management UI | ❌ Missing | Download, delete, update models |
 | Remote allowlist | ❌ Missing | Fetch model catalog from remote config |
 
@@ -311,6 +325,7 @@ User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
 | 15 | **testmanagerd broken on iOS/macOS 26.6 beta** | Apple known issue | XCTest runner fails to bootstrap on physical device. Three failure modes observed: (1) hang before establishing connection (338.9s timeout), (2) signal kill before establishing connection, (3) "No result" via Xcode IDE. Originally attributed to re-pairing, but persists after iPhone restart on iOS 26.6 (23G5028e) + macOS 26.6 (25G5028f). App itself builds, installs, and launches fine — only XCTest infrastructure is broken. **Wait for next beta seed.** |
 | 16 | **ModelMetadata.id collision (SwiftUI)** | Discovered Session 8 | **FIXED** — `Identifiable.id` used `modelId` (HuggingFace repo), but Standard and Web variants share the same repo. SwiftUI `ForEach` rendered duplicate cards. Changed to `modelFile` which is unique per variant. |
 | 17 | **iOS 26.6 beta test runner signal kill** | iOS 26.6 beta | Test runner process (PID visible via `devicectl`) receives SIGKILL before XCTest connection bootstraps. `codesign` shows `get-task-allow` and `increased-memory-limit` entitlements present. Likely beta-specific issue with testmanagerd trust chain or entitlement validation. |
+| 18 | **v0.12.0 SPM packaging broken** | [LiteRT-LM #2407](https://github.com/google-ai-edge/LiteRT-LM/issues/2407) | Tagged v0.12.0 release has SPM packaging issues. Must use `.branch("main")`. v0.13.0 not yet released. |
 
 
 > [!NOTE]

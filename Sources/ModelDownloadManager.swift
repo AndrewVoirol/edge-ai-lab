@@ -50,14 +50,12 @@ final class ModelDownloadManager {
     private var progressObservations: [String: NSKeyValueObservation] = [:]
 
     /// The documents directory where models are stored.
-    private let documentsDirectory: URL
+    let documentsDirectory: URL
 
     // MARK: - Init
 
     init() {
-        self.documentsDirectory = FileManager.default.urls(
-            for: .documentDirectory, in: .userDomainMask
-        ).first!
+        self.documentsDirectory = GalleryModelDiscovery.getAppModelsDirectory()
     }
 
     // MARK: - State Queries
@@ -71,6 +69,10 @@ final class ModelDownloadManager {
         let fileURL = documentsDirectory.appendingPathComponent(model.modelFile)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             let state = DownloadState.downloaded(fileURL)
+            downloadStates[model.modelFile] = state
+            return state
+        } else if let discovered = GalleryModelDiscovery.discoverModels().first(where: { $0.filename == model.modelFile }) {
+            let state = DownloadState.downloaded(discovered.url)
             downloadStates[model.modelFile] = state
             return state
         } else {

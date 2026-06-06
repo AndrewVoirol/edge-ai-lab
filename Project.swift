@@ -6,11 +6,10 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // Session 4: Upgraded from 3a97cbf to main HEAD (aeefa9b, 2026-05-29).
-        // Includes: macOS Swift API support, MTP byte-mapping fix (Windows),
-        // sampler config in CLI, version bump to 0.13.0-dev.
-        // v0.12.0 tag still has packaging issues. Will re-evaluate at v0.13.0 release.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main"))
+        // LiteRT-LM: Tracking main branch for the latest fixes and features.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
+        // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
+        .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
     ],
     settings: .settings(
         base: [
@@ -40,7 +39,8 @@ let project = Project(
             // increased-memory-limit works with personal teams (matches zealous-bose config).
             entitlements: .file(path: "GemmaEdgeGallery_iOS.entitlements"),
             dependencies: [
-                .package(product: "LiteRTLM")
+                .package(product: "LiteRTLM"),
+                .package(product: "MarkdownUI")
             ]
         ),
         .target(
@@ -63,8 +63,10 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["Sources/**"],
+            entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
             dependencies: [
-                .package(product: "LiteRTLM")
+                .package(product: "LiteRTLM"),
+                .package(product: "MarkdownUI")
             ]
         ),
         .target(
@@ -78,6 +80,40 @@ let project = Project(
             dependencies: [
                 .target(name: "GemmaEdgeGallery_macOS")
             ]
+        ),
+        .target(
+            name: "GemmaEdgeGallery_macOSUITests",
+            destinations: .macOS,
+            product: .uiTests,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.UITests",
+            deploymentTargets: .macOS("26.0"),
+            infoPlist: .default,
+            sources: ["UITests/**"],
+            dependencies: [
+                .target(name: "GemmaEdgeGallery_macOS")
+            ]
+        ),
+        .target(
+            name: "RawBenchmark",
+            destinations: .macOS,
+            product: .commandLineTool,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.RawBenchmark",
+            deploymentTargets: .macOS("26.0"),
+            infoPlist: .default,
+            sources: ["RawBenchmark/**"],
+            dependencies: [
+                .package(product: "LiteRTLM")
+            ],
+            settings: .settings(
+                base: [
+                    "LD_RUNPATH_SEARCH_PATHS": .array([
+                        "@executable_path",
+                        "@executable_path/../lib",
+                        "$(BUILT_PRODUCTS_DIR)"
+                    ]),
+                    "HEADERPAD_MAX_INSTALL_NAMES": "YES"
+                ]
+            )
         )
     ],
     schemes: [
@@ -97,11 +133,20 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["GemmaEdgeGallery_macOS"]),
             testAction: .targets(
-                ["GemmaEdgeGallery_macOSTests"],
+                [
+                    "GemmaEdgeGallery_macOSTests",
+                    "GemmaEdgeGallery_macOSUITests"
+                ],
                 configuration: .debug,
                 options: .options(coverage: true)
             ),
             runAction: .runAction(configuration: .debug)
+        ),
+        .scheme(
+            name: "RawBenchmark",
+            shared: true,
+            buildAction: .buildAction(targets: ["RawBenchmark"]),
+            runAction: .runAction(configuration: .release)
         )
     ]
 )

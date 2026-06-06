@@ -48,9 +48,15 @@ final class MetricsStore {
         if let url = fileURL {
             self.fileURL = url
         } else {
-            // Default to documents directory for the app
+            // Default to safe app storage directory
+            #if os(macOS)
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.GemmaEdgeGallery")
+            self.fileURL = appDir.appendingPathComponent("metrics").appendingPathComponent("history.json")
+            #else
             let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             self.fileURL = docs.appendingPathComponent("metrics").appendingPathComponent("history.json")
+            #endif
         }
 
         self.encoder = JSONEncoder()
@@ -143,5 +149,41 @@ final class MetricsStore {
             ),
             flags: flags
         )
+    }
+
+    // MARK: - Queries
+
+    /// Get the last N entries from the store.
+    func lastEntries(_ count: Int) throws -> [Entry] {
+        let entries = try loadEntries()
+        return Array(entries.suffix(count))
+    }
+
+    /// Get entries for a specific model.
+    func entries(forModel model: String) throws -> [Entry] {
+        return try loadEntries().filter { $0.model == model }
+    }
+
+    /// Get the average decode speed across all entries (or filtered by model).
+    func averageDecodeSpeed(forModel model: String? = nil) throws -> Double {
+        let entries = try loadEntries()
+        let filtered = model != nil ? entries.filter { $0.model == model! } : entries
+        guard !filtered.isEmpty else { return 0 }
+        let total = filtered.reduce(0.0) { $0 + $1.metrics.decodeTokensPerSecond }
+        return total / Double(filtered.count)
+    }
+
+    /// Get decode speed trend data — pairs of (index, decodeSpeed) for charting.
+    func decodeSpeedTrend(forModel model: String? = nil, lastN: Int = 20) throws -> [(index: Int, speed: Double, model: String)] {
+        let entries = try loadEntries()
+        let filtered = model != nil ? entries.filter { $0.model == model! } : entries
+        let recent = Array(filtered.suffix(lastN))
+        return recent.enumerated().map { (index: $0.offset, speed: $0.element.metrics.decodeTokensPerSecond, model: $0.element.model) }
+    }
+
+    /// Get unique model names from the store.
+    func uniqueModels() throws -> [String] {
+        let entries = try loadEntries()
+        return Array(Set(entries.map(\.model))).sorted()
     }
 }
