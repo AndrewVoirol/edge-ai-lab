@@ -8,6 +8,9 @@ import os
 @Observable
 @MainActor
 final class ConversationViewModel {
+    
+    /// Global shared instance to synchronize settings and engine state across the app.
+    static let shared = ConversationViewModel()
 
     /// Console logger for runtime diagnostics (visible in Console.app).
     private static let logger = Logger(
@@ -39,7 +42,11 @@ final class ConversationViewModel {
     var isLoadingModel = false
 
     /// Whether GPU backend is preferred.
-    var useGPU = true
+    var useGPU = true {
+        didSet {
+            Task { await reinitializeEngineIfNeeded() }
+        }
+    }
 
     /// The most recent BenchmarkInfo from completed inference.
     var benchmarkInfo: BenchmarkInfo?
@@ -59,7 +66,11 @@ final class ConversationViewModel {
         enableSpeculativeDecoding: nil,
         enableConversationConstrainedDecoding: false,
         visualTokenBudget: nil
-    )
+    ) {
+        didSet {
+            Task { await reinitializeEngineIfNeeded() }
+        }
+    }
 
     // MARK: - Sampler Configuration
 
@@ -371,6 +382,15 @@ final class ConversationViewModel {
         statusMessage = "Model load cancelled"
     }
 
+    /// Reboots the engine to apply new core settings if a model is currently loaded.
+    private func reinitializeEngineIfNeeded() async {
+        guard engine.isReady, let url = activeModelURL else { return }
+        Self.logger.info("♻️ Settings changed, rebooting engine to apply new configuration...")
+        statusMessage = "Applying new settings..."
+        await engine.shutdown()
+        await initializeEngine(modelPath: url.path)
+    }
+
     // MARK: - Inference
 
     /// Generate a response for the current prompt via streaming.
@@ -523,6 +543,20 @@ final class ConversationViewModel {
         }
 
         isGenerating = false
+    }
+
+    /// Stop an active text generation.
+    func stopGenerating() {
+        guard isGenerating else { return }
+        Self.logger.info("🛑 stopGenerating called")
+        engine.cancelGeneration()
+        isGenerating = false
+        isThinking = false
+        statusMessage = "Generation stopped"
+        conversation.updateLastAssistantMessage(
+            content: "\n[Inference stopped by user]",
+            isStreaming: false
+        )
     }
 
     // MARK: - Conversation Management

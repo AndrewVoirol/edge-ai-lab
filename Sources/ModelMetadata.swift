@@ -111,6 +111,11 @@ struct ModelMetadata: Codable, Sendable, Identifiable {
     var supportsMTP: Bool {
         capabilities.contains("speculative_decoding")
     }
+
+    /// Whether tool calling is supported (assumed true for -it instruction tuned models).
+    var supportsToolCalling: Bool {
+        modelId.contains("-it")
+    }
 }
 
 /// Default inference configuration for a model, mirroring the Gallery allowlist schema.
@@ -215,8 +220,8 @@ enum ModelRegistry {
         contextWindowSize: 128_000,
         architectureType: "MoE Edge (2B effective)",
         recommendedFor: "Fastest mobile inference",
-        supportsImage: true,
-        supportsAudio: true,
+        supportsImage: false,
+        supportsAudio: false,
         capabilities: ["llm_thinking", "speculative_decoding"],
         defaultConfig: ModelDefaultConfig(
             topK: 1,
@@ -225,7 +230,7 @@ enum ModelRegistry {
             maxContextLength: 32_000,
             maxTokens: 4_000,
             accelerators: "gpu",
-            visionAccelerator: "gpu"
+            visionAccelerator: nil
         ),
         platformSupport: PlatformSupport(
             macOS: .gpuOnly,          // Session 2 verified: 113.1 tok/s on macOS Metal
@@ -279,8 +284,8 @@ enum ModelRegistry {
         contextWindowSize: 128_000,
         architectureType: "MoE Edge (4B effective)",
         recommendedFor: "Mobile text workflows",
-        supportsImage: true,
-        supportsAudio: true,
+        supportsImage: false,
+        supportsAudio: false,
         capabilities: ["llm_thinking", "speculative_decoding"],
         defaultConfig: ModelDefaultConfig(
             topK: 1,
@@ -289,7 +294,7 @@ enum ModelRegistry {
             maxContextLength: 32_000,
             maxTokens: 4_000,
             accelerators: "gpu",
-            visionAccelerator: "gpu"
+            visionAccelerator: nil
         ),
         platformSupport: PlatformSupport(
             macOS: .gpuOnly,          // Same architecture as E2B web

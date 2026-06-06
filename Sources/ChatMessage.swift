@@ -15,6 +15,9 @@ struct ChatMessage: Identifiable, Sendable {
     let timestamp: Date
     var benchmarkInfo: BenchmarkSnapshot?
     var isStreaming: Bool
+    var thinkingWordCount: Int
+    var specialResults: [UUID: SpecialResult]
+    
     
     /// The role of the message sender.
     enum Role: String, Sendable, Codable {
@@ -39,6 +42,20 @@ struct ChatMessage: Identifiable, Sendable {
             return false
         }
     }
+    
+    /// Pre-decoded special results for agent skills (Wikipedia, Maps)
+    struct SpecialResult: Decodable, Sendable {
+        let type: String
+        let query: String?
+        let title: String?
+        let extract: String?
+        let url: String?
+        let thumbnail_url: String?
+        let latitude: Double?
+        let longitude: Double?
+        let subtitle: String?
+    }
+    
     
     /// Lightweight snapshot of benchmark data for a single message.
     struct BenchmarkSnapshot: Sendable {
@@ -73,7 +90,9 @@ struct ChatMessage: Identifiable, Sendable {
             attachments: attachments,
             timestamp: Date(),
             benchmarkInfo: nil,
-            isStreaming: false
+            isStreaming: false,
+            thinkingWordCount: 0,
+            specialResults: [:]
         )
     }
     
@@ -88,7 +107,9 @@ struct ChatMessage: Identifiable, Sendable {
             attachments: [],
             timestamp: Date(),
             benchmarkInfo: nil,
-            isStreaming: true
+            isStreaming: true,
+            thinkingWordCount: 0,
+            specialResults: [:]
         )
     }
     
@@ -103,7 +124,9 @@ struct ChatMessage: Identifiable, Sendable {
             attachments: [],
             timestamp: Date(),
             benchmarkInfo: nil,
-            isStreaming: false
+            isStreaming: false,
+            thinkingWordCount: 0,
+            specialResults: [:]
         )
     }
 }
@@ -134,9 +157,17 @@ struct ConversationState {
         }
         if let thinking = thinkingContent {
             messages[lastIndex].thinkingContent = thinking
+            messages[lastIndex].thinkingWordCount = thinking.split(separator: " ").count
         }
         if let tools = toolCalls {
             messages[lastIndex].toolCalls = tools
+            for tool in tools {
+                if messages[lastIndex].specialResults[tool.id] == nil,
+                   let data = tool.result.data(using: .utf8),
+                   let special = try? JSONDecoder().decode(ChatMessage.SpecialResult.self, from: data) {
+                    messages[lastIndex].specialResults[tool.id] = special
+                }
+            }
         }
         if let streaming = isStreaming {
             messages[lastIndex].isStreaming = streaming

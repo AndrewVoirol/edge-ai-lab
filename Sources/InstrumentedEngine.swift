@@ -91,6 +91,9 @@ protocol InstrumentedEngineProtocol: AnyObject {
     /// a clean context for the real benchmark.
     func warmup() async throws
 
+    /// Cancel any currently active inference generation.
+    func cancelGeneration()
+
     /// Tear down the engine and free resources.
     func shutdown() async
 }
@@ -639,6 +642,16 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         for try await _ in sendMessageStream("Hi") {
             // Discard all response tokens
         }
+    }
+
+    // MARK: - Cancellation
+
+    func cancelGeneration() {
+        activeInferenceTask?.cancel()
+        // Proactively interrupt the LiteRTLM C++ generation loop.
+        // If we only cancel the Swift Task, the C++ execution might 
+        // block synchronously and ignore the Task.isCancelled flag.
+        try? conversation?.cancel()
     }
 
     // MARK: - Shutdown

@@ -76,11 +76,19 @@ public final class MCPClient: @unchecked Sendable {
         updateState(.failed(error: "MCP subprocesses are not supported on iOS sandboxes."))
         #else
         let shouldStart = stateLock.withLock {
-            if _state == .stopped || _state == .failed(error: "") {
-                _state = .starting
-                return true
+            let canStart: Bool
+            switch _state {
+            case .stopped:
+                canStart = true
+            case .failed:
+                canStart = true
+            default:
+                canStart = false
             }
-            return false
+            if canStart {
+                _state = .starting
+            }
+            return canStart
         }
         guard shouldStart else { return }
 
