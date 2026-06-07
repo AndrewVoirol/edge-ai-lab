@@ -23,7 +23,7 @@ struct StatusBarView: View {
                 .foregroundStyle(AppColors.textSecondary)
                 
             if let metadata = viewModel.activeModelMetadata, viewModel.isEngineReady {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     if metadata.supportsMTP { Text("MTP").badge(AppColors.accentTeal) }
                     if metadata.supportsImage { Text("Vision").badge(AppColors.accentCyan) }
                     if metadata.supportsAudio { Text("Audio").badge(AppColors.accentGold) }

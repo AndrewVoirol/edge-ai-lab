@@ -187,20 +187,40 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
     func testQuickActionsAndModelShowcase() throws {
         let app = launchApp()
 
-        // Test Quick Actions
-        let hintChat = app.groups["hint_chat"]
+        // Hints are now interactive Buttons (Phase 2 — actionable empty state)
+        let hintChat = app.buttons["hint_chat"]
         if hintChat.exists {
-            XCTAssertTrue(hintChat.isHittable)
+            XCTAssertTrue(hintChat.isHittable, "Chat hint should be hittable")
+            hintChat.click()
+            // After clicking "Start a conversation", prompt field should be focused
+            let promptField = app.textFields["textField_prompt"]
+            XCTAssertTrue(promptField.waitForExistence(timeout: 2.0))
         }
-        
-        let hintThinking = app.groups["hint_thinking"]
+
+        let hintThinking = app.buttons["hint_thinking"]
         if hintThinking.exists {
-            XCTAssertTrue(hintThinking.isHittable)
+            XCTAssertTrue(hintThinking.isHittable, "Thinking hint should be hittable")
+            hintThinking.click()
+            // After clicking "Watch the model think", prompt should be pre-filled
+            let promptField = app.textFields["textField_prompt"]
+            if promptField.waitForExistence(timeout: 2.0) {
+                // Verify the hint populated the prompt
+                let promptValue = promptField.value as? String ?? ""
+                XCTAssertFalse(promptValue.isEmpty, "Thinking hint should pre-fill the prompt")
+            }
+        }
+
+        let hintTools = app.buttons["hint_tools"]
+        if hintTools.exists {
+            XCTAssertTrue(hintTools.isHittable, "Tools hint should be hittable")
+        }
+
+        let hintImage = app.buttons["hint_image"]
+        if hintImage.exists {
+            XCTAssertTrue(hintImage.isHittable, "Image hint should be hittable")
         }
 
         // Test Model Showcase (by verifying the view and done button exist if we can trigger it)
-        // Without being able to reliably right click a specific model card to open context menu in XCTest easily,
-        // we will just assert the IDs are theoretically available if the view is presented.
         let modelShowcase = app.scrollViews["view_modelShowcase"]
         if modelShowcase.exists {
             let closeBtn = app.buttons["button_closeShowcase"]
@@ -479,4 +499,138 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         XCTAssertTrue(promptField.waitForExistence(timeout: 2.0))
     }
     #endif
+
+    // MARK: - Phase 4: Sidebar Functional Tests
+
+    /// Verifies the sidebar list exists as the first column in the 3-column layout.
+    func testSidebarListExists() throws {
+        let app = launchApp()
+
+        let sidebarList = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_list'"))
+            .firstMatch
+        XCTAssertTrue(
+            sidebarList.waitForExistence(timeout: 5.0),
+            "Sidebar list (sidebar_list) should exist in the 3-column layout"
+        )
+    }
+
+    /// Verifies that the active model status indicator shows the correct state
+    /// when no model is loaded (empty state).
+    func testSidebarActiveModelEmptyState() throws {
+        let app = launchApp()
+
+        // Without a model loaded, the empty state should be visible
+        let emptyIndicator = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_activeModel_empty'"))
+            .firstMatch
+
+        // On first launch without models, either empty or loading state should appear
+        if emptyIndicator.waitForExistence(timeout: 5.0) {
+            XCTAssertTrue(emptyIndicator.exists, "Active model empty state should be visible")
+        } else {
+            // If not empty, check for loading (model auto-load may have triggered)
+            let loadingIndicator = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier == 'sidebar_activeModel_loading'"))
+                .firstMatch
+            let loadedIndicator = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier == 'sidebar_activeModel_loaded'"))
+                .firstMatch
+            let anyModelState = loadingIndicator.exists || loadedIndicator.exists
+            XCTAssertTrue(anyModelState, "At least one active model state should be visible (empty, loading, or loaded)")
+        }
+    }
+
+    /// Verifies the benchmarks section in the sidebar has the expected items.
+    func testSidebarBenchmarksSectionExists() throws {
+        let app = launchApp()
+
+        let dashboardLink = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_benchmarks_dashboard'"))
+            .firstMatch
+
+        // Dashboard link should exist in the benchmarks section
+        XCTAssertTrue(
+            dashboardLink.waitForExistence(timeout: 5.0),
+            "Sidebar benchmarks dashboard link should exist"
+        )
+
+        let compareLink = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_benchmarks_compare'"))
+            .firstMatch
+        XCTAssertTrue(
+            compareLink.waitForExistence(timeout: 3.0),
+            "Sidebar benchmarks compare link should exist"
+        )
+    }
+
+    /// Verifies the conversations section shows the expected empty state.
+    func testSidebarConversationsEmptyState() throws {
+        let app = launchApp()
+
+        let emptyState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_conversations_emptyState'"))
+            .firstMatch
+
+        XCTAssertTrue(
+            emptyState.waitForExistence(timeout: 5.0),
+            "Conversations empty state should be visible when no conversations exist"
+        )
+    }
+
+    /// Verifies the New Chat button in the sidebar conversations section.
+    func testSidebarNewChatButton() throws {
+        let app = launchApp()
+
+        let newChatButton = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_newChat'"))
+            .firstMatch
+
+        XCTAssertTrue(
+            newChatButton.waitForExistence(timeout: 5.0),
+            "Sidebar new chat button should exist"
+        )
+    }
+
+    /// Verifies the 3-column NavigationSplitView layout:
+    /// Column 1 (sidebar_list), Column 2 (section_models), Column 3 (conversation area + input).
+    func testThreeColumnLayoutStructure() throws {
+        let app = launchApp()
+
+        // Column 1: Sidebar
+        let sidebarList = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'sidebar_list'"))
+            .firstMatch
+        XCTAssertTrue(sidebarList.waitForExistence(timeout: 5.0), "Column 1 (sidebar) should exist")
+
+        // Column 2: Model strip
+        let modelSection = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'section_models'"))
+            .firstMatch
+        XCTAssertTrue(modelSection.waitForExistence(timeout: 5.0), "Column 2 (model strip) should exist")
+
+        // Column 3: Chat area with input
+        let sendButton = app.buttons["button_send"]
+        XCTAssertTrue(sendButton.exists, "Column 3 (chat area) should have send button")
+
+        let promptField = app.textFields["textField_prompt"]
+        XCTAssertTrue(promptField.exists, "Column 3 (chat area) should have prompt field")
+    }
+
+    /// Verifies the send button has correct accessibility value states.
+    func testSendButtonAccessibilityStates() throws {
+        let app = launchApp()
+
+        let sendButton = app.buttons["button_send"]
+        XCTAssertTrue(sendButton.waitForExistence(timeout: 5.0), "Send button should exist")
+
+        // Without a model loaded, the send button value should indicate it's not ready
+        let value = sendButton.value as? String ?? ""
+        // Value should be one of: "idle", "ready", "stop", "disabled"
+        let validValues = ["idle", "ready", "stop", "disabled"]
+        XCTAssertTrue(
+            validValues.contains(value),
+            "Send button accessibility value should be one of \(validValues), got: '\(value)'"
+        )
+    }
 }

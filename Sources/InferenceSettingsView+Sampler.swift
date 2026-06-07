@@ -5,7 +5,7 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var samplerSection: some View {
-        Section("Sampler Configuration") {
+        Section {
             Stepper("Top-K: \(viewModel.topK)", value: $viewModel.topK, in: 1...128)
                 .help("Number of most likely tokens to consider. Set to 1 for greedy (deterministic) decoding.")
                 .accessibilityIdentifier("stepper_topK")
@@ -47,16 +47,15 @@ extension InferenceSettingsView {
             }
             .help("Reset to SDK defaults: topK=64, topP=0.95, temperature=1.0.")
             .accessibilityIdentifier("button_defaultSampling")
-
-            Text("⚠️ Sampler changes take effect on next model load.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        } header: {
+            Label("Sampler Configuration", systemImage: "slider.horizontal.3")
+                .foregroundStyle(AppColors.accentGold)
         }
     }
 
     @ViewBuilder
     var systemMessageSection: some View {
-        Section("System Message") {
+        Section {
             TextEditor(text: $viewModel.systemMessage)
                 .frame(minHeight: 60, maxHeight: 120)
                 .font(.body)
@@ -75,10 +74,9 @@ extension InferenceSettingsView {
             Text("Examples: \"You are a helpful coding assistant.\", \"Respond only in JSON format.\"")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-
-            Text("⚠️ System message takes effect on next model load.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        } header: {
+            Label("System Message", systemImage: "text.bubble")
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 }

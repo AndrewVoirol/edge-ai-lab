@@ -5,7 +5,7 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var thinkingModeSection: some View {
-        Section("Thinking Mode") {
+        Section {
             Toggle("Enable Thinking", isOn: $viewModel.experimentalFlags.enableThinking)
             .help("When enabled, the model's reasoning is displayed in a collapsible 'Thinking' section before the response.")
             .accessibilityIdentifier("toggle_enableThinking")
@@ -16,12 +16,15 @@ extension InferenceSettingsView {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+        } header: {
+            Label("Thinking Mode", systemImage: "brain.head.profile")
+                .foregroundStyle(AppColors.thinking)
         }
     }
 
     @ViewBuilder
     var toolCallingSection: some View {
-        Section("Tool Calling") {
+        Section {
             Toggle("Enable Tool Calling", isOn: $viewModel.experimentalFlags.enableToolCalling)
             .help("Allow the model to invoke built-in tools during inference.")
             .accessibilityIdentifier("toggle_enableToolCalling")
@@ -40,7 +43,7 @@ extension InferenceSettingsView {
                         HStack(spacing: 6) {
                             Image(systemName: "wrench.fill")
                                 .font(.caption2)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(AppColors.toolCall)
                             Text(item.name)
                                 .font(.caption)
                                 .fontDesign(.monospaced)
@@ -63,6 +66,9 @@ extension InferenceSettingsView {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        } header: {
+            Label("Tool Calling", systemImage: "wrench.and.screwdriver")
+                .foregroundStyle(AppColors.toolCall)
         }
     }
 
@@ -70,7 +76,7 @@ extension InferenceSettingsView {
     var mcpServersSection: some View {
         #if os(macOS)
         if viewModel.experimentalFlags.enableToolCalling {
-            Section("MCP Servers (macOS Only)") {
+            Section {
                 ForEach(viewModel.mcpServers) { config in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
@@ -180,7 +186,7 @@ extension InferenceSettingsView {
                                         HStack(spacing: 4) {
                                             Image(systemName: "circle.grid.cross.fill")
                                                 .font(.caption2)
-                                                .foregroundStyle(.blue)
+                                                .foregroundStyle(AppColors.accentTeal)
                                             Text(tool.name)
                                                 .font(.caption2)
                                                 .monospaced()
@@ -210,7 +216,7 @@ extension InferenceSettingsView {
                                 }
                                 .buttonStyle(.borderless)
                                 .font(.caption2)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(AppColors.danger)
                                 .accessibilityIdentifier("button_delete_mcp_\(config.name)")
                             }
                         }
@@ -232,6 +238,9 @@ extension InferenceSettingsView {
                     Label("Add MCP Server", systemImage: "plus")
                 }
                 .accessibilityIdentifier("button_addMCP")
+            } header: {
+                Label("MCP Servers (macOS Only)", systemImage: "server.rack")
+                    .foregroundStyle(AppColors.accentTeal)
             }
         }
         #endif

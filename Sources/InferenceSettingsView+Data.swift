@@ -7,7 +7,7 @@ extension InferenceSettingsView {
     var modelInfoSection: some View {
         // Model info section (shown when metadata is available)
         if let metadata = viewModel.activeModelMetadata {
-            Section("Model Info") {
+            Section {
                 LabeledContent("Name") { Text(metadata.name) }
                 if let path = viewModel.activeModelURL?.path {
                     LabeledContent("Path") {
@@ -29,13 +29,17 @@ extension InferenceSettingsView {
                     Label("Audio input supported", systemImage: "waveform")
                         .font(.caption)
                 }
+            } header: {
+                Label("Model Info", systemImage: "info.circle")
+                    .foregroundStyle(AppColors.accentTeal)
             }
         }
     }
 
     @ViewBuilder
     var performanceSection: some View {
-        Section("Performance") {
+        Section(header: Label("Performance", systemImage: "chart.bar")
+            .foregroundStyle(AppColors.accentGold)) {
             if let info = viewModel.benchmarkInfo {
                 LabeledContent("Init Time") {
                     Text(String(format: "%.3f s", info.initTimeInSecond))
@@ -102,11 +106,12 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var hfTokenSection: some View {
-        Section("HuggingFace Token") {
+        Section(header: Label("HuggingFace Token", systemImage: "key.fill")
+            .foregroundStyle(AppColors.textSecondary)) {
             if hfTokenSaved {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(AppColors.success)
                     Text("Token saved in Keychain")
                         .font(.caption)
                 }

@@ -5,7 +5,7 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var backendSection: some View {
-        Section("Backend") {
+        Section {
             Toggle("Use GPU", isOn: $viewModel.useGPU)
                 .help("Use GPU acceleration for inference. Disable to fall back to CPU.")
                 .accessibilityIdentifier("toggle_useGPU")
@@ -14,7 +14,7 @@ extension InferenceSettingsView {
             if let result = viewModel.backendResult {
                 HStack {
                     Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                        .foregroundStyle(result.activeBackend == .gpu ? .green : .orange)
+                        .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     Text("Active: \(result.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)")")
                         .font(.caption)
                 }
@@ -22,7 +22,7 @@ extension InferenceSettingsView {
                 if result.didFallback, let reason = result.fallbackReason {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(AppColors.warning)
                 }
             }
 
@@ -33,27 +33,30 @@ extension InferenceSettingsView {
                 case .gpuOnly:
                     Label("This model only supports GPU on this platform.", systemImage: "info.circle")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(AppColors.accentTeal)
                 case .cpuOnly:
                     Label("GPU is not available for this model on this platform.", systemImage: "info.circle")
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppColors.warning)
                 case .gpuAndCpu:
                     Label("Both GPU and CPU are available.", systemImage: "checkmark.circle")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(AppColors.success)
                 case .unknown:
                     Label("Backend compatibility unknown — will probe at runtime.", systemImage: "questionmark.circle")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
+        } header: {
+            Label("Backend", systemImage: "cpu")
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
     @ViewBuilder
     var experimentalFlagsSection: some View {
-        Section("Experimental Flags") {
+        Section {
             Toggle("Enable Benchmarking", isOn: $viewModel.experimentalFlags.enableBenchmark)
             .help("Collect TTFT, decode speed, and prefill speed after each inference.")
             .accessibilityIdentifier("toggle_enableBenchmark")
@@ -68,12 +71,15 @@ extension InferenceSettingsView {
             if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP {
                 Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
                     .font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(AppColors.success)
             }
 
             Toggle("Constrained Decoding", isOn: $viewModel.experimentalFlags.enableConversationConstrainedDecoding)
             .help("Enable constrained decoding for structured outputs.")
             .accessibilityIdentifier("toggle_constrainedDecoding")
+        } header: {
+            Label("Experimental Flags", systemImage: "flask")
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 }
