@@ -181,7 +181,30 @@ final class GalleryParityBenchmarkTests: XCTestCase {
 
     // MARK: - Gallery-Exact Model Variant Tests
 
+    /// Gemma 4 E4B Standard model, GPU, no MTP.
+    /// The E4B variant is the mid-tier model — larger than E2B but smaller than 12B.
+    func testGalleryParity_Gemma4E4B_Standard_GPU() async throws {
+        let model = try findModel(named: "gemma-4-E4B-it.litertlm")
+        try await runGalleryParityBenchmark(
+            modelPath: model,
+            useGPU: true,
+            enableMTP: false,
+            label: "Gemma4-E4B-Standard/GPU"
+        )
+    }
 
+    /// Gemma 4 12B Standard model, GPU, no MTP.
+    /// The 12B variant is the largest on-device model. Expect higher quality but
+    /// slower decode speeds due to the 12B parameter count.
+    func testGalleryParity_Gemma4_12B_Standard_GPU() async throws {
+        let model = try findModel(named: "gemma-4-12B-it.litertlm")
+        try await runGalleryParityBenchmark(
+            modelPath: model,
+            useGPU: true,
+            enableMTP: false,
+            label: "Gemma4-12B-Standard/GPU"
+        )
+    }
 
     // MARK: - SDK Benchmark Mode (Exact Gallery Methodology)
 
@@ -209,7 +232,28 @@ final class GalleryParityBenchmarkTests: XCTestCase {
         )
     }
 
+    /// Gemma 4 E4B SDK benchmark mode, GPU.
+    func testSDKBenchmarkMode_Gemma4E4B_GPU() async throws {
+        let model = try findModel(named: "gemma-4-E4B-it.litertlm")
+        try await runSDKBenchmark(
+            modelPath: model,
+            backend: .gpu,
+            runs: numberOfRuns,
+            label: "Gemma4-E4B-Standard/GPU (SDK Mode)"
+        )
+    }
 
+    /// Gemma 4 12B SDK benchmark mode, GPU.
+    /// Note: 12B model initialization may take significantly longer (~2-3x E2B).
+    func testSDKBenchmarkMode_Gemma4_12B_GPU() async throws {
+        let model = try findModel(named: "gemma-4-12B-it.litertlm")
+        try await runSDKBenchmark(
+            modelPath: model,
+            backend: .gpu,
+            runs: numberOfRuns,
+            label: "Gemma4-12B-Standard/GPU (SDK Mode)"
+        )
+    }
 
     /// Runs the LiteRT-LM SDK's built-in benchmark function for exact Gallery methodology parity.
     /// Supports multiple runs with inter-run cooldown to mitigate thermal throttling.
