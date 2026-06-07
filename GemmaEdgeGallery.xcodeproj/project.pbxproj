@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0001A1A1A1A1A1A1A1A1A1A1 /* InferenceSettingsView+General.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01AA01AA01AA01AA01AA01 /* InferenceSettingsView+General.swift */; };
+		0002A2A2A2A2A2A2A2A2A2A2 /* InferenceSettingsView+General.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01AA01AA01AA01AA01AA01 /* InferenceSettingsView+General.swift */; };
+		0003A3A3A3A3A3A3A3A3A3A3 /* InferenceSettingsView+AIFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02AA02AA02AA02AA02AA02 /* InferenceSettingsView+AIFeatures.swift */; };
+		0004A4A4A4A4A4A4A4A4A4A4 /* InferenceSettingsView+AIFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02AA02AA02AA02AA02AA02 /* InferenceSettingsView+AIFeatures.swift */; };
+		0005A5A5A5A5A5A5A5A5A5A5 /* InferenceSettingsView+Sampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03AA03AA03AA03AA03AA03 /* InferenceSettingsView+Sampler.swift */; };
+		0006A6A6A6A6A6A6A6A6A6A6 /* InferenceSettingsView+Sampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03AA03AA03AA03AA03AA03 /* InferenceSettingsView+Sampler.swift */; };
+		0007A7A7A7A7A7A7A7A7A7A7 /* InferenceSettingsView+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA04AA04AA04AA04AA04AA04 /* InferenceSettingsView+Data.swift */; };
+		0008A8A8A8A8A8A8A8A8A8A8 /* InferenceSettingsView+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA04AA04AA04AA04AA04AA04 /* InferenceSettingsView+Data.swift */; };
 		0035D4EB1AB33BA0FC306E94 /* SmartFallbackIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9CABCD3FA9C038CA638416 /* SmartFallbackIntegrationTests.swift */; };
 		04E6D0C35888E40B8B8950E2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D0C4FD28B1C5684580B538 /* ContentView.swift */; };
 		05C85E67D84A0374687F911F /* SystemHealthTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C6C5206113A001349E763BA /* SystemHealthTool.swift */; };
@@ -253,6 +261,10 @@
 		9D97ECC8C74B25BF8F12EB38 /* DeviceInfoTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfoTool.swift; sourceTree = "<group>"; };
 		9EE8CE0F4425F7D213C73029 /* GemmaEdgeGalleryApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemmaEdgeGalleryApp.swift; sourceTree = "<group>"; };
 		A4DC3AFC821C3B195698581E /* InferenceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceSettingsView.swift; sourceTree = "<group>"; };
+		AA01AA01AA01AA01AA01AA01 /* InferenceSettingsView+General.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InferenceSettingsView+General.swift"; sourceTree = "<group>"; };
+		AA02AA02AA02AA02AA02AA02 /* InferenceSettingsView+AIFeatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InferenceSettingsView+AIFeatures.swift"; sourceTree = "<group>"; };
+		AA03AA03AA03AA03AA03AA03 /* InferenceSettingsView+Sampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InferenceSettingsView+Sampler.swift"; sourceTree = "<group>"; };
+		AA04AA04AA04AA04AA04AA04 /* InferenceSettingsView+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InferenceSettingsView+Data.swift"; sourceTree = "<group>"; };
 		A4FD3395347414F0006578C2 /* ChatBubbleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbleComponents.swift; sourceTree = "<group>"; };
 		A6ECB64643B44363F316E23C /* GemmaEdgeGallery_macOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GemmaEdgeGallery_macOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A703867B7605AF5510E1788C /* ModelRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRegistryTests.swift; sourceTree = "<group>"; };
@@ -391,6 +403,10 @@
 				9EE8CE0F4425F7D213C73029 /* GemmaEdgeGalleryApp.swift */,
 				9CD3CF106E47C1A807B767C3 /* HFTokenStorage.swift */,
 				A4DC3AFC821C3B195698581E /* InferenceSettingsView.swift */,
+				AA01AA01AA01AA01AA01AA01 /* InferenceSettingsView+General.swift */,
+				AA02AA02AA02AA02AA02AA02 /* InferenceSettingsView+AIFeatures.swift */,
+				AA03AA03AA03AA03AA03AA03 /* InferenceSettingsView+Sampler.swift */,
+				AA04AA04AA04AA04AA04AA04 /* InferenceSettingsView+Data.swift */,
 				787C879B603FA5E9352619B5 /* InputAreaView.swift */,
 				3A6952595C8EE37A4ABFCEB6 /* InstrumentedEngine.swift */,
 				D25B958C42B26FCBEAA6CEE2 /* MCPClient.swift */,
@@ -715,6 +731,10 @@
 				9A5FC4FEDC36C8466B65E679 /* GemmaEdgeGalleryApp.swift in Sources */,
 				CA9421D9E2C874F478F4E119 /* HFTokenStorage.swift in Sources */,
 				CD183A62E16FA4F8D901282A /* InferenceSettingsView.swift in Sources */,
+				0001A1A1A1A1A1A1A1A1A1A1 /* InferenceSettingsView+General.swift in Sources */,
+				0003A3A3A3A3A3A3A3A3A3A3 /* InferenceSettingsView+AIFeatures.swift in Sources */,
+				0005A5A5A5A5A5A5A5A5A5A5 /* InferenceSettingsView+Sampler.swift in Sources */,
+				0007A7A7A7A7A7A7A7A7A7A7 /* InferenceSettingsView+Data.swift in Sources */,
 				CA625E420AB2AB3453D08F8C /* InputAreaView.swift in Sources */,
 				8DEBB76B051567F96FE30E6F /* InstrumentedEngine.swift in Sources */,
 				E27D8D78F97251BDEF63526F /* MCPClient.swift in Sources */,
@@ -759,6 +779,10 @@
 				296ED2AE51BED384E671D97B /* GemmaEdgeGalleryApp.swift in Sources */,
 				BEDD32D1CE7AB37FA3C04C53 /* HFTokenStorage.swift in Sources */,
 				D2A7E99EBA7042B0BE27C4E0 /* InferenceSettingsView.swift in Sources */,
+				0002A2A2A2A2A2A2A2A2A2A2 /* InferenceSettingsView+General.swift in Sources */,
+				0004A4A4A4A4A4A4A4A4A4A4 /* InferenceSettingsView+AIFeatures.swift in Sources */,
+				0006A6A6A6A6A6A6A6A6A6A6 /* InferenceSettingsView+Sampler.swift in Sources */,
+				0008A8A8A8A8A8A8A8A8A8A8 /* InferenceSettingsView+Data.swift in Sources */,
 				9E19FE7E59424E90FCC7B65F /* InputAreaView.swift in Sources */,
 				4C1797AFB9471EAD954F1567 /* InstrumentedEngine.swift in Sources */,
 				3FA20F04DC19927C821D7637 /* MCPClient.swift in Sources */,

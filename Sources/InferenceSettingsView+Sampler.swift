@@ -1,0 +1,84 @@
+import SwiftUI
+import LiteRTLM
+
+extension InferenceSettingsView {
+
+    @ViewBuilder
+    var samplerSection: some View {
+        Section("Sampler Configuration") {
+            Stepper("Top-K: \(viewModel.topK)", value: $viewModel.topK, in: 1...128)
+                .help("Number of most likely tokens to consider. Set to 1 for greedy (deterministic) decoding.")
+                .accessibilityIdentifier("stepper_topK")
+
+            HStack {
+                Text("Top-P: \(viewModel.topP, specifier: "%.2f")")
+                Slider(value: $viewModel.topP, in: 0.0...1.0, step: 0.05)
+                    .accessibilityIdentifier("slider_topP")
+            }
+            .help("Cumulative probability threshold for nucleus sampling.")
+
+            HStack {
+                Text("Temperature: \(viewModel.temperature, specifier: "%.2f")")
+                Slider(value: $viewModel.temperature, in: 0.0...2.0, step: 0.1)
+                    .accessibilityIdentifier("slider_temperature")
+            }
+            .help("Controls randomness. 0 = deterministic, higher = more creative.")
+
+            Stepper("Seed: \(viewModel.seed)", value: $viewModel.seed, in: 0...Int.max)
+                .help("Seed for reproducible generation. 0 = non-deterministic (SDK default). Same seed + same prompt = same output.")
+                .accessibilityIdentifier("stepper_seed")
+
+            Button {
+                viewModel.topK = 1
+                viewModel.topP = 1.0
+                viewModel.temperature = 1.0
+            } label: {
+                Label("Greedy (Gallery Match)", systemImage: "target")
+            }
+            .help("Set topK=1, topP=1.0 to match AI Edge Gallery's benchmark settings for apples-to-apples comparison.")
+            .accessibilityIdentifier("button_greedyMatch")
+
+            Button {
+                viewModel.topK = 64
+                viewModel.topP = 0.95
+                viewModel.temperature = 1.0
+            } label: {
+                Label("Default Sampling", systemImage: "dice")
+            }
+            .help("Reset to SDK defaults: topK=64, topP=0.95, temperature=1.0.")
+            .accessibilityIdentifier("button_defaultSampling")
+
+            Text("⚠️ Sampler changes take effect on next model load.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    var systemMessageSection: some View {
+        Section("System Message") {
+            TextEditor(text: $viewModel.systemMessage)
+                .frame(minHeight: 60, maxHeight: 120)
+                .font(.body)
+                .help("Set the model's persona or instructions. Applied on next model load.")
+                .accessibilityIdentifier("textEditor_systemMessage")
+
+            if !viewModel.systemMessage.isEmpty {
+                Button(role: .destructive) {
+                    viewModel.systemMessage = ""
+                } label: {
+                    Label("Clear System Message", systemImage: "trash")
+                }
+                .accessibilityIdentifier("button_clearSystemMessage")
+            }
+
+            Text("Examples: \"You are a helpful coding assistant.\", \"Respond only in JSON format.\"")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("⚠️ System message takes effect on next model load.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
