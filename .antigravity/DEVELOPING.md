@@ -149,7 +149,7 @@ xcrun devicectl device copy to \
 
 | Plan | Model Required | Speed | What It Tests | Test Classes |
 |---|---|---|---|---|
-| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management | 13 classes, ~107 tests |
+| **UnitTests** | ❌ No | Fast (seconds) | Logic, mocks, state management | 16 classes, ~85 fast tests |
 | **IntegrationTests** | ✅ Yes | Medium (minutes) | Functional verification, model registry, fallback | 3 classes |
 | **PerformanceTests** | ✅ Yes | Slow (minutes) | Real inference, latency, memory, smart fallback | 2 classes |
 | **SimulatorCompatibilityTests** | ✅ Yes | Slow (minutes) | Model/backend compatibility matrix | 1 class |
@@ -176,8 +176,21 @@ Tests automatically select the appropriate backend:
 ### Running Tests
 
 ```bash
-# Run unit tests only (fast, no model)
+# Run unit tests only (fast, no model) — iOS
 xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS --test-plan UnitTests
+
+# Run unit tests only (fast, no model) — macOS (RECOMMENDED for agents)
+xcodebuild -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme GemmaEdgeGallery_macOS -destination 'platform=macOS' \
+  -only-testing:GemmaEdgeGallery_macOSTests/ThinkingParserTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/DownloadManagerTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/ConversationViewModelSamplerTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/ToolCallingTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/GalleryModelDiscoveryTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/ModelRegistryTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/ChatMessageTests \
+  -only-testing:GemmaEdgeGallery_macOSTests/MCPClientTests \
+  test 2>&1 | grep -E "Test Case|Executed|passed|failed|TEST SUCCEEDED|TEST FAILED"
 
 # Run performance tests (auto-discovers model, auto-selects backend)
 xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS --test-plan PerformanceTests
@@ -187,6 +200,19 @@ xcodebuildmcp simulator test --scheme GemmaEdgeGallery_iOS \
   --test-plan PerformanceTests \
   --testRunnerEnv PERFORMANCE_TEST_MODEL_PATH=/path/to/model.litertlm
 ```
+
+> [!IMPORTANT]
+> **Agent Testing Tips (Session 10 Lessons):**
+> - **NEVER** run the full test suite (`xcodebuild test` without `-only-testing`). Integration tests load real models and take 15+ minutes.
+> - **ALWAYS** use `-only-testing` to select specific fast test classes (see command above).
+> - The `test_macos` MCP tool runs ALL test classes by default — avoid it for quick feedback. Use raw `xcodebuild` with `-only-testing` instead.
+> - `linkd.autoShortcut` connection errors (167+ per run) are macOS IPC noise — **ignore them completely**. They are not test failures.
+> - `WebGPU sampler not available` warnings are expected — the Metal sampler dylib falls back to C API. No impact.
+> - When grepping xcodebuild output, avoid `**` in grep patterns (invalid regex). Use `TEST SUCCEEDED` instead of `** TEST SUCCEEDED **`.
+> - Integration test classes that load models: `ToolCallingIntegrationTests`, `SmartFallbackIntegrationTests`, `MultiTurnIntegrationTests`, `PerformanceTests`, `GalleryParityBenchmarkTests`.
+
+> [!TIP]
+> **SwiftUI ViewModifier Gotcha:** `@Bindable` properties in custom `ViewModifier` structs can cause `does not conform to protocol 'ViewModifier'` errors. Use a wrapping `@ViewBuilder` method on the parent view instead of `ViewModifier` when you need to reference `@Observable` objects.
 
 ### Platform Compatibility Matrix (Verified — iPhone 16 Pro Max)
 
@@ -278,14 +304,19 @@ This project aims for feature parity with the [Google AI Edge Gallery](https://g
 | Gemma 4 12B support | ✅ Done | 6.5GB, 256K context, multimodal — Stack Audit June 2026 |
 | Inference cancellation | ✅ Done | `Conversation.cancel()` |
 | **Multimodal input** | ✅ Done | Image (PhotosPicker) + Audio (file importer) — Session 2 June 2026 |
-| HuggingFace downloads | 🚧 In Progress | `ModelDownloadManager` implemented, needs on-device verification |
+| HuggingFace downloads | 🚧 In Progress | `ModelDownloadManager` + `HFModelBrowser` API client implemented, needs card UI |
 | Multi-turn chat | 🟡 SDK Ready | `ConversationConfig.initialMessages` — SDK supports it |
-| Tool use / Function calling | 🟡 SDK Ready | `Tool` protocol + `@ToolParam` + `ToolManager` — needs observability layer |
-| Thinking Mode | ❌ Missing | Gallery v1.0.14+ shows step-by-step reasoning |
-| Agent Skills | ❌ Missing | Gallery v1.0.14+ has Wikipedia, maps, visual summaries |
-| MCP Support | ❌ Missing | Gallery v1.0.14+ has experimental Model Context Protocol |
-| Model management UI | ❌ Missing | Download, delete, update models |
+| Tool use / Function calling | ✅ Done | `Tool` protocol + `@ToolParam` + `ToolManager` + `ToolRegistry` (6 tools) — Session 3 |
+| Thinking Mode | ✅ Done | `ThinkingParser` streaming parser + collapsible UI section — Session 3 |
+| Agent Skills | ✅ Done | `AgentSkills` with Wikipedia, maps, visual summaries — Session 3 |
+| MCP Support | ✅ Done | `DynamicMCPBridge` + `MCPClient` + configuration UI — Sessions 4-5 |
+| Model management UI | 🚧 In Progress | `SidebarView` with download/delete/load + `ModelStripView` — Session 10 |
 | Remote allowlist | ❌ Missing | Fetch model catalog from remote config |
+| **3-column layout** | ✅ Done | `NavigationSplitView` (macOS) + `TabView` (iOS) — Session 10 |
+| **HF Model Browser** | 🚧 In Progress | `HFModelBrowser` API client + format detection — Session 10 |
+| **Benchmark comparison** | ✅ Done | `BenchmarkComparisonView` with animated bars — Session 10 |
+| **Dark Forest palette** | ✅ Done | Full design system overhaul — Session 10 |
+| **Streaming polish** | ✅ Done | `LoadingShimmerView` + `BlinkingCursor` — Session 10 |
 
 ### Gallery Benchmark Target (Session 3b — 2026-05-31)
 User-captured from iOS Gallery app v1.0.6 on iPhone 16 Pro Max:
@@ -355,8 +386,46 @@ The iOS target in `Project.swift` includes these `InfoPlist` keys to enable mode
 
 ```
 gemma-edgegallery/
-├── Sources/              # App source code (Swift)
-├── Tests/                # Test files (Swift)
+├── Sources/              # App source code (Swift) — 46 files
+│   ├── GemmaEdgeGalleryApp.swift  # App entry point
+│   ├── ContentView.swift          # 3-column layout (NavigationSplitView + TabView)
+│   ├── SidebarView.swift          # Left column: models, benchmarks, conversations
+│   ├── DetailColumnView.swift     # Middle column: model detail, dashboard, comparison
+│   ├── ConversationAreaView.swift # Chat message display area
+│   ├── InputAreaView.swift        # Text input + attachments
+│   ├── StatusBarView.swift        # macOS status bar
+│   ├── BenchmarkBarView.swift     # Inline benchmark metrics
+│   ├── BenchmarkComparisonView.swift # Model performance comparison
+│   ├── ChatBubbleView.swift       # Message bubble component
+│   ├── ChatBubbleComponents.swift # Sub-components (code blocks, maps, etc.)
+│   ├── LoadingShimmerView.swift   # Streaming shimmer + blinking cursor
+│   ├── ModelStripView.swift       # iOS model carousel
+│   ├── ModelShowcaseView.swift    # Model detail sheet
+│   ├── PerformanceDashboardView.swift # Performance metrics dashboard
+│   ├── HFModelBrowser.swift       # HuggingFace API client
+│   ├── ConversationViewModel.swift # Core view model (singleton)
+│   ├── ConversationViewModel+MCP.swift # MCP extension
+│   ├── InstrumentedEngine.swift   # LiteRT-LM engine wrapper
+│   ├── DesignSystem.swift         # Dark Forest palette + tokens
+│   ├── InferenceSettingsView*.swift # Settings views (4 files)
+│   ├── ModelMetadata.swift        # Model registry + metadata
+│   ├── ModelDownloadManager.swift  # Download state management
+│   ├── HFTokenStorage.swift       # HF auth token storage
+│   ├── MetricsStore.swift         # Benchmark data persistence
+│   ├── ThinkingParser.swift       # <think> tag streaming parser
+│   ├── ChatMessage.swift          # Message data model
+│   ├── DynamicMCPBridge.swift     # MCP integration bridge
+│   ├── MCPClient.swift            # MCP client implementation
+│   ├── MCPServerConfig.swift      # MCP server configuration
+│   ├── AgentSkills.swift          # Built-in agent skills
+│   ├── ToolRegistry.swift         # Tool registration
+│   ├── *Tool.swift (5 files)      # Calculator, DateTime, DeviceInfo, etc.
+│   ├── DeviceMetrics.swift        # Hardware metrics
+│   ├── ExperimentalFlagsState.swift # Feature flags
+│   ├── GalleryModelDiscovery.swift # On-disk model discovery
+│   └── DeveloperAutomationHarness.swift # CI automation
+├── Tests/                # Test files (Swift) — 15 files
+├── UITests/              # UI test files
 ├── Project.swift         # Tuist project manifest (source of truth)
 ├── .package.resolved     # Dependency lock file
 ├── models/               # LLM model files (gitignored)

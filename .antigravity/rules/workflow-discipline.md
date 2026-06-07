@@ -93,3 +93,21 @@ When reusing a single `Conversation` across multiple inference runs:
 2. Switch scheme to `GemmaEdgeGallery_macOS` for macOS builds: `session_set_defaults` with `scheme: GemmaEdgeGallery_macOS`
 3. macOS tests support both GPU and CPU backends — no simulator limitations
 4. `linkd.autoShortcut` connection errors in macOS test output are noise — tests still pass, ignore them
+5. **NEVER** run the full test suite without `-only-testing` — integration tests load real models and take 15+ minutes
+6. **ALWAYS** use the fast unit test command for agent feedback loops (see DEVELOPING.md → Running Tests)
+7. The `test_macos` MCP tool does NOT support `-only-testing` — use raw `xcodebuild` instead for targeted test runs
+
+### Fast Unit Test Classes (no model required)
+- `ThinkingParserTests`, `DownloadManagerTests`, `ConversationViewModelSamplerTests`
+- `ToolCallingTests`, `GalleryModelDiscoveryTests`, `ModelRegistryTests`
+- `ChatMessageTests`, `MCPClientTests`
+
+### Slow Integration Test Classes (model required — DO NOT run in feedback loops)
+- `ToolCallingIntegrationTests`, `SmartFallbackIntegrationTests`
+- `MultiTurnIntegrationTests`, `PerformanceTests`, `GalleryParityBenchmarkTests`
+
+### SwiftUI Architecture Gotchas
+- `@Bindable` in custom `ViewModifier` structs causes `does not conform to protocol` errors
+- **Fix:** Use a `@ViewBuilder` wrapping method on the parent view instead of `ViewModifier`
+- `NavigationSplitView` requires careful state binding between columns via `@Binding` pairs
+

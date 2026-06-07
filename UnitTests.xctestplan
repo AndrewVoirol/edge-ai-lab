@@ -29,6 +29,7 @@
         "GalleryModelDiscoveryTests",
         "InferenceMetricsIntegrationTests",
         "InferenceMetricsTests",
+        "MCPClientTests",
         "MetricsStoreInferenceMetricsTests",
         "MetricsStoreTests",
         "ModelMetadataTests",

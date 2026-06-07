@@ -246,3 +246,33 @@ The project now supports 5 models: E2B Standard, E2B Web, E4B Standard, E4B Web,
 - `enableThinking` and `enableToolCalling` are `var` properties (not init params) for binary/struct compatibility
 - Conversation UI uses `LazyVStack` for performance with long conversations
 
+---
+
+## Session 10 — Edge AI Lab Identity: 3-Column Layout, Dark Forest, HF Browser (June 7, 2026)
+
+**Objective:** Transform from "chat app with benchmarks" to "Edge AI research instrument." The chat is secondary — it's how you *exercise* the model, not the point.
+
+### Changes Made
+
+**Dark Forest Design System:** Complete palette replacement in `DesignSystem.swift`. All system colors replaced with `AppColors` tokens. Deep charcoals, muted greens, cream text, warm amber accents. New `ForestGlassModifier`, `AppShadow` tokens.
+
+**Streaming Polish:** `LoadingShimmerView` (shimmer skeleton before TTFT), `BlinkingCursor` during streaming, fixed thinking chevron rotation (was 0:0 no-op), removed dead `MessageChunk` struct.
+
+**3-Column NavigationSplitView (macOS):** Sidebar (models/benchmarks/conversations) → Detail (model info/dashboard/comparison) → Chat. iOS uses 3-tab TabView. `appliedSharedModifiers()` wrapper avoids `@Bindable` ViewModifier conformance issues.
+
+**HuggingFace Model Browser:** Full API client (`HFModelBrowser.swift`). List by org, model detail, format detection (LiteRT-LM vs MLX), auth via HFTokenStorage, caching.
+
+**Benchmark Comparison:** `BenchmarkComparisonView.swift` with animated performance bars and `PerformanceTier` color coding.
+
+### Key Lessons
+
+1. `ViewModifier` + `@Bindable` = compiler error → use `@ViewBuilder` wrapping method instead
+2. Full test suite takes 15+ min (integration tests load models) → always use `-only-testing`
+3. `test_macos` MCP tool runs ALL tests → use raw xcodebuild with `-only-testing` for agent feedback
+4. `linkd.autoShortcut` errors (167+) are harmless macOS IPC noise → ignore completely
+5. grep `**` regex is invalid → use `TEST SUCCEEDED` without asterisks
+6. `MCPClientTests` was missing from `UnitTests.xctestplan` → fixed
+
+### Verification: 85/85 unit tests pass, BUILD SUCCEEDED, zero system color leaks.
+
+
