@@ -26,18 +26,33 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         app.launchArguments = ["-RunAutomationHarness"]
         app.launch()
         
-        // On macOS, the window may take a moment to appear in the accessibility tree.
-        // If it doesn't appear quickly, try activating the app to bring it to focus.
-        if !app.windows.firstMatch.waitForExistence(timeout: 10.0) {
-            app.activate()
-            XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 10.0),
-                          "App window should appear after launch and activation")
+        // On macOS 26+, SwiftUI's WindowGroup may not immediately register the
+        // NSWindow in XCUITest's accessibility tree. Instead of waiting for the
+        // window object, we wait for a known UI element that is always present.
+        // The "button_send" (Send button in InputAreaView) is always visible
+        // regardless of model state.
+        let knownElement = app.buttons["button_send"]
+        if knownElement.waitForExistence(timeout: 10.0) {
+            return app
         }
+        
+        // Fallback: try activating the app and waiting again.
+        app.activate()
+        if knownElement.waitForExistence(timeout: 10.0) {
+            return app
+        }
+        
+        // Last resort: try window-based detection for older macOS versions.
+        if app.windows.firstMatch.waitForExistence(timeout: 5.0) {
+            return app
+        }
+        
+        XCTFail("App UI should appear after launch — neither button_send nor window detected. Debug: \(app.debugDescription)")
         return app
     }
 
     /// Opens the Settings sheet and optionally navigates to a specific tab.
-    /// Tab indices: 0 = General, 1 = AI Features, 2 = Sampler, 3 = Data
+    /// Tab labels: "General", "AI Features", "Sampler", "Data"
     /// On macOS, settings opens as a sheet with a TabView.
     /// On iOS, tab navigation is a no-op (single form layout).
     func openSettingsAndNavigateToTab(_ app: XCUIApplication, tabIndex: Int = 0) throws {
@@ -49,13 +64,43 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         XCTAssertTrue(doneButton.waitForExistence(timeout: 5.0),
                       "Settings sheet should open with a Done button")
 
-        // Navigate to the desired tab using Ctrl+Tab (universal macOS tab navigation)
-        for _ in 0..<tabIndex {
-            app.typeKey(.tab, modifierFlags: .control)
-            usleep(500_000)
+        // Navigate to the desired tab by clicking its tab bar button.
+        // macOS SwiftUI TabView renders tab items as radioButtons with the label text.
+        let tabLabels = ["General", "AI Features", "Sampler", "Data"]
+        if tabIndex > 0 && tabIndex < tabLabels.count {
+            navigateToSettingsTab(app, label: tabLabels[tabIndex])
         }
         #endif
     }
+
+    /// Navigate to a specific settings tab by clicking its tab bar button.
+    /// Must be called while the Settings sheet is already open.
+    #if os(macOS)
+    func navigateToSettingsTab(_ app: XCUIApplication, label: String) {
+        // macOS SwiftUI TabView tab items appear as radioButtons in the a11y tree.
+        let radioButton = app.radioButtons[label]
+        if radioButton.waitForExistence(timeout: 3.0) {
+            radioButton.click()
+            usleep(500_000)
+            return
+        }
+        // Fallback: try as a button (some macOS versions render differently)
+        let button = app.buttons[label]
+        if button.waitForExistence(timeout: 2.0) {
+            button.click()
+            usleep(500_000)
+            return
+        }
+        // Last resort: broad search by label
+        let anyElement = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", label))
+            .firstMatch
+        if anyElement.waitForExistence(timeout: 2.0) {
+            anyElement.click()
+            usleep(500_000)
+        }
+    }
+    #endif
 
 
     func testBasicNavigation() throws {
@@ -116,13 +161,9 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         let enableBenchmarkToggle = app.switches["toggle_enableBenchmark"]
         XCTAssertTrue(enableBenchmarkToggle.exists)
 
-        // On macOS, HF token is on the "Data" tab (index 3)
+        // On macOS, HF token is on the "Data" tab
         #if os(macOS)
-        // Switch from General (0) to Data (3): 3 Ctrl+Tabs
-        for _ in 0..<3 {
-            app.typeKey(.tab, modifierFlags: .control)
-            usleep(300_000)
-        }
+        navigateToSettingsTab(app, label: "Data")
         #endif
 
         let hfTokenField = app.secureTextFields["secureField_hfToken"]
@@ -224,9 +265,7 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
 
         // On macOS with TabView, Thinking and Tool Calling are on the "AI Features" tab
         #if os(macOS)
-        // Switch to AI Features tab (Ctrl+Tab from General)
-        app.typeKey(.tab, modifierFlags: .control)
-        usleep(500_000)
+        navigateToSettingsTab(app, label: "AI Features")
         #endif
 
         let thinkingToggle = app.switches["toggle_enableThinking"]
@@ -244,11 +283,12 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
         // scrolling down to become visible in the fixed-height window
         let agentSkillsToggle = app.switches["toggle_enableAgentSkills"]
         if !agentSkillsToggle.waitForExistence(timeout: 2.0) {
-            // Try scrolling down in the settings form
+            // Settings is a .sheet on the main window — scroll down within it.
             #if os(macOS)
-            let settingsWindow = app.windows.element(boundBy: 1)
-            if settingsWindow.exists {
-                settingsWindow.scroll(byDeltaX: 0, deltaY: -200)
+            // Scroll the main window (which contains the sheet) to reveal the toggle.
+            let mainWindow = app.windows.firstMatch
+            if mainWindow.exists {
+                mainWindow.scroll(byDeltaX: 0, deltaY: -200)
             }
             #endif
         }

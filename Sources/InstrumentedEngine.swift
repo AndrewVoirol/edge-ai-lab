@@ -321,6 +321,62 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     // MARK: - Inference
 
     func sendMessageStream(_ text: String) -> AsyncThrowingStream<String, Error> {
+        instrumentedStream(
+            message: Message(text),
+            label: "Inference",
+            promptDescription: "prompt=\(text.prefix(80))..."
+        )
+    }
+
+    /// Multimodal inference: send text with optional image and/or audio data.
+    /// Uses the LiteRT-LM SDK's Content.imageData() and Content.audioData() APIs.
+    func sendMessageStream(
+        _ text: String,
+        imageData: Data?,
+        audioData: Data?
+    ) -> AsyncThrowingStream<String, Error> {
+        // If no multimodal data, delegate to text-only path
+        guard imageData != nil || audioData != nil else {
+            return sendMessageStream(text)
+        }
+
+        // Build multimodal content parts
+        var contents: [Content] = [.text(text)]
+        if let imgData = imageData {
+            contents.append(.imageData(imgData))
+        }
+        if let audData = audioData {
+            contents.append(.audioData(audData))
+        }
+
+        let modalityLabel = [
+            imageData != nil ? "image" : nil,
+            audioData != nil ? "audio" : nil
+        ].compactMap { $0 }.joined(separator: "+")
+
+        return instrumentedStream(
+            message: Message(contents: contents),
+            label: "Inference (text+\(modalityLabel))",
+            promptDescription: "multimodal (text+\(modalityLabel)) prompt length \(text.count)"
+        )
+    }
+
+    // MARK: - Instrumented Stream (Shared Implementation)
+
+    /// Core inference pipeline shared by both text-only and multimodal entry points.
+    /// Handles all instrumentation: signposts, token timestamping, metrics capture,
+    /// and MainActor state updates.
+    ///
+    /// - Parameters:
+    ///   - message: The fully-constructed Message to send to the conversation.
+    ///   - label: Human-readable label for signpost and log messages.
+    ///   - promptDescription: Description for the initial log entry.
+    /// - Returns: An AsyncThrowingStream of response text chunks.
+    private func instrumentedStream(
+        message: Message,
+        label: String,
+        promptDescription: String
+    ) -> AsyncThrowingStream<String, Error> {
         guard let conversation = conversation else {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: InstrumentedEngineError.notInitialized)
@@ -344,14 +400,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         //
         // IMPORTANT: This Task intentionally does NOT use @MainActor. The SDK's
         // sendMessageStream() loop (including any internal tool-calling iterations)
-        // runs on a background cooperative thread pool, keeping the UI responsive
-        // Wait, prioritizing inference at .userInitiated prevents iOS from starvation 
+        // runs on a background cooperative thread pool, keeping the UI responsive.
+        // Prioritizing inference at .userInitiated prevents iOS from starving
         // down to background QoS, which drops performance to zero.
         let task = Task(priority: .userInitiated) { [conversation, weak self] in
-            Self.logger.info("🚀 Inference start: prompt=\(text.prefix(80), privacy: .public)...")
+            Self.logger.info("🚀 \(label) start: \(promptDescription, privacy: .public)")
             let signpostID = OSSignpostID(log: Self.inferenceLog)
             os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                        "Starting inference for prompt length %{public}d", text.count)
+                        "Starting %{public}s", promptDescription)
 
             // Capture device metrics at inference start
             let startSnapshot = DeviceMetrics.captureSnapshot()
@@ -360,7 +416,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             var isFirstToken = true
 
             do {
-                for try await chunk in conversation.sendMessageStream(Message(text)) {
+                for try await chunk in conversation.sendMessageStream(message) {
                     if Task.isCancelled {
                         break
                     }
@@ -385,7 +441,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
                 if Task.isCancelled {
                     os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                                "Inference cancelled early")
+                                "%{public}s cancelled early", label)
                     continuation.finish()
                     return
                 }
@@ -421,9 +477,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     self?.lastBenchmarkInfo = benchmarkInfo
                 }
 
-                Self.logger.info("✅ Inference complete: \(tokenTimestamps.count) tokens")
+                Self.logger.info("✅ \(label) complete: \(tokenTimestamps.count) tokens")
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                            "Inference completed")
+                            "%{public}s completed (%{public}d tokens)", label, tokenTimestamps.count)
                 continuation.finish()
             } catch {
                 // Still capture metrics on failure for debugging
@@ -439,141 +495,9 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     self?.lastInferenceMetrics = failureMetrics
                 }
 
-                Self.logger.error("❌ Inference FAILED: \(error.localizedDescription, privacy: .public)")
+                Self.logger.error("❌ \(label) FAILED: \(error.localizedDescription, privacy: .public)")
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                            "Inference FAILED: %{public}s", error.localizedDescription)
-                continuation.finish(throwing: error)
-            }
-        }
-        self.activeInferenceTask = task
-
-        return stream
-    }
-
-    /// Multimodal inference: send text with optional image and/or audio data.
-    /// Uses the LiteRT-LM SDK's Content.imageData() and Content.audioData() APIs.
-    func sendMessageStream(
-        _ text: String,
-        imageData: Data?,
-        audioData: Data?
-    ) -> AsyncThrowingStream<String, Error> {
-        // If no multimodal data, delegate to text-only path
-        guard imageData != nil || audioData != nil else {
-            return sendMessageStream(text)
-        }
-
-        guard let conversation = conversation else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: InstrumentedEngineError.notInitialized)
-            }
-        }
-
-        let stream: AsyncThrowingStream<String, Error>
-        var continuation: AsyncThrowingStream<String, Error>.Continuation!
-        stream = AsyncThrowingStream { continuation = $0 }
-
-        continuation.onTermination = { [weak self] _ in
-            Task { @MainActor in
-                try? self?.conversation?.cancel()
-                self?.activeInferenceTask?.cancel()
-            }
-        }
-
-        let task = Task(priority: .userInitiated) { [conversation, weak self] in
-            let signpostID = OSSignpostID(log: Self.inferenceLog)
-            let modalityLabel = [
-                imageData != nil ? "image" : nil,
-                audioData != nil ? "audio" : nil
-            ].compactMap { $0 }.joined(separator: "+")
-            os_signpost(.begin, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
-                        "Starting multimodal inference (text+%{public}s) prompt length %{public}d",
-                        modalityLabel, text.count)
-
-            let startSnapshot = DeviceMetrics.captureSnapshot()
-            var tokenTimestamps: [CFAbsoluteTime] = []
-            let inferenceStartTime = CFAbsoluteTimeGetCurrent()
-            var isFirstToken = true
-
-            do {
-                // Build multimodal content parts
-                var contents: [Content] = [.text(text)]
-                if let imgData = imageData {
-                    contents.append(.imageData(imgData))
-                }
-                if let audData = audioData {
-                    contents.append(.audioData(audData))
-                }
-                let message = Message(contents: contents)
-
-                for try await chunk in conversation.sendMessageStream(message) {
-                    if Task.isCancelled { break }
-                    if let firstContent = chunk.contents.first {
-                        switch firstContent {
-                        case .text(let responseText):
-                            tokenTimestamps.append(CFAbsoluteTimeGetCurrent())
-                            if isFirstToken {
-                                os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
-                                            "First multimodal token received")
-                                isFirstToken = false
-                            }
-                            continuation.yield(responseText)
-                        default:
-                            break
-                        }
-                    }
-                }
-
-                if Task.isCancelled {
-                    os_signpost(.end, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
-                                "Multimodal inference cancelled early")
-                    continuation.finish()
-                    return
-                }
-
-                let endSnapshot = DeviceMetrics.captureSnapshot()
-                var tokenLatenciesMs: [Double] = []
-                if !tokenTimestamps.isEmpty {
-                    tokenLatenciesMs.append((tokenTimestamps[0] - inferenceStartTime) * 1000.0)
-                    for i in 1..<tokenTimestamps.count {
-                        tokenLatenciesMs.append((tokenTimestamps[i] - tokenTimestamps[i - 1]) * 1000.0)
-                    }
-                }
-
-                // Build metrics and capture benchmark — hop to MainActor for state updates only
-                let metrics = InferenceMetrics(
-                    startSnapshot: startSnapshot,
-                    endSnapshot: endSnapshot,
-                    tokenLatenciesMs: tokenLatenciesMs,
-                    totalTokenCount: tokenTimestamps.count
-                )
-                let benchmarkEnabled = self?.flagsState.enableBenchmark ?? false
-                let benchmarkInfo: BenchmarkInfo? = benchmarkEnabled
-                    ? (try? conversation.getBenchmarkInfo())
-                    : nil
-
-                await MainActor.run { [weak self] in
-                    self?.lastInferenceMetrics = metrics
-                    self?.lastBenchmarkInfo = benchmarkInfo
-                }
-
-                os_signpost(.end, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
-                            "Multimodal inference completed (%{public}d tokens)", tokenTimestamps.count)
-                continuation.finish()
-            } catch {
-                let endSnapshot = DeviceMetrics.captureSnapshot()
-                let failureMetrics = InferenceMetrics(
-                    startSnapshot: startSnapshot,
-                    endSnapshot: endSnapshot,
-                    tokenLatenciesMs: [],
-                    totalTokenCount: 0
-                )
-
-                await MainActor.run { [weak self] in
-                    self?.lastInferenceMetrics = failureMetrics
-                }
-
-                os_signpost(.end, log: Self.inferenceLog, name: "MultimodalInference", signpostID: signpostID,
-                            "Multimodal inference FAILED: %{public}s", error.localizedDescription)
+                            "%{public}s FAILED: %{public}s", label, error.localizedDescription)
                 continuation.finish(throwing: error)
             }
         }
