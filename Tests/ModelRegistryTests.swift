@@ -16,7 +16,7 @@ final class ModelRegistryTests: XCTestCase {
     /// Validates that the registry contains the expected number of models.
     /// Update this count when adding new models to ModelRegistry.
     func testKnownModelCount() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 5)
+        XCTAssertEqual(ModelRegistry.knownModels.count, 7)
     }
 
     // MARK: - Uniqueness (Issue #16)

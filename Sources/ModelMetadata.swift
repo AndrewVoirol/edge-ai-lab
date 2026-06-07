@@ -157,13 +157,15 @@ struct PlatformSupport: Codable, Sendable {
 enum ModelRegistry {
 
     /// All known models in the registry.
-    /// Ordered by recommendation: 12B first (flagship), then E4B, then E2B.
+    /// Ordered by recommendation: 12B first (flagship), then E4B, then E2B, then 3n.
     static let knownModels: [ModelMetadata] = [
-        gemma4_12B,           // Flagship — released today
+        gemma4_12B,           // Flagship dense multimodal
         gemma4E4BStandard,
         gemma4E4BWeb,
         gemma4E2BStandard,
         gemma4E2BWeb,
+        gemma3nE2BStandard,   // Gallery-compatible (gated)
+        gemma3nE2BHW,         // Hardware-optimized (gated)
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -338,6 +340,83 @@ enum ModelRegistry {
             macOS: .gpuAndCpu,        // M-series with 16GB+ — primary target
             iOSDevice: .gpuAndCpu,    // Allow attempt — increased-memory-limit entitlement may help
             iOSSimulator: .cpuOnly    // Simulator Metal unreliable
+        )
+    )
+
+
+    // MARK: - Gemma 3n E2B (Standard INT4 — Gated)
+
+    /// Gemma 3n E2B standard INT4 quantized model.
+    /// This is the model used by the official AI Edge Gallery iOS app.
+    /// **Gated model**: Requires HuggingFace authentication.
+    ///
+    /// Gallery iOS benchmark reference (v1.0.6, iPhone 16 Pro Max, GPU):
+    ///   Prefill: 392.86 tok/s | Decode: 25.57 tok/s
+    ///   TTFT: 0.70s | Init: 8194ms
+    static let gemma3nE2BStandard = ModelMetadata(
+        name: "Gemma 3n E2B · INT4",
+        modelId: "google/gemma-3n-E2B-it-litert-lm",
+        modelFile: "gemma-3n-E2B-it-int4.litertlm",
+        description: "Gemma 3n E2B with INT4 quantization. GPU-only (mobile Metal shaders). Same model as the AI Edge Gallery app. Requires HuggingFace auth.",
+        sizeInBytes: 3_390_000_000,  // ~3.39 GB
+        minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective)",
+        recommendedFor: "Gallery-compatible mobile chat",
+        supportsImage: false,
+        supportsAudio: false,
+        capabilities: ["llm_thinking"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 64,
+            topP: 0.95,
+            temperature: 1.0,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: nil
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,
+            iOSDevice: .gpuOnly,      // GPU-only, verified: 25.57 tok/s decode
+            iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
+        )
+    )
+
+    // MARK: - Gemma 3n E2B (HW-Optimized — Gated)
+
+    /// Gemma 3n E2B hardware-optimized variant for A-series chips.
+    /// Highest hardware-level GPU shader optimization. GPU-only, no CPU fallback.
+    /// **Gated model**: Requires HuggingFace authentication.
+    ///
+    /// Verified benchmark (iPhone 16 Pro Max, GPU):
+    ///   Decode: 24.0 tok/s | Prefill: 7.8 tok/s
+    ///   TTFT: 2.09s | Init: 4.34s
+    static let gemma3nE2BHW = ModelMetadata(
+        name: "Gemma 3n E2B · HW-Optimized",
+        modelId: "google/gemma-3n-E2B-it-litert-lm",
+        modelFile: "gemma-3n-E2B-HW.litertlm",
+        description: "Hardware-optimized Gemma 3n E2B with A-series-specific Metal GPU shaders. Best mobile GPU performance. Requires HuggingFace auth.",
+        sizeInBytes: 2_830_000_000,  // ~2.83 GB
+        minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective, HW-optimized)",
+        recommendedFor: "Maximum mobile GPU throughput",
+        supportsImage: false,
+        supportsAudio: false,
+        capabilities: ["llm_thinking"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 64,
+            topP: 0.95,
+            temperature: 1.0,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: nil
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,          // macOS verified: 78.6 tok/s
+            iOSDevice: .gpuOnly,      // iPhone 16 Pro Max: 24.0 tok/s decode
+            iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
         )
     )
 

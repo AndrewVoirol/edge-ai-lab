@@ -851,7 +851,7 @@ final class ModelMetadataTests: XCTestCase {
 
 
     func testKnownModelCount() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 5)
+        XCTAssertEqual(ModelRegistry.knownModels.count, 7)
     }
 
     func testLookup12BByFilename() {
@@ -899,6 +899,57 @@ final class ModelMetadataTests: XCTestCase {
         XCTAssertTrue(e4b.supportsImage, "E4B Standard should support image input")
         XCTAssertTrue(e4b.supportsAudio, "E4B Standard should support audio input")
     }
+
+    // MARK: - Gemma 3n Models
+
+    func testGemma3nE2BStandardLookup() {
+        let metadata = ModelRegistry.lookup(filename: "gemma-3n-E2B-it-int4.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 3n E2B · INT4")
+    }
+
+    func testGemma3nE2BHWLookup() {
+        let metadata = ModelRegistry.lookup(filename: "gemma-3n-E2B-HW.litertlm")
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata?.name, "Gemma 3n E2B · HW-Optimized")
+    }
+
+    func testGemma3nModelsRequireAuth() {
+        XCTAssertTrue(ModelRegistry.gemma3nE2BStandard.requiresAuth, "3n Standard should require auth (google/ repo)")
+        XCTAssertTrue(ModelRegistry.gemma3nE2BHW.requiresAuth, "3n HW should require auth (google/ repo)")
+    }
+
+    func testGemma3nVariantsShareModelIdButDifferentFile() {
+        let standard = ModelRegistry.gemma3nE2BStandard
+        let hw = ModelRegistry.gemma3nE2BHW
+        XCTAssertEqual(standard.modelId, hw.modelId, "3n variants should share same repo")
+        XCTAssertNotEqual(standard.modelFile, hw.modelFile, "3n variants must have different files")
+        XCTAssertNotEqual(standard.name, hw.name, "3n variants must have different display names")
+    }
+
+    func testGemma3nModelsAreGPUOnly() {
+        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        for model in models {
+            XCTAssertEqual(model.platformSupport.macOS, .gpuOnly, "\(model.name) macOS should be gpuOnly")
+            XCTAssertEqual(model.platformSupport.iOSDevice, .gpuOnly, "\(model.name) iOS should be gpuOnly")
+        }
+    }
+
+    func testGemma3nModelsDoNotSupportMultimodal() {
+        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        for model in models {
+            XCTAssertFalse(model.supportsImage, "\(model.name) should not support image")
+            XCTAssertFalse(model.supportsAudio, "\(model.name) should not support audio")
+        }
+    }
+
+    func testGemma3nDoNotSupportMTP() {
+        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        for model in models {
+            XCTAssertFalse(model.supportsMTP, "\(model.name) should not support MTP")
+        }
+    }
+
     func testBackendCapabilitySupportsGPU() {
         XCTAssertTrue(BackendCapability.gpuOnly.supportsGPU)
         XCTAssertTrue(BackendCapability.gpuAndCpu.supportsGPU)
@@ -922,5 +973,84 @@ final class ModelMetadataTests: XCTestCase {
         // Depending on test platform, verify we get a valid capability
         let current = support.currentPlatform
         XCTAssertNotEqual(current, .unknown)
+    }
+}
+
+// MARK: - PerformanceTier Tests
+
+final class PerformanceTierTests: XCTestCase {
+
+    func test_performanceTier_excellent_above80() {
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 100), .excellent)
+    }
+
+    func test_performanceTier_great_40to80() {
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 50), .great)
+    }
+
+    func test_performanceTier_good_20to40() {
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 30), .good)
+    }
+
+    func test_performanceTier_fair_10to20() {
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 15), .fair)
+    }
+
+    func test_performanceTier_slow_below10() {
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 5), .slow)
+    }
+
+    func test_performanceTier_boundary_exactly80() {
+        // 80 falls into the 80... range, so it should be .excellent
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 80), .excellent)
+    }
+
+    func test_performanceTier_boundary_exactly40() {
+        // 40 falls into the 40..<80 range, so it should be .great
+        XCTAssertEqual(PerformanceTier(decodeSpeed: 40), .great)
+    }
+
+    func test_performanceTier_labels() {
+        XCTAssertEqual(PerformanceTier.excellent.label, "Blazing")
+        XCTAssertEqual(PerformanceTier.great.label, "Fast")
+        XCTAssertEqual(PerformanceTier.good.label, "Good")
+        XCTAssertEqual(PerformanceTier.fair.label, "Fair")
+        XCTAssertEqual(PerformanceTier.slow.label, "Slow")
+    }
+
+    func test_performanceTier_colors_areNotNil() {
+        // Verify all tier colors resolve to a valid Color (non-nil access)
+        let tiers: [PerformanceTier] = [.excellent, .great, .good, .fair, .slow]
+        for tier in tiers {
+            // Color is a value type; accessing it should not crash.
+            let color = tier.color
+            XCTAssertNotNil(color, "Color for tier \(tier.label) should not be nil")
+        }
+    }
+}
+
+// MARK: - SidebarSection Tests
+
+final class SidebarSectionTests: XCTestCase {
+
+    func test_sidebarSection_models_hasCorrectTitle() {
+        XCTAssertEqual(SidebarSection.models.title, "Models")
+    }
+
+    func test_sidebarSection_benchmarks_hasCorrectIcon() {
+        XCTAssertEqual(SidebarSection.benchmarks.systemImage, "chart.line.uptrend.xyaxis")
+    }
+
+    func test_sidebarSection_allCases_areDistinct() {
+        let sections: [SidebarSection] = [.models, .benchmarks, .conversations]
+        let ids = Set(sections.map(\.id))
+        XCTAssertEqual(ids.count, 3, "All sidebar sections should have unique IDs")
+    }
+
+    func test_sidebarSection_identifiable_conformance() {
+        let sections: [SidebarSection] = [.models, .benchmarks, .conversations]
+        for section in sections {
+            XCTAssertEqual(section.id, section.rawValue, "Section id should equal rawValue")
+        }
     }
 }
