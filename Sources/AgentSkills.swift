@@ -221,14 +221,4 @@ public struct MapSkillTool: Tool {
     }
 }
 
-// MARK: - JSON Helper
 
-private func jsonString(from dictionary: [String: Any]) -> String {
-    guard let data = try? JSONSerialization.data(
-        withJSONObject: dictionary,
-        options: [.sortedKeys]
-    ) else {
-        return "{\"error\": \"Failed to serialize result\"}"
-    }
-    return String(data: data, encoding: .utf8) ?? "{\"error\": \"Failed to encode result\"}"
-}
