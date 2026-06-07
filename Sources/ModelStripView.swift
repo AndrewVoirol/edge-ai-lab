@@ -235,5 +235,6 @@ struct ModelStripView: View {
         .padding(.vertical, AppSpacing.sm)
         .contentShape(Rectangle())
         .glassCard(cornerRadius: AppRadius.md)
+        .interactiveHover()
     }
 }

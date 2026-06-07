@@ -12,15 +12,25 @@ struct InputAreaView: View {
     @Bindable private var viewModel = ConversationViewModel.shared
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
+    @State private var showPhotoPicker = false
     @FocusState private var isPromptFocused: Bool
+    @State private var isSendPressed = false
 
     var body: some View {
-        VStack(spacing: AppSpacing.sm) {
+        VStack(spacing: 0) {
             // Multimodal attachment preview
             if viewModel.hasMultimodalAttachment {
                 multimodalAttachmentStrip
+                    .padding(.bottom, AppSpacing.sm)
             }
 
+            // Model loading indicator
+            if viewModel.isLoadingModel {
+                modelLoadingIndicator
+                    .padding(.bottom, AppSpacing.sm)
+            }
+
+            // Main input row
             HStack(spacing: AppSpacing.sm) {
                 // Attachment buttons
                 HStack(spacing: AppSpacing.xs) {
@@ -86,35 +96,12 @@ struct InputAreaView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.borderActive, lineWidth: 0.5)
+                            .stroke(inputBorderColor, lineWidth: inputBorderWidth)
                     )
                     .accessibilityIdentifier("textField_prompt")
 
-                // Send/Stop button
-                Button {
-                    if viewModel.isGenerating {
-                        viewModel.stopGenerating()
-                        return
-                    }
-                    guard viewModel.isEngineReady else {
-                        viewModel.statusMessage = "Please select or download a model first."
-                        return
-                    }
-                    Task { await viewModel.generateText() }
-                } label: {
-                    Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(
-                            viewModel.isEngineReady && !viewModel.isGenerating
-                                ? AppColors.accentGold
-                                : AppColors.textTertiary
-                        )
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .buttonStyle(.plain)
-                .disabled(!viewModel.isEngineReady)
-                .accessibilityIdentifier("button_send")
-                .keyboardShortcut(.return, modifiers: .command)
+                // Send/Stop button with glow effect
+                sendButton
             }
 
             // Action bar below input
@@ -150,9 +137,28 @@ struct InputAreaView: View {
 
                 Spacer()
             }
+            .padding(.top, AppSpacing.xs)
         }
+        .padding(AppSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .fill(AppColors.backgroundSecondary.opacity(0.6))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .shadow(color: AppColors.backgroundPrimary.opacity(0.5), radius: 8, y: -2)
         .onAppear {
             isPromptFocused = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .focusPromptRequested)) { _ in
+            isPromptFocused = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showPhotoPickerRequested)) { _ in
+            showPhotoPicker = true
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem = newItem else { return }
@@ -162,6 +168,101 @@ struct InputAreaView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Send Button
+
+    private var sendButton: some View {
+        Button {
+            if viewModel.isGenerating {
+                viewModel.stopGenerating()
+                return
+            }
+            guard viewModel.isEngineReady else {
+                viewModel.statusMessage = "Please select or download a model first."
+                return
+            }
+            Task { await viewModel.generateText() }
+        } label: {
+            Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
+                .font(.title2)
+                .foregroundStyle(sendButtonColor)
+                .contentTransition(.symbolEffect(.replace))
+                .scaleEffect(isSendPressed ? 0.85 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .disabled(!viewModel.isEngineReady)
+        .accessibilityIdentifier("button_send")
+        .accessibilityValue(sendButtonAccessibilityValue)
+        .keyboardShortcut(.return, modifiers: .command)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    withAnimation(AppAnimation.spring) { isSendPressed = true }
+                }
+                .onEnded { _ in
+                    withAnimation(AppAnimation.spring) { isSendPressed = false }
+                }
+        )
+        .modifier(ConditionalGlowModifier(
+            isActive: !viewModel.prompt.isEmpty && viewModel.isEngineReady,
+            color: AppColors.accentGold
+        ))
+    }
+
+    /// Send button color adapts to state: gold when ready, muted when disabled/generating.
+    private var sendButtonColor: Color {
+        if viewModel.isGenerating {
+            return AppColors.danger
+        }
+        if viewModel.isEngineReady && !viewModel.prompt.isEmpty {
+            return AppColors.accentGold
+        }
+        return AppColors.textTertiary
+    }
+
+    /// Accessibility value for the send button state.
+    private var sendButtonAccessibilityValue: String {
+        if viewModel.isGenerating { return "stop" }
+        if !viewModel.isEngineReady { return "disabled" }
+        if !viewModel.prompt.isEmpty { return "ready" }
+        return "idle"
+    }
+
+    // MARK: - Input Border
+
+    /// Border color changes when thinking mode is active.
+    private var inputBorderColor: Color {
+        if viewModel.experimentalFlags.enableThinking && viewModel.isThinking {
+            return AppColors.thinking
+        }
+        return AppColors.borderActive
+    }
+
+    /// Border width increases during thinking mode for visual emphasis.
+    private var inputBorderWidth: CGFloat {
+        if viewModel.experimentalFlags.enableThinking && viewModel.isThinking {
+            return 1.5
+        }
+        return 0.5
+    }
+
+    // MARK: - Model Loading Indicator
+
+    private var modelLoadingIndicator: some View {
+        HStack(spacing: AppSpacing.sm) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(AppColors.accentTeal)
+            Text(viewModel.statusMessage)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textSecondary)
+                .lineLimit(1)
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.sm)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .accessibilityIdentifier("model_loading_indicator")
     }
 
     // MARK: - Multimodal Attachment Strip
@@ -229,5 +330,33 @@ struct InputAreaView: View {
 
             Spacer()
         }
+    }
+}
+
+// MARK: - Conditional Glow Modifier
+
+/// Applies a pulsing gold glow when active (e.g., when prompt has text and engine is ready).
+/// Separated as a ViewModifier to avoid SwiftUI conditional modifier issues.
+private struct ConditionalGlowModifier: ViewModifier {
+    let isActive: Bool
+    let color: Color
+    @State private var isGlowing = false
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(
+                color: isActive ? color.opacity(isGlowing ? 0.6 : 0.2) : .clear,
+                radius: isActive ? (isGlowing ? 8 : 4) : 0
+            )
+            .animation(
+                isActive ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .default,
+                value: isGlowing
+            )
+            .onChange(of: isActive) { _, newValue in
+                isGlowing = newValue
+            }
+            .onAppear {
+                isGlowing = isActive
+            }
     }
 }

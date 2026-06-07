@@ -69,17 +69,64 @@ struct ConversationAreaView: View {
                     .font(.system(.title2, design: .default, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 
-                Text("On-device Gemma 4 inference")
+                Text("On-device Gemma inference")
                     .font(.subheadline)
                     .foregroundStyle(AppColors.textSecondary)
+
+                // Model readiness hint
+                if !viewModel.isEngineReady {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "arrow.up")
+                            .font(.caption)
+                        Text("Load a model above to get started")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(AppColors.textTertiary)
+                    .padding(.top, AppSpacing.xs)
+                }
             }
 
-            // Quick action hints
+            // Quick action hints — now actionable
             VStack(spacing: AppSpacing.md) {
-                quickActionHint(icon: "text.bubble", text: "Start a conversation", color: AppColors.accentCyan, id: "hint_chat")
-                quickActionHint(icon: "photo", text: "Analyze an image", color: AppColors.accentGold, id: "hint_image")
-                quickActionHint(icon: "wrench.and.screwdriver", text: "Use built-in tools", color: AppColors.toolCall, id: "hint_tools")
-                quickActionHint(icon: "brain.head.profile", text: "Watch the model think", color: AppColors.thinking, id: "hint_thinking")
+                quickActionHint(
+                    icon: "text.bubble",
+                    text: "Start a conversation",
+                    color: AppColors.accentCyan,
+                    id: "hint_chat"
+                ) {
+                    NotificationCenter.default.post(name: .focusPromptRequested, object: nil)
+                }
+
+                quickActionHint(
+                    icon: "photo",
+                    text: "Analyze an image",
+                    color: AppColors.accentGold,
+                    id: "hint_image"
+                ) {
+                    NotificationCenter.default.post(name: .showPhotoPickerRequested, object: nil)
+                }
+
+                quickActionHint(
+                    icon: "wrench.and.screwdriver",
+                    text: "Use built-in tools",
+                    color: AppColors.toolCall,
+                    id: "hint_tools"
+                ) {
+                    viewModel.experimentalFlags.enableToolCalling = true
+                    viewModel.prompt = "What time is it in Tokyo?"
+                    NotificationCenter.default.post(name: .focusPromptRequested, object: nil)
+                }
+
+                quickActionHint(
+                    icon: "brain.head.profile",
+                    text: "Watch the model think",
+                    color: AppColors.thinking,
+                    id: "hint_thinking"
+                ) {
+                    viewModel.experimentalFlags.enableThinking = true
+                    viewModel.prompt = "Explain step by step: Why does 0.1 + 0.2 ≠ 0.3 in floating point?"
+                    NotificationCenter.default.post(name: .focusPromptRequested, object: nil)
+                }
             }
             .padding(.horizontal, AppSpacing.xxl)
 
@@ -87,21 +134,34 @@ struct ConversationAreaView: View {
         }
     }
 
-    private func quickActionHint(icon: String, text: String, color: Color, id: String) -> some View {
-        HStack(spacing: AppSpacing.md) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundStyle(color)
-                .frame(width: 28)
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(AppColors.textSecondary)
-            Spacer()
+    private func quickActionHint(
+        icon: String,
+        text: String,
+        color: Color,
+        id: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: AppSpacing.md) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundStyle(color)
+                    .frame(width: 28)
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.md)
+            .glassCard(cornerRadius: AppRadius.md)
+            .interactiveHover()
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .glassCard(cornerRadius: AppRadius.md)
-        .interactiveHover()
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier(id)
     }
 }

@@ -492,3 +492,15 @@ extension Theme {
             }
     }
 }
+
+// MARK: - App Notification Names
+
+/// Cross-view communication notifications.
+/// Used to decouple empty-state hint actions from input area behavior.
+extension Notification.Name {
+    /// Posted when the user requests focus on the prompt text field (e.g., from a hint card).
+    static let focusPromptRequested = Notification.Name("com.edgewood.focusPromptRequested")
+
+    /// Posted when the user requests to show the photo picker (e.g., from an image hint card).
+    static let showPhotoPickerRequested = Notification.Name("com.edgewood.showPhotoPickerRequested")
+}

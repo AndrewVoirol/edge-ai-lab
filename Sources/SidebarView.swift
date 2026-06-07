@@ -143,9 +143,15 @@ struct SidebarView: View {
                 }
                 .accessibilityIdentifier("sidebar_newChat")
 
-                Text("Chat history coming soon")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary.opacity(0.6))
+                    Text("Conversations will appear here")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .accessibilityIdentifier("sidebar_conversations_emptyState")
             } header: {
                 Label("Conversations", systemImage: SidebarSection.conversations.systemImage)
                     .font(AppTypography.sectionHeader)
