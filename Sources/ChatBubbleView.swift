@@ -123,18 +123,25 @@ struct ChatBubbleView: View {
         VStack(alignment: .leading, spacing: 0) {
             Group {
                 if message.content.isEmpty && message.isStreaming {
-                    // Animated streaming indicator
-                    StreamingIndicator()
+                    // Shimmer loading placeholder while waiting for first token
+                    LoadingShimmerView()
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.md)
                 } else {
-                    Markdown(message.content)
-                        .markdownTheme(.appDefault(isUser: message.role == .user))
-                        .markdownBlockStyle(\.codeBlock) { configuration in
-                            CodeBlockView(code: configuration.content, language: configuration.language)
+                    HStack(alignment: .bottom, spacing: 0) {
+                        Markdown(message.content)
+                            .markdownTheme(.appDefault(isUser: message.role == .user))
+                            .markdownBlockStyle(\.codeBlock) { configuration in
+                                CodeBlockView(code: configuration.content, language: configuration.language)
+                            }
+                        
+                        // Blinking cursor at end of streaming text
+                        if message.isStreaming && !message.content.isEmpty {
+                            BlinkingCursor()
                         }
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.vertical, AppSpacing.md)
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
                 }
             }
             
@@ -229,7 +236,7 @@ struct ChatBubbleView: View {
                     Image(systemName: showThinking ? "chevron.up" : "chevron.down")
                         .font(.caption2)
                         .foregroundStyle(AppColors.textTertiary)
-                        .rotationEffect(.degrees(showThinking ? 0 : 0))
+                        .rotationEffect(.degrees(showThinking ? 90 : 0))
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)

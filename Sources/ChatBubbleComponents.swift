@@ -143,14 +143,6 @@ struct SimpleMapView: View {
     }
 }
 
-// MARK: - Markdown Support
-
-struct MessageChunk: Identifiable, Equatable {
-    let id: Int
-    let isCode: Bool
-    let text: String
-    let language: String?
-}
 
 // MARK: - Code Block View
 

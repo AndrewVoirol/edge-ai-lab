@@ -4,77 +4,80 @@ import MarkdownUI
 // MARK: - Edge AI Lab Design System
 //
 // Centralized design tokens for the GemmaEdgeGallery app.
-// Follows Apple's Liquid Glass design language (iOS/macOS 26)
-// with a premium dark-mode-first aesthetic.
+// "Dark Forest / Moss" palette — a cabin with a terminal.
+// Deep charcoals, muted greens, warm wood tones, soft cream text.
+// Glass overlays let the forest palette bleed through frosted surfaces.
 
 // MARK: - Color Palette
 
-/// Curated color palette — warm golds, cool teals, deep darks.
+/// Curated color palette — Dark Forest / Moss.
+/// Deep charcoals as the dominant base, warm cream for text,
+/// moss green and amber as restrained accents.
 /// No generic primary colors. Every color is intentional.
 enum AppColors {
 
     // MARK: Backgrounds
-    /// The deepest background — near-black with a subtle blue tint.
-    static let backgroundPrimary = Color(red: 0.06, green: 0.07, blue: 0.10)
-    /// Slightly elevated surface (cards, panels).
-    static let backgroundSecondary = Color(red: 0.10, green: 0.11, blue: 0.15)
-    /// Tertiary surface (input fields, wells).
-    static let backgroundTertiary = Color(red: 0.14, green: 0.15, blue: 0.20)
+    /// The deepest background — forest floor at night.
+    static let backgroundPrimary = Color(red: 0.05, green: 0.07, blue: 0.06)
+    /// Slightly elevated surface (cards, panels) — charcoal bark.
+    static let backgroundSecondary = Color(red: 0.09, green: 0.12, blue: 0.10)
+    /// Tertiary surface (input fields, wells) — dark moss.
+    static let backgroundTertiary = Color(red: 0.13, green: 0.17, blue: 0.14)
 
-    // MARK: Accent Gradients
-    /// Warm amber/gold for user actions and highlights.
-    static let accentGold = Color(red: 0.90, green: 0.72, blue: 0.30)
-    /// Cool teal for system/model indicators.
-    static let accentTeal = Color(red: 0.20, green: 0.78, blue: 0.78)
-    /// Cyan for active/interactive elements.
-    static let accentCyan = Color(red: 0.30, green: 0.85, blue: 0.95)
+    // MARK: Accent Colors
+    /// Warm amber/wood for user actions and highlights — firelight.
+    static let accentGold = Color(red: 0.76, green: 0.59, blue: 0.33)
+    /// Living moss green for system/model indicators — the Lab's signature.
+    static let accentTeal = Color(red: 0.29, green: 0.49, blue: 0.35)
+    /// Spring leaf green for active/interactive elements — brighter than moss.
+    static let accentCyan = Color(red: 0.36, green: 0.65, blue: 0.45)
 
     // MARK: Semantic
-    /// Success / ready / healthy.
-    static let success = Color(red: 0.30, green: 0.85, blue: 0.50)
-    /// Warning / caution.
-    static let warning = Color(red: 0.95, green: 0.75, blue: 0.25)
-    /// Error / critical / danger.
-    static let danger = Color(red: 0.95, green: 0.35, blue: 0.35)
-    /// Thinking / reasoning mode.
-    static let thinking = Color(red: 0.40, green: 0.65, blue: 0.95)
-    /// Tool calling / function execution.
-    static let toolCall = Color(red: 0.95, green: 0.60, blue: 0.20)
+    /// Success / ready / healthy — spring leaf.
+    static let success = Color(red: 0.36, green: 0.65, blue: 0.45)
+    /// Warning / caution — autumn amber.
+    static let warning = Color(red: 0.77, green: 0.58, blue: 0.23)
+    /// Error / critical / danger — clay terracotta.
+    static let danger = Color(red: 0.72, green: 0.36, blue: 0.29)
+    /// Thinking / reasoning mode — sage green.
+    static let thinking = Color(red: 0.36, green: 0.54, blue: 0.45)
+    /// Tool calling / function execution — warm amber glow.
+    static let toolCall = Color(red: 0.80, green: 0.55, blue: 0.25)
 
     // MARK: Text
-    /// Primary text — high contrast on dark.
-    static let textPrimary = Color(red: 0.93, green: 0.93, blue: 0.96)
-    /// Secondary text — labels, captions.
-    static let textSecondary = Color(red: 0.60, green: 0.62, blue: 0.68)
-    /// Tertiary text — timestamps, hints.
-    static let textTertiary = Color(red: 0.40, green: 0.42, blue: 0.48)
+    /// Primary text — warm cream, high contrast on dark.
+    static let textPrimary = Color(red: 0.91, green: 0.87, blue: 0.82)
+    /// Secondary text — weathered wood, labels, captions.
+    static let textSecondary = Color(red: 0.61, green: 0.56, blue: 0.50)
+    /// Tertiary text — deep shadow, timestamps, hints.
+    static let textTertiary = Color(red: 0.40, green: 0.37, blue: 0.33)
 
     // MARK: Chat Bubbles
-    /// User message bubble gradient start.
-    static let userBubbleStart = Color(red: 0.18, green: 0.42, blue: 0.78)
-    /// User message bubble gradient end.
-    static let userBubbleEnd = Color(red: 0.25, green: 0.30, blue: 0.65)
-    /// Assistant message bubble.
-    static let assistantBubble = Color(red: 0.12, green: 0.13, blue: 0.18)
+    /// User message bubble gradient start — deep amber wood.
+    static let userBubbleStart = Color(red: 0.28, green: 0.22, blue: 0.14)
+    /// User message bubble gradient end — darker wood.
+    static let userBubbleEnd = Color(red: 0.18, green: 0.15, blue: 0.10)
+    /// Assistant message bubble — dark moss panel.
+    static let assistantBubble = Color(red: 0.10, green: 0.14, blue: 0.11)
 
     // MARK: Borders
-    /// Subtle divider/border on dark backgrounds.
-    static let border = Color.white.opacity(0.08)
-    /// Active/focused border.
-    static let borderActive = Color.white.opacity(0.15)
+    /// Subtle divider/border — like bark grain.
+    static let border = Color.white.opacity(0.06)
+    /// Active/focused border — slightly brighter grain.
+    static let borderActive = Color.white.opacity(0.12)
 }
 
 // MARK: - Gradients
 
 enum AppGradients {
-    /// User chat bubble gradient.
+    /// User chat bubble gradient — warm wood grain.
     static let userBubble = LinearGradient(
         colors: [AppColors.userBubbleStart, AppColors.userBubbleEnd],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Header/toolbar gradient.
+    /// Header/toolbar gradient — bark to shadow.
     static let toolbar = LinearGradient(
         colors: [
             AppColors.backgroundSecondary.opacity(0.95),
@@ -84,14 +87,14 @@ enum AppGradients {
         endPoint: .bottom
     )
 
-    /// Accent shimmer for loading states.
+    /// Accent shimmer for loading states — moss light filtering through canopy.
     static let shimmer = LinearGradient(
         colors: [AppColors.accentTeal, AppColors.accentCyan, AppColors.accentTeal],
         startPoint: .leading,
         endPoint: .trailing
     )
 
-    /// Thinking mode glow.
+    /// Thinking mode glow — sage mist.
     static let thinking = LinearGradient(
         colors: [
             AppColors.thinking.opacity(0.3),
@@ -102,7 +105,7 @@ enum AppGradients {
         endPoint: .trailing
     )
 
-    /// Model card background.
+    /// Model card background — layered bark.
     static let card = LinearGradient(
         colors: [
             AppColors.backgroundSecondary,
@@ -110,6 +113,35 @@ enum AppGradients {
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
+    )
+
+    /// Sidebar/panel background — forest depth.
+    static let sidebar = LinearGradient(
+        colors: [
+            AppColors.backgroundSecondary.opacity(0.6),
+            AppColors.backgroundPrimary.opacity(0.8)
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+}
+
+// MARK: - Shadows
+
+enum AppShadow {
+    /// Subtle depth shadow for cards.
+    static func card(_ scheme: ColorScheme = .dark) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        (Color.black.opacity(0.3), 8, 0, 4)
+    }
+
+    /// Glow shadow for active elements — moss-tinted.
+    static let activeGlow: (color: Color, radius: CGFloat) = (
+        AppColors.accentTeal.opacity(0.25), 12
+    )
+
+    /// Warm glow for user interaction elements.
+    static let warmGlow: (color: Color, radius: CGFloat) = (
+        AppColors.accentGold.opacity(0.2), 10
     )
 }
 
@@ -175,7 +207,8 @@ enum AppAnimation {
 
 // MARK: - View Modifiers
 
-/// Premium glass card surface.
+/// Premium glass card surface — frosted glass in a forest.
+/// The forest palette bleeds through the material for a warm, organic feel.
 struct GlassCardModifier: ViewModifier {
     var cornerRadius: CGFloat = AppRadius.lg
 
@@ -189,6 +222,26 @@ struct GlassCardModifier: ViewModifier {
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(AppColors.border, lineWidth: 0.5)
+                    )
+            }
+    }
+}
+
+/// Forest glass overlay — used for input bars, toolbars, and floating panels.
+/// Slightly more opaque than the standard glass card for better readability.
+struct ForestGlassModifier: ViewModifier {
+    var cornerRadius: CGFloat = AppRadius.md
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(AppColors.backgroundSecondary.opacity(0.55))
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(AppColors.borderActive, lineWidth: 0.5)
                     )
             }
     }
@@ -271,9 +324,14 @@ struct InteractiveHoverModifier: ViewModifier {
 // MARK: - View Extensions
 
 extension View {
-    /// Apply premium glass card styling.
+    /// Apply premium glass card styling — frosted glass in a forest.
     func glassCard(cornerRadius: CGFloat = AppRadius.lg) -> some View {
         modifier(GlassCardModifier(cornerRadius: cornerRadius))
+    }
+
+    /// Apply forest glass overlay — for input bars, toolbars, floating panels.
+    func forestGlass(cornerRadius: CGFloat = AppRadius.md) -> some View {
+        modifier(ForestGlassModifier(cornerRadius: cornerRadius))
     }
 
     /// Add a subtle colored glow.
@@ -314,6 +372,7 @@ extension View {
 // MARK: - Performance Tier Colors
 
 /// Maps decode speed to a visual tier for instant comprehension.
+/// Colors are mapped to the Dark Forest palette for consistency.
 enum PerformanceTier {
     case excellent  // > 80 tok/s
     case great      // > 40 tok/s
@@ -333,11 +392,11 @@ enum PerformanceTier {
 
     var color: Color {
         switch self {
-        case .excellent: return AppColors.accentCyan
-        case .great:     return AppColors.success
-        case .good:      return AppColors.accentTeal
-        case .fair:      return AppColors.warning
-        case .slow:      return AppColors.danger
+        case .excellent: return AppColors.accentCyan     // Spring leaf — peak performance
+        case .great:     return AppColors.success        // Living green
+        case .good:      return AppColors.accentTeal     // Moss — solid
+        case .fair:      return AppColors.warning        // Autumn amber — slowing
+        case .slow:      return AppColors.danger         // Clay terracotta — needs attention
         }
     }
 
@@ -355,11 +414,11 @@ enum PerformanceTier {
 // MARK: - MarkdownUI Theme
 
 extension Theme {
-    /// A custom MarkdownUI theme that maps directly to our AppColors and AppTypography.
+    /// A custom MarkdownUI theme that maps directly to the Dark Forest palette.
     static func appDefault(isUser: Bool) -> Theme {
         Theme()
             .text {
-                ForegroundColor(isUser ? .white : AppColors.textPrimary)
+                ForegroundColor(isUser ? AppColors.textPrimary : AppColors.textPrimary)
                 FontSize(15) // Matches AppTypography.body
             }
             .code {
@@ -377,7 +436,7 @@ extension Theme {
                 VStack(alignment: .leading, spacing: 0) {
                     configuration.label
                         .font(.system(size: 24, weight: .bold, design: .default))
-                        .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .padding(.bottom, AppSpacing.sm)
                     Divider().overlay(AppColors.border)
                         .padding(.bottom, AppSpacing.sm)
@@ -387,7 +446,7 @@ extension Theme {
                 VStack(alignment: .leading, spacing: 0) {
                     configuration.label
                         .font(.system(size: 20, weight: .semibold, design: .default))
-                        .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                         .padding(.bottom, AppSpacing.xs)
                     Divider().overlay(AppColors.border)
                         .padding(.bottom, AppSpacing.sm)
@@ -396,7 +455,7 @@ extension Theme {
             .heading3 { configuration in
                 configuration.label
                     .font(.system(size: 18, weight: .semibold, design: .default))
-                    .foregroundStyle(isUser ? .white : AppColors.textPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .padding(.bottom, AppSpacing.xs)
             }
             .blockquote { configuration in
