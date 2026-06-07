@@ -5,14 +5,19 @@ import PhotosUI
 
 // MARK: - Content View
 
-/// The main application view — a premium on-device AI inference lab.
+/// The main application view — Edge AI Lab, a premium on-device inference research instrument.
 ///
-/// Layout: Dark-mode-first with a top header bar, horizontal model card strip,
-/// scrollable chat area with glass-effect bubbles, and a frosted input bar.
-/// The benchmark bar at the bottom uses performance tier coloring.
+/// Architecture:
+/// - **macOS**: 3-column `NavigationSplitView` —
+///   Sidebar (models/benchmarks/conversations) → Detail (model lab/dashboard) → Content (chat).
+/// - **iOS**: `TabView` with 3 tabs (Chat, Models, Lab) — adapting the same components
+///   for a mobile-first layout.
+///
+/// Dark Forest / Moss palette. "A cabin with a terminal."
 ///
 /// Decomposed into focused child views:
-/// - `ModelStripView` — Discovered + downloadable model cards
+/// - `SidebarView` — Model list, benchmarks, conversations sidebar
+/// - `DetailColumnView` — Model detail panel / performance dashboard
 /// - `ConversationAreaView` — Chat bubbles and empty state
 /// - `BenchmarkBarView` — Performance metrics bar
 /// - `InputAreaView` — Prompt field, send button, attachments
@@ -27,35 +32,184 @@ struct ContentView: View {
     @State private var showcaseModel: ModelMetadata?
     @State private var showcaseModelURL: URL?
 
+    // NavigationSplitView state
+    @State private var selectedSection: SidebarSection?
+    @State private var selectedModelId: String?
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
+    // iOS tab selection
+    @State private var selectedTab: Int = 0
+
     var body: some View {
+        #if os(macOS)
+        macOSLayout
+        #else
+        iOSLayout
+        #endif
+    }
+
+    // MARK: - macOS 3-Column Layout
+
+    #if os(macOS)
+    private var macOSLayout: some View {
+        appliedSharedModifiers(
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            // Left column: Sidebar
+            SidebarView(
+                selectedSection: $selectedSection,
+                selectedModelId: $selectedModelId,
+                showcaseModel: $showcaseModel,
+                showcaseModelURL: $showcaseModelURL
+            )
+        } content: {
+            // Middle column: Detail (model info / dashboard / comparison)
+            DetailColumnView(
+                selectedSection: $selectedSection,
+                selectedModelId: $selectedModelId
+            )
+        } detail: {
+            // Right column: Chat area — the instrument
+            chatColumn
+        }
+        .navigationSplitViewStyle(.balanced)
+        .foregroundStyle(AppColors.textPrimary)
+        .preferredColorScheme(.dark)
+        .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .help("Settings")
+                .accessibilityIdentifier("button_settings")
+
+                Button {
+                    viewModel.refreshDiscoveredModels()
+                    viewModel.downloadManager.refreshStates()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help("Refresh discovered models")
+                .accessibilityIdentifier("button_refresh")
+
+                Button {
+                    viewModel.isFilePickerPresented = true
+                } label: {
+                    Image(systemName: "plus.square")
+                    Text("Load Model")
+                }
+                .help("Load a custom model from disk")
+                .accessibilityIdentifier("button_loadModel")
+            }
+        }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url = url,
+                      url.pathExtension == "litertlm" else { return }
+                Task { @MainActor in
+                    await viewModel.handleModelSelection(url)
+                }
+            }
+            return true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
+            Task { await viewModel.newConversation() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showDashboardRequested)) { _ in
+            selectedSection = .benchmarks
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshModelsRequested)) { _ in
+            viewModel.refreshDiscoveredModels()
+            viewModel.downloadManager.refreshStates()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .loadModelRequested)) { _ in
+            viewModel.isFilePickerPresented = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showSettingsRequested)) { _ in
+            showSettings = true
+        }
+        )
+    }
+    #endif
+
+    // MARK: - iOS Tab Layout
+
+    #if os(iOS)
+    private var iOSLayout: some View {
+        appliedSharedModifiers(
+        TabView(selection: $selectedTab) {
+            // Tab 1: Chat
+            NavigationStack {
+                chatColumn
+                    .navigationTitle("Chat")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showSettings = true
+                            } label: {
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                            .accessibilityIdentifier("button_settings")
+                        }
+                    }
+            }
+            .tabItem {
+                Label("Chat", systemImage: "bubble.left.and.bubble.right")
+            }
+            .tag(0)
+
+            // Tab 2: Models
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ModelStripView(
+                            showcaseModel: $showcaseModel,
+                            showcaseModelURL: $showcaseModelURL
+                        )
+                    }
+                }
+                .background(AppColors.backgroundPrimary)
+                .navigationTitle("Models")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Label("Models", systemImage: "cpu")
+            }
+            .tag(1)
+
+            // Tab 3: Lab (Dashboard)
+            NavigationStack {
+                PerformanceDashboardView()
+                    .navigationTitle("Lab")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .tabItem {
+                Label("Lab", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .tag(2)
+        }
+        .foregroundStyle(AppColors.textPrimary)
+        .preferredColorScheme(.dark)
+        .tint(AppColors.accentCyan)
+        )
+    }
+    #endif
+
+    // MARK: - Chat Column (Shared)
+
+    /// The chat column — used as the right column on macOS and the first tab on iOS.
+    /// Contains the conversation area, benchmark bar, input area, and status bar.
+    private var chatColumn: some View {
         ZStack {
-            // Full-bleed vibrant animated background for premium feel
             VibrantBackgroundView()
                 .ignoresSafeArea()
-                .overlay(.black.opacity(0.2)) // Subtle dimming so glass cards pop
+
             VStack(spacing: 0) {
-                #if os(iOS)
-                // Header bar
-                headerView
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-
-                // Subtle separator
-                Rectangle()
-                    .fill(AppColors.border)
-                    .frame(height: 0.5)
-                #endif
-
-                // Model card strip
-                ModelStripView(
-                    showcaseModel: $showcaseModel,
-                    showcaseModelURL: $showcaseModelURL
-                )
-
-                Rectangle()
-                    .fill(AppColors.border)
-                    .frame(height: 0.5)
-
                 // Conversation area — chat bubbles
                 ConversationAreaView()
                     .frame(maxHeight: .infinity)
@@ -88,7 +242,7 @@ struct ContentView: View {
                     .padding(.horizontal, AppSpacing.lg)
                     .padding(.vertical, AppSpacing.md)
                     #endif
-                    
+
                 #if os(macOS)
                 Rectangle()
                     .fill(AppColors.border)
@@ -97,257 +251,7 @@ struct ContentView: View {
                 #endif
             }
         }
-        .foregroundStyle(AppColors.textPrimary)
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                InferenceSettingsView(viewModel: viewModel)
-                    .navigationTitle("Settings")
-                    #if os(macOS)
-                    .frame(minWidth: 550, minHeight: 600)
-                    #endif
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showSettings = false }
-                                .accessibilityIdentifier("button_doneSettings")
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $showDashboard) {
-            NavigationStack {
-                PerformanceDashboardView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showDashboard = false }
-                                .accessibilityIdentifier("button_doneDashboard")
-                        }
-                    }
-            }
-            #if os(macOS)
-            .frame(minWidth: 600, minHeight: 500)
-            #endif
-        }
-        .sheet(item: $showcaseModel) { model in
-            NavigationStack {
-                ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)
-            }
-            #if os(macOS)
-            .frame(minWidth: 450, minHeight: 550)
-            #endif
-        }
-        .alert("HuggingFace Token Required", isPresented: Binding(
-            get: { viewModel.downloadManager.showTokenPrompt },
-            set: { viewModel.downloadManager.showTokenPrompt = $0 }
-        )) {
-            hfTokenAlert
-        }
-        .onAppear {
-            // Skip auto-loading when running under the test harness or developer automation —
-            // tests manage their own engine lifecycle.
-            guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
-                  !CommandLine.arguments.contains("-RunAutomationHarness"),
-                  !CommandLine.arguments.contains("-RunAllTests"),
-                  !CommandLine.arguments.contains("-RunMatrixBenchmark") else {
-                viewModel.downloadManager.refreshStates()
-                DeveloperAutomationHarness.runIfRequested(viewModel: viewModel)
-                return
-            }
-            viewModel.checkForLocalModels()
-            viewModel.downloadManager.refreshStates()
-        }
-        .preferredColorScheme(.dark)
-        .fileImporter(
-            isPresented: $viewModel.isFilePickerPresented,
-            allowedContentTypes: [.data],
-            allowsMultipleSelection: false
-        ) { result in
-            do {
-                guard let selectedFile = try result.get().first else { return }
-                Task {
-                    await viewModel.handleModelSelection(selectedFile)
-                }
-            } catch {
-                viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
-            }
-        }
-        #if os(macOS)
-        .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
-        .onReceive(NotificationCenter.default.publisher(for: .newChatRequested)) { _ in
-            Task { await viewModel.newConversation() }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showDashboardRequested)) { _ in
-            showDashboard = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .refreshModelsRequested)) { _ in
-            viewModel.refreshDiscoveredModels()
-            viewModel.downloadManager.refreshStates()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .loadModelRequested)) { _ in
-            viewModel.isFilePickerPresented = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showSettingsRequested)) { _ in
-            showSettings = true
-        }
-        #endif
-        #if os(macOS)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                if #available(macOS 13.0, *) {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .help("Settings")
-                    .accessibilityIdentifier("button_settings")
-                }
-                Button {
-                    viewModel.refreshDiscoveredModels()
-                    viewModel.downloadManager.refreshStates()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .help("Refresh discovered models")
-                .accessibilityIdentifier("button_refresh")
-                
-                Button {
-                    showDashboard = true
-                } label: {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                }
-                .help("Performance Dashboard")
-                .accessibilityIdentifier("button_dashboard")
-                
-                Button {
-                    viewModel.isFilePickerPresented = true
-                } label: {
-                    Image(systemName: "plus.square")
-                    Text("Load Model")
-                }
-                .help("Load a custom model from disk")
-                .accessibilityIdentifier("button_loadModel")
-            }
-        }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            guard let provider = providers.first else { return false }
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url = url,
-                      url.pathExtension == "litertlm" else { return }
-                Task { @MainActor in
-                    await viewModel.handleModelSelection(url)
-                }
-            }
-            return true
-        }
-        #endif
-    }
-
-    // MARK: - Header (iOS)
-
-    private var headerView: some View {
-        HStack(spacing: AppSpacing.sm) {
-            // Status / model name
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: AppSpacing.sm) {
-                    if viewModel.isLoadingModel {
-                        ProgressView()
-                            .controlSize(.small)
-                            .accessibilityIdentifier("progress_loading")
-                    }
-
-                    Text(viewModel.statusMessage)
-                        .font(.system(.headline, design: .default, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-
-                    if viewModel.isLoadingModel {
-                        Button("Cancel") {
-                            viewModel.cancelModelLoad()
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                        .controlSize(.small)
-                        .accessibilityIdentifier("button_cancelLoad")
-                    }
-                }
-
-                if let path = viewModel.activeModelURL?.path {
-                    Text(path)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-
-                // Capability badges are now displayed directly on the model cards
-                // inside the ModelStripView to ensure they are visible on both iOS and macOS.
-            }
-
-            Spacer()
-
-            // Action buttons
-            HStack(spacing: AppSpacing.sm) {
-                Button {
-                    viewModel.refreshDiscoveredModels()
-                    viewModel.downloadManager.refreshStates()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .help("Refresh discovered models")
-                .accessibilityIdentifier("button_refresh")
-
-                Button {
-                    showDashboard = true
-                } label: {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .help("Performance Dashboard")
-                .accessibilityIdentifier("button_dashboard")
-
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .help("Inference Settings")
-                .accessibilityIdentifier("button_settings")
-
-                Button {
-                    viewModel.isFilePickerPresented = true
-                } label: {
-                    #if os(iOS)
-                    // Icon-only capsule on iPhone to save horizontal space
-                    Image(systemName: "plus.square")
-                        .foregroundStyle(AppColors.accentGold)
-                        .padding(AppSpacing.sm)
-                        .background(AppColors.accentGold.opacity(0.12))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(AppColors.accentGold.opacity(0.2), lineWidth: 0.5))
-                    #else
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: "plus.square")
-                        Text("Load Model")
-                            .font(.system(.caption, weight: .semibold))
-                    }
-                    .foregroundStyle(AppColors.accentGold)
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.accentGold.opacity(0.12))
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(AppColors.accentGold.opacity(0.2), lineWidth: 0.5))
-                    #endif
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("button_loadModel")
-            }
-        }
+        .accessibilityIdentifier("chatColumn_root")
     }
 
     // MARK: - HF Token Alert
@@ -363,6 +267,93 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) {
             viewModel.downloadManager.showTokenPrompt = false
         }
+    }
+}
+
+// MARK: - Shared Modifiers (applied via extension)
+
+extension ContentView {
+    /// Applies shared modifiers (sheets, alerts, onAppear, file importer) to the layout view.
+    @ViewBuilder
+    func appliedSharedModifiers<V: View>(_ base: V) -> some View {
+        base
+            .sheet(isPresented: $showSettings) {
+                NavigationStack {
+                    InferenceSettingsView(viewModel: viewModel)
+                        .navigationTitle("Settings")
+                        #if os(macOS)
+                        .frame(minWidth: 550, minHeight: 600)
+                        #endif
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showSettings = false }
+                                    .accessibilityIdentifier("button_doneSettings")
+                            }
+                        }
+                }
+            }
+            .sheet(isPresented: $showDashboard) {
+                NavigationStack {
+                    PerformanceDashboardView()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showDashboard = false }
+                                    .accessibilityIdentifier("button_doneDashboard")
+                            }
+                        }
+                }
+                #if os(macOS)
+                .frame(minWidth: 600, minHeight: 500)
+                #endif
+            }
+            .sheet(item: $showcaseModel) { model in
+                NavigationStack {
+                    ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)
+                }
+                #if os(macOS)
+                .frame(minWidth: 450, minHeight: 550)
+                #endif
+            }
+            .alert("HuggingFace Token Required", isPresented: Binding(
+                get: { viewModel.downloadManager.showTokenPrompt },
+                set: { viewModel.downloadManager.showTokenPrompt = $0 }
+            )) {
+                Button("Open Settings") {
+                    viewModel.downloadManager.showTokenPrompt = false
+                    showSettings = true
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.downloadManager.showTokenPrompt = false
+                }
+            }
+            .onAppear {
+                // Skip auto-loading when running under the test harness or developer automation —
+                // tests manage their own engine lifecycle.
+                guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+                      !CommandLine.arguments.contains("-RunAutomationHarness"),
+                      !CommandLine.arguments.contains("-RunAllTests"),
+                      !CommandLine.arguments.contains("-RunMatrixBenchmark") else {
+                    viewModel.downloadManager.refreshStates()
+                    DeveloperAutomationHarness.runIfRequested(viewModel: viewModel)
+                    return
+                }
+                viewModel.checkForLocalModels()
+                viewModel.downloadManager.refreshStates()
+            }
+            .fileImporter(
+                isPresented: $viewModel.isFilePickerPresented,
+                allowedContentTypes: [.data],
+                allowsMultipleSelection: false
+            ) { result in
+                do {
+                    guard let selectedFile = try result.get().first else { return }
+                    Task {
+                        await viewModel.handleModelSelection(selectedFile)
+                    }
+                } catch {
+                    viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
+                }
+            }
     }
 }
 
@@ -414,20 +405,20 @@ struct ModelCapabilityBadges: View {
 struct VibrantBackgroundView: View {
     var body: some View {
         ZStack {
-            // Elegant dark base
-            Color(red: 0.03, green: 0.03, blue: 0.05)
+            // Deep forest floor — the darkest layer
+            AppColors.backgroundPrimary
             
-            // Subtle premium glow (top left)
+            // Moonlight through canopy (top left) — subtle moss green
             RadialGradient(
-                gradient: Gradient(colors: [Color.indigo.opacity(0.15), .clear]),
+                gradient: Gradient(colors: [AppColors.accentTeal.opacity(0.10), .clear]),
                 center: .topLeading,
                 startRadius: 0,
                 endRadius: 800
             )
             
-            // Subtle premium glow (bottom right)
+            // Distant firelight (bottom right) — warm amber glow
             RadialGradient(
-                gradient: Gradient(colors: [Color.teal.opacity(0.1), .clear]),
+                gradient: Gradient(colors: [AppColors.accentGold.opacity(0.06), .clear]),
                 center: .bottomTrailing,
                 startRadius: 0,
                 endRadius: 800

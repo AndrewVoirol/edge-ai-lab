@@ -1,10 +1,16 @@
 import SwiftUI
 
-/// GemmaEdgeGallery — On-device Gemma 4 inference lab for iOS & macOS.
+/// GemmaEdgeGallery — Edge AI Lab for iOS & macOS.
 ///
 /// Powered by LiteRT-LM v0.13. Runs Gemma 4 E2B, E4B, and 12B models
 /// entirely on-device with Metal GPU acceleration. Features tool calling,
 /// thinking mode, multimodal input, and deep performance instrumentation.
+///
+/// Layout:
+/// - macOS: 3-column NavigationSplitView (Sidebar → Model Lab → Chat)
+/// - iOS: TabView (Chat / Models / Lab)
+///
+/// "A cabin with a terminal. Frosted glass in a forest."
 @main
 struct GemmaEdgeGalleryApp: App {
     var body: some Scene {
@@ -14,7 +20,7 @@ struct GemmaEdgeGalleryApp: App {
         }
         #if os(macOS)
         .windowStyle(.titleBar)
-        .defaultSize(width: 900, height: 700)
+        .defaultSize(width: 1200, height: 800)
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) {
