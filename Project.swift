@@ -21,8 +21,8 @@ let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
         // LiteRT-LM v0.13.1+ — Native Swift APIs with Metal GPU for macOS/iOS.
-        // Using branch ref to bypass SPM unsafeFlags restriction on tagged releases.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
+        // Pin to a known reachable revision so CI does not chase a moving main branch.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("15c4ae78a1567c3add016cf4cd21deeafd051043")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
         .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
     ],
@@ -186,4 +186,3 @@ let project = Project(
         )
     ]
 )
-
