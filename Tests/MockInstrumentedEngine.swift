@@ -103,7 +103,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
 
     // MARK: - Protocol Conformance
 
-    private(set) var isReady = false
+    var isReady = false
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
     private(set) var lastInferenceMetrics: InferenceMetrics?
     private(set) var lastBackendResult: BackendResult?
