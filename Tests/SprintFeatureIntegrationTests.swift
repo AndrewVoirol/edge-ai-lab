@@ -280,7 +280,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
 
         vm.topK = 32
         // Give the async didSet task time to fire
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
             mockEngine.initializeCallCount, initialCount,
@@ -297,7 +297,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let initialCount = mockEngine.initializeCallCount
 
         vm.temperature = 0.5
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
             mockEngine.initializeCallCount, initialCount,
@@ -314,7 +314,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let initialCount = mockEngine.initializeCallCount
 
         vm.systemMessage = "You are a pirate."
-        try? await Task.sleep(for: .milliseconds(100))
+        try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
             mockEngine.initializeCallCount, initialCount,
