@@ -196,6 +196,7 @@ All inference runs entirely on-device. No data is transmitted to any server. Hug
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and coding standards.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for module diagrams, data flows, and a "where to find things" guide.
 
 ```bash
 # Run unit tests (282 tests)

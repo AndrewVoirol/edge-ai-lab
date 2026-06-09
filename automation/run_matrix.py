@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 
-DEFAULT_DEVICE_ID = "3B50314A-0702-5188-A321-BCD5CA5F8184"
+DEFAULT_DEVICE_ID = os.environ.get("EDGE_AI_LAB_DEVICE_ID", "3B50314A-0702-5188-A321-BCD5CA5F8184")
 BUNDLE_ID = "com.andrewvoirol.GemmaEdgeGallery"
 REPORT_DIR = "automation/results"
 REPORT_FILE = os.path.join(REPORT_DIR, "benchmark_report.md")

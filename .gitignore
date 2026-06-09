@@ -46,6 +46,7 @@ Packages/
 # Machine-local benchmark data
 metrics/
 default.profraw
+*.trace
 
 # --- Misc ---
 *.log

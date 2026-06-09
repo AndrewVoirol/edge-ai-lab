@@ -38,7 +38,7 @@ jobs:
       - name: SwiftLint
         run: |
           brew install swiftlint
-          swiftlint --strict || true
+          swiftlint --strict --reporter github-actions-logging
 
       - name: Build macOS
         run: |
