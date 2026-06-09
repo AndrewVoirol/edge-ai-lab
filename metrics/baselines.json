@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Benchmark baselines for regression detection. Updated on each release.",
+    "last_updated": "2026-06-09T22:50:00Z",
+    "threshold_pct": 10,
+    "methodology": "RawBenchmark v2 — greedy sampler (topK=1), 256 decode tokens, no MTP, first-turn (no warmup)"
+  },
+  "baselines": [
+    {
+      "id": "gemma4-e2b-standard-gpu",
+      "model": "gemma-4-e2b-it.litertlm",
+      "variant": "Gemma 4 E2B Standard",
+      "backend": "gpu",
+      "device_family": "Apple Silicon",
+      "metrics": {
+        "sdk_decode_tok_s": 103.16,
+        "sdk_prefill_tok_s": 215.0,
+        "sdk_ttft_s": 0.15,
+        "wall_pure_decode_tok_s": 95.0,
+        "decode_median_latency_ms": 10.0,
+        "decode_p95_latency_ms": 18.0,
+        "model_load_time_s": 2.5
+      },
+      "source": "MacBook Pro M4 Max — 2026-05-31",
+      "notes": "Baseline from initial benchmark run. SDK decode includes Metal shader JIT on first run."
+    },
+    {
+      "id": "gemma4-e2b-mobilegpu-gpu",
+      "model": "gemma-4-e2b-it-mobile-gpu.litertlm",
+      "variant": "Gemma 4 E2B Mobile GPU",
+      "backend": "gpu",
+      "device_family": "Apple Silicon",
+      "metrics": {
+        "sdk_decode_tok_s": 94.12,
+        "sdk_prefill_tok_s": 200.0,
+        "sdk_ttft_s": 0.18,
+        "wall_pure_decode_tok_s": 88.0,
+        "decode_median_latency_ms": 11.0,
+        "decode_p95_latency_ms": 20.0,
+        "model_load_time_s": 2.2
+      },
+      "source": "MacBook Pro M4 Max — 2026-05-31",
+      "notes": "Mobile GPU variant — slightly slower decode, optimized for mobile power envelope."
+    },
+    {
+      "id": "gemma3n-e2b-gpu",
+      "model": "gemma-3n-e2b-it.litertlm",
+      "variant": "Gemma 3n E2B",
+      "backend": "gpu",
+      "device_family": "Apple Silicon",
+      "metrics": {
+        "sdk_decode_tok_s": 66.79,
+        "sdk_prefill_tok_s": 150.0,
+        "sdk_ttft_s": 0.25,
+        "wall_pure_decode_tok_s": 60.0,
+        "decode_median_latency_ms": 15.0,
+        "decode_p95_latency_ms": 25.0,
+        "model_load_time_s": 2.0
+      },
+      "source": "MacBook Pro M4 Max — 2026-05-31",
+      "notes": "Gemma 3n — smaller architecture, lower throughput but more memory efficient."
+    },
+    {
+      "id": "gemma4-e2b-standard-cpu",
+      "model": "gemma-4-e2b-it.litertlm",
+      "variant": "Gemma 4 E2B Standard",
+      "backend": "cpu",
+      "device_family": "Apple Silicon",
+      "metrics": {
+        "sdk_decode_tok_s": 28.71,
+        "sdk_prefill_tok_s": 50.0,
+        "sdk_ttft_s": 0.60,
+        "wall_pure_decode_tok_s": 25.0,
+        "decode_median_latency_ms": 35.0,
+        "decode_p95_latency_ms": 55.0,
+        "model_load_time_s": 3.0
+      },
+      "source": "MacBook Pro M4 Max — 2026-05-31",
+      "notes": "CPU (XNNPACK) fallback — 3.5x slower than GPU. Used when Metal unavailable or for parity testing."
+    }
+  ],
+  "regression_rules": {
+    "sdk_decode_tok_s": {
+      "direction": "higher_is_better",
+      "threshold_pct": 10,
+      "severity": "critical",
+      "description": "Decode throughput — primary performance metric"
+    },
+    "sdk_prefill_tok_s": {
+      "direction": "higher_is_better",
+      "threshold_pct": 15,
+      "severity": "warning",
+      "description": "Prefill throughput — affects perceived responsiveness"
+    },
+    "sdk_ttft_s": {
+      "direction": "lower_is_better",
+      "threshold_pct": 20,
+      "severity": "warning",
+      "description": "Time to first token — user-perceived latency"
+    },
+    "wall_pure_decode_tok_s": {
+      "direction": "higher_is_better",
+      "threshold_pct": 10,
+      "severity": "critical",
+      "description": "Wall-clock decode speed — ground truth throughput"
+    },
+    "decode_median_latency_ms": {
+      "direction": "lower_is_better",
+      "threshold_pct": 15,
+      "severity": "warning",
+      "description": "Median per-token latency — smoothness indicator"
+    },
+    "decode_p95_latency_ms": {
+      "direction": "lower_is_better",
+      "threshold_pct": 25,
+      "severity": "info",
+      "description": "P95 latency — tail latency (high variance expected)"
+    },
+    "model_load_time_s": {
+      "direction": "lower_is_better",
+      "threshold_pct": 30,
+      "severity": "info",
+      "description": "Model load time — varies with cache state"
+    }
+  }
+}

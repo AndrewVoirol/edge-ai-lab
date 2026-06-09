@@ -43,8 +43,11 @@ Packages/
 .xcodebuildmcp/
 
 # --- Profiling & Metrics ---
-# Machine-local benchmark data
+# Machine-local benchmark data (traces, CI result dumps)
 metrics/
+# But track the regression baselines and dashboard
+!metrics/baselines.json
+!metrics/DASHBOARD.md
 default.profraw
 *.trace
 

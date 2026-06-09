@@ -1,0 +1,258 @@
+name: Benchmark
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      model_path:
+        description: 'Path to .litertlm model file (leave empty to skip inference benchmark)'
+        required: false
+        type: string
+      regression_threshold:
+        description: 'Max allowed regression percentage (default: 10)'
+        required: false
+        default: '10'
+        type: string
+  schedule:
+    # Weekly benchmark: Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGRESSION_THRESHOLD: ${{ github.event.inputs.regression_threshold || '10' }}
+
+jobs:
+  # ──────────────────────────────────────────────────────────
+  # Job 1: Build Benchmark CLI + Run Unit Tests
+  # Always runs — no model needed
+  # ──────────────────────────────────────────────────────────
+  build-benchmark:
+    name: Build & Validate
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tuist
+        run: brew install tuist
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: ${{ runner.os }}-spm-benchmark-${{ hashFiles('Project.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-benchmark-
+
+      - name: Generate Xcode Project
+        run: tuist generate --no-open
+
+      - name: Build RawBenchmark CLI (Release)
+        run: |
+          xcodebuild \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme RawBenchmark \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            build \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -only-testing:GemmaEdgeGallery_macOSTests/BenchmarkCardTests \
+            -only-testing:GemmaEdgeGallery_macOSTests/SprintFeatureIntegrationTests \
+            -resultBundlePath BenchmarkTestResults.xcresult \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-test-results
+          path: BenchmarkTestResults.xcresult
+
+      - name: Collect Build Metrics
+        id: build-metrics
+        run: |
+          # Capture build time and binary size
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          if [[ -n "$BINARY_PATH" ]]; then
+            BINARY_SIZE=$(stat -f%z "$BINARY_PATH" 2>/dev/null || echo "0")
+            echo "binary_size=$BINARY_SIZE" >> $GITHUB_OUTPUT
+            echo "binary_path=$BINARY_PATH" >> $GITHUB_OUTPUT
+            echo "📦 RawBenchmark binary: $(echo "scale=1; $BINARY_SIZE / 1048576" | bc) MB"
+          else
+            echo "⚠️ RawBenchmark binary not found in DerivedData"
+            echo "binary_size=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Build Report
+        run: |
+          cat > benchmark_build_report.json << 'REPORT_EOF'
+          {
+            "version": 1,
+            "type": "build",
+            "timestamp": "${{ github.event.head_commit.timestamp || github.event.release.created_at || '' }}",
+            "git_sha": "${{ github.sha }}",
+            "git_ref": "${{ github.ref }}",
+            "runner": "${{ runner.os }}-${{ runner.arch }}",
+            "binary_size_bytes": ${{ steps.build-metrics.outputs.binary_size || 0 }},
+            "unit_tests": "passed"
+          }
+          REPORT_EOF
+          cat benchmark_build_report.json
+
+      - name: Upload Build Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-build-report
+          path: benchmark_build_report.json
+
+  # ──────────────────────────────────────────────────────────
+  # Job 2: Run Inference Benchmark (model required)
+  # Only runs if model_path is provided or on self-hosted runners
+  # ──────────────────────────────────────────────────────────
+  inference-benchmark:
+    name: Inference Benchmark
+    runs-on: macos-26
+    timeout-minutes: 60
+    needs: build-benchmark
+    if: github.event.inputs.model_path != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tuist
+        run: brew install tuist
+
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: ${{ runner.os }}-spm-benchmark-${{ hashFiles('Project.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-benchmark-
+
+      - name: Generate Xcode Project
+        run: tuist generate --no-open
+
+      - name: Build RawBenchmark CLI (Release)
+        run: |
+          xcodebuild \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -scheme RawBenchmark \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            build \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Locate Binary
+        id: binary
+        run: |
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          if [[ -z "$BINARY_PATH" ]]; then
+            echo "❌ RawBenchmark binary not found"
+            exit 1
+          fi
+          echo "path=$BINARY_PATH" >> $GITHUB_OUTPUT
+          echo "✅ Found: $BINARY_PATH"
+
+      - name: Run Benchmark
+        id: benchmark
+        run: |
+          MODEL_PATH="${{ github.event.inputs.model_path }}"
+          echo "🚀 Running benchmark with model: $MODEL_PATH"
+          echo ""
+
+          # Run benchmark, capture JSON stdout, logs go to stderr
+          "${{ steps.binary.outputs.path }}" "$MODEL_PATH" > benchmark_results.json 2> benchmark_log.txt
+
+          echo "📊 Benchmark complete. Results:"
+          cat benchmark_results.json | python3 -m json.tool 2>/dev/null || cat benchmark_results.json
+
+      - name: Compare Against Baselines
+        id: regression
+        run: |
+          chmod +x automation/benchmark_compare.sh
+          automation/benchmark_compare.sh \
+            --results benchmark_results.json \
+            --baselines metrics/baselines.json \
+            --threshold "$REGRESSION_THRESHOLD" \
+            --output regression_report.json
+
+      - name: Check Regression Status
+        run: |
+          if [[ -f regression_report.json ]]; then
+            STATUS=$(python3 -c "import json; print(json.load(open('regression_report.json'))['status'])" 2>/dev/null || echo "unknown")
+            if [[ "$STATUS" == "regression" ]]; then
+              echo "❌ REGRESSION DETECTED — benchmark metrics degraded beyond ${REGRESSION_THRESHOLD}% threshold"
+              echo ""
+              cat regression_report.json | python3 -m json.tool
+              exit 1
+            elif [[ "$STATUS" == "improved" ]]; then
+              echo "🎉 IMPROVEMENT — benchmark metrics improved!"
+              cat regression_report.json | python3 -m json.tool
+            else
+              echo "✅ STABLE — metrics within acceptable range"
+              cat regression_report.json | python3 -m json.tool
+            fi
+          fi
+
+      - name: Upload Benchmark Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            benchmark_results.json
+            benchmark_log.txt
+            regression_report.json
+
+      - name: Post Summary
+        if: always()
+        run: |
+          echo "## 📊 Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -f benchmark_results.json ]]; then
+            SDK_DECODE=$(python3 -c "import json; print(f\"{json.load(open('benchmark_results.json')).get('sdk_decode_tok_s', 0):.1f}\")" 2>/dev/null || echo "N/A")
+            SDK_TTFT=$(python3 -c "import json; print(f\"{json.load(open('benchmark_results.json')).get('sdk_ttft_s', 0):.3f}\")" 2>/dev/null || echo "N/A")
+            WALL_DECODE=$(python3 -c "import json; print(f\"{json.load(open('benchmark_results.json')).get('wall_pure_decode_tok_s', 0):.1f}\")" 2>/dev/null || echo "N/A")
+            BACKEND=$(python3 -c "import json; print(json.load(open('benchmark_results.json')).get('backend_used', 'unknown'))" 2>/dev/null || echo "N/A")
+            MODEL=$(python3 -c "import json; print(json.load(open('benchmark_results.json')).get('model', 'unknown'))" 2>/dev/null || echo "N/A")
+
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Model | $MODEL |" >> $GITHUB_STEP_SUMMARY
+            echo "| Backend | $BACKEND |" >> $GITHUB_STEP_SUMMARY
+            echo "| SDK Decode | $SDK_DECODE tok/s |" >> $GITHUB_STEP_SUMMARY
+            echo "| SDK TTFT | ${SDK_TTFT}s |" >> $GITHUB_STEP_SUMMARY
+            echo "| Wall Decode | $WALL_DECODE tok/s |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -f regression_report.json ]]; then
+            echo "### Regression Check" >> $GITHUB_STEP_SUMMARY
+            STATUS=$(python3 -c "import json; print(json.load(open('regression_report.json'))['status'])" 2>/dev/null || echo "unknown")
+            if [[ "$STATUS" == "regression" ]]; then
+              echo "❌ **REGRESSION DETECTED** — exceeds ${REGRESSION_THRESHOLD}% threshold" >> $GITHUB_STEP_SUMMARY
+            elif [[ "$STATUS" == "improved" ]]; then
+              echo "🎉 **IMPROVEMENT** detected" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ **STABLE** — within acceptable range" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
