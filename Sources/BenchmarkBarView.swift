@@ -25,6 +25,7 @@ struct BenchmarkBarView: View {
     let info: BenchmarkInfo
     @Bindable private var viewModel = ConversationViewModel.shared
     @State private var isBenchmarkExpanded = true
+    @State private var isShowingBenchmarkCard = false
 
     var body: some View {
         benchmarkBar(info: info)
@@ -96,6 +97,18 @@ struct BenchmarkBarView: View {
 
                 Spacer()
 
+                // Share benchmark card button
+                Button {
+                    isShowingBenchmarkCard = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(AppColors.accentTeal)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("button_benchmarkShare")
+                .help("Share benchmark card")
+
                 // Expand/collapse button
                 Button {
                     withAnimation(AppAnimation.standard) {
@@ -131,6 +144,16 @@ struct BenchmarkBarView: View {
             }
         }
         .font(AppTypography.caption)
+        .sheet(isPresented: $isShowingBenchmarkCard) {
+            BenchmarkCardShareSheet(
+                cardData: BenchmarkCardData.from(
+                    benchmarkInfo: info,
+                    inferenceMetrics: viewModel.inferenceMetrics,
+                    modelMetadata: viewModel.activeModelMetadata,
+                    backendResult: viewModel.backendResult
+                )
+            )
+        }
     }
 
     // MARK: - iOS Benchmark Compact Bar
@@ -158,6 +181,16 @@ struct BenchmarkBarView: View {
                 benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
 
                 Spacer()
+
+                Button {
+                    isShowingBenchmarkCard = true
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(AppColors.accentTeal)
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("button_benchmarkShare")
 
                 Button {
                     withAnimation(AppAnimation.standard) {
