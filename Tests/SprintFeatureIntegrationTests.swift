@@ -275,7 +275,11 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testTopKChangeTriggersReinit() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
+        // Use handleModelSelection so activeModelURL is set (required by reinitializeEngineIfNeeded guard)
+        let testModelURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-model.litertlm")
+        FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
+        defer { try? FileManager.default.removeItem(at: testModelURL) }
+        await vm.handleModelSelection(testModelURL)
         let initialCount = mockEngine.initializeCallCount
 
         vm.topK = 32
@@ -293,7 +297,10 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testTemperatureChangeTriggersReinit() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
+        let testModelURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-model-temp.litertlm")
+        FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
+        defer { try? FileManager.default.removeItem(at: testModelURL) }
+        await vm.handleModelSelection(testModelURL)
         let initialCount = mockEngine.initializeCallCount
 
         vm.temperature = 0.5
@@ -310,7 +317,10 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testSystemMessageChangeTriggersReinit() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        await vm.initializeEngine(modelPath: "/path/to/model.litertlm")
+        let testModelURL = FileManager.default.temporaryDirectory.appendingPathComponent("test-model-sys.litertlm")
+        FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
+        defer { try? FileManager.default.removeItem(at: testModelURL) }
+        await vm.handleModelSelection(testModelURL)
         let initialCount = mockEngine.initializeCallCount
 
         vm.systemMessage = "You are a pirate."
