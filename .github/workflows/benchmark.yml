@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-test-results
           path: BenchmarkTestResults.xcresult
@@ -114,7 +114,7 @@ jobs:
           cat benchmark_build_report.json
 
       - name: Upload Build Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-build-report
           path: benchmark_build_report.json
@@ -213,7 +213,7 @@ jobs:
 
       - name: Upload Benchmark Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: |
