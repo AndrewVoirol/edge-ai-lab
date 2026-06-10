@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SPM_PACKAGES_DIR: ${{ github.workspace }}/.spm-packages
+
 jobs:
   build-and-test:
     name: macOS Build & Test
@@ -26,19 +29,41 @@ jobs:
       - name: Verify Tuist
         run: tuist version
 
-      - name: Cache SPM
+      - name: Cache SPM Packages
         uses: actions/cache@v5
         with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          key: ${{ runner.os }}-spm-${{ hashFiles('Project.swift') }}
+          path: ${{ env.SPM_PACKAGES_DIR }}
+          key: ${{ runner.os }}-spm-cloned-${{ hashFiles('Project.swift') }}
           restore-keys: |
-            ${{ runner.os }}-spm-
+            ${{ runner.os }}-spm-cloned-
+
+      - name: Pre-clone LiteRT-LM
+        run: |
+          # SPM's internal git can't clone LiteRT-LM on GHA runners.
+          # Pre-clone as a bare mirror so xcodebuild can find it.
+          REPO_DIR="${SPM_PACKAGES_DIR}/LiteRT-LM"
+          if [ -d "$REPO_DIR" ]; then
+            echo "Updating existing clone..."
+            git -C "$REPO_DIR" fetch --all 2>&1 || true
+          else
+            echo "Cloning LiteRT-LM..."
+            mkdir -p "$SPM_PACKAGES_DIR"
+            git clone --bare --mirror https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+          fi
+          echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
         env:
           GIT_TERMINAL_PROMPT: "0"
+        continue-on-error: true
+
+      - name: Resolve Packages (with pre-cloned repos)
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            2>&1 | tail -20
 
       - name: SwiftLint
         run: |
@@ -51,6 +76,7 @@ jobs:
             -workspace GemmaEdgeGallery.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             build \
             COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGN_IDENTITY="-" \
@@ -64,6 +90,7 @@ jobs:
             -workspace GemmaEdgeGallery.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -only-testing:GemmaEdgeGallery_macOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -95,19 +122,39 @@ jobs:
       - name: Verify Tuist
         run: tuist version
 
-      - name: Cache SPM
+      - name: Cache SPM Packages
         uses: actions/cache@v5
         with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          key: ${{ runner.os }}-spm-${{ hashFiles('Project.swift') }}
+          path: ${{ env.SPM_PACKAGES_DIR }}
+          key: ${{ runner.os }}-spm-cloned-${{ hashFiles('Project.swift') }}
           restore-keys: |
-            ${{ runner.os }}-spm-
+            ${{ runner.os }}-spm-cloned-
+
+      - name: Pre-clone LiteRT-LM
+        run: |
+          REPO_DIR="${SPM_PACKAGES_DIR}/LiteRT-LM"
+          if [ -d "$REPO_DIR" ]; then
+            echo "Updating existing clone..."
+            git -C "$REPO_DIR" fetch --all 2>&1 || true
+          else
+            echo "Cloning LiteRT-LM..."
+            mkdir -p "$SPM_PACKAGES_DIR"
+            git clone --bare --mirror https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+          fi
+          echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
         env:
           GIT_TERMINAL_PROMPT: "0"
+        continue-on-error: true
+
+      - name: Resolve Packages (with pre-cloned repos)
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            2>&1 | tail -20
 
       - name: List Available Simulators
         run: |
@@ -120,7 +167,6 @@ jobs:
       - name: Select Simulator
         id: sim
         run: |
-          # Find the first available iPhone simulator
           DEVICE=$(xcrun simctl list devices available -j | python3 -c "
           import json, sys
           data = json.load(sys.stdin)
@@ -141,6 +187,7 @@ jobs:
             -workspace GemmaEdgeGallery.xcworkspace \
             -scheme GemmaEdgeGallery_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -only-testing:GemmaEdgeGallery_iOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -173,19 +220,39 @@ jobs:
       - name: Verify Tuist
         run: tuist version
 
-      - name: Cache SPM
+      - name: Cache SPM Packages
         uses: actions/cache@v5
         with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          key: ${{ runner.os }}-spm-${{ hashFiles('Project.swift') }}
+          path: ${{ env.SPM_PACKAGES_DIR }}
+          key: ${{ runner.os }}-spm-cloned-${{ hashFiles('Project.swift') }}
           restore-keys: |
-            ${{ runner.os }}-spm-
+            ${{ runner.os }}-spm-cloned-
+
+      - name: Pre-clone LiteRT-LM
+        run: |
+          REPO_DIR="${SPM_PACKAGES_DIR}/LiteRT-LM"
+          if [ -d "$REPO_DIR" ]; then
+            echo "Updating existing clone..."
+            git -C "$REPO_DIR" fetch --all 2>&1 || true
+          else
+            echo "Cloning LiteRT-LM..."
+            mkdir -p "$SPM_PACKAGES_DIR"
+            git clone --bare --mirror https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+          fi
+          echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
         env:
           GIT_TERMINAL_PROMPT: "0"
+        continue-on-error: true
+
+      - name: Resolve Packages (with pre-cloned repos)
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -workspace GemmaEdgeGallery.xcworkspace \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            2>&1 | tail -20
 
       - name: Select Simulator
         id: sim
@@ -209,6 +276,7 @@ jobs:
             -workspace GemmaEdgeGallery.xcworkspace \
             -scheme GemmaEdgeGallery_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -only-testing:GemmaEdgeGallery_iOSUITests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \

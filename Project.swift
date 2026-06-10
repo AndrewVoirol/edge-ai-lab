@@ -20,8 +20,10 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // LiteRT-LM v0.13.1+ — Native Swift APIs with Metal GPU for macOS/iOS.
-        // Using branch ref to bypass SPM unsafeFlags restriction on tagged releases.
+        // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
+        // Uses .branch("main") to bypass SPM unsafeFlags restriction on tagged releases.
+        // NOTE: .revision() doesn't work with this repo (SPM can't check out individual commits).
+        // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
         .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
