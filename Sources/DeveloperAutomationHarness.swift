@@ -106,10 +106,48 @@ struct DeveloperAutomationHarness {
     static func runIfRequested(viewModel: ConversationViewModel) {
         let isAllTests = CommandLine.arguments.contains("-RunAllTests")
         let isMatrix = CommandLine.arguments.contains("-RunMatrixBenchmark")
+        let isFlowRun = CommandLine.arguments.contains("-RunFlow")
+        let isAllFlows = CommandLine.arguments.contains("-RunAllFlows")
+        let isListFlows = CommandLine.arguments.contains("-ListFlows")
         
-        guard isAllTests || isMatrix else { return }
+        guard isAllTests || isMatrix || isFlowRun || isAllFlows || isListFlows else { return }
         
         print("[AUTOMATION] Developer Automation Harness activated.")
+        
+        // Handle flow-related commands
+        if isListFlows {
+            let flows = AutomationFlowRunner.discoverFlows()
+            print("[AUTOMATION] Available flows (\(flows.count)):")
+            for flow in flows {
+                print("[AUTOMATION]   - \(flow)")
+            }
+            exit(0)
+        }
+        
+        if isFlowRun {
+            guard let flowArgIndex = CommandLine.arguments.firstIndex(of: "-RunFlow"),
+                  flowArgIndex + 1 < CommandLine.arguments.count else {
+                print("[AUTOMATION_FAILURE] -RunFlow requires a flow name argument.")
+                print("[AUTOMATION] Usage: -RunFlow <flow_name>")
+                print("[AUTOMATION] Available flows: \(AutomationFlowRunner.discoverFlows().joined(separator: ", "))")
+                exit(1)
+            }
+            let flowName = CommandLine.arguments[flowArgIndex + 1]
+            Task {
+                let result = await AutomationFlowRunner.executeFlow(named: flowName)
+                exit(result.passed ? 0 : 1)
+            }
+            return
+        }
+        
+        if isAllFlows {
+            Task {
+                let results = await AutomationFlowRunner.executeAllFlows()
+                let allPassed = results.allSatisfy(\.passed)
+                exit(allPassed ? 0 : 1)
+            }
+            return
+        }
         
         Task {
             let docs = GalleryModelDiscovery.getAppModelsDirectory()

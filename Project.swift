@@ -130,6 +130,23 @@ let project = Project(
             )
         ),
         .target(
+            name: "GemmaEdgeGallery_iOSUITests",
+            destinations: .iOS,
+            product: .uiTests,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.UITests",
+            deploymentTargets: .iOS("26.5"),
+            infoPlist: .default,
+            sources: ["iOSUITests/**"],
+            dependencies: [
+                .target(name: "GemmaEdgeGallery_iOS")
+            ],
+            settings: .settings(
+                base: [
+                    "TEST_TARGET_NAME": "GemmaEdgeGallery_iOS"
+                ]
+            )
+        ),
+        .target(
             name: "RawBenchmark",
             destinations: .macOS,
             product: .commandLineTool,
@@ -158,7 +175,10 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["GemmaEdgeGallery_iOS"]),
             testAction: .targets(
-                ["GemmaEdgeGallery_iOSTests"],
+                [
+                    "GemmaEdgeGallery_iOSTests",
+                    "GemmaEdgeGallery_iOSUITests"
+                ],
                 configuration: .debug,
                 options: .options(coverage: true)
             ),
