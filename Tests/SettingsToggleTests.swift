@@ -13,7 +13,12 @@
 // limitations under the License.
 
 import XCTest
+
+#if os(iOS)
+@testable import GemmaEdgeGallery_iOS
+#elseif os(macOS)
 @testable import GemmaEdgeGallery_macOS
+#endif
 
 /// Tests for Settings toggle bindings and their effects on inference behavior.
 /// Validates that each settings tab's controls properly propagate to the

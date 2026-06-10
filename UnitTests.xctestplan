@@ -21,9 +21,11 @@
       },
       "selectedTests" : [
         "ChatMessageTests",
+        "CommunityDownloadTests",
         "ConversationViewModelSamplerTests",
         "ConversationViewModelTests",
         "DeviceMetricsSnapshotTests",
+        "DownloadInfrastructureTests",
         "DownloadManagerTests",
         "ExperimentalFlagsStateTests",
         "GalleryModelDiscoveryTests",
@@ -34,6 +36,7 @@
         "MetricsStoreTests",
         "ModelMetadataTests",
         "ModelRegistryTests",
+        "SettingsToggleTests",
         "ThermalLevelTests",
         "ThinkingParserTests",
         "ToolCallingTests"
