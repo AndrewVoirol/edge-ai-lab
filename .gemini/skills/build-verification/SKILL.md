@@ -246,3 +246,34 @@ xcodebuild build -workspace GemmaEdgeGallery.xcworkspace -scheme "Edge AI Lab" -
 ```
 
 Both should output `** BUILD SUCCEEDED **`.
+
+## CI-Specific Issues (GitHub Actions)
+
+### 7. Tuist Not Found on GHA Runner
+
+**Symptom:** `No available formula with the name "tuist"`
+
+**Cause:** Tuist is no longer in Homebrew core. GHA runners don't have it.
+
+**Fix:** Use `jdx/mise-action@v4` with `.mise.toml` version pinning (already configured).
+
+### 8. SPM "Couldn't check out revision" on GHA
+
+**Symptom:** `Could not resolve package dependencies: Couldn't check out revision 'xxxxx'`
+
+**Causes (in order of likelihood):**
+1. `persist-credentials: false` in `actions/checkout` — poisons git credential helper, breaks SPM clone of external repos (even public ones). **Do NOT use** with Tuist/SPM projects.
+2. Stale `Package.resolved` — committed lockfile pins a revision that upstream force-pushed away. **Do NOT commit Package.resolved** while tracking `.branch("main")` on a repo with force-push history.
+3. `GIT_TERMINAL_PROMPT=0` without credentials — correct setting, but won't fix #1.
+
+**Fix:** CI workflow uses plain `actions/checkout@v6` (no persist-credentials) and resolves fresh each run.
+
+### 9. CI Runner Selection
+
+**Current:** `macos-15` (macOS 15 Sequoia). GHA runner images are named by macOS major version:
+- `macos-13` = Ventura
+- `macos-14` = Sonoma  
+- `macos-15` = Sequoia (latest, ships with Xcode 27)
+
+There is no `macos-26` runner — that was a bug in the original CI.
+
