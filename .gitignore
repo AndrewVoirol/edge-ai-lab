@@ -8,6 +8,13 @@
 *.xcworkspace/
 Derived/
 
+# Exception: Track Package.resolved for reproducible CI builds.
+# This locks SPM dependency versions. To update:
+#   xcodebuild -resolvePackageDependencies && commit the updated file.
+!GemmaEdgeGallery.xcworkspace/xcshareddata/
+!GemmaEdgeGallery.xcworkspace/xcshareddata/swiftpm/
+!GemmaEdgeGallery.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
 # --- Model Files ---
 # LLM weights are large (1.5GB+) and locally provisioned
 # See CONTRIBUTING.md for model provisioning instructions
