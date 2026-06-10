@@ -22,11 +22,15 @@ import SwiftUI
 ///
 /// Layout:
 /// - macOS: 3-column NavigationSplitView (Sidebar → Model Lab → Chat)
-/// - iOS: TabView (Chat / Models / Lab)
+/// - iOS: TabView (Models / Chat / Settings) with background download support
 ///
 /// "A cabin with a terminal. Frosted glass in a forest."
 @main
 struct GemmaEdgeGalleryApp: App {
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
+
     var body: some Scene {
         WindowGroup {
             ContentView()
