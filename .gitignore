@@ -8,12 +8,10 @@
 *.xcworkspace/
 Derived/
 
-# Exception: Track Package.resolved for reproducible CI builds.
-# This locks SPM dependency versions. To update:
-#   xcodebuild -resolvePackageDependencies && commit the updated file.
-!GemmaEdgeGallery.xcworkspace/xcshareddata/
-!GemmaEdgeGallery.xcworkspace/xcshareddata/swiftpm/
-!GemmaEdgeGallery.xcworkspace/xcshareddata/swiftpm/Package.resolved
+# NOTE: Package.resolved is NOT tracked because LiteRT-LM tracks
+# .branch("main") which has force-push history. Committing the lockfile
+# causes CI failures when the pinned revision becomes unreachable.
+# CI resolves dependencies fresh each run via tuist generate.
 
 # --- Model Files ---
 # LLM weights are large (1.5GB+) and locally provisioned
