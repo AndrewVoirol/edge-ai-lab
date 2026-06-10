@@ -18,7 +18,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install Tuist
         run: |
@@ -26,7 +28,7 @@ jobs:
           tuist version
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
@@ -36,6 +38,8 @@ jobs:
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
+        env:
+          GIT_TERMINAL_PROMPT: "0"
 
       - name: SwiftLint
         run: |
@@ -72,7 +76,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-macos
           path: TestResults.xcresult
@@ -84,7 +88,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install Tuist
         run: |
@@ -92,7 +98,7 @@ jobs:
           tuist version
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
@@ -102,6 +108,8 @@ jobs:
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
+        env:
+          GIT_TERMINAL_PROMPT: "0"
 
       - name: List Available Simulators
         run: |
@@ -147,7 +155,7 @@ jobs:
             -workspace GemmaEdgeGallery.xcworkspace \
             -scheme GemmaEdgeGallery_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
-            -testPlan UnitTests \
+            -only-testing:GemmaEdgeGallery_iOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
             ARCHS=arm64 \
@@ -159,7 +167,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-ios
           path: TestResults-iOS.xcresult
@@ -171,7 +179,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Install Tuist
         run: |
@@ -179,7 +189,7 @@ jobs:
           tuist version
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
@@ -189,6 +199,8 @@ jobs:
 
       - name: Generate Xcode Project
         run: tuist generate --no-open
+        env:
+          GIT_TERMINAL_PROMPT: "0"
 
       - name: Select Simulator
         id: sim
@@ -224,7 +236,7 @@ jobs:
 
       - name: Upload UI Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-ios-ui
           path: TestResults-iOS-UI.xcresult
