@@ -15,7 +15,7 @@
 import ProjectDescription
 import Foundation
 
-let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? ""
+let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK693"
 
 let project = Project(
     name: "GemmaEdgeGallery",
