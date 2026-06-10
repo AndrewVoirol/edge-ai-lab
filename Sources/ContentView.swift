@@ -155,55 +155,36 @@ struct ContentView: View {
     private var iOSLayout: some View {
         appliedSharedModifiers(
         TabView(selection: $selectedTab) {
-            // Tab 1: Chat
+            // Tab 1: Models (primary — the Model Hub)
             NavigationStack {
-                chatColumn
-                    .navigationTitle("Chat")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                showSettings = true
-                            } label: {
-                                Image(systemName: "slider.horizontal.3")
-                                    .foregroundStyle(AppColors.textSecondary)
-                            }
-                            .accessibilityIdentifier("button_settings")
-                        }
-                    }
-            }
-            .tabItem {
-                Label("Chat", systemImage: "bubble.left.and.bubble.right")
-            }
-            .tag(0)
-
-            // Tab 2: Models
-            NavigationStack {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ModelStripView(
-                            showcaseModel: $showcaseModel,
-                            showcaseModelURL: $showcaseModelURL
-                        )
-                    }
-                }
-                .background(AppColors.backgroundPrimary)
-                .navigationTitle("Models")
-                .navigationBarTitleDisplayMode(.inline)
+                iOSModelHubView()
+                    .navigationTitle("Models")
+                    .navigationBarTitleDisplayMode(.large)
             }
             .tabItem {
                 Label("Models", systemImage: "cpu")
             }
-            .tag(1)
+            .tag(0)
 
-            // Tab 3: Lab (Dashboard)
+            // Tab 2: Chat (inference)
             NavigationStack {
-                PerformanceDashboardView()
-                    .navigationTitle("Lab")
+                iOSChatTabView()
+                    .navigationTitle("Chat")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label("Lab", systemImage: "chart.line.uptrend.xyaxis")
+                Label("Chat", systemImage: "bubble.left.and.bubble.right")
+            }
+            .tag(1)
+
+            // Tab 3: Settings
+            NavigationStack {
+                InferenceSettingsView(viewModel: viewModel)
+                    .navigationTitle("Settings")
+                    .navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
             }
             .tag(2)
         }

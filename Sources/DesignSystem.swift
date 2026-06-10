@@ -186,6 +186,14 @@ enum AppTypography {
     static let caption: Font = .system(.caption2, design: .default)
     /// Tool/badge labels.
     static let badge: Font = .system(.caption2, design: .rounded, weight: .medium)
+
+    // MARK: iOS List
+    /// List row title — system body for maximum readability at all Dynamic Type sizes.
+    static let listTitle: Font = .system(.body, design: .default, weight: .regular)
+    /// List row subtitle — secondary info line.
+    static let listSubtitle: Font = .system(.subheadline, design: .default)
+    /// List row tertiary — file sizes, timestamps.
+    static let listTertiary: Font = .system(.footnote, design: .default)
 }
 
 // MARK: - Spacing
@@ -197,6 +205,12 @@ enum AppSpacing {
     static let lg: CGFloat = 16
     static let xl: CGFloat = 24
     static let xxl: CGFloat = 32
+
+    // MARK: iOS List
+    /// Standard list row content padding.
+    static let listRowVertical: CGFloat = 6
+    /// Standard list row horizontal insets.
+    static let listRowHorizontal: CGFloat = 0  // List handles its own insets
 }
 
 // MARK: - Corner Radius
