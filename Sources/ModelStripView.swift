@@ -263,6 +263,26 @@ struct ModelStripView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("auth_\(model.modelFile)")
+
+            case .queued(let position):
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text("Queued (#\(position))")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+
+            case .paused(_, let progress):
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "pause.fill")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.warning)
+                    Text("Paused · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.warning)
+                }
             }
         }
         .padding(.horizontal, AppSpacing.md)
