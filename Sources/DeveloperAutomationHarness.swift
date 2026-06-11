@@ -106,10 +106,48 @@ struct DeveloperAutomationHarness {
     static func runIfRequested(viewModel: ConversationViewModel) {
         let isAllTests = CommandLine.arguments.contains("-RunAllTests")
         let isMatrix = CommandLine.arguments.contains("-RunMatrixBenchmark")
+        let isFlowRun = CommandLine.arguments.contains("-RunFlow")
+        let isAllFlows = CommandLine.arguments.contains("-RunAllFlows")
+        let isListFlows = CommandLine.arguments.contains("-ListFlows")
         
-        guard isAllTests || isMatrix else { return }
+        guard isAllTests || isMatrix || isFlowRun || isAllFlows || isListFlows else { return }
         
         print("[AUTOMATION] Developer Automation Harness activated.")
+        
+        // Handle flow-related commands
+        if isListFlows {
+            let flows = AutomationFlowRunner.discoverFlows()
+            print("[AUTOMATION] Available flows (\(flows.count)):")
+            for flow in flows {
+                print("[AUTOMATION]   - \(flow)")
+            }
+            exit(0)
+        }
+        
+        if isFlowRun {
+            guard let flowArgIndex = CommandLine.arguments.firstIndex(of: "-RunFlow"),
+                  flowArgIndex + 1 < CommandLine.arguments.count else {
+                print("[AUTOMATION_FAILURE] -RunFlow requires a flow name argument.")
+                print("[AUTOMATION] Usage: -RunFlow <flow_name>")
+                print("[AUTOMATION] Available flows: \(AutomationFlowRunner.discoverFlows().joined(separator: ", "))")
+                exit(1)
+            }
+            let flowName = CommandLine.arguments[flowArgIndex + 1]
+            Task {
+                let result = await AutomationFlowRunner.executeFlow(named: flowName)
+                exit(result.passed ? 0 : 1)
+            }
+            return
+        }
+        
+        if isAllFlows {
+            Task {
+                let results = await AutomationFlowRunner.executeAllFlows()
+                let allPassed = results.allSatisfy(\.passed)
+                exit(allPassed ? 0 : 1)
+            }
+            return
+        }
         
         Task {
             let docs = GalleryModelDiscovery.getAppModelsDirectory()
@@ -126,10 +164,9 @@ struct DeveloperAutomationHarness {
                 print("[AUTOMATION] Loading model \(targetModel.modelFile) on GPU...")
                 
                 let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
-                let sampler = try! SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+                let sampler = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
                 
-                let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-                    .appendingPathComponent(targetModel.modelFile)
+                let cachesDir = safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
                 try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                 
                 do {
@@ -175,8 +212,8 @@ struct DeveloperAutomationHarness {
                     let sampler: SamplerConfig
                 }
                 
-                let greedy = try! SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
-                let sampling = try! SamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
+                let greedy = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+                let sampling = safeSamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
                 
                 let matrix = [
                     Config(label: "Standard Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: greedy),
@@ -211,9 +248,7 @@ struct DeveloperAutomationHarness {
                     print("⚙️  RUNNING CONFIG \(index + 1)/\(matrix.count): \(cfg.label)")
                     print("════════════════════════════════════════════════")
                     
-                    // 10s Cooldown to protect thermals
-                    print("[AUTOMATION] Cooling down SoC for 10 seconds...")
-                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    await waitAndCoolDownIfNeeded()
                     
                     let thermal = DeviceMetrics.currentThermalLevel
                     print("[AUTOMATION] Start Thermal State: \(thermal.label)")
@@ -228,8 +263,7 @@ struct DeveloperAutomationHarness {
                     
                     await viewModel.engine.shutdown()
                     
-                    let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-                        .appendingPathComponent(cfg.model.modelFile)
+                    let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile)
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                     
                     do {
@@ -242,6 +276,7 @@ struct DeveloperAutomationHarness {
                         )
                     } catch {
                         print("[AUTOMATION] Skipping config: Initialization failed: \(error.localizedDescription)")
+                        await viewModel.engine.shutdown()
                         continue
                     }
                     
@@ -273,6 +308,40 @@ struct DeveloperAutomationHarness {
     }
     
     // MARK: - Helpers
+    
+    static func safeSamplerConfig(topK: Int, topP: Float, temperature: Float) -> SamplerConfig {
+        do {
+            return try SamplerConfig(topK: topK, topP: topP, temperature: temperature)
+        } catch {
+            print("[AUTOMATION_FAILURE] Invalid SamplerConfig parameters. Falling back to greedy.")
+            return try! SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+        }
+    }
+    
+    static func safeCachesDirectory() -> URL {
+        guard let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            print("[AUTOMATION_FAILURE] Could not resolve caches directory.")
+            exit(1)
+        }
+        return url
+    }
+    
+    static func waitAndCoolDownIfNeeded() async {
+        print("[AUTOMATION] Checking thermal state before benchmark...")
+        let maxRetries = 12 // up to 60 seconds (12 * 5s)
+        var retries = 0
+        while retries < maxRetries {
+            let state = DeviceMetrics.currentThermalLevel
+            if state == .nominal || state == .fair {
+                print("[AUTOMATION] Thermal state is \(state.label). Proceeding.")
+                return
+            }
+            print("[AUTOMATION] Thermal state is \(state.label). Cooling down for 5 seconds...")
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            retries += 1
+        }
+        print("[AUTOMATION] Timeout waiting for thermals. Proceeding with state: \(DeviceMetrics.currentThermalLevel.label)")
+    }
     
     private static func wipeLocalModels(docs: URL, viewModel: ConversationViewModel) {
         do {
@@ -324,6 +393,11 @@ struct DeveloperAutomationHarness {
                 exit(1)
             case .notDownloaded:
                 break
+            case .queued(let position):
+                print("[AUTOMATION] \(model.modelFile) queued at position \(position)")
+            case .paused:
+                print("[AUTOMATION] \(model.modelFile) paused — resuming...")
+                viewModel.downloadManager.resumeDownload(model)
             }
         }
     }

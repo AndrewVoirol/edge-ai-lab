@@ -27,7 +27,7 @@ import LiteRTLM
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct DetailColumnView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @Binding var selectedSection: SidebarSection?
     @Binding var selectedModelId: String?
 
@@ -571,7 +571,7 @@ private struct ConversationDetailPlaceholder: View {
 /// - Benchmark summary (avg speed, total tokens, message count)
 /// - Fork Experiment button
 private struct ExperimentDetailView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
 
     /// The active conversation's index entry for display metadata.
     private var activeEntry: ConversationIndexEntry? {
@@ -733,7 +733,7 @@ private struct ExperimentDetailView: View {
 /// or a grid of `HFModelCard` views on success.
 private struct CommunityModelsBrowser: View {
     @State private var browser = HFModelBrowser()
-    @Bindable var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {

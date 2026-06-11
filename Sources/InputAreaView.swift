@@ -23,7 +23,7 @@ import UniformTypeIdentifiers
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct InputAreaView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
     @State private var showPhotoPicker = false
@@ -31,6 +31,7 @@ struct InputAreaView: View {
     @State private var isSendPressed = false
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         VStack(spacing: 0) {
             // Archive mode banner
             if viewModel.isViewingArchivedConversation {

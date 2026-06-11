@@ -98,6 +98,7 @@ struct InferenceSettingsView: View {
         Form {
             backendSection
             experimentalFlagsSection
+            downloadsSection
             thinkingModeSection
             visualTokenBudgetSection
             toolCallingSection

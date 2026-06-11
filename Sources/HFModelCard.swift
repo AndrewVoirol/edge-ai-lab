@@ -243,6 +243,24 @@ struct HFModelCard: View {
             }
             .font(AppTypography.caption)
             .foregroundStyle(AppColors.warning)
+
+        case .queued(let position):
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "clock")
+                    .foregroundStyle(AppColors.textTertiary)
+                Text("Queued (#\(position))")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+
+        case .paused(_, let progress):
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "pause.fill")
+                    .foregroundStyle(AppColors.warning)
+                Text("Paused · \(Int(progress * 100))%")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.warning)
+            }
         }
     }
 

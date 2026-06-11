@@ -64,7 +64,7 @@ enum SidebarSection: String, Hashable, Identifiable {
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct SidebarView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @Binding var selectedSection: SidebarSection?
     @Binding var selectedModelId: String?
     @Binding var showcaseModel: ModelMetadata?
@@ -467,6 +467,47 @@ struct SidebarView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("sidebar_auth_\(model.modelFile)")
+
+        case .queued(let position):
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "clock")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.textTertiary)
+                Text("Queued (#\(position))")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+                Spacer()
+                Button {
+                    viewModel.downloadManager.cancelDownload(model)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("sidebar_cancelQueued_\(model.modelFile)")
+            }
+
+        case .paused(_, let progress):
+            VStack(alignment: .leading, spacing: 2) {
+                ProgressView(value: progress)
+                    .tint(AppColors.warning)
+                HStack {
+                    Text("Paused · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.warning)
+                    Spacer()
+                    Button {
+                        viewModel.downloadManager.resumeDownload(model)
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.accentCyan)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("sidebar_resumeDownload_\(model.modelFile)")
+                }
+            }
         }
     }
 

@@ -1,0 +1,85 @@
+{
+  "name": "End-to-End Regression Flow",
+  "description": "Full user journey covering launch → settings → model selection → inference → benchmark → new conversation. This is the comprehensive regression test for the @Observable refactor.",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched and the main UI is visible (Model Hub tab on iOS).",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Navigate to the Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify settings screen is visible with sampler controls.",
+      "expected_elements": ["Top-K", "Temperature"]
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Navigate back to the Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Select the first available model card to load it.",
+      "target_element": "Gemma 4 E2B"
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for the model to finish loading (engine initialization).",
+      "condition": "element_exists:ready"
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 8,
+      "action": "type_text",
+      "description": "Type a test prompt in the chat input field.",
+      "target_element": "Enter your prompt here",
+      "value": "What is 2+2? Answer with just the number."
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Tap the send/generate button to start inference.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 10,
+      "action": "wait",
+      "description": "Wait for inference to complete (generation finishes).",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 11,
+      "action": "verify_ui",
+      "description": "Verify that benchmark stats appeared after inference (TTFT and Decode speed).",
+      "expected_elements": ["TTFT", "Decode"]
+    },
+    {
+      "step": 12,
+      "action": "tap",
+      "description": "Start a new conversation to verify clean state reset.",
+      "target_element": "New Chat"
+    },
+    {
+      "step": 13,
+      "action": "verify_ui",
+      "description": "Verify the conversation was cleared — no chat bubbles, input is empty, ready for next prompt.",
+      "expected_elements": ["Enter your prompt here"]
+    }
+  ]
+}

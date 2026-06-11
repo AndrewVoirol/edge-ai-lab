@@ -21,7 +21,7 @@ import SwiftUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct ConversationAreaView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
 
     var body: some View {
         Group {

@@ -20,12 +20,18 @@
         "name" : "GemmaEdgeGallery_iOSTests"
       },
       "selectedTests" : [
+        "AutomationFlowRunnerTests",
         "ChatMessageTests",
+        "CommunityDownloadTests",
         "ConversationViewModelSamplerTests",
         "ConversationViewModelTests",
+        "DeveloperAutomationHarnessTests",
         "DeviceMetricsSnapshotTests",
+        "DownloadInfrastructureTests",
         "DownloadManagerTests",
+        "EnvironmentInjectionTests",
         "ExperimentalFlagsStateTests",
+        "FlowResultTests",
         "GalleryModelDiscoveryTests",
         "InferenceMetricsIntegrationTests",
         "InferenceMetricsTests",
@@ -34,6 +40,7 @@
         "MetricsStoreTests",
         "ModelMetadataTests",
         "ModelRegistryTests",
+        "SettingsToggleTests",
         "ThermalLevelTests",
         "ThinkingParserTests",
         "ToolCallingTests"

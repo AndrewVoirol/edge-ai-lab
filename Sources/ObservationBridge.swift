@@ -1,0 +1,53 @@
+// Copyright 2026 Andrew Voirol
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import Observation
+
+// MARK: - Observations AsyncSequence Bridge (WWDC25 / iOS 26+)
+//
+// These extensions provide typed AsyncSequence access to @Observable
+// properties for non-view consumers: automation harness, metrics pipeline,
+// AppDelegate callbacks, and testing infrastructure.
+//
+// Views should NOT use these — they get observation tracking automatically
+// via @Environment(ConversationViewModel.self).
+//
+// Usage:
+//   for await isReady in viewModel.engineReadyStream() {
+//       print("Engine ready: \(isReady)")
+//   }
+
+@MainActor
+extension ConversationViewModel {
+    /// AsyncSequence that emits whenever `isEngineReady` changes.
+    /// Use from non-view async contexts (harness, tests, metrics pipeline).
+    func engineReadyStream() -> some AsyncSequence<Bool, Never> {
+        Observations { self.isEngineReady }
+    }
+
+    /// AsyncSequence that emits whenever `isGenerating` changes.
+    func generatingStream() -> some AsyncSequence<Bool, Never> {
+        Observations { self.isGenerating }
+    }
+
+    /// AsyncSequence that emits whenever `isLoadingModel` changes.
+    func modelLoadingStream() -> some AsyncSequence<Bool, Never> {
+        Observations { self.isLoadingModel }
+    }
+
+    /// AsyncSequence that emits whenever `statusMessage` changes.
+    func statusStream() -> some AsyncSequence<String, Never> {
+        Observations { self.statusMessage }
+    }
+}

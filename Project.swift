@@ -15,13 +15,15 @@
 import ProjectDescription
 import Foundation
 
-let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? ""
+let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK693"
 
 let project = Project(
     name: "GemmaEdgeGallery",
     packages: [
-        // LiteRT-LM v0.13.1+ — Native Swift APIs with Metal GPU for macOS/iOS.
-        // Using branch ref to bypass SPM unsafeFlags restriction on tagged releases.
+        // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
+        // Uses .branch("main") to bypass SPM unsafeFlags restriction on tagged releases.
+        // NOTE: .revision() doesn't work with this repo (SPM can't check out individual commits).
+        // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
         .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
@@ -49,7 +51,7 @@ let project = Project(
                 "UISupportsDocumentBrowser": true,
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"],
             // Increased Memory Limit entitlement for large model inference.
             // NOTE: extended-virtual-addressing requires paid Apple Developer Program;
             // increased-memory-limit works with personal teams (matches zealous-bose config).
@@ -82,7 +84,7 @@ let project = Project(
                 "CFBundleName": "Edge AI Lab",
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"],
             entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
@@ -130,6 +132,23 @@ let project = Project(
             )
         ),
         .target(
+            name: "GemmaEdgeGallery_iOSUITests",
+            destinations: .iOS,
+            product: .uiTests,
+            bundleId: "com.andrewvoirol.GemmaEdgeGallery.UITests",
+            deploymentTargets: .iOS("26.5"),
+            infoPlist: .default,
+            sources: ["iOSUITests/**"],
+            dependencies: [
+                .target(name: "GemmaEdgeGallery_iOS")
+            ],
+            settings: .settings(
+                base: [
+                    "TEST_TARGET_NAME": "GemmaEdgeGallery_iOS"
+                ]
+            )
+        ),
+        .target(
             name: "RawBenchmark",
             destinations: .macOS,
             product: .commandLineTool,
@@ -158,7 +177,10 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["GemmaEdgeGallery_iOS"]),
             testAction: .targets(
-                ["GemmaEdgeGallery_iOSTests"],
+                [
+                    "GemmaEdgeGallery_iOSTests",
+                    "GemmaEdgeGallery_iOSUITests"
+                ],
                 configuration: .debug,
                 options: .options(coverage: true)
             ),

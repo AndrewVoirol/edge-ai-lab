@@ -8,6 +8,11 @@
 *.xcworkspace/
 Derived/
 
+# NOTE: Package.resolved is NOT tracked because LiteRT-LM tracks
+# .branch("main") which has force-push history. Committing the lockfile
+# causes CI failures when the pinned revision becomes unreachable.
+# CI resolves dependencies fresh each run via tuist generate.
+
 # --- Model Files ---
 # LLM weights are large (1.5GB+) and locally provisioned
 # See CONTRIBUTING.md for model provisioning instructions

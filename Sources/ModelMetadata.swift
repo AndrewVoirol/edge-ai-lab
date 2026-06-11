@@ -64,8 +64,16 @@ enum BackendRecommendation: String, Sendable {
 
 /// Metadata about a known LiteRT-LM model, inspired by the Google AI Edge Gallery allowlist.
 /// Used to pre-populate UI with capabilities before loading, and to guide backend selection.
-struct ModelMetadata: Codable, Sendable, Identifiable {
+struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
     var id: String { modelFile }
+
+    // MARK: - Hashable (based on unique modelFile)
+    static func == (lhs: ModelMetadata, rhs: ModelMetadata) -> Bool {
+        lhs.modelFile == rhs.modelFile
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(modelFile)
+    }
 
     /// Human-readable model name (e.g., "Gemma-4-E2B-it")
     let name: String

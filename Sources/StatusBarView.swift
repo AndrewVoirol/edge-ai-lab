@@ -23,7 +23,7 @@ import SwiftUI
 /// for agent discoverability and UI testing.
 #if os(macOS)
 struct StatusBarView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
 
     var body: some View {
         HStack(spacing: AppSpacing.md) {

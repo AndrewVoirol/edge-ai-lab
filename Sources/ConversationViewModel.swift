@@ -23,8 +23,9 @@ import os
 @MainActor
 final class ConversationViewModel {
     
-    /// Global shared instance to synchronize settings and engine state across the app.
-    static let shared = ConversationViewModel()
+    // NOTE: The singleton `static let shared` was intentionally removed.
+    // Views access this via @Environment injection from GemmaEdgeGalleryApp.
+    // See: Apple's "Managing model data in your app" (WWDC 2023+).
 
     /// Console logger for runtime diagnostics (visible in Console.app).
     private static let logger = Logger(
@@ -167,6 +168,9 @@ final class ConversationViewModel {
     var discoveredModels: [DiscoveredModel] = []
 
     /// Download manager for fetching models from HuggingFace.
+    /// @ObservationIgnored: Views should observe ModelDownloadManager directly
+    /// via @Environment, not transitively through the ViewModel.
+    @ObservationIgnored
     let downloadManager: ModelDownloadManager
 
     /// The most recent device-level inference metrics (thermal, memory, per-token latency).
@@ -185,8 +189,14 @@ final class ConversationViewModel {
 
     // MARK: - Dependencies
 
+    /// @ObservationIgnored: Internal dependencies — views never observe these directly.
+    @ObservationIgnored
     let engine: InstrumentedEngineProtocol
+    @ObservationIgnored
     private let metricsStore: MetricsStore
+    /// @ObservationIgnored: Views that need ConversationStore should observe it
+    /// directly via @Environment or receive it as a parameter.
+    @ObservationIgnored
     let conversationStore: ConversationStore
 
     // MARK: - Persistence State
@@ -208,12 +218,12 @@ final class ConversationViewModel {
     init(
         engine: InstrumentedEngineProtocol = InstrumentedEngine(),
         metricsStore: MetricsStore = MetricsStore(),
-        downloadManager: ModelDownloadManager = ModelDownloadManager(),
+        downloadManager: ModelDownloadManager? = nil,
         conversationStore: ConversationStore? = nil
     ) {
         self.engine = engine
         self.metricsStore = metricsStore
-        self.downloadManager = downloadManager
+        self.downloadManager = downloadManager ?? ModelDownloadManager()
         self.conversationStore = conversationStore ?? ConversationStore()
         
         self.mcpServers = MCPServerStorage.load()
