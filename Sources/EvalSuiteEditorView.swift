@@ -44,7 +44,6 @@ struct EvalSuiteEditorView: View {
     @State private var description: String = ""
     @State private var category: EvalCategory = .custom
     @State private var prompts: [EditablePrompt] = []
-    @State private var showAddPrompt = false
     @State private var editingPromptIndex: Int?
 
     // MARK: - Editable Prompt
@@ -92,6 +91,8 @@ struct EvalSuiteEditorView: View {
         case nonEmpty
         case containsText(String)
         case toolCall(String)
+        case toolCallWithArgs(String, String, String)
+        case toolCallChain([String])
         case matchesRegex(String)
         case custom(String)
 
@@ -103,12 +104,14 @@ struct EvalSuiteEditorView: View {
                 self = .containsText(text)
             case .toolCall(toolName: let name):
                 self = .toolCall(name)
+            case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let value):
+                self = .toolCallWithArgs(name, key, value)
+            case .toolCallChain(let chain):
+                self = .toolCallChain(chain)
             case .matchesRegex(let pattern):
                 self = .matchesRegex(pattern)
             case .custom(description: let desc):
                 self = .custom(desc)
-            default:
-                self = .nonEmpty
             }
         }
 
@@ -120,6 +123,10 @@ struct EvalSuiteEditorView: View {
                 return .containsText(text)
             case .toolCall(let name):
                 return .toolCall(toolName: name)
+            case .toolCallWithArgs(let name, let key, let value):
+                return .toolCallWithArgs(toolName: name, key: key, expectedValue: value)
+            case .toolCallChain(let chain):
+                return .toolCallChain(chain)
             case .matchesRegex(let pattern):
                 return .matchesRegex(pattern)
             case .custom(let desc):
@@ -132,6 +139,8 @@ struct EvalSuiteEditorView: View {
             case .nonEmpty: return "Non-empty response"
             case .containsText: return "Contains text"
             case .toolCall: return "Tool call"
+            case .toolCallWithArgs: return "Tool call (args)"
+            case .toolCallChain: return "Tool chain"
             case .matchesRegex: return "Regex match"
             case .custom: return "Custom (manual)"
             }
@@ -418,10 +427,14 @@ struct EvalSuiteEditorView: View {
                 // Delete
                 Button {
                     withAnimation(AppAnimation.standard) {
-                        prompts.remove(at: index)
-                        if editingPromptIndex == index {
-                            editingPromptIndex = nil
+                        if let editing = editingPromptIndex {
+                            if editing == index {
+                                editingPromptIndex = nil
+                            } else if editing > index {
+                                editingPromptIndex = editing - 1
+                            }
                         }
+                        prompts.remove(at: index)
                     }
                 } label: {
                     Image(systemName: "trash")
@@ -620,6 +633,8 @@ struct EvalSuiteEditorView: View {
         case (.nonEmpty, .nonEmpty): return true
         case (.containsText, .containsText): return true
         case (.toolCall, .toolCall): return true
+        case (.toolCallWithArgs, .toolCallWithArgs): return true
+        case (.toolCallChain, .toolCallChain): return true
         case (.matchesRegex, .matchesRegex): return true
         case (.custom, .custom): return true
         default: return false

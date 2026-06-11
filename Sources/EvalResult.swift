@@ -31,6 +31,9 @@ struct EvalRun: Codable, Sendable, Identifiable {
     /// Suite name cached for display without needing to resolve the suite.
     let suiteName: String
 
+    /// The category of the suite that was evaluated.
+    let suiteCategory: EvalCategory
+
     /// When this run was started.
     let startedAt: Date
 
@@ -53,6 +56,7 @@ struct EvalRun: Codable, Sendable, Identifiable {
         id: UUID = UUID(),
         suiteId: UUID,
         suiteName: String,
+        suiteCategory: EvalCategory = .general,
         startedAt: Date = Date(),
         completedAt: Date? = nil,
         platform: String = EvalRun.currentPlatform,
@@ -62,6 +66,7 @@ struct EvalRun: Codable, Sendable, Identifiable {
         self.id = id
         self.suiteId = suiteId
         self.suiteName = suiteName
+        self.suiteCategory = suiteCategory
         self.startedAt = startedAt
         self.completedAt = completedAt
         self.platform = platform
@@ -94,11 +99,13 @@ struct EvalRun: Codable, Sendable, Identifiable {
     /// Number of models evaluated.
     var modelCount: Int { modelResults.count }
 
-    /// Overall pass rate across all models.
+    /// Overall pass rate across all models (computed from actual counts, not averaged rates).
     var overallPassRate: Double {
         guard !modelResults.isEmpty else { return 0 }
-        let totalPass = modelResults.reduce(0.0) { $0 + $1.passRate }
-        return totalPass / Double(modelResults.count)
+        let totalPassed = modelResults.reduce(0) { $0 + $1.promptResults.filter(\.passed).count }
+        let totalPrompts = modelResults.reduce(0) { $0 + $1.promptResults.count }
+        guard totalPrompts > 0 else { return 0 }
+        return Double(totalPassed) / Double(totalPrompts)
     }
 
     /// Short display summary (e.g., "3 models · 87% pass rate").

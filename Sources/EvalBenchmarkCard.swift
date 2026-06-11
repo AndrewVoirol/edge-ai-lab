@@ -275,7 +275,7 @@ struct EvalBenchmarkCardData {
 
         return EvalBenchmarkCardData(
             suiteName: run.suiteName,
-            category: .general, // Category is not stored on EvalRun; use general as fallback
+            category: run.suiteCategory,
             overallPassRate: run.overallPassRate,
             modelSummaries: summaries,
             deviceName: run.deviceName,

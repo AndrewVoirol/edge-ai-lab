@@ -97,6 +97,9 @@ struct EvalComparisonView: View {
         }
         .frame(minWidth: 700, idealWidth: 900, minHeight: 600, idealHeight: 750)
         .background(AppColors.backgroundPrimary)
+        .sheet(isPresented: $showShareSheet) {
+            EvalBenchmarkCardShareSheet(evalRun: evalRun)
+        }
         .accessibilityIdentifier("evalComparisonView_root")
     }
 
@@ -128,12 +131,27 @@ struct EvalComparisonView: View {
 
             Spacer()
 
-            Button("Done") {
-                dismiss()
+            HStack(spacing: AppSpacing.md) {
+                Button {
+                    showShareSheet = true
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("Share")
+                            .font(.system(.caption, design: .default, weight: .semibold))
+                    }
+                    .foregroundStyle(AppColors.accentCyan)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("evalComparison_shareButton")
+
+                Button("Done") {
+                    dismiss()
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(AppColors.accentTeal)
+                .accessibilityIdentifier("evalComparison_doneButton")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(AppColors.accentTeal)
-            .accessibilityIdentifier("evalComparison_doneButton")
         }
         .padding(.horizontal, AppSpacing.xl)
         .padding(.vertical, AppSpacing.lg)

@@ -101,12 +101,16 @@ struct EvalRunnerView: View {
                     } else {
                         customSuites.append(suite)
                     }
+                    evalStore.saveCustomSuite(suite)
                     showSuiteEditor = false
                 },
                 onCancel: {
                     showSuiteEditor = false
                 }
             )
+        }
+        .onAppear {
+            customSuites = evalStore.loadCustomSuites()
         }
         .accessibilityIdentifier("evalRunnerView_root")
     }
@@ -235,6 +239,7 @@ struct EvalRunnerView: View {
 
                 Button(role: .destructive) {
                     customSuites.removeAll { $0.id == suite.id }
+                    evalStore.deleteCustomSuite(id: suite.id)
                     if selectedSuiteId == suite.id {
                         selectedSuiteId = nil
                     }
@@ -652,6 +657,10 @@ struct EvalRunnerView: View {
         isRunning = true
         liveResults = []
 
+        runner.onPromptComplete = { result in
+            liveResults.append(result)
+        }
+
         do {
             let cacheDir = FileManager.default.urls(
                 for: .cachesDirectory, in: .userDomainMask
@@ -676,7 +685,8 @@ struct EvalRunnerView: View {
 
 #if DEBUG
 #Preview("Eval Runner") {
-    EvalRunnerView()
+    // TODO: Preview requires ConversationViewModel with a real engine
+    Text("Preview requires ConversationViewModel")
         .preferredColorScheme(.dark)
 }
 #endif

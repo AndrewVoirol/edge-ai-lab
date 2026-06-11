@@ -213,6 +213,59 @@ final class EvalStore {
         loadIndex()
     }
 
+    // MARK: - Custom Suite Persistence
+
+    /// Directory for custom suite storage.
+    private var customSuitesDirectory: URL {
+        storageDirectory
+            .deletingLastPathComponent()  // EdgeAILab/
+            .appendingPathComponent("CustomSuites", isDirectory: true)
+    }
+
+    /// Save a custom suite to disk.
+    func saveCustomSuite(_ suite: EvalSuite) {
+        let dir = customSuitesDirectory
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: dir.path) {
+            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        let fileURL = dir.appendingPathComponent("\(suite.id.uuidString).json")
+        do {
+            let data = try encoder.encode(suite)
+            try data.write(to: fileURL, options: .atomic)
+            Self.logger.info("💾 Saved custom suite: \(suite.name, privacy: .public)")
+        } catch {
+            Self.logger.error("❌ Failed to save custom suite: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Load all saved custom suites from disk.
+    func loadCustomSuites() -> [EvalSuite] {
+        let dir = customSuitesDirectory
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+            .filter({ $0.pathExtension == "json" }) else {
+            return []
+        }
+
+        var suites: [EvalSuite] = []
+        for file in files {
+            if let data = try? Data(contentsOf: file),
+               let suite = try? decoder.decode(EvalSuite.self, from: data) {
+                suites.append(suite)
+            }
+        }
+        Self.logger.info("📋 Loaded \(suites.count) custom suite(s)")
+        return suites
+    }
+
+    /// Delete a saved custom suite from disk.
+    func deleteCustomSuite(id: UUID) {
+        let fileURL = customSuitesDirectory.appendingPathComponent("\(id.uuidString).json")
+        try? FileManager.default.removeItem(at: fileURL)
+        Self.logger.info("🗑️ Deleted custom suite: \(id)")
+    }
+
     // MARK: - Private Helpers
 
     /// File URL for a specific eval run.

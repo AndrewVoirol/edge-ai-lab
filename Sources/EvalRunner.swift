@@ -103,6 +103,10 @@ final class EvalRunner {
     /// The eval run being built (nil when idle).
     var currentRun: EvalRun?
 
+    /// Callback invoked on the MainActor each time a prompt completes.
+    /// Used by EvalRunnerView to populate live results.
+    var onPromptComplete: (@MainActor @Sendable (PromptEvalResult) -> Void)?
+
     // MARK: - Progress Tracking
 
     /// Index of the model currently being evaluated (0-based).
@@ -191,7 +195,8 @@ final class EvalRunner {
         // Create the run
         var run = EvalRun(
             suiteId: suite.id,
-            suiteName: suite.name
+            suiteName: suite.name,
+            suiteCategory: suite.category
         )
         currentRun = run
 
@@ -238,6 +243,10 @@ final class EvalRunner {
                 allModelResults.append(failedResult)
             }
         }
+
+        // Shut down the engine after eval so it's not left initialized with the last model.
+        // The user will need to re-select their model, but the engine won't be in an unexpected state.
+        await engine.shutdown()
 
         // Finalize the run
         state = .scoring
@@ -329,7 +338,6 @@ final class EvalRunner {
         var promptResults: [PromptEvalResult] = []
         var decodeSpeeds: [Double] = []
         var ttfts: [Double] = []
-        var totalTokens = 0
         var peakMemoryDelta: Double = 0
         var thermalTransitions = 0
         var promptDurations: [TimeInterval] = []
@@ -363,6 +371,7 @@ final class EvalRunner {
             )
 
             promptResults.append(promptResult)
+            onPromptComplete?(promptResult)
             promptDurations.append(promptResult.duration)
 
             // Aggregate metrics
@@ -373,10 +382,6 @@ final class EvalRunner {
                 ttfts.append(t)
             }
 
-            // Capture benchmark data from engine
-            if let benchInfo = engine.lastBenchmarkInfo {
-                totalTokens += Int(benchInfo.lastDecodeTokensPerSecond > 0 ? benchInfo.lastDecodeTokensPerSecond : 0)
-            }
 
             // Track resource metrics
             if let metrics = engine.lastInferenceMetrics {
@@ -402,7 +407,8 @@ final class EvalRunner {
         if allLatencies.isEmpty {
             p95Latency = 0
         } else {
-            let p95Index = min(Int(Double(allLatencies.count) * 0.95), allLatencies.count - 1)
+            // p95 latency = slow end. Pick the 5th percentile of speeds (lowest speeds = highest latency).
+            let p95Index = max(Int(Double(allLatencies.count) * 0.05), 0)
             // Convert tok/s to ms/tok for latency
             p95Latency = allLatencies[p95Index] > 0 ? 1000.0 / allLatencies[p95Index] : 0
         }
@@ -438,7 +444,7 @@ final class EvalRunner {
             avgDecodeSpeed: avgSpeed,
             avgTTFT: avgTTFT,
             p95Latency: p95Latency,
-            totalTokensGenerated: max(totalTokens, computedTotalTokens),
+            totalTokensGenerated: computedTotalTokens,
             totalDuration: modelDuration,
             promptResults: promptResults,
             passRate: passRate,
