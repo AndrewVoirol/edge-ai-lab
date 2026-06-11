@@ -146,6 +146,14 @@ final class URLImportManager {
             return
         }
 
+        // Step 2b: Check if already in dynamic catalog
+        if let existing = catalog.find(id: parsed.repoId) {
+            state = .complete(metadata: existing)
+            lastImportedModel = existing
+            Self.logger.info("✅ Model already imported: \(parsed.repoId, privacy: .public)")
+            return
+        }
+
         // Step 3: Fetch model details
         state = .fetching(repoId: parsed.repoId)
 

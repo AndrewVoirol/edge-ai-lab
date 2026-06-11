@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #if os(iOS)
+import os
 import SwiftUI
 
 // MARK: - iOS URL Import Sheet
@@ -30,11 +31,18 @@ import SwiftUI
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSURLImportSheet: View {
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.GemmaEdgeGallery",
+        category: "iOSURLImportSheet"
+    )
+
     @Environment(ConversationViewModel.self) private var viewModel
     @Environment(\.dismiss) private var dismiss
 
     @State private var urlText = ""
     @State private var importManager: URLImportManager?
+    /// Tracks the download completion observation task so it can be cancelled on dismiss.
+    @State private var downloadObservationTask: Task<Void, Never>?
 
     // MARK: - Body
 
@@ -77,8 +85,19 @@ struct iOSURLImportSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    if isTerminalState {
+                        Button("Done") {
+                            downloadObservationTask?.cancel()
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("urlImport_done")
+                    } else {
+                        Button("Cancel") {
+                            downloadObservationTask?.cancel()
+                            dismiss()
+                        }
                         .accessibilityIdentifier("urlImport_cancel")
+                    }
                 }
             }
         }
@@ -152,7 +171,7 @@ struct iOSURLImportSheet: View {
                             file: file,
                             downloadManager: viewModel.downloadManager
                         )
-                        dismiss()
+                        observeDownloadCompletion(filename: file.rfilename, metadata: meta)
                     } label: {
                         Label("Download \(file.rfilename)", systemImage: "icloud.and.arrow.down")
                             .frame(maxWidth: .infinity)
@@ -190,15 +209,67 @@ struct iOSURLImportSheet: View {
         }
     }
 
+    // MARK: - State Helpers
+
+    /// Whether the import is in a terminal state (downloading, complete, or failed)
+    /// where the user should see a "Done" button instead of "Cancel".
+    private var isTerminalState: Bool {
+        guard let manager = importManager else { return false }
+        switch manager.state {
+        case .downloading, .complete, .failed:
+            return true
+        default:
+            return false
+        }
+    }
+
     // MARK: - Actions
 
     private func startImport() {
+        // NOTE: Creates a fresh HFModelBrowser per import. This is fine for a modal
+        // sheet, but could be optimized to reuse viewModel.browser if one is added.
         let browser = HFModelBrowser()
         let catalog = viewModel.dynamicModelCatalog
         let manager = URLImportManager(browser: browser, catalog: catalog)
         self.importManager = manager
         Task {
             await manager.importFromURL(urlText)
+        }
+    }
+
+    /// Observe download completion by polling `ModelDownloadManager.downloadStates`.
+    ///
+    /// When the download state for `filename` transitions to `.downloaded`, calls
+    /// `markComplete()` on the import manager and auto-dismisses after a short delay.
+    /// On `.failed`, transitions the import state accordingly.
+    private func observeDownloadCompletion(filename: String, metadata: DynamicModelMetadata) {
+        downloadObservationTask?.cancel()
+        downloadObservationTask = Task { @MainActor [weak importManager] in
+            let downloadManager = viewModel.downloadManager
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+
+                if let dlState = downloadManager.downloadStates[filename] {
+                    switch dlState {
+                    case .downloaded:
+                        importManager?.markComplete(metadata: metadata)
+                        Self.logger.info("✅ Download completed for \(filename, privacy: .public)")
+                        // Auto-dismiss after a short delay so the user sees the success state
+                        try? await Task.sleep(for: .milliseconds(1500))
+                        if !Task.isCancelled {
+                            dismiss()
+                        }
+                        return
+                    case .failed(let message):
+                        importManager?.state = .failed(error: "Download failed: \(message)")
+                        Self.logger.error("❌ Download failed for \(filename, privacy: .public): \(message, privacy: .public)")
+                        return
+                    default:
+                        continue
+                    }
+                }
+            }
         }
     }
 
