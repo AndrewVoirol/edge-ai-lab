@@ -220,6 +220,16 @@ final class DynamicModelCatalog {
         }
     }
 
+    /// Find a model entry by its unique identifier.
+    ///
+    /// Searches across all models (known + imported).
+    ///
+    /// - Parameter id: The unique identifier to search for.
+    /// - Returns: The matching `DynamicModelMetadata`, or `nil` if not found.
+    func find(id: String) -> DynamicModelMetadata? {
+        entries.first(where: { $0.id == id })
+    }
+
     /// Reload the catalog from disk.
     ///
     /// Call this if you suspect external changes to the catalog file.
@@ -257,7 +267,11 @@ final class DynamicModelCatalog {
             entries = try decoder.decode([DynamicModelMetadata].self, from: data)
             Self.logger.info("📋 Loaded catalog with \(self.entries.count) imported model(s)")
         } catch {
-            Self.logger.error("❌ Failed to decode catalog: \(error.localizedDescription, privacy: .public)")
+            // Backup corrupted file before overwriting
+            let backupURL = catalogFileURL.deletingPathExtension().appendingPathExtension("bak.json")
+            try? FileManager.default.removeItem(at: backupURL)
+            try? FileManager.default.copyItem(at: catalogFileURL, to: backupURL)
+            Self.logger.error("❌ Catalog decode failed, backup at: \(backupURL.path, privacy: .public)")
             entries = []
         }
     }
@@ -282,8 +296,6 @@ enum DynamicModelCatalogError: LocalizedError {
     case duplicateEntry(String)
     /// No entry with the specified ID was found.
     case notFound(String)
-    /// Failed to persist the catalog to disk.
-    case persistFailed(Error)
 
     var errorDescription: String? {
         switch self {
@@ -291,8 +303,6 @@ enum DynamicModelCatalogError: LocalizedError {
             return "Model '\(id)' is already in the catalog."
         case .notFound(let id):
             return "Model '\(id)' not found in the catalog."
-        case .persistFailed(let error):
-            return "Failed to save catalog: \(error.localizedDescription)"
         }
     }
 }

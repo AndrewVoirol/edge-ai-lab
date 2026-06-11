@@ -64,14 +64,12 @@ final class DynamicModelMetadataTests: XCTestCase {
   func testMetadataSource_rawValues() {
     XCTAssertEqual(MetadataSource.knownRegistry.rawValue, "knownRegistry")
     XCTAssertEqual(MetadataSource.huggingFaceInferred.rawValue, "huggingFaceInferred")
-    XCTAssertEqual(MetadataSource.runtimeProbed.rawValue, "runtimeProbed")
     XCTAssertEqual(MetadataSource.userProvided.rawValue, "userProvided")
   }
 
   func testMetadataSource_initFromRawValue() {
     XCTAssertEqual(MetadataSource(rawValue: "knownRegistry"), .knownRegistry)
     XCTAssertEqual(MetadataSource(rawValue: "huggingFaceInferred"), .huggingFaceInferred)
-    XCTAssertEqual(MetadataSource(rawValue: "runtimeProbed"), .runtimeProbed)
     XCTAssertEqual(MetadataSource(rawValue: "userProvided"), .userProvided)
     XCTAssertNil(MetadataSource(rawValue: "invalid"))
   }
@@ -80,7 +78,7 @@ final class DynamicModelMetadataTests: XCTestCase {
 
   func testMetadataSource_codableRoundTrip() throws {
     let allCases: [MetadataSource] = [
-      .knownRegistry, .huggingFaceInferred, .runtimeProbed, .userProvided,
+      .knownRegistry, .huggingFaceInferred, .userProvided,
     ]
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
@@ -176,11 +174,10 @@ final class DynamicModelMetadataTests: XCTestCase {
   }
 
   func testFromKnownModel_setsLastVerifiedAt() {
-    let beforeDate = Date()
     let model = makeTestModelMetadata()
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertNotNil(entry.lastVerifiedAt)
-    XCTAssertGreaterThanOrEqual(entry.lastVerifiedAt!, beforeDate)
+    XCTAssertEqual(entry.lastVerifiedAt, Date.distantPast)
   }
 
   func testFromKnownModel_userNotesAreNil() {
@@ -225,32 +222,6 @@ final class DynamicModelMetadataTests: XCTestCase {
     let entry = DynamicModelMetadata.fromHuggingFace(
       repoId: "org/repo", metadata: model, confidence: .high
     )
-    XCTAssertNil(entry.lastVerifiedAt)
-  }
-
-  // MARK: - DynamicModelMetadata — fromUserInput
-
-  func testFromUserInput_setsSourceToUserProvided() {
-    let model = makeTestModelMetadata()
-    let entry = DynamicModelMetadata.fromUserInput(id: "my-model", metadata: model)
-    XCTAssertEqual(entry.source, .userProvided)
-  }
-
-  func testFromUserInput_setsConfidenceToMedium() {
-    let model = makeTestModelMetadata()
-    let entry = DynamicModelMetadata.fromUserInput(id: "my-model", metadata: model)
-    XCTAssertEqual(entry.confidence, .medium)
-  }
-
-  func testFromUserInput_setsIdFromParameter() {
-    let model = makeTestModelMetadata()
-    let entry = DynamicModelMetadata.fromUserInput(id: "user-chosen-id", metadata: model)
-    XCTAssertEqual(entry.id, "user-chosen-id")
-  }
-
-  func testFromUserInput_lastVerifiedAtIsNil() {
-    let model = makeTestModelMetadata()
-    let entry = DynamicModelMetadata.fromUserInput(id: "my-model", metadata: model)
     XCTAssertNil(entry.lastVerifiedAt)
   }
 
@@ -299,9 +270,17 @@ final class DynamicModelMetadataTests: XCTestCase {
     XCTAssertNil(decoded.lastVerifiedAt)
   }
 
-  func testDynamicModelMetadata_codableRoundTrip_userInput() throws {
+  func testDynamicModelMetadata_codableRoundTrip_userProvided() throws {
     let model = makeTestModelMetadata()
-    let entry = DynamicModelMetadata.fromUserInput(id: "user-model", metadata: model)
+    let entry = DynamicModelMetadata(
+      id: "user-model",
+      source: .userProvided,
+      metadata: model,
+      confidence: .medium,
+      importedAt: Date(),
+      lastVerifiedAt: nil,
+      userNotes: nil
+    )
 
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601

@@ -25,8 +25,6 @@ enum MetadataSource: String, Codable, Sendable {
     case knownRegistry
     /// Inferred from HuggingFace API responses and model card parsing.
     case huggingFaceInferred
-    /// Determined by loading the model at runtime and probing capabilities.
-    case runtimeProbed
     /// Manually entered or corrected by the user.
     case userProvided
 }
@@ -137,8 +135,8 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
             source: .knownRegistry,
             metadata: model,
             confidence: .verified,
-            importedAt: Date(),
-            lastVerifiedAt: Date(),
+            importedAt: Date.distantPast,
+            lastVerifiedAt: Date.distantPast,
             userNotes: nil
         )
     }
@@ -169,24 +167,5 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
         )
     }
 
-    /// Create a `DynamicModelMetadata` entry from user-provided information.
-    ///
-    /// - Parameters:
-    ///   - id: A unique identifier (typically the filename or a user-chosen name).
-    ///   - metadata: The `ModelMetadata` as entered by the user.
-    /// - Returns: A catalog entry with `.userProvided` source and `.medium` confidence.
-    static func fromUserInput(
-        id: String,
-        metadata: ModelMetadata
-    ) -> DynamicModelMetadata {
-        DynamicModelMetadata(
-            id: id,
-            source: .userProvided,
-            metadata: metadata,
-            confidence: .medium,
-            importedAt: Date(),
-            lastVerifiedAt: nil,
-            userNotes: nil
-        )
-    }
 }
+

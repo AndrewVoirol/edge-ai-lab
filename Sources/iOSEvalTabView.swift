@@ -39,10 +39,12 @@ struct iOSEvalTabView: View {
     @State private var runProgress: Double = 0
     @State private var runStatusText = ""
     @State private var evalRunner: EvalRunner?
+    @State private var showComparisonForRun: EvalRun?
+    @State private var customSuites: [EvalSuite] = []
 
     // MARK: - Computed Properties
 
-    private var allSuites: [EvalSuite] { BuiltInEvalSuites.allBuiltIn }
+    private var allSuites: [EvalSuite] { BuiltInEvalSuites.allBuiltIn + customSuites }
 
     private var selectedSuite: EvalSuite? {
         guard let id = selectedSuiteId else { return nil }
@@ -177,6 +179,15 @@ struct iOSEvalTabView: View {
                                             ? AppColors.warning
                                             : AppColors.danger
                                 )
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let run = try? evalStore.load(id: entry.id) {
+                                showComparisonForRun = run
+                            }
                         }
                         .accessibilityIdentifier("evalTab_run_\(entry.id.uuidString.prefix(8))")
                     }
@@ -184,6 +195,12 @@ struct iOSEvalTabView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .sheet(item: $showComparisonForRun) { run in
+            EvalComparisonView(evalRun: run, evalStore: evalStore)
+        }
+        .onAppear {
+            customSuites = evalStore.loadCustomSuites()
+        }
         .accessibilityIdentifier("evalTab_root")
     }
 

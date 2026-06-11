@@ -654,8 +654,10 @@ struct iOSModelDetailView: View {
     private var formattedContextWindow: String {
         if metadata.contextWindowSize >= 1_000_000 {
             return "\(metadata.contextWindowSize / 1_000_000)M ctx"
-        } else {
+        } else if metadata.contextWindowSize >= 1_000 {
             return "\(metadata.contextWindowSize / 1_000)K ctx"
+        } else {
+            return "\(metadata.contextWindowSize) ctx"
         }
     }
 
