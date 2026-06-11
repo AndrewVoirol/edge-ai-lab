@@ -27,14 +27,31 @@ import SwiftUI
 /// "A cabin with a terminal. Frosted glass in a forest."
 @main
 struct GemmaEdgeGalleryApp: App {
+    @State private var downloadManager: ModelDownloadManager
+    @State private var viewModel: ConversationViewModel
+
+    /// Static reference for AppDelegate's background session callback.
+    /// This is NOT a singleton — it's the App's owned dependency shared
+    /// with UIKit-era code that can't participate in SwiftUI's environment.
+    nonisolated(unsafe) static var activeDownloadManager: ModelDownloadManager?
+
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
+
+    init() {
+        let dm = ModelDownloadManager()
+        _downloadManager = State(initialValue: dm)
+        _viewModel = State(initialValue: ConversationViewModel(downloadManager: dm))
+        Self.activeDownloadManager = dm
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(.dark)
+                .environment(viewModel)
+                .environment(downloadManager)
         }
         #if os(macOS)
         .windowStyle(.titleBar)

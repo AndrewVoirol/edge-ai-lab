@@ -30,6 +30,7 @@ import LiteRTLM
 /// These tests complement `DownloadManagerTests` by focusing on the NEW
 /// infrastructure added in the overhaul. All tests are state-level with
 /// no network calls.
+@MainActor
 final class DownloadInfrastructureTests: XCTestCase {
 
     // MARK: - Helpers

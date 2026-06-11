@@ -32,6 +32,7 @@ struct ChatBubbleView: View {
     let message: ChatMessage
     let enableThinking: Bool
 
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var showThinking = false
     @State private var expandedToolCall: UUID?
 
@@ -161,7 +162,7 @@ struct ChatBubbleView: View {
                     Spacer()
                     // Fork experiment button
                     Button {
-                        let vm = ConversationViewModel.shared
+                        let vm = viewModel
                         // Save current conversation first if it hasn't been saved
                         vm.saveCurrentConversation()
                         if let convId = vm.activeConversationId {

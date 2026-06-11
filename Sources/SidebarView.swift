@@ -64,7 +64,7 @@ enum SidebarSection: String, Hashable, Identifiable {
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct SidebarView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @Binding var selectedSection: SidebarSection?
     @Binding var selectedModelId: String?
     @Binding var showcaseModel: ModelMetadata?

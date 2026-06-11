@@ -23,6 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Verify No Singleton
+        run: |
+          if grep -r "ConversationViewModel\.shared" Sources/; then
+            echo "❌ ConversationViewModel.shared found in Sources/ — singleton was removed in P0 refactor"
+            exit 1
+          fi
+          echo "✅ No ConversationViewModel.shared in Sources/"
+
       - name: Install Tuist
         uses: jdx/mise-action@v4
 

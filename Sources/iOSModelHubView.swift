@@ -35,7 +35,7 @@ import SwiftUI
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSModelHubView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var searchText = ""
     @State private var modelToDelete: ModelMetadata?
     @State private var showDeleteConfirmation = false

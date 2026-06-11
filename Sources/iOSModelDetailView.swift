@@ -37,7 +37,7 @@ import SwiftUI
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSModelDetailView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @Environment(\.dismiss) private var dismiss
     let metadata: ModelMetadata
 

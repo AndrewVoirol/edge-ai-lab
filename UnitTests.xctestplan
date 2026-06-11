@@ -29,6 +29,7 @@
         "DeviceMetricsSnapshotTests",
         "DownloadInfrastructureTests",
         "DownloadManagerTests",
+        "EnvironmentInjectionTests",
         "ExperimentalFlagsStateTests",
         "FlowResultTests",
         "GalleryModelDiscoveryTests",

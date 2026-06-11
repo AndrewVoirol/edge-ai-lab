@@ -23,7 +23,7 @@ import SwiftUI
 /// in `ContentView` so that agent discoverability and UI testing remain intact.
 struct BenchmarkBarView: View {
     let info: BenchmarkInfo
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var isBenchmarkExpanded = true
     @State private var isShowingBenchmarkCard = false
 

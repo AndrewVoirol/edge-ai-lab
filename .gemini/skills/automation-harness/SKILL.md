@@ -1,19 +1,35 @@
 ---
 name: automation-harness
-description: Trigger and parse the DeveloperAutomationHarness for in-app E2E testing and benchmarking via JSON automation flows. Use this skill for running benchmark flows, model setup automation, inference testing, and CI pipeline integration — especially on physical devices where XCTest hangs.
+description: Trigger and parse the DeveloperAutomationHarness for in-app E2E testing and benchmarking via JSON automation flows. Use this skill for running benchmark flows, model setup automation, inference testing, and CI pipeline integration.
 ---
 
 # Automation Harness
 
 This skill covers the `DeveloperAutomationHarness` — an in-app automation system that runs benchmark and E2E test flows via launch arguments, outputting structured results to stdout.
 
-## Why Use This Instead of XCTest
+## When to Use This vs XCTest
 
-The automation harness exists because:
-1. **On-device XCTest hangs** on iOS 26 beta (see `device-testing` skill)
-2. **Benchmark flows** need the full app lifecycle (model download, GPU init, inference)
-3. **CI integration** needs machine-parseable stdout output
-4. **Matrix benchmarks** run multiple GPU/CPU/MTP configurations in sequence
+| Use XCTest when... | Use the Automation Harness when... |
+|---|---|
+| Unit/integration tests (fast, isolated) | E2E user journeys (model download → inference → verify) |
+| Testing ViewModel logic | Benchmarking (TTFT, decode speed, memory) |
+| Regression checks on every PR | Matrix configurations (GPU/CPU/MTP combinations) |
+| Speed matters (418 tests in 3.4s) | Full app lifecycle with real models |
+
+> **NOTE:** On-device XCTest works correctly (the previous hang was caused by PhaseAnimator runloop saturation, now fixed). Use XCTest for unit/integration tests. Use the harness for E2E flows and benchmarks.
+
+## Flow Bundling
+
+Automation flow JSONs are bundled as app resources via `Project.swift`:
+```swift
+resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"]
+```
+
+The `AutomationFlowRunner.flowsDirectory()` method uses a 4-tier lookup:
+1. Bundle subdirectory: `Bundle.main.url(forResource: "flows", subdirectory: "automation")`
+2. Bundle root `/flows` directory
+3. Glob-bundled files in bundle root (checks for `benchmark_flow.json`)
+4. Development fallback: project `automation/flows/` directory
 
 ## Launch Arguments
 

@@ -237,8 +237,7 @@ enum AppAnimation {
     static let spring = Animation.spring(response: 0.4, dampingFraction: 0.75)
     /// Gentle spring for scroll/layout changes.
     static let gentleSpring = Animation.spring(response: 0.5, dampingFraction: 0.85)
-    /// Slow pulse for indicators.
-    static let pulse = Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+
     /// Message entrance.
     static let messageEntrance = Animation.spring(response: 0.35, dampingFraction: 0.8)
 }
@@ -298,18 +297,31 @@ struct GlowModifier: ViewModifier {
 }
 
 /// Pulsing glow animation for active indicators.
+/// Uses PhaseAnimator + geometryGroup() for efficient, state-free cycling.
+/// Disables animation under XCTest to prevent runloop saturation.
 struct PulsingGlowModifier: ViewModifier {
     let color: Color
-    @State private var isPulsing = false
+
+    /// Cached check: are we running inside an XCTest host?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     func body(content: Content) -> some View {
-        content
-            .shadow(color: color.opacity(isPulsing ? 0.5 : 0.15), radius: isPulsing ? 12 : 4)
-            .onAppear {
-                withAnimation(AppAnimation.pulse) {
-                    isPulsing = true
+        if Self.isRunningTests {
+            // Static shadow — no animation cycle to saturate the runloop
+            content
+                .shadow(color: color.opacity(0.3), radius: 8)
+        } else {
+            content
+                .geometryGroup()  // Isolate animation from parent layout recalculations
+                .phaseAnimator([false, true]) { view, isPulsing in
+                    view.shadow(
+                        color: color.opacity(isPulsing ? 0.5 : 0.15),
+                        radius: isPulsing ? 12 : 4
+                    )
+                } animation: { _ in
+                    .easeInOut(duration: 1.2)
                 }
-            }
+        }
     }
 }
 

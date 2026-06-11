@@ -28,7 +28,7 @@ import SwiftUI
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSChatTabView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var showSettings = false
 
     var body: some View {

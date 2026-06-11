@@ -23,6 +23,7 @@ import LiteRTLM
 
 // MARK: - DownloadManager Tests
 
+@MainActor
 final class DownloadManagerTests: XCTestCase {
 
     // MARK: - Initial State

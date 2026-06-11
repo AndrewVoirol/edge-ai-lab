@@ -364,11 +364,27 @@ struct AutomationFlowRunner {
     nonisolated private static func flowsDirectory() -> URL {
         // Check for flows relative to the main bundle first (when running as app),
         // then fall back to the project directory structure.
+
+        // 1. Tuist folder reference: automation/flows as a subdirectory in the bundle
         if let bundleFlows = Bundle.main.url(forResource: "flows", withExtension: nil, subdirectory: "automation") {
             return bundleFlows
         }
 
-        // Development fallback: look relative to project root.
+        // 2. Tuist folder reference: flows directly in bundle root
+        let bundleRootFlows = Bundle.main.bundleURL.appendingPathComponent("flows")
+        if FileManager.default.fileExists(atPath: bundleRootFlows.path) {
+            return bundleRootFlows
+        }
+
+        // 3. Glob-bundled individual files: JSON files in the bundle root
+        //    When Tuist bundles via glob (automation/flows/**/*.json), files end up
+        //    directly in the bundle root. Return the bundle root and let discovery
+        //    find them there.
+        if Bundle.main.url(forResource: "benchmark_flow", withExtension: "json") != nil {
+            return Bundle.main.bundleURL
+        }
+
+        // 4. Development fallback: look relative to project root.
         // This works when running from Xcode where the working directory
         // is the project root.
         let projectFlows = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

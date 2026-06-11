@@ -27,7 +27,7 @@ This skill covers running the GemmaEdgeGallery test suite, using test plans, exe
 | `IntegrationTests.xctestplan` | Cross-component tests, some need model | 300s per test | 3 classes |
 | `PerformanceTests.xctestplan` | Regression benchmarks, model needed | 600s per test | 2 classes |
 
-### UnitTests Test Plan Classes (20 classes)
+### UnitTests Test Plan Classes (21 classes)
 - `ChatMessageTests`
 - `CommunityDownloadTests`
 - `ConversationViewModelSamplerTests`
@@ -35,6 +35,7 @@ This skill covers running the GemmaEdgeGallery test suite, using test plans, exe
 - `DeviceMetricsSnapshotTests`
 - `DownloadInfrastructureTests`
 - `DownloadManagerTests`
+- `EnvironmentInjectionTests` — Guards against singleton re-introduction
 - `ExperimentalFlagsStateTests`
 - `GalleryModelDiscoveryTests`
 - `InferenceMetricsIntegrationTests`
@@ -60,10 +61,31 @@ This skill covers running the GemmaEdgeGallery test suite, using test plans, exe
 
 ## Expected Results
 
-- **Total tests:** 414+ on iOS simulator
-- **Expected passing:** All tests should pass
-- **Expected skipped:** ~12 tests (skipped due to model not being present or platform-specific conditions)
-- **Expected failures:** 0
+| Platform | Total Tests | Skipped | Expected Failures | Duration |
+|----------|-------------|---------|-------------------|----------|
+| iOS Simulator | 418+ | ~12 | 0 | ~23s |
+| macOS | 216+ | 0 | 0 | ~10s |
+| iOS Device | 418+ | ~15 | 0 | ~3.4s |
+
+> **NOTE:** macOS has fewer tests because `GalleryParityBenchmarkTests` requires a real model file on disk.
+
+## ⚠️ Animation Safety for Tests
+
+`PulsingGlowModifier` uses `PhaseAnimator` which cycles forever. In test host contexts, this saturates the runloop and hangs tests. The modifier detects `XCTestConfigurationFilePath` and applies a static shadow instead.
+
+**If you add a new perpetual animation**, follow the same pattern:
+```swift
+private static let isRunningTests =
+    ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
+func body(content: Content) -> some View {
+    if Self.isRunningTests {
+        content // static fallback
+    } else {
+        content.phaseAnimator(...) // real animation
+    }
+}
+```
 
 ## Running Tests with MCP Tools (Preferred)
 
@@ -341,8 +363,8 @@ error: Unable to find a target named 'GemmaEdgeGallery_iOSTests'
 ```
 **Fix:** Run `tuist generate` to regenerate the project.
 
-### Tests Hang on Device
-**CRITICAL:** On-device XCTest currently hangs due to iOS 26 beta `@Observable` feedback loop. Use the simulator or macOS for XCTest. Use the `automation-harness` skill for on-device E2E testing.
+### Tests Hang (Any Platform)
+If tests hang with high CPU (130%+), the likely cause is a perpetual animation (e.g., `PhaseAnimator`) saturating the test host's runloop. Check that any `PhaseAnimator` or `.repeatForever` animation has the `isRunningTests` guard (see "Animation Safety for Tests" above). On-device XCTest works correctly when animations are guarded — 418 tests complete in 3.4 seconds.
 
 ### Module Import Errors
 ```

@@ -29,8 +29,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         completionHandler: @escaping () -> Void
     ) {
         // Store the completion handler — ModelDownloadManager will call it
-        // after processing all pending download events.
-        ConversationViewModel.shared.downloadManager.backgroundSessionCompletionHandler = completionHandler
+        // after processing all pending background download events.
+        GemmaEdgeGalleryApp.activeDownloadManager?.backgroundSessionCompletionHandler = completionHandler
     }
 }
 #endif

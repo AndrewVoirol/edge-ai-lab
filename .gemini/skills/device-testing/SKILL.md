@@ -1,11 +1,11 @@
 ---
 name: device-testing
-description: Deploy and test GemmaEdgeGallery on physical iOS devices, including code signing, device connection, and the critical XCTest hang workaround. Use this skill when you need to run the app on a real iPhone for performance testing, model inference, or E2E validation.
+description: Deploy and test GemmaEdgeGallery on physical iOS devices, including code signing, device connection, and running XCTest and automation flows on hardware.
 ---
 
 # Device Testing
 
-This skill covers deploying GemmaEdgeGallery to physical iOS devices, handling code signing, and working around known iOS 26 beta issues.
+This skill covers deploying GemmaEdgeGallery to physical iOS devices, handling code signing, and running the full test suite on hardware.
 
 ## Known Device
 
@@ -13,36 +13,23 @@ This skill covers deploying GemmaEdgeGallery to physical iOS devices, handling c
 |---|---|
 | Device Name | Phactivity Monitor |
 | Model | iPhone 16 Pro Max |
-| OS | iOS 26 beta |
+| OS | iOS 26 |
+| UDID | 3B50314A-0702-5188-A321-BCD5CA5F8184 |
 | Connection | USB / Wi-Fi |
 
-## ⚠️ CRITICAL WARNING: On-Device XCTest Hang
+## ✅ On-Device XCTest Works
 
-> **On-device XCTest currently hangs** due to an iOS 26 beta bug. The `@Observable` macro triggers a feedback loop in `NavigationStackHostingController` that freezes the test runner indefinitely. This affects ALL XCTest-based tests when run on a physical device.
->
-> **Do NOT run `xcodebuild test` targeting a physical device.** It will hang and never complete.
+On-device XCTest works correctly. **418 tests complete in ~3.4 seconds** with 0 failures.
 
-### Workaround: Use DeveloperAutomationHarness
+### History: The PhaseAnimator Hang (Resolved)
 
-Instead of XCTest on device, use the in-app automation harness:
+Previous sessions documented an "iOS 26 beta XCTest hang." The actual root cause was `PhaseAnimator` in `PulsingGlowModifier` — it cycles between phases forever, saturating the test host's runloop at 130%+ CPU. The fix: `PulsingGlowModifier` detects `XCTestConfigurationFilePath` in the environment and applies a static shadow instead of the animation. No animation → no runloop saturation → tests complete normally.
 
-```bash
-# Launch with automation arguments
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery \
-  -- -RunAllTests
-```
-
-Or for specific flows:
-```bash
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery \
-  -- -RunFlow benchmark_flow
-```
-
-See the `automation-harness` skill for full details on automation flows and parsing output.
+> **If you add a new perpetual animation (PhaseAnimator, withAnimation(.repeatForever)), wrap it with the XCTest guard:**
+> ```swift
+> private static let isRunningTests =
+>     ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+> ```
 
 ## Code Signing Configuration
 
@@ -83,9 +70,10 @@ xcrun devicectl list devices
 xcrun devicectl list devices | grep "Phactivity"
 ```
 
-Expected output:
+### MCP
+
 ```
-Phactivity Monitor    iPhone 16 Pro Max    XXXXXXXX-XXXX...    connected
+Tool: xcodebuild-mcp → list_devices
 ```
 
 ### Troubleshooting Connection
@@ -101,26 +89,26 @@ sudo killall usbmuxd
 
 ## Building for Device
 
-### MCP (xcodebuild-mcp)
+### MCP (xcodebuild-mcp) — Recommended
+
+**Set defaults first:**
+```
+Tool: xcodebuild-mcp → session_set_defaults
+Arguments:
+  deviceId: "3B50314A-0702-5188-A321-BCD5CA5F8184"
+  scheme: "GemmaEdgeGallery_iOS"
+  workspacePath: "<project_root>/GemmaEdgeGallery.xcworkspace"
+  bundleId: "com.andrewvoirol.GemmaEdgeGallery"
+```
 
 **Build only:**
 ```
 Tool: xcodebuild-mcp → build_device
-Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
-  device: "Phactivity Monitor"
-  workspace: "GemmaEdgeGallery.xcworkspace"
-  project_path: "<project_root>"
 ```
 
 **Build & Run:**
 ```
 Tool: xcodebuild-mcp → build_run_device
-Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
-  device: "Phactivity Monitor"
-  workspace: "GemmaEdgeGallery.xcworkspace"
-  project_path: "<project_root>"
 ```
 
 ### CLI
@@ -129,131 +117,116 @@ Arguments:
 xcodebuild build \
   -workspace GemmaEdgeGallery.xcworkspace \
   -scheme GemmaEdgeGallery_iOS \
-  -destination 'platform=iOS,name=Phactivity Monitor' \
+  -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
   -configuration Debug \
   -quiet \
   2>&1
 ```
 
-## Installing the App
+## Running XCTest on Device
 
-### MCP
-
-```
-Tool: xcodebuild-mcp → install_app_device
-Arguments:
-  device: "Phactivity Monitor"
-  app_path: "<path_to_built_app>"
-```
-
-### CLI
+### Recommended Command
 
 ```bash
-xcrun devicectl device install app \
-  --device "Phactivity Monitor" \
-  "$APP_PATH/GemmaEdgeGallery_iOS.app"
+xcodebuild test \
+  -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme GemmaEdgeGallery_iOS \
+  -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
+  -only-testing:GemmaEdgeGallery_iOSTests \
+  -allowProvisioningUpdates \
+  2>&1
 ```
 
-## Launching the App
+**Expected results:** 418 tests, 0 failures, ~3.4 seconds, `** TEST SUCCEEDED **`
 
-### MCP
+### Output to File (Avoids SIGPIPE)
 
-```
-Tool: xcodebuild-mcp → launch_app_device
-Arguments:
-  device: "Phactivity Monitor"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
-  arguments: ["-RunAllTests"]
-```
-
-### CLI
+When piping xcodebuild output through `grep | tail`, SIGPIPE can kill the process. Redirect to a file instead:
 
 ```bash
-# Basic launch
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery
+xcodebuild test \
+  -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme GemmaEdgeGallery_iOS \
+  -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
+  -only-testing:GemmaEdgeGallery_iOSTests \
+  -allowProvisioningUpdates \
+  > test_results.log 2>&1
 
-# Launch with automation arguments
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery \
-  -- -RunAllTests
-
-# Launch with specific flow
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery \
-  -- -RunFlow inference_flow
+# Then parse:
+grep -E "** TEST|Executed.*tests" test_results.log
 ```
 
-### Capture Console Output
-
-To see `[AUTOMATION]` stdout on device, use the console option:
-```bash
-xcrun devicectl device process launch \
-  --device "Phactivity Monitor" \
-  --console \
-  com.andrewvoirol.GemmaEdgeGallery \
-  -- -RunAllTests
-```
-
-## Stopping the App
-
-### MCP
-
-```
-Tool: xcodebuild-mcp → stop_app_device
-Arguments:
-  device: "Phactivity Monitor"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
-```
-
-### CLI
+### Specific Test Class
 
 ```bash
-xcrun devicectl device process terminate \
-  --device "Phactivity Monitor" \
-  com.andrewvoirol.GemmaEdgeGallery
+xcodebuild test \
+  -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme GemmaEdgeGallery_iOS \
+  -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
+  -only-testing:GemmaEdgeGallery_iOSTests/SettingsToggleTests \
+  -allowProvisioningUpdates \
+  2>&1
 ```
-
-## Getting App Data Path
-
-```
-Tool: xcodebuild-mcp → get_device_app_path
-Arguments:
-  device: "Phactivity Monitor"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
-```
-
-## Running Tests on Device (NOT RECOMMENDED)
-
-> **DO NOT DO THIS** — XCTest hangs on iOS 26 beta devices. Use the automation harness instead.
-
-If you absolutely must try (for future reference when the bug is fixed):
 
 ### MCP
 
 ```
 Tool: xcodebuild-mcp → test_device
-Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
-  device: "Phactivity Monitor"
-  workspace: "GemmaEdgeGallery.xcworkspace"
 ```
 
-### CLI
+> **NOTE:** The MCP tool may fail with provisioning errors for the UITest runner. Use `xcodebuild test` with `-allowProvisioningUpdates` directly.
+
+## Running Automation Flows on Device
+
+For E2E user journeys, benchmarks, and multi-configuration testing, use the DeveloperAutomationHarness. See the `automation-harness` skill for full details.
+
+### Quick Start
 
 ```bash
-# WARNING: Will likely hang on iOS 26 beta
-xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
-  -destination 'platform=iOS,name=Phactivity Monitor' \
-  -only-testing:GemmaEdgeGallery_iOSTests/ChatMessageTests \
-  -quiet \
-  2>&1
+# Run all 6 flows
+xcrun devicectl device process launch \
+  --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
+  --console \
+  com.andrewvoirol.GemmaEdgeGallery \
+  -- -RunAllFlows
 ```
+
+**Expected:** 6/6 flows passed, 50/50 steps, exit code 0.
+
+### Run a Specific Flow
+
+```bash
+xcrun devicectl device process launch \
+  --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
+  --console \
+  com.andrewvoirol.GemmaEdgeGallery \
+  -- -RunFlow settings_flow
+```
+
+## Recommended Device Testing Workflow
+
+1. **Run XCTest on device** — fast validation (418 tests, 3.4s)
+   ```bash
+   xcodebuild test ... -only-testing:GemmaEdgeGallery_iOSTests -allowProvisioningUpdates
+   ```
+2. **Run automation flows** — E2E validation (6 flows, 37.7s)
+   ```bash
+   xcrun devicectl device process launch ... -- -RunAllFlows
+   ```
+3. **Run specific benchmark** — performance regression check
+   ```bash
+   xcrun devicectl device process launch ... -- -RunFlow benchmark_flow
+   ```
+4. **Parse results** — look for `** TEST SUCCEEDED **` or `[AUTOMATION_FLOW_SUMMARY] 6/6 flows passed`
+
+## Two Testing Strategies
+
+| Strategy | Tool | Speed | Scope | Use When |
+|----------|------|-------|-------|----------|
+| **XCTest** | `xcodebuild test` | 3.4s / 418 tests | Unit + Integration | Every PR, every commit |
+| **Automation Harness** | `-RunAllFlows` | 37.7s / 50 steps | E2E user journeys | Release validation, benchmarks |
+
+Both are proven working on the iPhone 16 Pro Max.
 
 ## Device-Specific Considerations
 
@@ -275,13 +248,26 @@ The app supports iTunes/Finder file sharing (`UIFileSharingEnabled`). You can co
 2. Open Finder → Select device → Files tab
 3. Drag `.litertlm` files into GemmaEdgeGallery's Documents folder
 
+## Stopping the App
+
+### MCP
+
+```
+Tool: xcodebuild-mcp → stop_app_device
+Arguments:
+  deviceId: "3B50314A-0702-5188-A321-BCD5CA5F8184"
+  processId: <PID from launch>
+```
+
+### CLI
+
+```bash
+xcrun devicectl device process terminate \
+  --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
+  com.andrewvoirol.GemmaEdgeGallery
+```
+
 ## Debugging on Device
-
-### Attach Debugger
-
-```
-Tool: xcodebuild-mcp → debug_attach_sim  (note: also works for devices in some setups)
-```
 
 ### View Device Logs
 
@@ -298,11 +284,10 @@ xcrun devicectl device process log stream \
 xcrun devicectl list devices --verbose
 ```
 
-## Recommended Device Testing Workflow
+### Check Running Processes
 
-1. **Build for device:** Use `build_device` MCP tool
-2. **Install:** Use `install_app_device` MCP tool
-3. **Launch with harness:** Use `launch_app_device` with `-RunFlow <name>` arguments
-4. **Monitor output:** Watch for `[AUTOMATION_SUCCESS]` or `[AUTOMATION_FAILURE]` in console
-5. **Parse results:** Look for `[AUTOMATION_RESULTS_JSON]` block in output
-6. **Run XCTests on simulator instead:** Use `test_sim` for actual XCTest execution
+```bash
+xcrun devicectl device info processes \
+  --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
+  2>&1 | grep GemmaEdge
+```

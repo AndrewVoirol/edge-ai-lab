@@ -57,7 +57,7 @@ Model files should be placed in the app's Documents directory or the project's `
 
 ```
 Sources/           # All app source code (50 Swift files)
-Tests/             # Unit tests (22 test files, 282 tests)
+Tests/             # Unit tests (27+ test files)
 UITests/           # UI tests
 RawBenchmark/      # CLI benchmark tool
 automation/        # CI scripts & benchmark matrix runner
@@ -66,7 +66,7 @@ automation/        # CI scripts & benchmark matrix runner
 ### Architecture
 
 - **MVVM** with `@Observable` (Swift 6 concurrency)
-- **`ConversationViewModel`** — central state management (singleton)
+- **`ConversationViewModel`** — central state management (@Environment-injected)
 - **`InstrumentedEngine`** — wraps LiteRT-LM with GPU/CPU fallback + instrumentation
 - **`ConversationStore`** — JSON file-based persistence
 - **`DesignSystem`** — centralized design tokens (colors, typography, spacing)
@@ -92,7 +92,7 @@ automation/        # CI scripts & benchmark matrix runner
 ## Running Tests
 
 ```bash
-# Unit tests (282 tests, ~2 minutes)
+# Unit tests (~2 minutes)
 xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
   -scheme "Edge AI Lab" \
   -only-testing:GemmaEdgeGallery_macOSTests \

@@ -454,9 +454,9 @@ Three macOS-specific requirements force sandbox removal (see [SECURITY.md](SECUR
 
 LiteRT-LM doesn't publish tagged SPM releases yet. We track `main` as a pragmatic choice. This is documented as a known limitation in [CHANGELOG.md](CHANGELOG.md).
 
-### Why Singleton ViewModel?
+### Dependency Injection via @Environment
 
-`ConversationViewModel.shared` ensures settings changes (GPU toggle, sampler config, experimental flags) immediately propagate to the engine without coordination. The `@Observable @MainActor` pattern makes this safe for SwiftUI.
+The `App` struct owns `@State` instances of `ConversationViewModel` and `ModelDownloadManager`, then passes them into the view hierarchy via `.environment(ConversationViewModel.self)`. Views receive dependencies with `@Environment(ConversationViewModel.self)`. This avoids singletons — ownership is explicit and scoped to the app's lifetime. Settings changes (GPU toggle, sampler config, experimental flags) propagate immediately because all views share the same `@Observable` instance through the environment. Tests get isolated instances via `ConversationViewModel()`, with no shared state leaking between test cases.
 
 ### Why Static Tool Type Pool for MCP?
 
@@ -490,7 +490,7 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 | Category | Files | Purpose |
 |----------|------:|---------|
-| Unit Tests | 12 | Core logic: messages, persistence, settings, tools, parsing |
+| Unit Tests | 20 | Core logic: messages, persistence, settings, tools, parsing |
 | Integration Tests | 5 | Multi-component flows: multi-turn, fallback, tool calling, downloads |
 | Performance Tests | 2 | Benchmark baselines and gallery parity checks |
 | UI Tests | 1 | End-to-end automation via XCUITest |
@@ -500,7 +500,7 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 | Plan | Test Classes | Timeout | Purpose |
 |------|-------------|---------|---------|
-| `UnitTests.xctestplan` | 17 classes | 60s | Fast feedback loop — runs in CI |
+| `UnitTests.xctestplan` | 23 classes | 60s | Fast feedback loop — runs in CI |
 | `IntegrationTests.xctestplan` | 3 classes | 300s | Cross-component validation |
 | `PerformanceTests.xctestplan` | 2 classes | 600s | Regression detection |
 

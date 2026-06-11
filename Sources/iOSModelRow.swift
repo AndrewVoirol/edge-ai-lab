@@ -30,6 +30,7 @@ import SwiftUI
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSModelRow: View {
+    @Environment(ModelDownloadManager.self) private var downloadManager
     let metadata: ModelMetadata
     let downloadState: ModelDownloadManager.DownloadState
     let isActive: Bool
@@ -181,7 +182,7 @@ struct iOSModelRow: View {
                 .accessibilityIdentifier("modelRow_progress_\(metadata.modelFile)")
 
             // Try to show rich progress (speed + ETA)
-            if let dp = ConversationViewModel.shared.downloadManager.downloadProgress[metadata.modelFile] {
+            if let dp = downloadManager.downloadProgress[metadata.modelFile] {
                 HStack {
                     Text(String(format: "%.0f%%", progress * 100))
                         .font(AppTypography.listTertiary)

@@ -40,7 +40,7 @@ import PhotosUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
 struct ContentView: View {
-    @Bindable private var viewModel = ConversationViewModel.shared
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var showSettings = false
     @State private var showDashboard = false
     @State private var showcaseModel: ModelMetadata?
@@ -55,6 +55,7 @@ struct ContentView: View {
     @State private var selectedTab: Int = 0
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         #if os(macOS)
         macOSLayout
         #else
@@ -274,6 +275,7 @@ extension ContentView {
     /// Applies shared modifiers (sheets, alerts, onAppear, file importer) to the layout view.
     @ViewBuilder
     func appliedSharedModifiers<V: View>(_ base: V) -> some View {
+        @Bindable var viewModel = viewModel
         base
             .sheet(isPresented: $showSettings) {
                 NavigationStack {

@@ -51,7 +51,7 @@ let project = Project(
                 "UISupportsDocumentBrowser": true,
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"],
             // Increased Memory Limit entitlement for large model inference.
             // NOTE: extended-virtual-addressing requires paid Apple Developer Program;
             // increased-memory-limit works with personal teams (matches zealous-bose config).
@@ -84,7 +84,7 @@ let project = Project(
                 "CFBundleName": "Edge AI Lab",
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"],
             entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
