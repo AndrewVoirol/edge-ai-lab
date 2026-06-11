@@ -19,6 +19,10 @@ let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK
 
 let project = Project(
     name: "GemmaEdgeGallery",
+    options: .options(
+        disableBundleAccessors: true,
+        disableSynthesizedResourceAccessors: true
+    ),
     packages: [
         // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
         // Uses .branch("main") to bypass SPM unsafeFlags restriction on tagged releases.
@@ -31,7 +35,8 @@ let project = Project(
     settings: .settings(
         base: [
             "DEVELOPMENT_TEAM": .string(teamId),
-            "CODE_SIGN_STYLE": "Automatic"
+            "CODE_SIGN_STYLE": "Automatic",
+            "COMPILATION_CACHE_ENABLE_CACHING": "YES"
         ]
     ),
     targets: [

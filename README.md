@@ -59,7 +59,7 @@ Edge AI Lab is a research-grade macOS application that runs Google's [Gemma 4](h
 ### Prerequisites
 
 - **Xcode 26.0+** with Swift 6.0
-- **[Tuist](https://tuist.dev)** — `brew install tuist`
+- **[mise](https://mise.run)** — version manager (installs [Tuist](https://tuist.dev) from `.mise.toml`)
 - **macOS 26.0+** (Tahoe) with **Apple Silicon** (M1 or later)
 - ~3 GB free disk space for the smallest model (E2B), ~7 GB for 12B
 
@@ -70,14 +70,17 @@ Edge AI Lab is a research-grade macOS application that runs Google's [Gemma 4](h
 git clone https://github.com/AndrewVoirol/edge-ai-lab.git
 cd edge-ai-lab
 
-# 2. Generate Xcode project
+# 2. Install Tuist (version pinned by .mise.toml)
+mise install
+
+# 3. Generate Xcode project
 tuist generate
 
-# 3. Open in Xcode
+# 4. Open in Xcode
 open GemmaEdgeGallery.xcworkspace
 
-# 4. Select scheme: "Edge AI Lab"
-# 5. Build and Run (⌘R)
+# 5. Select scheme: "Edge AI Lab"
+# 6. Build and Run (⌘R)
 ```
 
 The app will auto-discover any `.litertlm` model files in your Documents folder. You can also download models directly from the built-in model gallery.
@@ -199,7 +202,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and coding standar
 See [ARCHITECTURE.md](ARCHITECTURE.md) for module diagrams, data flows, and a "where to find things" guide.
 
 ```bash
-# Run unit tests (282 tests)
+# Run unit tests (414+ tests)
 xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
   -scheme "Edge AI Lab" \
   -only-testing:GemmaEdgeGallery_macOSTests \

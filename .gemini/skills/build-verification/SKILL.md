@@ -15,6 +15,7 @@ This skill covers building GemmaEdgeGallery for both iOS (simulator) and macOS, 
 | Xcode Project | `GemmaEdgeGallery.xcodeproj` |
 | Project Manifest | `Project.swift` (Tuist) |
 | Team ID | `Y7J7WUK693` |
+| Compilation Caching | Enabled (`COMPILATION_CACHE_ENABLE_CACHING=YES`) |
 
 ### Schemes
 
@@ -255,7 +256,7 @@ Both should output `** BUILD SUCCEEDED **`.
 
 **Cause:** Tuist is no longer in Homebrew core. GHA runners don't have it.
 
-**Fix:** Use `jdx/mise-action@v4` with `.mise.toml` version pinning (already configured).
+**Fix:** Use `jdx/mise-action@v4` with `.mise.toml` version pinning (already configured). CI uses a composite action at `.github/actions/setup-tuist-project/` that handles Tuist install, project generation, and SPM resolution in a single step.
 
 ### 8. SPM "Couldn't check out revision" on GHA
 

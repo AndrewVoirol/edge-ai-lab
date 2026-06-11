@@ -1,0 +1,59 @@
+name: 'Setup Tuist Project'
+description: 'Install Tuist, generate the Xcode project, and resolve SPM dependencies with pre-cloned LiteRT-LM'
+
+inputs:
+  spm-packages-dir:
+    description: 'Path to the SPM packages directory'
+    required: true
+  cache-key-suffix:
+    description: 'Optional suffix for the SPM cache key (e.g., "benchmark")'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Tuist
+      uses: jdx/mise-action@v4
+
+    - name: Verify Tuist
+      shell: bash
+      run: tuist version
+
+    - name: Cache SPM Packages
+      uses: actions/cache@v5
+      with:
+        path: ${{ inputs.spm-packages-dir }}
+        key: ${{ runner.os }}-spm-cloned-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-cloned-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
+
+    - name: Pre-clone LiteRT-LM
+      shell: bash
+      run: |
+        REPO_DIR="${{ inputs.spm-packages-dir }}/LiteRT-LM"
+        if [ -d "$REPO_DIR" ]; then
+          echo "Updating existing clone..."
+          git -C "$REPO_DIR" fetch --all 2>&1 || true
+        else
+          echo "Cloning LiteRT-LM..."
+          mkdir -p "${{ inputs.spm-packages-dir }}"
+          git clone --bare --mirror https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+        fi
+        echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
+
+    - name: Generate Xcode Project
+      shell: bash
+      run: |
+        tuist clean
+        tuist generate --no-open
+      env:
+        GIT_TERMINAL_PROMPT: "0"
+
+    - name: Resolve Packages
+      shell: bash
+      run: |
+        xcodebuild -resolvePackageDependencies \
+          -workspace GemmaEdgeGallery.xcworkspace \
+          -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
+          2>&1 | tail -20

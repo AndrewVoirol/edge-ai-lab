@@ -7,7 +7,7 @@ Thank you for your interest in contributing to Edge AI Lab! This document provid
 - **macOS 26.0+** (Tahoe)
 - **Xcode 26** with Swift 6.0
 - **Apple Silicon** (M1 or later) — required for on-device inference
-- **[Tuist](https://tuist.dev)** — project generation tool
+- **[mise](https://mise.run)** — version manager (installs Tuist automatically from `.mise.toml`)
 - **16 GB RAM minimum** (32 GB+ recommended for the 12B model)
 
 ## Getting Started
@@ -19,7 +19,19 @@ git clone https://github.com/AndrewVoirol/edge-ai-lab.git
 cd edge-ai-lab
 ```
 
-### 2. Set Up Code Signing
+### 2. Install Development Tools
+
+Install [mise](https://mise.run) if you don't have it, then install Tuist (version pinned by `.mise.toml`):
+
+```bash
+# Install mise (skip if already installed)
+curl https://mise.run | sh
+
+# Install Tuist (version pinned to .mise.toml)
+mise install
+```
+
+### 3. Set Up Code Signing
 
 The project requires a development team for code signing. Set your team ID as an environment variable:
 
@@ -31,7 +43,7 @@ export DEVELOPMENT_TEAM="YOUR_TEAM_ID"
 
 For CI builds without signing, you can skip this — the project defaults to no team, allowing unsigned builds with `CODE_SIGNING_REQUIRED=NO`.
 
-### 3. Generate the Xcode Project
+### 4. Generate the Xcode Project
 
 ```bash
 tuist generate
@@ -39,11 +51,11 @@ tuist generate
 
 This resolves SPM dependencies (LiteRT-LM, MarkdownUI) and generates the `.xcworkspace`.
 
-### 4. Build and Run
+### 5. Build and Run
 
 Open `GemmaEdgeGallery.xcworkspace` in Xcode, select the **Edge AI Lab** scheme, and run (⌘R).
 
-### 5. Get a Model
+### 6. Get a Model
 
 Download a Gemma model in `.litertlm` format from:
 - The in-app Community Browser (sidebar → Models section)
