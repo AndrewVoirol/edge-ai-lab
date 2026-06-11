@@ -43,6 +43,7 @@ struct iOSModelHubView: View {
     @State private var modelToDownload: ModelMetadata?
     @State private var showDownloadConfirmation = false
     @State private var storageCheck: ModelDownloadManager.StorageCheck?
+    @State private var showURLImport = false
 
     // MARK: - Computed Collections
 
@@ -123,6 +124,15 @@ struct iOSModelHubView: View {
                     sortMenu
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showURLImport = true
+                    } label: {
+                        Image(systemName: "link.badge.plus")
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .accessibilityIdentifier("modelHub_urlImport")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     addModelButton
                 }
             }
@@ -155,6 +165,9 @@ struct iOSModelHubView: View {
                         Text("This model requires \(check.formattedModelSize) but you only have \(check.formattedAvailableSpace) available. Free up space and try again.")
                     }
                 }
+            }
+            .sheet(isPresented: $showURLImport) {
+                iOSURLImportSheet()
             }
             .accessibilityIdentifier("iOSModelHub")
     }

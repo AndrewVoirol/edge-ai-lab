@@ -136,6 +136,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showDashboardRequested)) { _ in
             selectedSection = .benchmarks
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showEvaluationsRequested)) { _ in
+            selectedSection = .evaluations
+        }
         .onReceive(NotificationCenter.default.publisher(for: .refreshModelsRequested)) { _ in
             viewModel.refreshDiscoveredModels()
             viewModel.downloadManager.refreshStates()
@@ -178,7 +181,18 @@ struct ContentView: View {
             }
             .tag(1)
 
-            // Tab 3: Settings
+            // Tab 3: Evaluations
+            NavigationStack {
+                iOSEvalTabView()
+                    .navigationTitle("Evaluations")
+                    .navigationBarTitleDisplayMode(.large)
+            }
+            .tabItem {
+                Label("Evals", systemImage: "testtube.2")
+            }
+            .tag(2)
+
+            // Tab 4: Settings
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
                     .navigationTitle("Settings")
@@ -187,7 +201,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
             }
-            .tag(2)
+            .tag(3)
         }
         .foregroundStyle(AppColors.textPrimary)
         .preferredColorScheme(.dark)

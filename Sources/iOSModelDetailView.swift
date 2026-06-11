@@ -189,6 +189,18 @@ struct iOSModelDetailView: View {
                     .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
 
+                // Confidence badge for dynamically-imported models
+                if let dynamicEntry = viewModel.dynamicModelCatalog.allModels().first(where: { $0.metadata.modelFile == metadata.modelFile }),
+                   dynamicEntry.source != .knownRegistry {
+                    HStack(spacing: AppSpacing.xs) {
+                        Text(dynamicEntry.confidence.emoji)
+                        Text(dynamicEntry.confidence.label)
+                            .font(AppTypography.badge)
+                            .foregroundStyle(confidenceColor(dynamicEntry.confidence))
+                    }
+                    .accessibilityIdentifier("modelDetail_confidenceBadge")
+                }
+
                 HStack(spacing: AppSpacing.sm) {
                     Label(formattedSize, systemImage: "internaldrive")
                         .font(AppTypography.listSubtitle)
@@ -659,6 +671,16 @@ struct iOSModelDetailView: View {
         viewModel.refreshDiscoveredModels()
         viewModel.downloadManager.refreshStates()
         dismiss()
+    }
+
+    /// Map confidence level to a display color.
+    private func confidenceColor(_ confidence: MetadataConfidence) -> Color {
+        switch confidence {
+        case .verified: return AppColors.success
+        case .high: return AppColors.success
+        case .medium: return AppColors.warning
+        case .low: return AppColors.danger
+        }
     }
 }
 

@@ -41,8 +41,12 @@ struct GemmaEdgeGalleryApp: App {
 
     init() {
         let dm = ModelDownloadManager()
+        let catalog = DynamicModelCatalog()
         _downloadManager = State(initialValue: dm)
-        _viewModel = State(initialValue: ConversationViewModel(downloadManager: dm))
+        _viewModel = State(initialValue: ConversationViewModel(
+            downloadManager: dm,
+            dynamicModelCatalog: catalog
+        ))
         Self.activeDownloadManager = dm
     }
 
@@ -75,6 +79,11 @@ struct GemmaEdgeGalleryApp: App {
                     NotificationCenter.default.post(name: .showDashboardRequested, object: nil)
                 }
                 .keyboardShortcut("d", modifiers: .command)
+                
+                Button("Run Evaluations") {
+                    NotificationCenter.default.post(name: .showEvaluationsRequested, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: .command)
             }
             
             CommandGroup(before: .windowSize) {
@@ -94,6 +103,8 @@ struct GemmaEdgeGalleryApp: App {
                     Button("⌘⏎  Send Message") {}
                         .disabled(true)
                     Button("⌘D  Performance Dashboard") {}
+                        .disabled(true)
+                    Button("⌘E  Run Evaluations") {}
                         .disabled(true)
                     Button("⌘R  Refresh Models") {}
                         .disabled(true)
@@ -118,6 +129,7 @@ struct GemmaEdgeGalleryApp: App {
 extension Notification.Name {
     static let newChatRequested = Notification.Name("newChatRequested")
     static let showDashboardRequested = Notification.Name("showDashboardRequested")
+    static let showEvaluationsRequested = Notification.Name("showEvaluationsRequested")
     static let refreshModelsRequested = Notification.Name("refreshModelsRequested")
     static let loadModelRequested = Notification.Name("loadModelRequested")
     static let showSettingsRequested = Notification.Name("showSettingsRequested")

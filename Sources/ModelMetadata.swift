@@ -60,6 +60,38 @@ enum BackendRecommendation: String, Sendable {
     case probeRequired
 }
 
+// MARK: - Runtime Type
+
+/// Identifies the runtime engine required to execute a model.
+///
+/// Edge AI Lab v2.0 primarily supports LiteRT-LM; MLX and GGUF are recognized
+/// for catalog purposes but not yet runnable.
+enum RuntimeType: String, Codable, Sendable, CaseIterable {
+    /// Google LiteRT-LM format — the primary runtime for this app.
+    case litertlm = "LiteRT-LM"
+    /// Apple MLX format (safetensors weights + config.json).
+    case mlx = "MLX"
+    /// GGUF quantized format (llama.cpp compatible).
+    case gguf = "GGUF"
+
+    /// Human-readable name for display in the UI.
+    var displayName: String { rawValue }
+
+    /// Expected file extension for models of this runtime type.
+    var fileExtension: String {
+        switch self {
+        case .litertlm: return "litertlm"
+        case .mlx: return "safetensors"
+        case .gguf: return "gguf"
+        }
+    }
+
+    /// Whether this runtime is currently supported for inference in v2.0.
+    var isSupported: Bool {
+        self == .litertlm  // v2.0: only LiteRT-LM is runnable
+    }
+}
+
 // MARK: - Model Metadata
 
 /// Metadata about a known LiteRT-LM model, inspired by the Google AI Edge Gallery allowlist.
@@ -116,6 +148,83 @@ struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
 
     /// Platform-specific backend support
     let platformSupport: PlatformSupport
+
+    /// The runtime engine required to execute this model.
+    /// Defaults to `.litertlm` for backward compatibility with existing JSON.
+    let runtimeType: RuntimeType
+
+    // MARK: - CodingKeys
+
+    enum CodingKeys: String, CodingKey {
+        case name, modelId, modelFile, description
+        case sizeInBytes, minDeviceMemoryGB, contextWindowSize
+        case architectureType, recommendedFor
+        case supportsImage, supportsAudio, capabilities
+        case defaultConfig, platformSupport, runtimeType
+    }
+
+    // MARK: - Backward-Compatible Decoding
+
+    /// Custom decoder that defaults `runtimeType` to `.litertlm` when missing.
+    /// This ensures existing persisted JSON (which predates the runtimeType field)
+    /// decodes without error.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        modelId = try container.decode(String.self, forKey: .modelId)
+        modelFile = try container.decode(String.self, forKey: .modelFile)
+        description = try container.decode(String.self, forKey: .description)
+        sizeInBytes = try container.decode(Int64.self, forKey: .sizeInBytes)
+        minDeviceMemoryGB = try container.decode(Int.self, forKey: .minDeviceMemoryGB)
+        contextWindowSize = try container.decode(Int.self, forKey: .contextWindowSize)
+        architectureType = try container.decode(String.self, forKey: .architectureType)
+        recommendedFor = try container.decode(String.self, forKey: .recommendedFor)
+        supportsImage = try container.decode(Bool.self, forKey: .supportsImage)
+        supportsAudio = try container.decode(Bool.self, forKey: .supportsAudio)
+        capabilities = try container.decode([String].self, forKey: .capabilities)
+        defaultConfig = try container.decode(ModelDefaultConfig.self, forKey: .defaultConfig)
+        platformSupport = try container.decode(PlatformSupport.self, forKey: .platformSupport)
+        runtimeType = (try? container.decode(RuntimeType.self, forKey: .runtimeType)) ?? .litertlm
+    }
+
+    // MARK: - Memberwise Init
+
+    /// Full memberwise initializer with `runtimeType` defaulting to `.litertlm`.
+    init(
+        name: String,
+        modelId: String,
+        modelFile: String,
+        description: String,
+        sizeInBytes: Int64,
+        minDeviceMemoryGB: Int,
+        contextWindowSize: Int,
+        architectureType: String,
+        recommendedFor: String,
+        supportsImage: Bool,
+        supportsAudio: Bool,
+        capabilities: [String],
+        defaultConfig: ModelDefaultConfig,
+        platformSupport: PlatformSupport,
+        runtimeType: RuntimeType = .litertlm
+    ) {
+        self.name = name
+        self.modelId = modelId
+        self.modelFile = modelFile
+        self.description = description
+        self.sizeInBytes = sizeInBytes
+        self.minDeviceMemoryGB = minDeviceMemoryGB
+        self.contextWindowSize = contextWindowSize
+        self.architectureType = architectureType
+        self.recommendedFor = recommendedFor
+        self.supportsImage = supportsImage
+        self.supportsAudio = supportsAudio
+        self.capabilities = capabilities
+        self.defaultConfig = defaultConfig
+        self.platformSupport = platformSupport
+        self.runtimeType = runtimeType
+    }
+
+    // MARK: - Computed Properties
 
     /// HuggingFace download URL for fetching this model.
     /// Constructed from the modelId and modelFile.
@@ -226,7 +335,8 @@ enum ModelRegistry {
             macOS: .gpuAndCpu,        // Desktop Metal + XNNPACK both work
             iOSDevice: .gpuAndCpu,    // Desktop Metal shaders work on A-series GPU (verified: 16.8 tok/s decode, iPhone 16 Pro Max)
             iOSSimulator: .cpuOnly    // Simulator Metal is unreliable, CPU works
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Gemma 4 E2B (Web / Mobile GPU)
@@ -258,7 +368,8 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // Session 2 verified: 113.1 tok/s on macOS Metal
             iOSDevice: .gpuOnly,      // A-series Metal GPU — fastest path (42.9 tok/s)
             iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Gemma 4 E4B (Standard)
@@ -290,7 +401,8 @@ enum ModelRegistry {
             macOS: .gpuAndCpu,
             iOSDevice: .gpuAndCpu,      // Standard models support Metal GPUs on iOS
             iOSSimulator: .cpuOnly
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Gemma 4 E4B (Web / Mobile GPU)
@@ -322,7 +434,8 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // Same architecture as E2B web
             iOSDevice: .gpuOnly,
             iOSSimulator: .gpuOnly    // Same architecture as E2B web
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Gemma 4 12B (Dense Multimodal)
@@ -360,7 +473,8 @@ enum ModelRegistry {
             macOS: .gpuAndCpu,        // M-series with 16GB+ — primary target
             iOSDevice: .gpuAndCpu,    // Allow attempt — increased-memory-limit entitlement may help
             iOSSimulator: .cpuOnly    // Simulator Metal unreliable
-        )
+        ),
+        runtimeType: .litertlm
     )
 
 
@@ -399,7 +513,8 @@ enum ModelRegistry {
             macOS: .gpuOnly,
             iOSDevice: .gpuOnly,      // GPU-only, verified: 25.57 tok/s decode
             iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Gemma 3n E2B (HW-Optimized — Gated)
@@ -437,7 +552,8 @@ enum ModelRegistry {
             macOS: .gpuOnly,          // macOS verified: 78.6 tok/s
             iOSDevice: .gpuOnly,      // iPhone 16 Pro Max: 24.0 tok/s decode
             iOSSimulator: .gpuOnly    // Loads on GPU, degenerate output on sim
-        )
+        ),
+        runtimeType: .litertlm
     )
 
     // MARK: - Lookup

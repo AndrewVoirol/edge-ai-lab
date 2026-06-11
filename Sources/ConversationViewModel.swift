@@ -173,6 +173,12 @@ final class ConversationViewModel {
     @ObservationIgnored
     let downloadManager: ModelDownloadManager
 
+    /// Shared dynamic model catalog for imported/community models.
+    /// @ObservationIgnored: Views that need to observe catalog changes should
+    /// access this instance directly — it is @Observable on its own.
+    @ObservationIgnored
+    let dynamicModelCatalog: DynamicModelCatalog
+
     /// The most recent device-level inference metrics (thermal, memory, per-token latency).
     var inferenceMetrics: InferenceMetrics? { engine.lastInferenceMetrics }
 
@@ -215,16 +221,19 @@ final class ConversationViewModel {
     ///   - metricsStore: The metrics persistence layer.
     ///   - downloadManager: The model download manager.
     ///   - conversationStore: The conversation persistence layer.
+    ///   - dynamicModelCatalog: Shared catalog for imported/community models.
     init(
         engine: InstrumentedEngineProtocol = InstrumentedEngine(),
         metricsStore: MetricsStore = MetricsStore(),
         downloadManager: ModelDownloadManager? = nil,
-        conversationStore: ConversationStore? = nil
+        conversationStore: ConversationStore? = nil,
+        dynamicModelCatalog: DynamicModelCatalog? = nil
     ) {
         self.engine = engine
         self.metricsStore = metricsStore
         self.downloadManager = downloadManager ?? ModelDownloadManager()
         self.conversationStore = conversationStore ?? ConversationStore()
+        self.dynamicModelCatalog = dynamicModelCatalog ?? DynamicModelCatalog()
         
         self.mcpServers = MCPServerStorage.load()
         #if os(macOS)

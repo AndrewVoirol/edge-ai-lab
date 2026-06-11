@@ -43,6 +43,8 @@ struct DetailColumnView: View {
                 PerformanceDashboardView()
             case .benchmarkComparison:
                 BenchmarkComparisonView()
+            case .evaluations:
+                EvalRunnerView()
             case .conversations:
                 if viewModel.isViewingArchivedConversation {
                     ExperimentDetailView()

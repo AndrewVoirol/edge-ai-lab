@@ -365,19 +365,22 @@ final class HFModelBrowser {
     /// Discover Gemma 4 models from known community organizations.
     ///
     /// Fetches from both `litert-community` (LiteRT-LM format) and `mlx-community`
-    /// (MLX format), searching for "gemma-4" variants. Results are merged, deduplicated
+    /// (MLX format), searching for the specified query. Results are merged, deduplicated
     /// by repo ID, and stored in `discoveredModels`.
     ///
     /// This method updates `isLoading` and `lastError` on the MainActor for UI binding.
-    func refreshGemmaModels() async {
+    ///
+    /// - Parameter searchQuery: Optional search query to broaden discovery beyond "gemma-4".
+    ///   Defaults to "gemma-4" for backward compatibility.
+    func refreshGemmaModels(searchQuery: String = "gemma-4") async {
         await MainActor.run {
             isLoading = true
             lastError = nil
         }
 
         do {
-            async let litertModels = listModels(author: "litert-community", search: "gemma-4")
-            async let mlxModels = listModels(author: "mlx-community", search: "gemma-4")
+            async let litertModels = listModels(author: "litert-community", search: searchQuery)
+            async let mlxModels = listModels(author: "mlx-community", search: searchQuery)
 
             let litert = try await litertModels
             let mlx = try await mlxModels
@@ -402,6 +405,93 @@ final class HFModelBrowser {
                 isLoading = false
             }
         }
+    }
+
+    // MARK: - Freeform Search
+
+    /// Search for models across all of HuggingFace (not limited to a specific author).
+    ///
+    /// Unlike `listModels(author:)`, this method searches globally. Results are sorted
+    /// by download count (descending) and not cached (search results are inherently
+    /// transient).
+    ///
+    /// - Parameters:
+    ///   - query: The search query string.
+    ///   - limit: Maximum number of results to return (default: 20).
+    /// - Returns: An array of `HFModelInfo` matching the query.
+    /// - Throws: `HFModelBrowserError` on network or decoding failures.
+    func searchModels(query: String, limit: Int = 20) async throws -> [HFModelInfo] {
+        var components = URLComponents(string: Self.apiBaseURL)!
+        components.queryItems = [
+            URLQueryItem(name: "search", value: query),
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "sort", value: "downloads"),
+            URLQueryItem(name: "direction", value: "-1"),
+        ]
+
+        guard let url = components.url else {
+            throw HFModelBrowserError.invalidURL(components.string ?? "nil")
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+
+        // Attach HF token if available
+        if let token = HFTokenStorage.retrieve() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: query)
+        }
+
+        do {
+            return try decoder.decode([HFModelInfo].self, from: data)
+        } catch {
+            throw HFModelBrowserError.decodingFailed(underlying: error)
+        }
+    }
+
+    // MARK: - Model Card (README)
+
+    /// Fetch the README.md content for a HuggingFace model repository.
+    ///
+    /// Downloads the raw README content from the repository's `resolve/main/README.md`
+    /// endpoint. This is used by `ModelCardParser` for deeper metadata inference.
+    ///
+    /// - Parameter repoId: The full repository ID (e.g., "litert-community/gemma-4-E2B-it-litert-lm").
+    /// - Returns: The raw README.md content as a string.
+    /// - Throws: `HFModelBrowserError` on network failures or if the README doesn't exist.
+    func fetchModelCard(repoId: String) async throws -> String {
+        let urlString = "\(Self.resolveBaseURL)/\(repoId)/resolve/main/README.md"
+        guard let url = URL(string: urlString) else {
+            throw HFModelBrowserError.invalidURL(urlString)
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+
+        // Attach HF token if available
+        if let token = HFTokenStorage.retrieve() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: repoId)
+        }
+
+        guard let content = String(data: data, encoding: .utf8) else {
+            throw HFModelBrowserError.decodingFailed(
+                underlying: NSError(domain: "HFModelBrowser", code: -1,
+                                    userInfo: [NSLocalizedDescriptionKey: "README.md content is not valid UTF-8"])
+            )
+        }
+
+        return content
     }
 
     /// Detect the model format from file listing, metadata, or naming conventions.

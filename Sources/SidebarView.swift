@@ -25,6 +25,7 @@ enum SidebarSection: String, Hashable, Identifiable {
     case models
     case benchmarks
     case benchmarkComparison
+    case evaluations
     case conversations
 
     var id: String { rawValue }
@@ -35,6 +36,7 @@ enum SidebarSection: String, Hashable, Identifiable {
         case .models:              return "cube.box"
         case .benchmarks:          return "chart.line.uptrend.xyaxis"
         case .benchmarkComparison: return "arrow.left.arrow.right"
+        case .evaluations:         return "testtube.2"
         case .conversations:       return "bubble.left.and.bubble.right"
         }
     }
@@ -45,6 +47,7 @@ enum SidebarSection: String, Hashable, Identifiable {
         case .models:              return "Models"
         case .benchmarks:          return "Benchmarks"
         case .benchmarkComparison: return "Compare Models"
+        case .evaluations:         return "Evaluations"
         case .conversations:       return "Conversations"
         }
     }
@@ -204,6 +207,19 @@ struct SidebarView: View {
                 .accessibilityIdentifier("sidebar_benchmarks_compare")
             } header: {
                 Label("Benchmarks", systemImage: SidebarSection.benchmarks.systemImage)
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+
+            // MARK: Evaluations
+
+            Section {
+                NavigationLink(value: SidebarSection.evaluations) {
+                    Label("Run Evaluation", systemImage: "play.circle")
+                }
+                .accessibilityIdentifier("sidebar_evaluations_run")
+            } header: {
+                Label("Evaluations", systemImage: SidebarSection.evaluations.systemImage)
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
             }
