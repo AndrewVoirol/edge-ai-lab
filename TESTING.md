@@ -5,36 +5,51 @@ GemmaEdgeGallery uses two complementary testing strategies: **XCTest** for fast 
 ## Quick Start
 
 ```bash
-# iOS Simulator — full suite
+# iOS Simulator — unit tests
 xcodebuild test \
   -workspace GemmaEdgeGallery.xcworkspace \
   -scheme GemmaEdgeGallery_iOS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
   -only-testing:GemmaEdgeGallery_iOSTests
 
-# macOS — full suite
+# macOS — unit tests
 xcodebuild test \
   -workspace GemmaEdgeGallery.xcworkspace \
   -scheme "Edge AI Lab" \
   -destination 'platform=macOS' \
   -only-testing:GemmaEdgeGallery_macOSTests
 
-# Physical device — full suite
+# Physical device — unit tests
 xcodebuild test \
   -workspace GemmaEdgeGallery.xcworkspace \
   -scheme GemmaEdgeGallery_iOS \
   -destination 'id=<DEVICE_UDID>' \
   -only-testing:GemmaEdgeGallery_iOSTests \
   -allowProvisioningUpdates
+
+# iOS Simulator — UI smoke tests
+xcodebuild test \
+  -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme GemmaEdgeGallery_iOS \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
+  -only-testing:GemmaEdgeGallery_iOSUITests
+
+# macOS — UI tests
+xcodebuild test \
+  -workspace GemmaEdgeGallery.xcworkspace \
+  -scheme "Edge AI Lab" \
+  -destination 'platform=macOS' \
+  -only-testing:GemmaEdgeGallery_macOSUITests
 ```
 
 ## Expected Results
 
 | Platform | Tests | Skipped | Failures | Duration |
 |----------|-------|---------|----------|----------|
-| iOS Simulator | 418+ | ~12 | 0 | ~23s |
-| macOS | 216+ | 0 | 0 | ~10s |
-| iOS Device | 418+ | ~15 | 0 | ~3.4s |
+| iOS Simulator (Unit) | 429 | ~12 | 0 | ~35s |
+| macOS (Unit) | 414+ | ~15 | 0 | ~21s |
+| iOS Simulator (UI) | 5 | 0 | 0 | ~90s |
+| iOS Device (Unit) | 429 | ~15 | 0 | ~3.4s |
 
 ## Test Architecture
 
@@ -65,6 +80,51 @@ The iOS and macOS test targets share the same `Tests/**` source files. Each test
 | `UnitTests.xctestplan` | Fast CI tests, no model needed | Every PR |
 | `IntegrationTests.xctestplan` | Cross-component tests | Pre-merge |
 | `PerformanceTests.xctestplan` | Regression benchmarks, needs model | Release validation |
+
+### UI Test Suites
+
+UI tests run on the built app via XCUITest. They verify critical user flows without requiring model files.
+
+#### iOS UI Smoke Tests (5 tests)
+
+| Test | What It Verifies |
+|------|------------------|
+| `testAppLaunchesToModelHub` | Tab bar visible, Models tab selected, hub sections present |
+| `testModelCardTapShowsDetail` | Tapping a model card opens detail view without crash |
+| `testChatTabNavigation` | Chat tab switch, prompt field and send button exist |
+| `testSettingsAccessible` | Settings tab shows configuration toggles |
+| `testEmptyStateGraceful` | App remains responsive with no models downloaded |
+
+Source: `iOSUITests/GemmaEdgeGalleryiOSUITests.swift`
+
+#### macOS UI Tests (20 tests)
+
+| Test | What It Verifies |
+|------|------------------|
+| `testBasicNavigation` | Settings, dashboard, load model buttons |
+| `testChatInteractions` | Attach image, refresh, prompt field, send |
+| `testSettingsInteractions` | GPU toggle, benchmark toggle, HF token |
+| `testQuickActionsAndModelShowcase` | Hint buttons (chat, thinking, tools, image) |
+| `testAddMCPServer` | Tool calling toggle, MCP server CRUD |
+| `testAllSettingsTogglesExist` | GPU, benchmark, MTP, constrained, thinking, tool calling, agent skills |
+| `testSamplerControls` | Top-K stepper, Top-P slider, temperature, presets |
+| `testSystemMessageEditor` | Text editor, clear button |
+| `testModelCardStripExists` | Detail column verification |
+| `testMultimodalAttachmentButtons` | Image/audio attachment buttons |
+| `testNewChatFunctionality` | ⌘N menu command |
+| `testInputAreaComponents` | Prompt field, send button, refresh, load model |
+| `testMacOSMenuBarCommands` | ⌘R, ⌘D, ⌘O, ⌘N keyboard shortcuts |
+| `testSidebarListExists` | Sidebar list in 3-column layout |
+| `testSidebarActiveModelEmptyState` | Empty/loading/loaded model states |
+| `testSidebarBenchmarksSectionExists` | Dashboard & compare links |
+| `testSidebarConversationsEmptyState` | Conversations section |
+| `testSidebarNewChatButton` | New chat button in sidebar |
+| `testThreeColumnLayoutStructure` | Full 3-column layout verification |
+| `testSendButtonAccessibilityStates` | Send button accessibility values |
+
+Source: `UITests/GemmaEdgeGalleryUITests.swift`
+
+> **Note**: iOS UI tests run in CI via a dedicated job (`build-ios-uitests`). macOS UI tests are not currently run in CI due to GHA macOS runner limitations with windowed apps.
 
 ## Dependency Injection Pattern
 

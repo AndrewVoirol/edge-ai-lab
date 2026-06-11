@@ -244,12 +244,14 @@ final class ThinkingParserTests: XCTestCase {
         let enableThinking = false
         let userSystemMessage = ""
 
-        let parts: [String?] = [
-            enableThinking ? "<|think|>" : nil,
-            userSystemMessage.isEmpty ? nil : userSystemMessage
-        ]
-        let filtered = parts.compactMap { $0 }
-        let composed: String? = filtered.isEmpty ? nil : filtered.joined(separator: "\n")
+        var parts: [String] = []
+        if enableThinking {
+            parts.append("<|think|>")
+        }
+        if !userSystemMessage.isEmpty {
+            parts.append(userSystemMessage)
+        }
+        let composed: String? = parts.isEmpty ? nil : parts.joined(separator: "\n")
 
         XCTAssertNil(composed)
     }
