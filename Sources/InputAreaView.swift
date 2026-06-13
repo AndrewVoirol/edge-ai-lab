@@ -206,6 +206,12 @@ struct InputAreaView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showPhotoPickerRequested)) { _ in
             showPhotoPicker = true
         }
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem = newItem else { return }
             Task {

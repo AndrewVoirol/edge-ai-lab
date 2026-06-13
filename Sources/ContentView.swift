@@ -149,6 +149,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showSettingsRequested)) { _ in
             showSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .importModelRequested)) { _ in
+            viewModel.showURLImportSheet = true
+        }
         )
     }
     #endif
@@ -266,22 +269,8 @@ struct ContentView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chatColumn_root")
     }
-
-    // MARK: - HF Token Alert
-
-    @ViewBuilder
-    private var hfTokenAlert: some View {
-        // Note: iOS alerts don't support text fields natively in all cases.
-        // For simplicity, we direct the user to Settings.
-        Button("Open Settings") {
-            viewModel.downloadManager.showTokenPrompt = false
-            showSettings = true
-        }
-        Button("Cancel", role: .cancel) {
-            viewModel.downloadManager.showTokenPrompt = false
-        }
-    }
 }
+
 
 // MARK: - Shared Modifiers (applied via extension)
 
@@ -340,6 +329,15 @@ extension ContentView {
                     viewModel.downloadManager.showTokenPrompt = false
                 }
             }
+            #if os(macOS)
+            .sheet(isPresented: Binding(
+                get: { viewModel.showURLImportSheet },
+                set: { viewModel.showURLImportSheet = $0 }
+            )) {
+                macOSURLImportSheet()
+                    .environment(viewModel)
+            }
+            #endif
             .onAppear {
                 // Skip auto-loading when running under the test harness or developer automation —
                 // tests manage their own engine lifecycle.

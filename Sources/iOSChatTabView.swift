@@ -29,7 +29,7 @@ import SwiftUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSChatTabView: View {
     @Environment(ConversationViewModel.self) private var viewModel
-    @State private var showSettings = false
+    @State private var showConversationPicker = false
 
     var body: some View {
         ZStack {
@@ -68,14 +68,28 @@ struct iOSChatTabView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    Task { await viewModel.newConversation() }
-                } label: {
-                    Image(systemName: "plus.bubble")
-                        .foregroundStyle(AppColors.textSecondary)
+                HStack(spacing: AppSpacing.md) {
+                    Button {
+                        Task { await viewModel.newConversation() }
+                    } label: {
+                        Image(systemName: "plus.bubble")
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .accessibilityIdentifier("chatTab_newChat")
+
+                    Button {
+                        showConversationPicker = true
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .accessibilityIdentifier("chatTab_conversationHistory")
                 }
-                .accessibilityIdentifier("chatTab_newChat")
             }
+        }
+        .sheet(isPresented: $showConversationPicker) {
+            iOSConversationPickerSheet()
+                .environment(viewModel)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chatTab_root")

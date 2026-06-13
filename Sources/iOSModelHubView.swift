@@ -217,6 +217,12 @@ struct iOSModelHubView: View {
                 downloadState: item.state,
                 onCancelTap: {
                     viewModel.downloadManager.cancelDownload(item.metadata)
+                },
+                onPauseTap: {
+                    viewModel.downloadManager.pauseDownload(item.metadata)
+                },
+                onResumeTap: {
+                    viewModel.downloadManager.resumeDownload(item.metadata)
                 }
             )
         }
@@ -274,6 +280,12 @@ struct iOSModelHubView: View {
                 },
                 onRetryTap: {
                     confirmDownload(metadata)
+                },
+                onPauseTap: {
+                    viewModel.downloadManager.pauseDownload(metadata)
+                },
+                onResumeTap: {
+                    viewModel.downloadManager.resumeDownload(metadata)
                 }
             )
         }
