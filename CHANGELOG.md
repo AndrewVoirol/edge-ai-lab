@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **URL Import — "Paste and Go"** — Paste any HuggingFace model URL to parse metadata, preview capabilities, and download directly into the app.
+  - macOS: `macOSURLImportSheet` with 7-state rendering (idle → parsing → fetching → analyzing → readyToDownload → downloading → complete), progressive metadata disclosure, and multi-file picker for repos with multiple `.litertlm` files.
+  - iOS: `iOSURLImportSheet` with equivalent pipeline and mobile-optimized layout.
+  - ⌘I keyboard shortcut opens the import sheet on macOS.
+  - Inline quick-paste field in the Community Models browser for fast URL entry.
+- **Dynamic Model Catalog** — Persistent JSON catalog that merges known registry models with user-imported community models. Imported models survive app restarts and appear alongside built-in models.
+- **HuggingFace Search** — Freeform search across all HuggingFace models from the Community Models browser. Powered by `HFModelBrowser.searchModels()`.
+- **Model Card Parser** — Infers runtime type, vision/audio capabilities, architecture, context window, and quantization from HuggingFace model card metadata with confidence levels (verified → high → medium → low).
+- **Kaggle URL Import** — Paste Kaggle model URLs (`kaggle.com/models/*`) to import models. Requires Kaggle API credentials (username + API key) stored in Settings/Keychain.
+- **iOS Conversation History** — Conversation picker sheet accessible from the Chat tab toolbar. Lists saved conversations with rename, fork, export, and delete actions.
+- **iOS Eval Export** — Share/export button in the Eval tab for exporting evaluation results as JSON or CSV.
+- **Batch Eval "Run All" Mode** — Run all evaluation suites across all downloaded models with time estimation and sequential execution. Results available as comparison view on completion.
+- **iOS Custom Suite Editor** — Create and edit evaluation suites on iOS with a mobile-friendly sheet interface, prompt editor, and 7 scoring variant picker.
+- **Onboarding** — First-run welcome flow introducing the app's capabilities: on-device inference, model management, evaluation, and benchmarking.
+- **iOS Model Hub Pause/Resume** — Pause and resume buttons now functional in the iOS model download list.
+
+### Fixed
+
+- **"Analyze an image" quick action** — The quick action card now correctly opens the photo picker via `.photosPicker(isPresented:)` modifier. Previously, the notification set a state variable that nothing read. ([InputAreaView.swift](Sources/InputAreaView.swift))
+- **Dead `showSettings` state** — Removed unused `@State private var showSettings` from `iOSChatTabView`. ([iOSChatTabView.swift](Sources/iOSChatTabView.swift))
+- **Dead `hfTokenAlert` property** — Removed unreferenced `@ViewBuilder` property from `ContentView` (the alert was already inlined elsewhere). ([ContentView.swift](Sources/ContentView.swift))
+- **"Coming Soon" placeholder** — Replaced the non-functional "Coming Soon" badge in the Community Models browser with a live URL paste field connected to the import pipeline. ([DetailColumnView.swift](Sources/DetailColumnView.swift))
+
+### Architecture
+
+- `URLImportManager` state machine: idle → parsing → fetching → analyzing → readyToDownload → downloading → complete / failed.
+- `KaggleModelParser` for Kaggle model metadata extraction via REST API with Basic Auth.
+- `DynamicModelMetadata` with `MetadataConfidence` levels for import accuracy transparency.
+- `ConversationViewModel` extended with `pendingImportURL`, `showURLImportSheet`, and `loadImportedModel()` for coordinating the import flow across views.
+
+### Tests
+
+- 10 URL Import integration tests (state machine, ViewModel integration, E2E pipeline, HF search).
+- 5 macOS UI tests for ⌘I shortcut, URL import sheet, HF search, community browser, inline URL paste.
+- Bug fix verification tests for notification wiring and callback plumbing.
+- iOS feature tests for conversation history, eval export, batch eval, suite editor, and onboarding.
+
+
 ## [1.0.0] - 2026-06-08
 
 ### Added
