@@ -14,6 +14,7 @@
 
 import Foundation
 import Observation
+import os
 
 // MARK: - HuggingFace API Response Models
 
@@ -191,6 +192,8 @@ enum HFModelFormat: String, Sendable {
 enum HFModelBrowserError: LocalizedError {
     case invalidURL(String)
     case httpError(statusCode: Int, repoId: String)
+    case httpStatusError(statusCode: Int)
+    case invalidResponse
     case decodingFailed(underlying: Error)
 
     var errorDescription: String? {
@@ -199,6 +202,10 @@ enum HFModelBrowserError: LocalizedError {
             return "Invalid HuggingFace API URL: \(url)"
         case .httpError(let statusCode, let repoId):
             return "HuggingFace API returned HTTP \(statusCode) for \(repoId)."
+        case .httpStatusError(let statusCode):
+            return "HuggingFace API returned HTTP \(statusCode)."
+        case .invalidResponse:
+            return "HuggingFace API returned an invalid response."
         case .decodingFailed(let underlying):
             return "Failed to decode HuggingFace API response: \(underlying.localizedDescription)"
         }
@@ -237,6 +244,12 @@ final class HFModelBrowser {
     /// Base URL for file downloads (resolve endpoint).
     private static let resolveBaseURL = "https://huggingface.co"
 
+    /// Logger for network retry diagnostics.
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.GemmaEdgeGallery",
+        category: "hfModelBrowser"
+    )
+
     // MARK: - Published State
 
     /// Models discovered by the most recent `refreshGemmaModels()` call.
@@ -262,6 +275,65 @@ final class HFModelBrowser {
         // camelCase from the API and would be broken by the blanket conversion strategy.
         return decoder
     }()
+
+    // MARK: - Retry Logic
+
+    /// Execute a URL request with retry and exponential backoff.
+    /// Retries on 429 (rate limit) and 5xx (server error) responses.
+    /// - Parameters:
+    ///   - request: The URL request to execute.
+    ///   - maxRetries: Maximum number of retry attempts (default: 3).
+    ///   - baseDelay: Base delay in seconds before first retry (default: 1.0).
+    /// - Returns: The response data and HTTP response.
+    /// - Throws: The last error if all retries fail.
+    private func performWithRetry(
+        _ request: URLRequest,
+        maxRetries: Int = 3,
+        baseDelay: TimeInterval = 1.0
+    ) async throws -> (Data, HTTPURLResponse) {
+        var lastError: Error?
+
+        for attempt in 0...maxRetries {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw HFModelBrowserError.invalidResponse
+                }
+
+                // Success
+                if (200...299).contains(httpResponse.statusCode) {
+                    return (data, httpResponse)
+                }
+
+                // Rate limit or server error — retry
+                if httpResponse.statusCode == 429 || (500...599).contains(httpResponse.statusCode) {
+                    if attempt < maxRetries {
+                        let delay = baseDelay * pow(2.0, Double(attempt))
+                        Self.logger.info("⏳ HTTP \(httpResponse.statusCode) — retrying in \(delay, privacy: .public)s (attempt \(attempt + 1)/\(maxRetries))")
+                        try await Task.sleep(for: .seconds(delay))
+                        continue
+                    }
+                }
+
+                // Non-retryable error
+                throw HFModelBrowserError.httpStatusError(statusCode: httpResponse.statusCode)
+            } catch let error as HFModelBrowserError {
+                lastError = error
+                if attempt == maxRetries { throw error }
+            } catch {
+                lastError = error
+                if attempt == maxRetries { throw error }
+                // Network errors are retryable
+                if attempt < maxRetries {
+                    let delay = baseDelay * pow(2.0, Double(attempt))
+                    Self.logger.info("⏳ Network error — retrying in \(delay, privacy: .public)s (attempt \(attempt + 1)/\(maxRetries))")
+                    try await Task.sleep(for: .seconds(delay))
+                }
+            }
+        }
+
+        throw lastError ?? HFModelBrowserError.invalidResponse
+    }
 
     // MARK: - List Models
 
@@ -308,11 +380,7 @@ final class HFModelBrowser {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: author)
-        }
+        let (data, _) = try await performWithRetry(request)
 
         do {
             let models = try decoder.decode([HFModelInfo].self, from: data)
@@ -347,11 +415,7 @@ final class HFModelBrowser {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: repoId)
-        }
+        let (data, _) = try await performWithRetry(request)
 
         do {
             return try decoder.decode(HFModelInfo.self, from: data)
@@ -441,11 +505,7 @@ final class HFModelBrowser {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: query)
-        }
+        let (data, _) = try await performWithRetry(request)
 
         do {
             return try decoder.decode([HFModelInfo].self, from: data)
@@ -478,11 +538,7 @@ final class HFModelBrowser {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            throw HFModelBrowserError.httpError(statusCode: httpResponse.statusCode, repoId: repoId)
-        }
+        let (data, _) = try await performWithRetry(request)
 
         guard let content = String(data: data, encoding: .utf8) else {
             throw HFModelBrowserError.decodingFailed(
