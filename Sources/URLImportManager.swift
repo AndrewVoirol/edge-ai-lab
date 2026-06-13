@@ -142,6 +142,10 @@ final class URLImportManager {
 
         Self.logger.info("🔗 Importing from URL: \(trimmed, privacy: .public)")
 
+        // Load Kaggle credentials from Keychain
+        kaggleUsername = KaggleTokenStorage.retrieveUsername()
+        kaggleAPIKey = KaggleTokenStorage.retrieveAPIKey()
+
         // Step 0: Check for Kaggle URL first
         if let kaggleHandle = KaggleModelParser.parseURL(trimmed) {
             await importFromKaggle(handle: kaggleHandle)
@@ -158,18 +162,33 @@ final class URLImportManager {
         // Step 2: Check if already in known registry
         if let known = ModelRegistry.knownModels.first(where: { $0.modelId == parsed.repoId }) {
             let dynamicMeta = DynamicModelMetadata.fromKnownModel(known)
-            state = .complete(metadata: dynamicMeta)
-            lastImportedModel = dynamicMeta
-            Self.logger.info("✅ Model already in known registry: \(parsed.repoId, privacy: .public)")
-            return
+            // Verify the model file actually exists on disk
+            let localModels = GalleryModelDiscovery.discoverModels()
+            if localModels.contains(where: { $0.filename == known.modelFile }) {
+                state = .complete(metadata: dynamicMeta)
+                lastImportedModel = dynamicMeta
+                Self.logger.info("✅ Model already in known registry and on disk: \(parsed.repoId, privacy: .public)")
+                return
+            } else {
+                Self.logger.info("📦 Model in known registry but not on disk — offering download: \(parsed.repoId, privacy: .public)")
+                // Fall through to the HF API fetch to get file listing for download
+            }
         }
 
         // Step 2b: Check if already in dynamic catalog
         if let existing = catalog.find(id: parsed.repoId) {
-            state = .complete(metadata: existing)
-            lastImportedModel = existing
-            Self.logger.info("✅ Model already imported: \(parsed.repoId, privacy: .public)")
-            return
+            // Verify the model file actually exists on disk
+            let localModels = GalleryModelDiscovery.discoverModels()
+            if localModels.contains(where: { $0.filename == existing.metadata.modelFile }) {
+                state = .complete(metadata: existing)
+                lastImportedModel = existing
+                Self.logger.info("✅ Model already imported: \(parsed.repoId, privacy: .public)")
+                return
+            } else {
+                // Stale catalog entry — model file was deleted. Remove and continue import.
+                try? catalog.remove(id: existing.id)
+                Self.logger.info("🔄 Stale catalog entry removed for \(parsed.repoId, privacy: .public) — model file not on disk")
+            }
         }
 
         // Step 3: Fetch model details

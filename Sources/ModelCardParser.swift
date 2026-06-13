@@ -247,7 +247,7 @@ enum ModelCardParser {
         let lowered = repoId.lowercased()
 
         // Dense models
-        if lowered.contains("12b") || lowered.contains("12b") {
+        if lowered.contains("12b") || lowered.contains("13b") {
             return ParameterInfo(label: "Dense 12B", estimatedParams: "12B", minMemoryGB: 16)
         }
         if lowered.contains("27b") {
