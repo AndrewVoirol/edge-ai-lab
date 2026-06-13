@@ -95,6 +95,14 @@ final class URLImportManager {
     /// The most recently imported model, available after `.complete`.
     var lastImportedModel: DynamicModelMetadata?
 
+    // MARK: - Kaggle Credentials
+
+    /// Kaggle username for API authentication. Set via Settings.
+    var kaggleUsername: String?
+
+    /// Kaggle API key for authentication. Set via Settings.
+    var kaggleAPIKey: String?
+
     // MARK: - Dependencies
 
     /// HuggingFace API client for fetching model details.
@@ -123,16 +131,26 @@ final class URLImportManager {
     /// `readyToDownload`. The actual download is triggered separately via
     /// `confirmDownload(metadata:file:downloadManager:)`.
     ///
-    /// - Parameter urlString: The HuggingFace URL to import from.
+    /// Supports both Kaggle and HuggingFace URLs. Kaggle URLs are detected
+    /// first; if the URL isn't a Kaggle model URL, it falls through to the
+    /// existing HuggingFace import flow.
+    ///
+    /// - Parameter urlString: The model URL to import from (Kaggle or HuggingFace).
     func importFromURL(_ urlString: String) async {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         state = .parsing(url: trimmed)
 
         Self.logger.info("🔗 Importing from URL: \(trimmed, privacy: .public)")
 
-        // Step 1: Parse URL
+        // Step 0: Check for Kaggle URL first
+        if let kaggleHandle = KaggleModelParser.parseURL(trimmed) {
+            await importFromKaggle(handle: kaggleHandle)
+            return
+        }
+
+        // Step 1: Parse URL (HuggingFace)
         guard let parsed = parseHuggingFaceURL(trimmed) else {
-            state = .failed(error: "Invalid URL. Please paste a HuggingFace model URL (e.g., https://huggingface.co/org/model).")
+            state = .failed(error: "Invalid URL. Please paste a HuggingFace or Kaggle model URL (e.g., https://huggingface.co/org/model or https://www.kaggle.com/models/owner/model).")
             Self.logger.error("❌ Failed to parse URL: \(trimmed, privacy: .public)")
             return
         }
@@ -268,6 +286,65 @@ final class URLImportManager {
     func reset() {
         state = .idle
         Self.logger.info("🔄 Import manager reset to idle")
+    }
+
+    // MARK: - Kaggle Import
+
+    /// Handle a Kaggle model URL import.
+    ///
+    /// Validates credentials, constructs the download URL, and transitions
+    /// to `.readyToDownload` or `.failed` state.
+    ///
+    /// - Parameter handle: The parsed `KaggleModelHandle` from the URL.
+    private func importFromKaggle(handle: KaggleModelHandle) async {
+        Self.logger.info(
+            "🔗 Kaggle import: \(handle.owner, privacy: .public)/\(handle.modelSlug, privacy: .public)"
+        )
+
+        // Verify Kaggle credentials are configured
+        guard let username = kaggleUsername, !username.isEmpty,
+              let apiKey = kaggleAPIKey, !apiKey.isEmpty else {
+            state = .failed(
+                error: "Kaggle API credentials required. Add your Kaggle username and API key in Settings."
+            )
+            Self.logger.error("❌ Kaggle credentials not configured")
+            return
+        }
+
+        // Build download URL — requires full handle (framework/variation/version)
+        guard let downloadURL = KaggleModelParser.buildDownloadURL(handle: handle) else {
+            state = .failed(
+                error: "Incomplete Kaggle URL. Please use a full model URL including framework, variation, and version "
+                + "(e.g., https://www.kaggle.com/models/google/gemma/litert/gemma-3n-e4b-it/1)."
+            )
+            Self.logger.error(
+                "❌ Cannot build download URL for basic Kaggle URL: \(handle.owner, privacy: .public)/\(handle.modelSlug, privacy: .public)"
+            )
+            return
+        }
+
+        // Build model ID for catalog lookup
+        let modelId = "kaggle/\(handle.owner)/\(handle.modelSlug)"
+
+        // Check if already imported
+        if let existing = catalog.find(id: modelId) {
+            state = .complete(metadata: existing)
+            lastImportedModel = existing
+            Self.logger.info("✅ Kaggle model already imported: \(modelId, privacy: .public)")
+            return
+        }
+
+        // Build metadata for the Kaggle model
+        let metadata = DynamicModelMetadata.fromKaggle(
+            handle: handle,
+            downloadURL: downloadURL
+        )
+
+        // Transition to ready (no file listing from Kaggle, so empty siblings)
+        state = .readyToDownload(metadata: metadata, files: [])
+        Self.logger.info(
+            "📦 Ready to download Kaggle model: \(metadata.id, privacy: .public) from \(downloadURL.absoluteString, privacy: .public)"
+        )
     }
 
     // MARK: - URL Parsing

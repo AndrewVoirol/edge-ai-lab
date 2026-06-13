@@ -25,6 +25,8 @@ enum MetadataSource: String, Codable, Sendable {
     case knownRegistry
     /// Inferred from HuggingFace API responses and model card parsing.
     case huggingFaceInferred
+    /// Imported from the Kaggle Models API.
+    case kaggle
     /// Manually entered or corrected by the user.
     case userProvided
 }
@@ -161,6 +163,65 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
             source: .huggingFaceInferred,
             metadata: metadata,
             confidence: confidence,
+            importedAt: Date(),
+            lastVerifiedAt: nil,
+            userNotes: nil
+        )
+    }
+
+    /// Create a `DynamicModelMetadata` entry from a Kaggle model handle.
+    ///
+    /// Since the Kaggle API provides limited metadata compared to HuggingFace,
+    /// this uses conservative defaults for most fields. The model file will be
+    /// determined after downloading and extracting the `.tar.gz` archive.
+    ///
+    /// - Parameters:
+    ///   - handle: The parsed `KaggleModelHandle` from the URL.
+    ///   - downloadURL: The constructed Kaggle API download URL.
+    /// - Returns: A catalog entry ready for persistence.
+    static func fromKaggle(
+        handle: KaggleModelHandle,
+        downloadURL: URL
+    ) -> DynamicModelMetadata {
+        let displayName = handle.variation ?? handle.modelSlug
+        let modelId = "kaggle/\(handle.owner)/\(handle.modelSlug)"
+        let modelFile = "\(displayName).litertlm"  // Best guess; updated after extraction
+
+        let metadata = ModelMetadata(
+            name: displayName,
+            modelId: modelId,
+            modelFile: modelFile,
+            description: "Model from Kaggle: \(handle.owner)/\(handle.modelSlug)",
+            sizeInBytes: 0,              // Unknown until downloaded
+            minDeviceMemoryGB: 8,        // Conservative default
+            contextWindowSize: 32_000,   // Conservative default
+            architectureType: "Unknown",
+            recommendedFor: "Imported from Kaggle",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: ["llm_thinking"],
+            defaultConfig: ModelDefaultConfig(
+                topK: 64,
+                topP: 0.95,
+                temperature: 1.0,
+                maxContextLength: 32_000,
+                maxTokens: 4_000,
+                accelerators: "gpu,cpu",
+                visionAccelerator: nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuAndCpu,
+                iOSDevice: .gpuAndCpu,
+                iOSSimulator: .cpuOnly
+            ),
+            runtimeType: .litertlm
+        )
+
+        return DynamicModelMetadata(
+            id: modelId,
+            source: .kaggle,
+            metadata: metadata,
+            confidence: .low,
             importedAt: Date(),
             lastVerifiedAt: nil,
             userNotes: nil
