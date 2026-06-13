@@ -24,6 +24,11 @@ struct InferenceSettingsView: View {
     @State var hfTokenSaved = HFTokenStorage.hasToken
     @State var hfTokenMessage = ""
 
+    @State var kaggleUsername = ""
+    @State var kaggleApiKey = ""
+    @State var kaggleCredentialsSaved = KaggleTokenStorage.hasCredentials
+    @State var kaggleMessage = ""
+
     @State var expandedServerID: UUID? = nil
 
     /// Helper for displaying tool information in a ForEach.
@@ -87,6 +92,7 @@ struct InferenceSettingsView: View {
                 modelInfoSection
                 performanceSection
                 hfTokenSection
+                kaggleCredentialsSection
             }
             .formStyle(.grouped)
             .tag("tab_data")
@@ -107,6 +113,7 @@ struct InferenceSettingsView: View {
             modelInfoSection
             performanceSection
             hfTokenSection
+            kaggleCredentialsSection
         }
         .formStyle(.grouped)
         #endif

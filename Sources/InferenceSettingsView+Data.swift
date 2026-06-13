@@ -176,4 +176,66 @@ extension InferenceSettingsView {
             }
         }
     }
+
+    @ViewBuilder
+    var kaggleCredentialsSection: some View {
+        Section(header: Label("Kaggle Credentials", systemImage: "key.fill")
+            .foregroundStyle(AppColors.textSecondary)) {
+            if kaggleCredentialsSaved {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColors.success)
+                    Text("Credentials saved in Keychain")
+                        .font(.caption)
+                }
+
+                Button(role: .destructive) {
+                    KaggleTokenStorage.deleteCredentials()
+                    kaggleCredentialsSaved = false
+                    kaggleMessage = "Credentials cleared."
+                } label: {
+                    Label("Clear Credentials", systemImage: "trash")
+                }
+                .accessibilityIdentifier("button_clearKaggle")
+            } else {
+                Text("Required for downloading models from Kaggle. Get your credentials from kaggle.com/settings → API section.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                TextField("Username", text: $kaggleUsername)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("textField_kaggleUsername")
+
+                SecureField("API Key", text: $kaggleApiKey)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("secureField_kaggleApiKey")
+
+                Button {
+                    guard !kaggleUsername.isEmpty, !kaggleApiKey.isEmpty else { return }
+                    do {
+                        try KaggleTokenStorage.saveCredentials(
+                            username: kaggleUsername,
+                            apiKey: kaggleApiKey
+                        )
+                        kaggleCredentialsSaved = true
+                        kaggleUsername = ""
+                        kaggleApiKey = ""
+                        kaggleMessage = "Credentials saved."
+                    } catch {
+                        kaggleMessage = "Save failed: \(error.localizedDescription)"
+                    }
+                } label: {
+                    Label("Save Credentials", systemImage: "key.fill")
+                }
+                .disabled(kaggleUsername.isEmpty || kaggleApiKey.isEmpty)
+                .accessibilityIdentifier("button_saveKaggle")
+            }
+
+            if !kaggleMessage.isEmpty {
+                Text(kaggleMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
 }
