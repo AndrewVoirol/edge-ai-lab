@@ -41,6 +41,9 @@ struct EvalRunnerView: View {
     @State private var showSuiteEditor = false
     @State private var editingSuite: EvalSuite?
     @State private var liveResults: [PromptEvalResult] = []
+    @State private var batchOrchestrator: BatchEvalOrchestrator?
+    @State private var showBatchConfirm = false
+    @State private var isBatchRunning = false
 
     // MARK: - Computed Properties
 
@@ -75,7 +78,10 @@ struct EvalRunnerView: View {
                 modelPicker
 
                 // MARK: Run Button
-                runButton
+                HStack(spacing: AppSpacing.md) {
+                    runButton
+                    runAllButton
+                }
 
                 // MARK: Progress (during eval)
                 if isRunning, let runner = evalRunner {
@@ -412,6 +418,46 @@ struct EvalRunnerView: View {
         .accessibilityIdentifier("evalRunner_runButton")
     }
 
+    // MARK: - Run All Button
+
+    private var runAllButton: some View {
+        Button {
+            showBatchConfirm = true
+        } label: {
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: isBatchRunning ? "stop.fill" : "forward.fill")
+                    .font(.system(size: 14, weight: .bold))
+                Text(isBatchRunning ? "Batch Running…" : "Run All")
+                    .font(.system(.body, design: .default, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.md)
+            .background(
+                LinearGradient(
+                    colors: (!isRunning && !isBatchRunning && !viewModel.discoveredModels.isEmpty)
+                        ? [AppColors.accentGold, AppColors.accentTeal]
+                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+        }
+        .buttonStyle(.plain)
+        .disabled(isRunning || isBatchRunning || viewModel.discoveredModels.isEmpty)
+        .accessibilityIdentifier("evalRunner_runAllButton")
+        .alert("Run All Evaluations?", isPresented: $showBatchConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Run All") {
+                Task { await startBatchEvaluation() }
+            }
+        } message: {
+            let plan = buildBatchPlan()
+            Text(plan.description)
+        }
+    }
+
     // MARK: - Progress View
 
     private func progressView(runner: EvalRunner) -> some View {
@@ -677,6 +723,51 @@ struct EvalRunnerView: View {
         }
 
         isRunning = false
+        evalStore.refresh()
+    }
+
+    // MARK: - Batch Eval Execution
+
+    /// Build a plan using all available suites and all discovered models.
+    private func buildBatchPlan() -> BatchEvalPlan {
+        let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
+            .compactMap { discovered in
+                guard let metadata = discovered.metadata else { return nil }
+                return EvalModelEntry(
+                    metadata: metadata,
+                    modelPath: discovered.url.path
+                )
+            }
+
+        return BatchEvalPlan(
+            suites: allSuites,
+            models: modelEntries
+        )
+    }
+
+    /// Run all suites against all models sequentially.
+    private func startBatchEvaluation() async {
+        let plan = buildBatchPlan()
+        guard plan.totalRuns > 0 else { return }
+
+        isBatchRunning = true
+
+        let orchestrator = BatchEvalOrchestrator(
+            engine: viewModel.engine,
+            store: evalStore
+        )
+        batchOrchestrator = orchestrator
+
+        _ = await orchestrator.runAll(
+            plan: plan,
+            flags: viewModel.experimentalFlags,
+            cacheDir: FileManager.default.urls(
+                for: .cachesDirectory, in: .userDomainMask
+            ).first?.path ?? NSTemporaryDirectory()
+        )
+
+        batchOrchestrator = nil
+        isBatchRunning = false
         evalStore.refresh()
     }
 }

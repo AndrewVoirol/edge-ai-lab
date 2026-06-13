@@ -29,6 +29,7 @@ import SwiftUI
 struct GemmaEdgeGalleryApp: App {
     @State private var downloadManager: ModelDownloadManager
     @State private var viewModel: ConversationViewModel
+    @State private var showOnboarding = false
 
     /// Static reference for AppDelegate's background session callback.
     /// This is NOT a singleton — it's the App's owned dependency shared
@@ -56,6 +57,34 @@ struct GemmaEdgeGalleryApp: App {
                 .preferredColorScheme(.dark)
                 .environment(viewModel)
                 .environment(downloadManager)
+                .onAppear {
+                    // Skip onboarding when running under test harness or automation
+                    guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+                          !CommandLine.arguments.contains("-RunAutomationHarness") else {
+                        return
+                    }
+                    if !OnboardingManager().hasCompletedOnboarding {
+                        showOnboarding = true
+                    }
+                }
+                #if os(iOS)
+                .fullScreenCover(isPresented: $showOnboarding) {
+                    OnboardingView {
+                        OnboardingManager().hasCompletedOnboarding = true
+                        showOnboarding = false
+                    }
+                    .preferredColorScheme(.dark)
+                }
+                #else
+                .sheet(isPresented: $showOnboarding) {
+                    OnboardingView {
+                        OnboardingManager().hasCompletedOnboarding = true
+                        showOnboarding = false
+                    }
+                    .preferredColorScheme(.dark)
+                    .frame(minWidth: 500, minHeight: 600)
+                }
+                #endif
         }
         #if os(macOS)
         .windowStyle(.titleBar)
@@ -84,6 +113,13 @@ struct GemmaEdgeGalleryApp: App {
                     NotificationCenter.default.post(name: .showEvaluationsRequested, object: nil)
                 }
                 .keyboardShortcut("e", modifiers: .command)
+                
+                Divider()
+                
+                Button("Import Model from URL...") {
+                    NotificationCenter.default.post(name: .importModelRequested, object: nil)
+                }
+                .keyboardShortcut("i", modifiers: .command)
             }
             
             CommandGroup(before: .windowSize) {
@@ -105,6 +141,8 @@ struct GemmaEdgeGalleryApp: App {
                     Button("⌘D  Performance Dashboard") {}
                         .disabled(true)
                     Button("⌘E  Run Evaluations") {}
+                        .disabled(true)
+                    Button("⌘I  Import from URL") {}
                         .disabled(true)
                     Button("⌘R  Refresh Models") {}
                         .disabled(true)
@@ -133,4 +171,5 @@ extension Notification.Name {
     static let refreshModelsRequested = Notification.Name("refreshModelsRequested")
     static let loadModelRequested = Notification.Name("loadModelRequested")
     static let showSettingsRequested = Notification.Name("showSettingsRequested")
+    static let importModelRequested = Notification.Name("importModelRequested")
 }
