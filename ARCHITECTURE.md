@@ -4,7 +4,7 @@
 
 This document describes the architecture of Edge AI Lab for contributors and reviewers. It covers the module structure, key protocols, data flows, and design decisions.
 
-**50 Swift source files · 12 architectural layers · ~15K lines of production code**
+**85+ Swift source files · 14 architectural layers · ~20K lines of production code**
 
 ---
 
@@ -32,16 +32,18 @@ The codebase is organized into 12 logical layers. Each layer has a clear respons
 | Layer | Files | Responsibility |
 |-------|------:|----------------|
 | **App** | 1 | Entry point, window configuration, keyboard shortcuts |
-| **Views** | 15 | SwiftUI views — sidebar, chat, settings, benchmarks, model browser |
+| **Views** | 20+ | SwiftUI views — sidebar, chat, settings, benchmarks, model browser, URL import, eval |
 | **ViewModel** | 2 | `@Observable` state management, inference orchestration |
 | **Engine** | 1 | LiteRT-LM wrapper with instrumentation and smart fallback |
 | **Tools** | 8 | Built-in tools (6) + agent skills (2) for function calling |
 | **MCP** | 4 | Model Context Protocol client (stdio JSON-RPC, macOS only) |
-| **Model Management** | 5 | Model registry, HuggingFace downloads, local discovery |
+| **Model Management** | 8 | Model registry, HuggingFace browser, Kaggle parser, dynamic catalog, URL import |
 | **Persistence** | 3 | JSON file-based conversation and metrics storage |
+| **Eval Framework** | 5 | Eval suites, runner, store, batch orchestrator |
 | **Benchmarking** | 3 | Device metrics, performance dashboard, automation harness |
+| **Onboarding** | 2 | First-run welcome flow |
 | **Design System** | 1 | "Dark Forest" theme tokens — colors, typography, spacing |
-| **Settings** | 6 | Inference settings (general, sampler, AI features, data) |
+| **Settings** | 6 | Inference settings (general, sampler, AI features, data, Kaggle) |
 | **Utilities** | 2 | `ThinkingParser`, `ChatMessage` data models |
 
 ---
@@ -104,6 +106,18 @@ graph TB
         GD["GalleryModelDiscovery"]
         HFB["HFModelBrowser"]
         HFT["HFTokenStorage"]
+        UIM["URLImportManager"]
+        MCP2["ModelCardParser"]
+        DMC["DynamicModelCatalog"]
+        KGP["KaggleModelParser"]
+        KTS["KaggleTokenStorage"]
+    end
+
+    subgraph "Eval Framework"
+        ER["EvalRunner"]
+        ES["EvalStore"]
+        BIS["BuiltInEvalSuites"]
+        BEO["BatchEvalOrchestrator"]
     end
 
     subgraph "Persistence Layer"

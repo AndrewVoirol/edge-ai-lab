@@ -46,10 +46,11 @@ xcodebuild test \
 
 | Platform | Tests | Skipped | Failures | Duration |
 |----------|-------|---------|----------|----------|
-| iOS Simulator (Unit) | 429 | ~12 | 0 | ~35s |
-| macOS (Unit) | 414+ | ~15 | 0 | ~21s |
+| iOS Simulator (Unit) | 470+ | ~12 | 0 | ~35s |
+| macOS (Unit) | 460+ | ~15 | 0 | ~21s |
 | iOS Simulator (UI) | 5 | 0 | 0 | ~90s |
-| iOS Device (Unit) | 429 | ~15 | 0 | ~3.4s |
+| macOS (UI) | 26 | — | — | ~60s |
+| iOS Device (Unit) | 470+ | ~15 | 0 | ~3.4s |
 
 ## Test Architecture
 
@@ -72,6 +73,29 @@ The iOS and macOS test targets share the same `Tests/**` source files. Each test
 | `SettingsToggleTests` | Experimental flags, sampler defaults |
 | `ThinkingParserTests` | `<think>` tag extraction, streaming boundary handling |
 | `ToolCallingTests` | Tool schema generation, invocation parsing |
+
+#### v2.0 Test Suites
+
+| Suite | What It Covers |
+|-------|----------------|
+| `URLImportManagerTests` | URL parsing, HuggingFace URL validation, state machine |
+| `URLImportIntegrationTests` | Full pipeline lifecycle, known model shortcut, catalog integration |
+| `URLImportE2ETests` | End-to-end import with real HuggingFace API calls |
+| `KaggleImportTests` | Kaggle URL parsing, download URL construction, auth header |
+| `ModelCardParserTests` | Runtime type inference, parameter detection, capability analysis |
+| `DynamicModelCatalogTests` | CRUD operations, merge/dedup, search, persistence |
+| `DynamicModelMetadataTests` | Metadata factories, provenance tracking, confidence scoring |
+| `HFModelBrowserTests` | Format detection, API URL construction, model info parsing |
+| `CommunityDownloadTests` | Community model download URL construction, state management |
+| `BatchEvalTests` | Batch eval orchestration, plan estimation, sequential execution |
+| `BugFixTests` | Photo picker activation, pause/resume wiring verification |
+| `OnboardingTests` | Onboarding state management, page navigation |
+| `iOSConversationPickerTests` | iOS conversation browser, search, sort, rename |
+| `iOSEvalExportTests` | Eval export JSON/CSV formats, share sheet |
+| `iOSSuiteEditorTests` | Custom eval suite editing, prompt CRUD |
+| `ModelLifecycleTests` | Import → delete → re-import lifecycle, stale catalog cleanup |
+| `KaggleTokenStorageTests` | Kaggle Keychain credential storage round-trip |
+| `HFRetryTests` | HuggingFace API retry with exponential backoff |
 
 ### Test Plans
 
@@ -123,6 +147,17 @@ Source: `iOSUITests/GemmaEdgeGalleryiOSUITests.swift`
 | `testSendButtonAccessibilityStates` | Send button accessibility values |
 
 Source: `UITests/GemmaEdgeGalleryUITests.swift`
+
+#### macOS URL Import UI Tests (6 new tests)
+
+| Test | What It Verifies |
+|------|------------------|
+| `testCommandIOpensURLImportSheet` | ⌘I keyboard shortcut opens import sheet |
+| `testURLImportSheetComponents` | URL text field, import button, status area |
+| `testKaggleURLImportFlow` | Kaggle URL detection and pipeline progression |
+| `testHuggingFaceSearchField` | HF browser search functionality |
+| `testCommunityModelsBrowserExists` | Community models section in sidebar |
+| `testInlineURLPasteField` | Inline paste field in detail column |
 
 > **Note**: iOS UI tests run in CI via a dedicated job (`build-ios-uitests`). macOS UI tests are not currently run in CI due to GHA macOS runner limitations with windowed apps.
 

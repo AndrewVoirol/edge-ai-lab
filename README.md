@@ -5,7 +5,7 @@
 <h1 align="center">Edge AI Lab</h1>
 
 <p align="center">
-  <strong>On-device Gemma 4 inference for macOS</strong><br/>
+  <strong>On-device Gemma 4 inference for macOS & iOS</strong><br/>
   <em>Run 2B → 12B parameter models entirely on your device. No cloud. No API keys. No compromise.</em>
 </p>
 
@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/LiteRT--LM-v0.13.0-blue?style=flat-square" alt="LiteRT-LM" />
   <img src="https://img.shields.io/badge/Swift-6.0-FA7343?style=flat-square&logo=swift&logoColor=white" alt="Swift 6" />
   <img src="https://img.shields.io/badge/macOS-26.0+-000000?style=flat-square&logo=apple" alt="macOS 26.0+" />
+  <img src="https://img.shields.io/badge/iOS-26.5+-000000?style=flat-square&logo=apple" alt="iOS 26.5+" />
   <img src="https://img.shields.io/badge/license-Apache_2.0-green?style=flat-square" alt="License" />
 </p>
 
@@ -35,13 +36,15 @@
 
 ## What is Edge AI Lab?
 
-Edge AI Lab is a research-grade macOS application that runs Google's [Gemma 4](https://blog.google/technology/google-deepmind/gemma-4/) language models directly on-device using [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). It's designed for developers, researchers, and power users who want to explore the capabilities of on-device AI without sending a single byte to the cloud.
+Edge AI Lab is a research-grade macOS and iOS application that runs Google's [Gemma 4](https://blog.google/technology/google-deepmind/gemma-4/) language models directly on-device using [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). It's designed for developers, researchers, and power users who want to explore the capabilities of on-device AI without sending a single byte to the cloud.
 
 ### Key Capabilities
 
 | Feature | Description |
 |---------|-------------|
 | **Multi-Model Gallery** | Switch between Gemma 4 E2B, E4B, and 12B Dense models. Download from HuggingFace or load from disk. |
+| **Paste & Go URL Import** | Paste a HuggingFace or Kaggle URL → app infers capabilities → downloads → you're running inference. ⌘I on macOS. |
+| **Eval Runner** | 4 built-in eval suites (Math, Tool Calling, Reasoning, Multimodal). Custom suite editor. Batch "Run All" mode with time estimation. |
 | **Tool Calling** | 6 built-in tools (Calculator, DateTime, DeviceInfo, UnitConverter, TextAnalyzer, SystemHealth). The model invokes them autonomously during conversation. |
 | **Agent Skills** `Beta` | Network-dependent tools (Wikipedia, Maps) that extend the model's capabilities beyond offline tooling. |
 | **Thinking Mode** | Watch the model reason in real-time with collapsible `<think>` blocks. See the thought process behind every response. |
@@ -51,6 +54,7 @@ Edge AI Lab is a research-grade macOS application that runs Google's [Gemma 4](h
 | **Performance Dashboard** | Historical metrics visualization with Swift Charts. Track decode speed trends across sessions and models. |
 | **MCP Server Support** | Connect external MCP-compliant tool servers via stdio JSON-RPC. Extend the model's capabilities with custom tools. |
 | **Conversation Persistence** | Auto-save conversations with full experiment metadata. Fork, rename, export, and resume sessions. |
+| **First-Run Onboarding** | Premium 4-page carousel introducing all features. Skippable, never shown again. |
 
 ---
 
@@ -202,12 +206,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and coding standar
 See [ARCHITECTURE.md](ARCHITECTURE.md) for module diagrams, data flows, and a "where to find things" guide.
 
 ```bash
-# Run unit tests (414+ tests)
+# Run unit tests (460+ tests)
 xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
   -scheme "Edge AI Lab" \
   -only-testing:GemmaEdgeGallery_macOSTests \
   -destination 'platform=macOS,arch=arm64'
 ```
+
+**83 Swift source files · 47 test files · 460+ tests · 3 CI jobs · 6 automation flows**
 
 ---
 
