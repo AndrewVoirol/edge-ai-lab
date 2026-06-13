@@ -213,6 +213,23 @@ final class ConversationViewModel {
     /// Whether the current view is showing a read-only archived conversation.
     var isViewingArchivedConversation: Bool = false
 
+    // MARK: - URL Import
+
+    /// Shared URL import manager for the "Paste and Go" feature.
+    /// @ObservationIgnored: The manager is @Observable on its own — views
+    /// that need to observe import state should access it directly.
+    @ObservationIgnored
+    lazy var urlImportManager: URLImportManager = {
+        URLImportManager(browser: HFModelBrowser(), catalog: dynamicModelCatalog)
+    }()
+
+    /// Whether the URL import sheet is currently presented.
+    var showURLImportSheet: Bool = false
+
+    /// A URL pending import — set by the inline quick-paste field before opening the sheet.
+    /// The sheet reads and clears this on appear.
+    var pendingImportURL: String?
+
     // MARK: - Init
 
     /// Initialize with injectable dependencies.
@@ -807,5 +824,43 @@ final class ConversationViewModel {
         }
         activeClients.removeAll()
         #endif
+    }
+
+    // MARK: - URL Import
+
+    /// Start importing a model from a HuggingFace URL.
+    ///
+    /// This opens the import sheet and begins the pipeline. Both the inline
+    /// quick-paste field and the ⌘I shortcut call this method.
+    ///
+    /// - Parameter urlString: The HuggingFace URL to import from.
+    func startURLImport(_ urlString: String) {
+        pendingImportURL = urlString
+        showURLImportSheet = true
+    }
+
+    /// Load a model that was imported via URL Import.
+    ///
+    /// Discovers the downloaded file on disk, then loads it into the engine.
+    /// Called from the import sheet's "Load Model" button after download completes.
+    ///
+    /// - Parameter metadata: The imported model's `DynamicModelMetadata`.
+    func loadImportedModel(_ metadata: DynamicModelMetadata) {
+        // Refresh to pick up newly downloaded file
+        refreshDiscoveredModels()
+
+        // Find the downloaded file among discovered models
+        // Check both known and community discovered models
+        let filename = metadata.metadata.modelFile
+
+        // Search discovered models for a matching file
+        if let match = discoveredModels.first(where: { $0.filename.contains(filename) || filename.contains($0.filename) }) {
+            Task {
+                await handleModelSelection(match.url)
+            }
+        } else {
+            // If not found in standard discovery, check community models
+            statusMessage = "Model downloaded. Select it from the sidebar to load."
+        }
     }
 }

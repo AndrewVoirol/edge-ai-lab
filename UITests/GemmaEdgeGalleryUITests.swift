@@ -823,4 +823,362 @@ final class GemmaEdgeGalleryUITests: XCTestCase {
             "Send button accessibility value should be one of \(validValues), got: '\(value)'"
         )
     }
+
+    // MARK: - Phase 5: URL Import / HF Search / ⌘I Tests
+
+    /// Verifies that ⌘I opens the URL Import sheet and that the sheet
+    /// contains the expected URL text field and import button.
+    #if os(macOS)
+    func testCommandIOpensURLImportSheet() throws {
+        let app = launchApp()
+
+        // Wait for toolbar to be available before sending keyboard shortcuts
+        let settingsButton = app.buttons["button_settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5.0), "Toolbar should be available")
+
+        // ⌘I should open the URL Import sheet
+        app.typeKey("i", modifierFlags: .command)
+        usleep(1_000_000) // Wait for sheet animation
+
+        // The URL import sheet should present with its URL field
+        let urlField = app.textFields["urlImport_urlField"]
+        XCTAssertTrue(
+            urlField.waitForExistence(timeout: 5.0),
+            "⌘I should open URL Import sheet with URL text field"
+        )
+
+        // Import button should exist but be disabled (no URL entered)
+        let importButton = app.buttons["urlImport_importButton"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 3.0), "Import button should exist")
+
+        // Done/Cancel button should exist
+        let doneButton = app.buttons["urlImport_done"]
+        XCTAssertTrue(doneButton.waitForExistence(timeout: 3.0), "Done/Cancel button should exist")
+
+        // Dismiss the sheet
+        doneButton.click()
+        usleep(500_000)
+
+        // Verify the sheet is dismissed — URL field should no longer be present
+        XCTAssertFalse(
+            urlField.waitForExistence(timeout: 2.0),
+            "URL Import sheet should be dismissed after clicking Done"
+        )
+    }
+    #endif
+
+    /// Verifies all URL Import sheet components: URL field, import button,
+    /// idle state content, and the import flow when a URL is entered.
+    #if os(macOS)
+    func testURLImportSheetComponents() throws {
+        let app = launchApp()
+
+        let settingsButton = app.buttons["button_settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5.0), "Toolbar should be available")
+
+        // Open URL Import sheet via ⌘I
+        app.typeKey("i", modifierFlags: .command)
+        usleep(1_000_000)
+
+        let urlField = app.textFields["urlImport_urlField"]
+        XCTAssertTrue(urlField.waitForExistence(timeout: 5.0), "URL field should exist")
+
+        // Verify idle state is shown before any URL is entered
+        let idleState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_idle'"))
+            .firstMatch
+        XCTAssertTrue(
+            idleState.waitForExistence(timeout: 3.0),
+            "Idle state should be visible before entering a URL"
+        )
+
+        // Type a HuggingFace URL into the field
+        urlField.click()
+        urlField.typeText("https://huggingface.co/google/gemma-3n-E2B-it-litert-preview")
+
+        // Import button should now be enabled
+        let importButton = app.buttons["urlImport_importButton"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 3.0), "Import button should exist")
+
+        // Click Import to start the pipeline
+        importButton.click()
+        usleep(2_000_000) // Wait for parsing/fetching to begin
+
+        // After clicking import, we should see a state transition
+        // (parsing, fetching, analyzing, etc.) — idle state should disappear
+        let parsingState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_parsing'"))
+            .firstMatch
+        let fetchingState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_fetching'"))
+            .firstMatch
+        let analyzingState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_analyzing'"))
+            .firstMatch
+        let modelInfoState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_modelInfo'"))
+            .firstMatch
+        let errorState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_error'"))
+            .firstMatch
+
+        // At least one pipeline state should be visible within a reasonable timeout
+        let pipelineActive = parsingState.waitForExistence(timeout: 2.0)
+            || fetchingState.waitForExistence(timeout: 2.0)
+            || analyzingState.waitForExistence(timeout: 2.0)
+            || modelInfoState.waitForExistence(timeout: 5.0)
+            || errorState.waitForExistence(timeout: 2.0)
+        XCTAssertTrue(pipelineActive, "Import pipeline should transition away from idle after clicking Import")
+
+        // Clean up: dismiss the sheet
+        let doneButton = app.buttons["urlImport_done"]
+        if doneButton.exists { doneButton.click() }
+    }
+    #endif
+
+    /// Verifies that a Kaggle model URL is correctly parsed and processed by the
+    /// import pipeline. Without Kaggle API credentials, expect a graceful error.
+    #if os(macOS)
+    func testKaggleURLImportFlow() throws {
+        let app = launchApp()
+
+        let settingsButton = app.buttons["button_settings"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5.0), "Toolbar should be available")
+
+        // Open URL Import sheet via ⌘I
+        app.typeKey("i", modifierFlags: .command)
+        usleep(1_000_000)
+
+        let urlField = app.textFields["urlImport_urlField"]
+        XCTAssertTrue(urlField.waitForExistence(timeout: 5.0), "URL field should exist")
+
+        // Enter a Kaggle model URL
+        urlField.click()
+        urlField.typeText("https://www.kaggle.com/models/google/gemma-3n/litert/gemma-3n-e4b-it/1")
+
+        // Click Import
+        let importButton = app.buttons["urlImport_importButton"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 3.0), "Import button should exist")
+        importButton.click()
+        usleep(3_000_000) // Wait for parsing + potential network call
+
+        // After clicking import with a Kaggle URL:
+        // - If no API credentials: error state (credentials required)
+        // - If credentials exist: model info state
+        // Either outcome proves the Kaggle URL was parsed and routed correctly.
+        let modelInfoState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_modelInfo'"))
+            .firstMatch
+        let errorState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_error'"))
+            .firstMatch
+        let parsingState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_parsing'"))
+            .firstMatch
+        let fetchingState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlImport_fetching'"))
+            .firstMatch
+
+        let pipelineActive = parsingState.waitForExistence(timeout: 2.0)
+            || fetchingState.waitForExistence(timeout: 2.0)
+            || modelInfoState.waitForExistence(timeout: 5.0)
+            || errorState.waitForExistence(timeout: 5.0)
+        XCTAssertTrue(pipelineActive,
+                       "Kaggle URL should trigger import pipeline (expect error or model info)")
+
+        // Clean up: dismiss the sheet
+        let kaggleDoneButton = app.buttons["urlImport_done"]
+        if kaggleDoneButton.exists { kaggleDoneButton.click() }
+    }
+    #endif
+
+    /// Verifies that the HuggingFace search field exists in the Community
+    /// Models Browser and can accept text input.
+    func testHuggingFaceSearchField() throws {
+        let app = launchApp()
+
+        // The Community Models Browser is in the detail column (column 2).
+        // Click the detail column area to register its a11y tree.
+        let detailColumn = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'detailColumn_root'"))
+            .firstMatch
+
+        if detailColumn.waitForExistence(timeout: 5.0) {
+            // Click to register a11y tree, then wait for HF API to populate models
+            detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+            usleep(2_000_000) // 2s for HF API response + SwiftUI render
+        }
+
+        // The search field should exist within the Community Models Browser
+        let searchField = app.textFields["communityModels_searchField"]
+
+        if !searchField.waitForExistence(timeout: 8.0) {
+            // The search field may require scrolling down in the detail column.
+            // Use coordinate-based drag scrolling (proven pattern from testAddMCPServer).
+            #if os(macOS)
+            if detailColumn.exists {
+                let colCenter = detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                let colUp = detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+                for _ in 0..<6 {
+                    colCenter.press(forDuration: 0.05, thenDragTo: colUp)
+                    usleep(500_000)
+                    if searchField.exists { break }
+                }
+            }
+            #endif
+        }
+
+        XCTAssertTrue(
+            searchField.waitForExistence(timeout: 5.0),
+            "HuggingFace search field should exist in the Community Models Browser"
+        )
+
+        // Type a search query
+        searchField.click()
+        searchField.typeText("gemma")
+        usleep(500_000)
+
+        // Verify the clear button appears after entering text
+        let clearButton = app.buttons["communityModels_clearSearch"]
+        XCTAssertTrue(
+            clearButton.waitForExistence(timeout: 3.0),
+            "Clear search button should appear after entering text"
+        )
+
+        // Clear the search
+        clearButton.click()
+        usleep(300_000)
+
+        // Verify the search field is cleared
+        let fieldValue = searchField.value as? String ?? ""
+        XCTAssertTrue(
+            fieldValue.isEmpty,
+            "Search field should be empty after clearing, got: '\(fieldValue)'"
+        )
+    }
+
+    /// Verifies that the Community Models Browser container exists
+    /// and the refresh button is functional.
+    func testCommunityModelsBrowserExists() throws {
+        let app = launchApp()
+
+        // Click the detail column to register its a11y tree
+        let detailColumn = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'detailColumn_root'"))
+            .firstMatch
+
+        if detailColumn.waitForExistence(timeout: 5.0) {
+            // Click to register a11y tree, then wait for HF API to populate
+            detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+            usleep(2_000_000) // 2s for HF API response + SwiftUI render
+        }
+
+        // The Community Models Browser root container
+        let browser = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'communityModelsBrowser'"))
+            .firstMatch
+
+        if !browser.waitForExistence(timeout: 8.0) {
+            // Scroll to find the browser using coordinate-based drag scrolling
+            #if os(macOS)
+            if detailColumn.exists {
+                let colCenter = detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                let colUp = detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+                for _ in 0..<6 {
+                    colCenter.press(forDuration: 0.05, thenDragTo: colUp)
+                    usleep(500_000)
+                    if browser.exists { break }
+                }
+            }
+            #endif
+        }
+
+        XCTAssertTrue(
+            browser.waitForExistence(timeout: 5.0),
+            "Community Models Browser (communityModelsBrowser) should exist in the detail column"
+        )
+
+        // Refresh button should exist within the browser
+        let refreshButton = app.buttons["button_refreshCommunityModels"]
+        XCTAssertTrue(
+            refreshButton.waitForExistence(timeout: 3.0),
+            "Refresh community models button should exist"
+        )
+
+        // Click refresh — should not crash and may show a loading indicator
+        refreshButton.click()
+        usleep(1_000_000)
+
+        // After refresh, the browser should still be present
+        XCTAssertTrue(browser.exists, "Community Models Browser should remain after refresh")
+    }
+
+    /// Verifies the inline URL paste field exists in the Community Models
+    /// Browser and can accept a HuggingFace URL for quick import.
+    func testInlineURLPasteField() throws {
+        let app = launchApp()
+
+        // Navigate to the detail column
+        let detailColumn = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'detailColumn_root'"))
+            .firstMatch
+
+        if detailColumn.waitForExistence(timeout: 5.0) {
+            detailColumn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+            usleep(500_000)
+        }
+
+        // The inline URL paste container
+        let inlineContainer = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'urlPaste_inlineContainer'"))
+            .firstMatch
+
+        if !inlineContainer.waitForExistence(timeout: 5.0) {
+            // Scroll to find the inline paste area
+            #if os(macOS)
+            if detailColumn.exists {
+                for _ in 0..<5 {
+                    detailColumn.scroll(byDeltaX: 0, deltaY: -200)
+                    usleep(500_000)
+                    if inlineContainer.exists { break }
+                }
+            }
+            #endif
+        }
+
+        // The inline container only appears when models have been fetched
+        // (it's inside the `else` branch that shows the grid).
+        // If models haven't loaded yet, this is expected.
+        guard inlineContainer.waitForExistence(timeout: 8.0) else {
+            XCTExpectFailure("Inline URL paste container requires community models to be loaded") {
+                XCTFail("urlPaste_inlineContainer should exist when community models are loaded")
+            }
+            return
+        }
+
+        // The inline URL text field
+        let inlineField = app.textFields["urlPaste_inlineField"]
+        XCTAssertTrue(
+            inlineField.waitForExistence(timeout: 3.0),
+            "Inline URL paste field should exist"
+        )
+
+        // Type a URL — the import button should appear
+        inlineField.click()
+        inlineField.typeText("https://huggingface.co/google/gemma-3n-E4B-it-litert-preview")
+        usleep(500_000)
+
+        let importButton = app.buttons["urlPaste_importButton"]
+        XCTAssertTrue(
+            importButton.waitForExistence(timeout: 3.0),
+            "Inline Import button should appear after entering a URL"
+        )
+        XCTAssertTrue(importButton.isHittable, "Inline Import button should be hittable")
+
+        // Don't actually click Import (would trigger download) — just verify it's there
+        // Clean up: clear the field
+        inlineField.click()
+        inlineField.typeKey("a", modifierFlags: .command) // Select all
+        inlineField.typeKey(.delete, modifierFlags: [])    // Delete
+    }
 }

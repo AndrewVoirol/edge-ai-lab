@@ -735,6 +735,10 @@ private struct ExperimentDetailView: View {
 /// or a grid of `HFModelCard` views on success.
 private struct CommunityModelsBrowser: View {
     @State private var browser = HFModelBrowser()
+    @State private var inlineURL: String = ""
+    @State private var searchQuery: String = ""
+    @State private var searchResults: [HFModelInfo] = []
+    @State private var isSearching: Bool = false
     @Environment(ConversationViewModel.self) private var viewModel
 
     var body: some View {
@@ -766,6 +770,43 @@ private struct CommunityModelsBrowser: View {
                 .accessibilityIdentifier("button_refreshCommunityModels")
             }
 
+            // Search bar
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(AppColors.textTertiary)
+                    .font(.caption)
+                TextField("Search all HuggingFace models…", text: $searchQuery)
+                    .textFieldStyle(.plain)
+                    .font(AppTypography.listSubtitle)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .onSubmit {
+                        guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                        Task { await performSearch() }
+                    }
+                    .accessibilityIdentifier("communityModels_searchField")
+                if isSearching {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(AppColors.accentTeal)
+                }
+                if !searchQuery.isEmpty {
+                    Button {
+                        searchQuery = ""
+                        searchResults = []
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppColors.textTertiary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("communityModels_clearSearch")
+                }
+            }
+            .padding(AppSpacing.sm)
+            .padding(.horizontal, AppSpacing.xs)
+            .background(AppColors.backgroundTertiary.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+
             // Content
             if let error = browser.lastError {
                 HStack(spacing: AppSpacing.sm) {
@@ -788,29 +829,43 @@ private struct CommunityModelsBrowser: View {
                 }
                 .padding(AppSpacing.md)
             } else {
-                // URL paste placeholder (Coming Soon)
+                // Inline URL import — paste a HuggingFace URL to import any model
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "link.badge.plus")
-                        .foregroundStyle(AppColors.textTertiary)
-                    Text("Paste a HuggingFace URL to import any model")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
-                    Spacer()
-                    Text("Coming Soon")
-                        .font(.system(.caption2, design: .rounded, weight: .medium))
-                        .foregroundStyle(AppColors.accentGold)
-                        .padding(.horizontal, AppSpacing.sm)
-                        .padding(.vertical, 2)
-                        .background(AppColors.accentGold.opacity(0.12))
-                        .clipShape(Capsule())
+                        .foregroundStyle(AppColors.accentTeal)
+                    TextField("Paste a HuggingFace URL…", text: $inlineURL)
+                        .textFieldStyle(.plain)
+                        .font(AppTypography.listSubtitle)
+                        .foregroundStyle(AppColors.textPrimary)
+                        .onSubmit {
+                            guard !inlineURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                            viewModel.startURLImport(inlineURL)
+                            inlineURL = ""
+                        }
+                        .accessibilityIdentifier("urlPaste_inlineField")
+                    if !inlineURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            viewModel.startURLImport(inlineURL)
+                            inlineURL = ""
+                        } label: {
+                            Text("Import")
+                                .font(AppTypography.badge)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, AppSpacing.sm)
+                                .padding(.vertical, AppSpacing.xs)
+                                .background(AppColors.accentTeal)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("urlPaste_importButton")
+                    }
                 }
                 .padding(AppSpacing.md)
                 .glassCard(cornerRadius: AppRadius.md)
-                .opacity(0.6)
-                .accessibilityIdentifier("urlPaste_comingSoon")
+                .accessibilityIdentifier("urlPaste_inlineContainer")
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.md) {
-                    ForEach(browser.discoveredModels) { model in
+                    ForEach(displayedModels) { model in
                         let format = browser.detectFormat(model)
                         let modelSize = browser.modelSize(model)
                         HFModelCard(
@@ -835,6 +890,23 @@ private struct CommunityModelsBrowser: View {
             }
         }
         .accessibilityIdentifier("communityModelsBrowser")
+    }
+
+    /// Models to display — search results when searching, otherwise the default listing.
+    private var displayedModels: [HFModelInfo] {
+        searchResults.isEmpty ? browser.discoveredModels : searchResults
+    }
+
+    /// Execute a HuggingFace search across all models.
+    private func performSearch() async {
+        isSearching = true
+        do {
+            searchResults = try await browser.searchModels(query: searchQuery)
+        } catch {
+            // Silently fall back to default listing on search failure
+            searchResults = []
+        }
+        isSearching = false
     }
 }
 
