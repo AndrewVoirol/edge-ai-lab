@@ -41,6 +41,9 @@ struct iOSEvalTabView: View {
     @State private var evalRunner: EvalRunner?
     @State private var showComparisonForRun: EvalRun?
     @State private var customSuites: [EvalSuite] = []
+    @State private var exportShareItem: ExportShareItem?
+    @State private var showSuiteEditor = false
+    @State private var editingSuite: EvalSuite?
 
     // MARK: - Computed Properties
 
@@ -79,6 +82,51 @@ struct iOSEvalTabView: View {
                     }
                     .accessibilityIdentifier("evalTab_suiteDetail")
                 }
+            }
+
+            // MARK: Custom Suites
+            Section {
+                ForEach(customSuites) { cs in
+                    HStack {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text(cs.name)
+                                .font(AppTypography.listTitle)
+                                .foregroundStyle(AppColors.textPrimary)
+                            Text(cs.displaySummary)
+                                .font(AppTypography.listSubtitle)
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        editingSuite = cs
+                        showSuiteEditor = true
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            evalStore.deleteCustomSuite(id: cs.id)
+                            customSuites = evalStore.loadCustomSuites()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .accessibilityIdentifier("evalTab_customSuite_\(cs.id.uuidString.prefix(8))")
+                }
+
+                Button {
+                    editingSuite = nil
+                    showSuiteEditor = true
+                } label: {
+                    Label("New Custom Suite", systemImage: "plus.circle")
+                        .foregroundStyle(AppColors.accentCyan)
+                }
+                .accessibilityIdentifier("evalTab_newSuiteButton")
+            } header: {
+                Text("Custom Suites")
             }
 
             // MARK: Model Selection
@@ -195,8 +243,50 @@ struct iOSEvalTabView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        exportAndShare(format: .json)
+                    } label: {
+                        Label("Export JSON", systemImage: "doc.text")
+                    }
+                    .accessibilityIdentifier("evalTab_exportJSON")
+
+                    Button {
+                        exportAndShare(format: .csv)
+                    } label: {
+                        Label("Export CSV", systemImage: "tablecells")
+                    }
+                    .accessibilityIdentifier("evalTab_exportCSV")
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(AppColors.accentTeal)
+                        .font(AppTypography.body)
+                }
+                .disabled(evalStore.indexEntries.isEmpty)
+                .accessibilityIdentifier("evalTab_exportMenu")
+            }
+        }
+        .sheet(isPresented: $showSuiteEditor) {
+            iOSSuiteEditorSheet(
+                suite: editingSuite,
+                onSave: { suite in
+                    evalStore.saveCustomSuite(suite)
+                    customSuites = evalStore.loadCustomSuites()
+                    showSuiteEditor = false
+                },
+                onCancel: {
+                    showSuiteEditor = false
+                }
+            )
+        }
         .sheet(item: $showComparisonForRun) { run in
             EvalComparisonView(evalRun: run, evalStore: evalStore)
+        }
+        .sheet(item: $exportShareItem) { item in
+            ActivityViewController(activityItems: [item.fileURL])
+                .presentationDetents([.medium])
         }
         .onAppear {
             customSuites = evalStore.loadCustomSuites()
@@ -261,6 +351,49 @@ struct iOSEvalTabView: View {
         evalStore.refresh()
     }
 
+    // MARK: - Export
+
+    /// Supported export formats for eval runs.
+    private enum ExportFormat {
+        case json
+        case csv
+
+        var fileExtension: String {
+            switch self {
+            case .json: return "json"
+            case .csv: return "csv"
+            }
+        }
+    }
+
+    /// Exports the most recent eval run in the specified format and presents
+    /// a share sheet.
+    private func exportAndShare(format: ExportFormat) {
+        // Get the most recent eval run from the store
+        guard let mostRecentEntry = evalStore.indexEntries.first else { return }
+
+        do {
+            let data: Data
+            switch format {
+            case .json:
+                data = try evalStore.exportJSON(id: mostRecentEntry.id)
+            case .csv:
+                data = try evalStore.exportCSV(id: mostRecentEntry.id)
+            }
+
+            // Write to a temp file for sharing
+            let filename = "\(mostRecentEntry.suiteName)-\(mostRecentEntry.id.uuidString.prefix(8)).\(format.fileExtension)"
+            let sanitizedFilename = filename.replacingOccurrences(of: " ", with: "_")
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(sanitizedFilename)
+            try data.write(to: tempURL, options: .atomic)
+
+            exportShareItem = ExportShareItem(fileURL: tempURL)
+        } catch {
+            // Silently fail — the export menu is disabled when no runs exist
+        }
+    }
+
     // MARK: - Helpers
 
     private func formatDate(_ date: Date) -> String {
@@ -269,5 +402,30 @@ struct iOSEvalTabView: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+}
+
+// MARK: - Export Share Item
+
+/// Identifiable wrapper for a file URL to use with `.sheet(item:)`.
+private struct ExportShareItem: Identifiable {
+    let id = UUID()
+    let fileURL: URL
+}
+
+// MARK: - Activity View Controller
+
+/// UIKit `UIActivityViewController` wrapper for SwiftUI share sheets.
+private struct ActivityViewController: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 #endif
