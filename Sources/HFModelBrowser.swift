@@ -234,7 +234,7 @@ enum HFModelBrowserError: LocalizedError {
 /// redundant API calls during a session. The cache is cleared when the browser
 /// is deallocated.
 @Observable
-final class HFModelBrowser {
+final class HFModelBrowser: @unchecked Sendable {
 
     // MARK: - Constants
 
@@ -265,7 +265,31 @@ final class HFModelBrowser {
     // MARK: - Private State
 
     /// In-memory cache of list results, keyed by organization/author name.
-    private var cache: [String: [HFModelInfo]] = [:]
+    /// Protected by `cacheLock` to prevent data races between async network
+    /// callbacks and SwiftUI's MainActor observation.
+    private var _cache: [String: [HFModelInfo]] = [:]
+    private let cacheLock = NSLock()
+
+    /// Thread-safe cache read.
+    private func cacheRead(_ key: String) -> [HFModelInfo]? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return _cache[key]
+    }
+
+    /// Thread-safe cache write.
+    private func cacheWrite(_ key: String, _ value: [HFModelInfo]) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        _cache[key] = value
+    }
+
+    /// Thread-safe cache clear.
+    private func cacheClear() {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        _cache.removeAll()
+    }
 
     /// Shared JSON decoder configured for HuggingFace API responses.
     private let decoder: JSONDecoder = {
@@ -351,7 +375,7 @@ final class HFModelBrowser {
     func listModels(author: String, search: String? = nil, limit: Int = 20) async throws -> [HFModelInfo] {
         // Build cache key incorporating search to avoid stale results
         let cacheKey = search != nil ? "\(author):\(search!)" : author
-        if let cached = cache[cacheKey] {
+        if let cached = cacheRead(cacheKey) {
             return cached
         }
 
@@ -384,7 +408,7 @@ final class HFModelBrowser {
 
         do {
             let models = try decoder.decode([HFModelInfo].self, from: data)
-            cache[cacheKey] = models
+            cacheWrite(cacheKey, models)
             return models
         } catch {
             throw HFModelBrowserError.decodingFailed(underlying: error)
@@ -647,7 +671,7 @@ final class HFModelBrowser {
 
     /// Clear the in-memory model cache, forcing fresh API requests on next fetch.
     func clearCache() {
-        cache.removeAll()
+        cacheClear()
     }
 }
 

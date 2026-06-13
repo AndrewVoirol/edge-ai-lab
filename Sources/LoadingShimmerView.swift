@@ -21,6 +21,7 @@ import SwiftUI
 ///
 /// Shows 3 shimmer bars inside an assistant bubble placeholder, creating
 /// a skeleton loading state. Critical for the 12B model which has ~14s TTFT.
+/// Disables animation under XCTest to prevent runloop saturation.
 ///
 /// Usage:
 /// ```swift
@@ -31,44 +32,72 @@ import SwiftUI
 struct LoadingShimmerView: View {
     @State private var shimmerOffset: CGFloat = -200
 
-    var body: some View {
-        HStack(alignment: .top, spacing: AppSpacing.sm) {
-            // Model avatar placeholder
-            Circle()
-                .fill(AppColors.backgroundTertiary)
-                .frame(width: 28, height: 28)
-                .overlay {
-                    Image(systemName: "sparkle")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(AppColors.textTertiary)
-                }
+    /// Cached check: are we running inside an XCTest host?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
-            // Shimmer bars in bubble shape
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                shimmerBar(width: 200)
-                shimmerBar(width: 160)
-                shimmerBar(width: 120)
+    var body: some View {
+        if Self.isRunningTests {
+            // Static placeholder — no animation cycle to saturate the runloop
+            HStack(alignment: .top, spacing: AppSpacing.sm) {
+                Circle()
+                    .fill(AppColors.backgroundTertiary)
+                    .frame(width: 28, height: 28)
+                    .overlay {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    shimmerBar(width: 200)
+                    shimmerBar(width: 160)
+                    shimmerBar(width: 120)
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.md)
+                .background {
+                    RoundedRectangle(cornerRadius: AppRadius.bubble)
+                        .fill(AppColors.assistantBubble.opacity(0.6))
+                }
+                Spacer(minLength: 60)
             }
             .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
-            .background {
-                RoundedRectangle(cornerRadius: AppRadius.bubble)
-                    .fill(AppColors.assistantBubble.opacity(0.6))
+            .accessibilityIdentifier("shimmer_loading")
+            .accessibilityLabel("Loading response")
+        } else {
+            HStack(alignment: .top, spacing: AppSpacing.sm) {
+                Circle()
+                    .fill(AppColors.backgroundTertiary)
+                    .frame(width: 28, height: 28)
+                    .overlay {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    shimmerBar(width: 200)
+                    shimmerBar(width: 160)
+                    shimmerBar(width: 120)
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.md)
+                .background {
+                    RoundedRectangle(cornerRadius: AppRadius.bubble)
+                        .fill(AppColors.assistantBubble.opacity(0.6))
+                }
+                Spacer(minLength: 60)
             }
-
-            Spacer(minLength: 60)
-        }
-        .padding(.horizontal, AppSpacing.lg)
-        .onAppear {
-            withAnimation(
-                .linear(duration: 1.5)
-                .repeatForever(autoreverses: false)
-            ) {
-                shimmerOffset = 200
+            .padding(.horizontal, AppSpacing.lg)
+            .onAppear {
+                withAnimation(
+                    .linear(duration: 1.5)
+                    .repeatForever(autoreverses: false)
+                ) {
+                    shimmerOffset = 200
+                }
             }
+            .accessibilityIdentifier("shimmer_loading")
+            .accessibilityLabel("Loading response")
         }
-        .accessibilityIdentifier("shimmer_loading")
-        .accessibilityLabel("Loading response")
     }
 
     // MARK: - Shimmer Bar
@@ -102,24 +131,37 @@ struct LoadingShimmerView: View {
 ///
 /// Disappears when streaming completes. Uses the app's pulse animation
 /// for a consistent feel with other active indicators.
+/// Disables animation under XCTest to prevent runloop saturation.
 struct BlinkingCursor: View {
     @State private var isVisible = true
 
+    /// Cached check: are we running inside an XCTest host?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     var body: some View {
-        Text("▊")
-            .font(.system(.body, design: .monospaced))
-            .foregroundStyle(AppColors.textPrimary)
-            .opacity(isVisible ? 1 : 0)
-            .onAppear {
-                withAnimation(
-                    .easeInOut(duration: 0.6)
-                    .repeatForever(autoreverses: true)
-                ) {
-                    isVisible = false
+        if Self.isRunningTests {
+            // Static cursor — no animation cycle to saturate the runloop
+            Text("▊")
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(AppColors.textPrimary)
+                .accessibilityIdentifier("cursor_blinking")
+                .accessibilityHidden(true)
+        } else {
+            Text("▊")
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(AppColors.textPrimary)
+                .opacity(isVisible ? 1 : 0)
+                .onAppear {
+                    withAnimation(
+                        .easeInOut(duration: 0.6)
+                        .repeatForever(autoreverses: true)
+                    ) {
+                        isVisible = false
+                    }
                 }
-            }
-            .accessibilityIdentifier("cursor_blinking")
-            .accessibilityHidden(true)
+                .accessibilityIdentifier("cursor_blinking")
+                .accessibilityHidden(true)
+        }
     }
 }
 

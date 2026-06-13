@@ -389,26 +389,39 @@ struct InputAreaView: View {
 
 /// Applies a pulsing gold glow when active (e.g., when prompt has text and engine is ready).
 /// Separated as a ViewModifier to avoid SwiftUI conditional modifier issues.
+/// Disables animation under XCTest to prevent runloop saturation.
 private struct ConditionalGlowModifier: ViewModifier {
     let isActive: Bool
     let color: Color
     @State private var isGlowing = false
 
+    /// Cached check: are we running inside an XCTest host?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     func body(content: Content) -> some View {
-        content
-            .shadow(
-                color: isActive ? color.opacity(isGlowing ? 0.6 : 0.2) : .clear,
-                radius: isActive ? (isGlowing ? 8 : 4) : 0
-            )
-            .animation(
-                isActive ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .default,
-                value: isGlowing
-            )
-            .onChange(of: isActive) { _, newValue in
-                isGlowing = newValue
-            }
-            .onAppear {
-                isGlowing = isActive
-            }
+        if Self.isRunningTests {
+            // Static shadow — no animation cycle to saturate the runloop
+            content
+                .shadow(
+                    color: isActive ? color.opacity(0.3) : .clear,
+                    radius: isActive ? 6 : 0
+                )
+        } else {
+            content
+                .shadow(
+                    color: isActive ? color.opacity(isGlowing ? 0.6 : 0.2) : .clear,
+                    radius: isActive ? (isGlowing ? 8 : 4) : 0
+                )
+                .animation(
+                    isActive ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .default,
+                    value: isGlowing
+                )
+                .onChange(of: isActive) { _, newValue in
+                    isGlowing = newValue
+                }
+                .onAppear {
+                    isGlowing = isActive
+                }
+        }
     }
 }

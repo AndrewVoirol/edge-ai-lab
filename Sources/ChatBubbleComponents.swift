@@ -19,26 +19,42 @@ import MapKit
 
 /// Animated typing indicator shown while the assistant is generating.
 /// Three dots with staggered pulse animations in the accent teal color.
+/// Disables animation under XCTest to prevent runloop saturation.
 struct StreamingIndicator: View {
     @State private var isAnimating = false
 
+    /// Cached check: are we running inside an XCTest host?
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(AppColors.accentTeal.opacity(0.7))
-                    .frame(width: 7, height: 7)
-                    .scaleEffect(isAnimating ? 1.0 : 0.4)
-                    .animation(
-                        .easeInOut(duration: 0.5)
-                        .repeatForever()
-                        .delay(Double(i) * 0.15),
-                        value: isAnimating
-                    )
+        if Self.isRunningTests {
+            // Static dots — no animation cycle to saturate the runloop
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Circle()
+                        .fill(AppColors.accentTeal.opacity(0.7))
+                        .frame(width: 7, height: 7)
+                }
             }
+            .accessibilityIdentifier("streamingIndicator")
+        } else {
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(AppColors.accentTeal.opacity(0.7))
+                        .frame(width: 7, height: 7)
+                        .scaleEffect(isAnimating ? 1.0 : 0.4)
+                        .animation(
+                            .easeInOut(duration: 0.5)
+                            .repeatForever()
+                            .delay(Double(i) * 0.15),
+                            value: isAnimating
+                        )
+                }
+            }
+            .onAppear { isAnimating = true }
+            .accessibilityIdentifier("streamingIndicator")
         }
-        .onAppear { isAnimating = true }
-        .accessibilityIdentifier("streamingIndicator")
     }
 }
 
