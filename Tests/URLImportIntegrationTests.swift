@@ -85,6 +85,21 @@ final class URLImportIntegrationTests: XCTestCase {
     /// Verify that a model already in the dynamic catalog short-circuits to .complete.
     @MainActor
     func testCatalogModelShortCircuitsToComplete() async throws {
+        // Create a dummy model file so GalleryModelDiscovery.discoverModels() finds it.
+        // The catalog short-circuit verifies the model file exists on disk to prevent
+        // stale entries from bypassing re-import of deleted models.
+        let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let dummyModelFile = cachesDir.appendingPathComponent("test-model.litertlm")
+        FileManager.default.createFile(atPath: dummyModelFile.path, contents: Data("dummy".utf8))
+        defer { try? FileManager.default.removeItem(at: dummyModelFile) }
+
+        // Also place in the app models directory (DEBUG mode scans project-root/models/)
+        let modelsDir = GalleryModelDiscovery.getAppModelsDirectory()
+        try? FileManager.default.createDirectory(at: modelsDir, withIntermediateDirectories: true)
+        let dummyModelFile2 = modelsDir.appendingPathComponent("test-model.litertlm")
+        FileManager.default.createFile(atPath: dummyModelFile2.path, contents: Data("dummy".utf8))
+        defer { try? FileManager.default.removeItem(at: dummyModelFile2) }
+
         // Pre-populate catalog with a test model
         let metadata = ModelMetadata(
             name: "Test Model",
