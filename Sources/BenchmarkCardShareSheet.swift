@@ -32,7 +32,7 @@ struct BenchmarkCardShareSheet: View {
             // Title bar
             HStack {
                 Text("Share Benchmark")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 Spacer()
@@ -231,7 +231,7 @@ struct BenchmarkCardShareSheet: View {
                 .foregroundStyle(color)
 
             Text(label)
-                .font(.system(size: 12, weight: .medium))
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
         }
         .frame(width: 90, height: 70)

@@ -15,6 +15,13 @@
 import SwiftUI
 
 // MARK: - Eval Benchmark Card
+//
+// MARK: Design System Exemption Policy
+// This file renders image-export eval benchmark cards via ImageRenderer.
+// Labels, badges, and section headers use AppTypography tokens.
+// Hero display numbers (48pt pass rate, 32pt suite name) use fixed point
+// sizes for pixel-perfect image export. These are marked with:
+//   // design-system-exempt: image export requires fixed point sizes
 
 /// Shareable eval result card, modeled after the existing `BenchmarkCardView`.
 ///
@@ -90,7 +97,7 @@ struct EvalBenchmarkCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // Suite name
                 Text(data.suiteName)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 32, weight: .bold)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(AppColors.textPrimary)
 
                 // Category badge
@@ -98,7 +105,7 @@ struct EvalBenchmarkCard: View {
                     Image(systemName: data.category.symbolName)
                         .font(.system(size: 14))
                     Text(data.category.displayName)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(AppTypography.badge)
                 }
                 .foregroundStyle(AppColors.accentCyan)
                 .padding(.horizontal, 12)
@@ -114,7 +121,7 @@ struct EvalBenchmarkCard: View {
                 data.date,
                 format: .dateTime.month(.abbreviated).day().year()
             )
-            .font(.system(size: 16, weight: .medium))
+            .font(AppTypography.subtitle)
             .foregroundStyle(AppColors.textTertiary)
         }
     }
@@ -152,10 +159,10 @@ struct EvalBenchmarkCard: View {
 
             VStack(spacing: 4) {
                 Text("\(percent)")
-                    .font(.system(size: 48, weight: .bold, design: .monospaced))
+                    .font(.system(size: 48, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(color)
                 Text("PASS %")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(AppTypography.badge)
                     .foregroundStyle(AppColors.textTertiary)
             }
         }
@@ -165,7 +172,7 @@ struct EvalBenchmarkCard: View {
     private func modelSummaryRow(_ summary: EvalBenchmarkCardData.ModelSummary) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(summary.modelName)
-                .font(.system(size: 18, weight: .semibold))
+                .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -192,10 +199,10 @@ struct EvalBenchmarkCard: View {
     private func metricPill(label: String, value: String, color: Color) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                .font(AppTypography.metricLarge)
                 .foregroundStyle(color)
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
         }
     }
@@ -210,12 +217,12 @@ struct EvalBenchmarkCard: View {
                     .font(.system(size: 14))
                     .foregroundStyle(AppColors.textTertiary)
                 Text(data.deviceName)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textTertiary)
                 Text("·")
                     .foregroundStyle(AppColors.textTertiary)
                 Text(data.platform)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textTertiary)
             }
 
@@ -227,7 +234,7 @@ struct EvalBenchmarkCard: View {
                     .font(.system(size: 14))
                     .foregroundStyle(AppColors.accentTeal)
                 Text("Edge AI Lab")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.accentTeal)
             }
         }
@@ -304,7 +311,7 @@ struct EvalBenchmarkCardShareSheet: View {
             // Title bar
             HStack {
                 Text("Share Eval Results")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 Spacer()
@@ -386,7 +393,7 @@ struct EvalBenchmarkCardShareSheet: View {
                     .font(.system(size: 24))
                     .foregroundStyle(color)
                 Text(label)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }
             .frame(width: 90, height: 70)

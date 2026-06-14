@@ -127,7 +127,7 @@ struct EvalRunnerView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text("Evaluation Runner")
-                    .font(.system(.title2, design: .default, weight: .bold))
+                    .font(AppTypography.pageTitle)
                     .foregroundStyle(AppColors.textPrimary)
                     .accessibilityIdentifier("evalRunner_title")
 
@@ -145,7 +145,7 @@ struct EvalRunnerView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "plus.circle.fill")
                     Text("New Suite")
-                        .font(.system(.caption, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                 }
                 .foregroundStyle(AppColors.accentCyan)
                 .padding(.horizontal, AppSpacing.md)
@@ -205,7 +205,7 @@ struct EvalRunnerView: View {
 
                 // Name
                 Text(suite.name)
-                    .font(.system(.caption, design: .default, weight: .semibold))
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(
                         isSelected ? AppColors.textPrimary : AppColors.textSecondary
                     )
@@ -343,7 +343,7 @@ struct EvalRunnerView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(model.metadata?.name ?? model.filename)
-                        .font(.system(.caption, design: .default, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                         .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
 
@@ -391,9 +391,9 @@ struct EvalRunnerView: View {
                 Image(systemName: isRunning ? "stop.fill" : "play.fill")
                     .font(.system(size: 14, weight: .bold))
                 Text(isRunning ? "Running…" : "Run Evaluation")
-                    .font(.system(.body, design: .default, weight: .bold))
+                    .font(AppTypography.subtitle)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
@@ -428,9 +428,9 @@ struct EvalRunnerView: View {
                 Image(systemName: isBatchRunning ? "stop.fill" : "forward.fill")
                     .font(.system(size: 14, weight: .bold))
                 Text(isBatchRunning ? "Batch Running…" : "Run All")
-                    .font(.system(.body, design: .default, weight: .bold))
+                    .font(AppTypography.subtitle)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
@@ -600,7 +600,7 @@ struct EvalRunnerView: View {
                     // Suite name + model count
                     HStack(spacing: AppSpacing.sm) {
                         Text(entry.suiteName)
-                            .font(.system(.callout, design: .default, weight: .semibold))
+                            .font(AppTypography.cardTitle)
                             .foregroundStyle(AppColors.textPrimary)
 
                         Text("\(entry.modelCount) model\(entry.modelCount == 1 ? "" : "s")")
@@ -657,7 +657,7 @@ struct EvalRunnerView: View {
                 .frame(width: 44, height: 44)
 
             Text("\(percent)%")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .font(AppTypography.metric)
                 .foregroundStyle(color)
         }
     }
@@ -776,7 +776,7 @@ struct EvalRunnerView: View {
 
 #if DEBUG
 #Preview("Eval Runner") {
-    // TODO: Preview requires ConversationViewModel with a real engine
+    // Preview placeholder — ConversationViewModel requires a real InstrumentedEngine.
     Text("Preview requires ConversationViewModel")
         .preferredColorScheme(.dark)
 }

@@ -110,7 +110,7 @@ private struct ModelDetailPanel: View {
                 // MARK: Header — Name + Status
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     Text(metadata.name)
-                        .font(.system(.title2, design: .default, weight: .bold))
+                        .font(AppTypography.pageTitle)
                         .foregroundStyle(AppColors.textPrimary)
                         .accessibilityIdentifier("modelDetail_name")
 
@@ -253,7 +253,7 @@ private struct ModelDetailPanel: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                     Text(metadata.architectureType)
-                        .font(.system(.subheadline, weight: .medium))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
                 }
 
@@ -284,7 +284,7 @@ private struct ModelDetailPanel: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                     Text(metadata.recommendedFor)
-                        .font(.system(.caption, weight: .medium))
+                        .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentGold)
                 }
             }
@@ -313,7 +313,7 @@ private struct ModelDetailPanel: View {
                         .accessibilityIdentifier("modelDetail_emptyIcon")
 
                     Text("Welcome to Edge AI Lab")
-                        .font(.system(.title2, design: .default, weight: .bold))
+                        .font(AppTypography.pageTitle)
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text("A research instrument for running Gemma models entirely on-device.\nNo cloud. No API keys. Full control.")
@@ -397,7 +397,7 @@ private struct ModelDetailPanel: View {
                 .foregroundStyle(iconColor)
 
             Text(title)
-                .font(.system(.callout, design: .default, weight: .semibold))
+                .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.textPrimary)
 
             Text(subtitle)
@@ -426,10 +426,10 @@ private struct ModelDetailPanel: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(.caption, design: .default, weight: .semibold))
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textPrimary)
                 Text(subtitle)
-                    .font(.system(.caption2))
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
             }
             Spacer()
@@ -550,7 +550,7 @@ private struct ConversationDetailPlaceholder: View {
                 .accessibilityIdentifier("conversationPlaceholder_icon")
 
             Text("Select a conversation")
-                .font(.system(.title3, design: .default, weight: .medium))
+                .font(AppTypography.sectionTitle)
                 .foregroundStyle(AppColors.textSecondary)
 
             Text("Start a new chat or pick one from the sidebar")
@@ -591,7 +591,7 @@ private struct ExperimentDetailView: View {
                         .foregroundStyle(AppColors.accentGold)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(activeEntry?.title ?? "Archived Experiment")
-                            .font(.system(.title3, weight: .semibold))
+                            .font(AppTypography.sectionTitle)
                             .foregroundStyle(AppColors.textPrimary)
                         if let entry = activeEntry {
                             Text("Created \(entry.createdAt.formatted(date: .abbreviated, time: .shortened))")
@@ -619,7 +619,7 @@ private struct ExperimentDetailView: View {
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "arrow.triangle.branch")
                         Text("Fork Experiment")
-                            .font(.system(.body, weight: .semibold))
+                            .font(AppTypography.subtitle)
                     }
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
@@ -673,7 +673,7 @@ private struct ExperimentDetailView: View {
                 .foregroundStyle(AppColors.textTertiary)
             Spacer()
             Text(value)
-                .font(.system(.caption, design: .monospaced, weight: .medium))
+                .font(AppTypography.metric)
                 .foregroundStyle(AppColors.accentCyan)
         }
         .padding(.vertical, AppSpacing.xs)
@@ -850,7 +850,7 @@ private struct CommunityModelsBrowser: View {
                         } label: {
                             Text("Import")
                                 .font(AppTypography.badge)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColors.textPrimary)
                                 .padding(.horizontal, AppSpacing.sm)
                                 .padding(.vertical, AppSpacing.xs)
                                 .background(AppColors.accentTeal)

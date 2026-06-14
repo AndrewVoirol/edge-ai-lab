@@ -92,12 +92,12 @@ struct iOSStatusIndicatorView: View {
             // Model name
             if let metadata = viewModel.activeModelMetadata {
                 Text(metadata.name)
-                    .font(.system(.caption, weight: .semibold))
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(1)
             } else if viewModel.isLoadingModel {
                 Text("Loading…")
-                    .font(.system(.caption, weight: .semibold))
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
@@ -202,7 +202,7 @@ struct iOSStatusIndicatorView: View {
     private func expandedMetric(label: String, value: String, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
-                .font(.system(.caption2, weight: .medium))
+                .font(AppTypography.badge)
                 .foregroundStyle(AppColors.textTertiary)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(value)
@@ -210,7 +210,7 @@ struct iOSStatusIndicatorView: View {
                     .foregroundStyle(AppColors.textPrimary)
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.system(.caption2))
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                 }
             }

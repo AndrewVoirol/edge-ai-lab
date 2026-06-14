@@ -33,7 +33,7 @@ struct StatusBarView: View {
                     .accessibilityIdentifier("progress_loading")
             }
             Text(viewModel.statusMessage)
-                .font(.system(.caption, design: .default, weight: .semibold))
+                .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textSecondary)
                 .lineLimit(1)
 

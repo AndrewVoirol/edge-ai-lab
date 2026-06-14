@@ -211,7 +211,7 @@ struct iOSSuiteEditorSheet: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
                 TextField("e.g. My Custom Eval", text: $name)
-                    .font(.system(.body, design: .default))
+                    .font(AppTypography.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .padding(AppSpacing.sm)
                     .background(AppColors.backgroundTertiary)
@@ -225,7 +225,7 @@ struct iOSSuiteEditorSheet: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
                 TextField("What does this suite test?", text: $description, axis: .vertical)
-                    .font(.system(.body, design: .default))
+                    .font(AppTypography.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(3...6)
                     .padding(AppSpacing.sm)
@@ -260,7 +260,7 @@ struct iOSSuiteEditorSheet: View {
                                 Image(systemName: cat.symbolName)
                                     .font(.caption)
                                 Text(cat.displayName)
-                                    .font(.system(.caption, design: .default, weight: .semibold))
+                                    .font(AppTypography.sectionHeader)
                             }
                             .foregroundStyle(
                                 isSelected ? AppColors.textPrimary : AppColors.textSecondary
@@ -309,7 +309,7 @@ struct iOSSuiteEditorSheet: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Prompt")
-                            .font(.system(.caption, weight: .semibold))
+                            .font(AppTypography.sectionHeader)
                     }
                     .foregroundStyle(AppColors.accentCyan)
                 }
@@ -333,7 +333,7 @@ struct iOSSuiteEditorSheet: View {
                 .foregroundStyle(AppColors.textTertiary.opacity(0.5))
 
             Text("No prompts yet")
-                .font(.system(.callout, design: .default, weight: .medium))
+                .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textSecondary)
 
             Text("Add prompts to define what this suite evaluates.")
@@ -347,7 +347,7 @@ struct iOSSuiteEditorSheet: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "plus")
                     Text("Add First Prompt")
-                        .font(.system(.caption, design: .default, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                 }
                 .foregroundStyle(AppColors.accentCyan)
                 .padding(.horizontal, AppSpacing.lg)
@@ -369,7 +369,7 @@ struct iOSSuiteEditorSheet: View {
             // Header: index + behavior + actions
             HStack {
                 Text("#\(index + 1)")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .font(AppTypography.metric)
                     .foregroundStyle(AppColors.accentCyan)
 
                 Text(prompt.expectedBehavior.displayName)
@@ -418,7 +418,7 @@ struct iOSSuiteEditorSheet: View {
                 promptEditForm(index: index)
             } else {
                 Text(prompt.promptText.isEmpty ? "Empty prompt" : prompt.promptText)
-                    .font(.system(.caption, design: .default))
+                    .font(AppTypography.caption)
                     .foregroundStyle(
                         prompt.promptText.isEmpty ? AppColors.textTertiary : AppColors.textSecondary
                     )
@@ -442,7 +442,7 @@ struct iOSSuiteEditorSheet: View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             // Prompt text
             TextField("Enter prompt text…", text: $prompts[index].promptText, axis: .vertical)
-                .font(.system(.body, design: .default))
+                .font(AppTypography.body)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(2...5)
                 .padding(AppSpacing.sm)
@@ -507,7 +507,7 @@ struct iOSSuiteEditorSheet: View {
                         }
                     } label: {
                         Text(label)
-                            .font(.system(.caption2, design: .default, weight: .semibold))
+                            .font(AppTypography.badge)
                             .foregroundStyle(isActive ? AppColors.textPrimary : AppColors.textTertiary)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, 4)
@@ -589,7 +589,7 @@ struct iOSSuiteEditorSheet: View {
                 get: { value },
                 set: { update($0) }
             ))
-            .font(.system(.caption, design: .default))
+            .font(AppTypography.caption)
             .foregroundStyle(AppColors.textPrimary)
             .padding(AppSpacing.sm)
             .background(AppColors.backgroundTertiary)

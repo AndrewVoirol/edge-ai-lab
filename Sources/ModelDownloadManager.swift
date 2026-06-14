@@ -14,6 +14,7 @@
 
 import Foundation
 import Observation
+import os
 #if os(iOS)
 import UserNotifications
 #endif
@@ -39,6 +40,11 @@ import UserNotifications
 /// - Download metadata persisted to UserDefaults to survive app termination
 @Observable
 final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
+
+    private let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "EdgeAILab",
+        category: "ModelDownloadManager"
+    )
 
     // MARK: - Static Identifier
 
@@ -527,7 +533,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
                 try FileManager.default.removeItem(at: fileURL)
             }
         } catch {
-            print("⚠️ Failed to delete model file: \(error.localizedDescription)")
+            logger.warning("Failed to delete model file: \(error.localizedDescription)")
         }
         downloadStates[filename] = .notDownloaded
         downloadProgress.removeValue(forKey: filename)

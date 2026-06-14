@@ -76,7 +76,7 @@ struct ModelShowcaseView: View {
 
             // Model name
             Text(metadata.name)
-                .font(.system(.title2, design: .default, weight: .bold))
+                .font(AppTypography.pageTitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
 
@@ -198,7 +198,7 @@ struct ModelShowcaseView: View {
                         .foregroundStyle(fits ? AppColors.success : AppColors.warning)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(fits ? "This model should fit your device" : "This model may not fit — limited memory")
-                            .font(.system(.subheadline, weight: .medium))
+                            .font(AppTypography.subtitle)
                             .foregroundStyle(AppColors.textPrimary)
                         Text("Requires \(metadata.minDeviceMemoryGB) GB · Available: \(String(format: "%.0f", availableMB)) MB")
                             .font(AppTypography.caption)

@@ -104,7 +104,7 @@ struct ModelStripView: View {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 HStack(spacing: AppSpacing.xs) {
                     Text(model.metadata?.name ?? model.filename)
-                        .font(.system(.caption, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                         .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                         .lineLimit(1)
                     if model.source == .edgeGallery {
@@ -170,7 +170,7 @@ struct ModelStripView: View {
 
         return VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(model.name)
-                .font(.system(.caption, weight: .semibold))
+                .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 

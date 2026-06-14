@@ -187,6 +187,18 @@ enum AppTypography {
     /// Tool/badge labels.
     static let badge: Font = .system(.caption2, design: .rounded, weight: .medium)
 
+    // MARK: Page & Section Headings
+    /// View/page titles — prominent headings for top-level screens (~24pt bold).
+    static let pageTitle: Font = .system(.title, design: .default, weight: .bold)
+    /// Large section headings — group-level titles within a view (~20pt semibold).
+    static let sectionTitle: Font = .system(.title3, design: .default, weight: .semibold)
+    /// Card header titles — titles inside cards and panels (~18pt semibold).
+    static let cardTitle: Font = .system(.headline, design: .default, weight: .semibold)
+    /// Subtitles and emphasis text — secondary headings, callout labels (~16pt medium).
+    static let subtitle: Font = .system(.subheadline, design: .default, weight: .medium)
+    /// Tiny labels, chart axes, fine print (~9pt light).
+    static let footnote: Font = .system(.caption2, design: .default, weight: .light)
+
     // MARK: iOS List
     /// List row title — system body for maximum readability at all Dynamic Type sizes.
     static let listTitle: Font = .system(.body, design: .default, weight: .regular)

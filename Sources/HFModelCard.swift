@@ -65,7 +65,7 @@ struct HFModelCard: View {
             // Header row: display name + format badge
             HStack {
                 Text(model.displayName)
-                    .font(.system(.headline, design: .default, weight: .semibold))
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -104,7 +104,7 @@ struct HFModelCard: View {
             // Quantization info if available
             if let quant = model.quantizationInfo {
                 Text(quant.uppercased())
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .font(AppTypography.badge)
                     .foregroundStyle(AppColors.accentTeal)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, 2)
@@ -145,7 +145,7 @@ struct HFModelCard: View {
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         Text(text)
-            .font(.system(.caption2, design: .monospaced, weight: .bold))
+            .font(AppTypography.badge)
             .foregroundStyle(color)
             .padding(.horizontal, AppSpacing.sm)
             .padding(.vertical, 2)

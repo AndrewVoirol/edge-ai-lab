@@ -367,7 +367,7 @@ struct ChatBubbleView: View {
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.textTertiary)
                             Text(event.arguments)
-                                .font(.system(.caption2, design: .monospaced))
+                                .font(AppTypography.mono)
                                 .foregroundStyle(AppColors.textSecondary)
                                 .textSelection(.enabled)
                         }
@@ -377,7 +377,7 @@ struct ChatBubbleView: View {
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
                         Text(event.result)
-                            .font(.system(.caption2, design: .monospaced))
+                            .font(AppTypography.mono)
                             .foregroundStyle(AppColors.textSecondary)
                             .textSelection(.enabled)
                             .lineLimit(12)

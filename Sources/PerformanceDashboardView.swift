@@ -82,7 +82,7 @@ struct PerformanceDashboardView: View {
                     .font(.title2)
                     .foregroundStyle(AppColors.accentTeal)
                 Text("Performance Dashboard")
-                    .font(.system(.title3, design: .default, weight: .semibold))
+                    .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
                 Spacer()
 
@@ -287,7 +287,7 @@ struct PerformanceDashboardView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.model)
-                    .font(.system(.caption, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
                 Text("\(entry.platform) · \(entry.device)")

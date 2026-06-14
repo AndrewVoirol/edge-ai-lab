@@ -153,8 +153,9 @@ struct iOSConversationPickerSheet: View {
 
     private func conversationRow(_ entry: ConversationIndexEntry) -> some View {
         let isActive = viewModel.activeConversationId == entry.id
+        let titleFont: Font = isActive ? AppTypography.subtitle : AppTypography.listTitle
 
-        Button {
+        return Button {
             viewModel.loadConversation(id: entry.id)
             dismiss()
         } label: {
@@ -162,7 +163,7 @@ struct iOSConversationPickerSheet: View {
                 // Title
                 HStack {
                     Text(entry.title)
-                        .font(.system(.body, weight: isActive ? .semibold : .regular))
+                        .font(titleFont)
                         .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                         .lineLimit(2)
 

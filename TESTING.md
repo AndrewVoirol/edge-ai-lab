@@ -46,11 +46,11 @@ xcodebuild test \
 
 | Platform | Tests | Skipped | Failures | Duration |
 |----------|-------|---------|----------|----------|
-| iOS Simulator (Unit) | 470+ | ~12 | 0 | ~35s |
-| macOS (Unit) | 460+ | ~15 | 0 | ~21s |
+| iOS Simulator (Unit) | 730+ | ~12 | 0 | ~45s |
+| macOS (Unit) | 730+ | ~15 | 0 | ~30s |
 | iOS Simulator (UI) | 5 | 0 | 0 | ~90s |
 | macOS (UI) | 26 | — | — | ~60s |
-| iOS Device (Unit) | 470+ | ~15 | 0 | ~3.4s |
+| iOS Device (Unit) | 730+ | ~15 | 0 | ~5s |
 
 ## Test Architecture
 
@@ -96,13 +96,32 @@ The iOS and macOS test targets share the same `Tests/**` source files. Each test
 | `ModelLifecycleTests` | Import → delete → re-import lifecycle, stale catalog cleanup |
 | `KaggleTokenStorageTests` | Kaggle Keychain credential storage round-trip |
 | `HFRetryTests` | HuggingFace API retry with exponential backoff |
+| `AutomationFlowRunnerTests` | Automation flow execution, step sequencing |
+| `BenchmarkCardTests` | Benchmark card rendering, data formatting |
+| `BuiltInEvalSuitesTests` | Built-in eval suite definitions, prompt content |
+| `ConversationForkTests` | Conversation forking, UUID reassignment |
+| `ConversationStoreTests` | Conversation CRUD, JSON persistence |
+| `DeveloperAutomationHarnessTests` | Developer automation harness, launch arg parsing |
+| `EvalResultTests` | Eval result data model, pass/fail scoring |
+| `EvalRunnerTests` | Eval suite execution, scoring pipeline |
+| `EvalScoringTests` | Individual scoring variant logic |
+| `EvalStoreTests` | Eval result persistence, retrieval |
+| `EvalSuiteTests` | Eval suite definition, serialization |
+| `ExperimentConfigTests` | Experiment configuration, flag management |
+| `GalleryParityBenchmarkTests` | Gallery parity verification benchmarks |
+| `MCPClientTests` | MCP client connection, JSON-RPC messaging |
+| `MultiTurnIntegrationTests` | Multi-turn conversation coherence |
+| `PerformanceTests` | XCTest performance measurements |
+| `SmartFallbackIntegrationTests` | GPU → CPU fallback integration |
+| `SprintFeatureIntegrationTests` | Sprint feature end-to-end integration |
+| `ToolCallingIntegrationTests` | Tool calling end-to-end integration |
 
 ### Test Plans
 
 | Plan | Purpose | When to Use |
 |------|---------|-------------|
 | `UnitTests.xctestplan` | Fast CI tests, no model needed | Every PR |
-| `IntegrationTests.xctestplan` | Cross-component tests | Pre-merge |
+| `IntegrationTests.xctestplan` | Cross-component tests (`SmartFallbackIntegrationTests`) | Pre-merge |
 | `PerformanceTests.xctestplan` | Regression benchmarks, needs model | Release validation |
 
 ### UI Test Suites
@@ -121,7 +140,7 @@ UI tests run on the built app via XCUITest. They verify critical user flows with
 
 Source: `iOSUITests/GemmaEdgeGalleryiOSUITests.swift`
 
-#### macOS UI Tests (20 tests)
+#### macOS UI Tests (26 tests)
 
 | Test | What It Verifies |
 |------|------------------|
@@ -185,7 +204,7 @@ func testExample() {
 
 ### Singleton Guard
 
-`EnvironmentInjectionTests.testNoSharedSingleton()` uses Swift's `Mirror` to inspect `ConversationViewModel` at the type level. If anyone adds `static let shared`, the test fails. The CI workflow also runs `grep -r "ConversationViewModel.shared" Sources/ Tests/` as a build step.
+`EnvironmentInjectionTests.testNoSharedSingleton()` uses Swift's `Mirror` to inspect `ConversationViewModel` at the type level. If anyone adds `static let shared`, the test fails. The CI workflow also runs `grep -r "ConversationViewModel\.shared" Sources/` as a build step.
 
 ## ⚠️ Animation Safety
 

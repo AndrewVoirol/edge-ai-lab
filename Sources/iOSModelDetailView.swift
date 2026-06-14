@@ -181,7 +181,7 @@ struct iOSModelDetailView: View {
             // Model name and architecture
             VStack(spacing: AppSpacing.xs) {
                 Text(metadata.name)
-                    .font(.system(.title2, weight: .bold))
+                    .font(AppTypography.pageTitle)
                     .foregroundStyle(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
@@ -231,7 +231,7 @@ struct iOSModelDetailView: View {
                         .frame(width: 8, height: 8)
                         .pulsingGlow(AppColors.success)
                     Text("Model is running")
-                        .font(.system(.body, weight: .semibold))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.success)
                 }
                 .frame(maxWidth: .infinity)
@@ -246,7 +246,7 @@ struct iOSModelDetailView: View {
                     ProgressView()
                         .tint(AppColors.accentCyan)
                     Text("Loading…")
-                        .font(.system(.body, weight: .semibold))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.accentCyan)
                 }
                 .frame(maxWidth: .infinity)
@@ -260,8 +260,8 @@ struct iOSModelDetailView: View {
                     Task { await viewModel.handleModelSelection(url) }
                 } label: {
                     Label("Load Model", systemImage: "bolt.fill")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
                         .background(AppColors.accentCyan)
@@ -277,7 +277,7 @@ struct iOSModelDetailView: View {
                         viewModel.downloadManager.pauseDownload(metadata)
                     } label: {
                         Label("Pause", systemImage: "pause.fill")
-                            .font(.system(.body, weight: .semibold))
+                            .font(AppTypography.subtitle)
                             .foregroundStyle(AppColors.warning)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
@@ -290,7 +290,7 @@ struct iOSModelDetailView: View {
                         viewModel.downloadManager.cancelDownload(metadata)
                     } label: {
                         Label("Cancel", systemImage: "xmark.circle")
-                            .font(.system(.body, weight: .semibold))
+                            .font(AppTypography.subtitle)
                             .foregroundStyle(AppColors.danger)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
@@ -306,8 +306,8 @@ struct iOSModelDetailView: View {
                     viewModel.downloadManager.resumeDownload(metadata)
                 } label: {
                     Label("Resume Download", systemImage: "play.fill")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
                         .background(AppColors.accentCyan)
@@ -321,7 +321,7 @@ struct iOSModelDetailView: View {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(AppColors.textSecondary)
                     Text("Queued (#\(position))")
-                        .font(.system(.body, weight: .semibold))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textSecondary)
                     Spacer()
                     Button("Cancel") {
@@ -341,8 +341,8 @@ struct iOSModelDetailView: View {
                     confirmDownload()
                 } label: {
                     Label("Download Model", systemImage: "icloud.and.arrow.down")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
                         .background(AppColors.accentCyan)
@@ -564,7 +564,7 @@ struct iOSModelDetailView: View {
                 showDeleteConfirmation = true
             } label: {
                 Label("Delete from Device", systemImage: "trash")
-                    .font(.system(.body, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.danger)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
@@ -581,7 +581,7 @@ struct iOSModelDetailView: View {
     private func detailCard<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Label(title, systemImage: icon)
-                .font(.system(.subheadline, weight: .semibold))
+                .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textSecondary)
 
             content()

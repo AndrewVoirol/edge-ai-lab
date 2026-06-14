@@ -59,6 +59,19 @@ struct OnboardingView: View {
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : 20)
         }
+        .overlay(alignment: .topTrailing) {
+            // Skip button — visible on pages 0-2 (hidden on the final page)
+            if currentPage < pages.count - 1 {
+                Button("Skip") {
+                    onComplete()
+                }
+                .font(AppTypography.body)
+                .foregroundStyle(AppColors.textSecondary)
+                .accessibilityIdentifier("button_skipOnboarding")
+                .padding(.top, AppSpacing.lg)
+                .padding(.trailing, AppSpacing.xl)
+            }
+        }
         .onAppear {
             withAnimation(AppAnimation.gentleSpring) {
                 appeared = true
@@ -82,7 +95,7 @@ struct OnboardingView: View {
 
             // Title
             Text(page.title)
-                .font(.system(.title, design: .default, weight: .bold))
+                .font(AppTypography.pageTitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("onboarding_title_\(currentPage)")
@@ -131,7 +144,7 @@ struct OnboardingView: View {
             }
         } label: {
             Text(isLastPage ? "Get Started" : "Continue")
-                .font(.system(.body, design: .default, weight: .semibold))
+                .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.backgroundPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.md)

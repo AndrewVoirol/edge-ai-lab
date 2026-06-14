@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.0.0-rc1] - 2026-06-13
+
 ### Added
 
 - **URL Import — "Paste and Go"** — Paste any HuggingFace model URL to parse metadata, preview capabilities, and download directly into the app.
-  - macOS: `macOSURLImportSheet` with 7-state rendering (idle → parsing → fetching → analyzing → readyToDownload → downloading → complete), progressive metadata disclosure, and multi-file picker for repos with multiple `.litertlm` files.
+  - macOS: `macOSURLImportSheet` with 8-state rendering (idle → parsing → fetching → analyzing → readyToDownload → downloading → complete / failed), progressive metadata disclosure, and multi-file picker for repos with multiple `.litertlm` files.
   - iOS: `iOSURLImportSheet` with equivalent pipeline and mobile-optimized layout.
   - ⌘I keyboard shortcut opens the import sheet on macOS.
   - Inline quick-paste field in the Community Models browser for fast URL entry.
@@ -90,5 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - iOS support is present in the codebase but is not the primary shipping target for v1.0.
 - E4B and 12B benchmarks may not have formal numbers at launch.
 
-[Unreleased]: https://github.com/AndrewVoirol/edge-ai-lab/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/AndrewVoirol/edge-ai-lab/compare/v2.0.0-rc1...HEAD
+[2.0.0-rc1]: https://github.com/AndrewVoirol/edge-ai-lab/compare/v1.0.0...v2.0.0-rc1
 [1.0.0]: https://github.com/AndrewVoirol/edge-ai-lab/releases/tag/v1.0.0

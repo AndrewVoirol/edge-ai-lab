@@ -152,7 +152,7 @@ struct SidebarView: View {
                                     )
                                 )
                             Text("Get Started")
-                                .font(.system(.subheadline, weight: .semibold))
+                                .font(AppTypography.sectionHeader)
                                 .foregroundStyle(AppColors.textPrimary)
                         }
 
@@ -168,7 +168,7 @@ struct SidebarView: View {
                                 Image(systemName: "arrow.down.circle.fill")
                                     .foregroundStyle(AppColors.accentCyan)
                                 Text("Gemma 4 E2B (~2.6 GB)")
-                                    .font(.system(.caption, weight: .medium))
+                                    .font(AppTypography.subtitle)
                                     .foregroundStyle(AppColors.accentCyan)
                             }
                         }
@@ -321,7 +321,7 @@ struct SidebarView: View {
                     .accessibilityIdentifier("sidebar_activeModel_spinner")
                 VStack(alignment: .leading, spacing: 2) {
                     Text(viewModel.activeModelMetadata?.name ?? "Loading model…")
-                        .font(.system(.subheadline, weight: .medium))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
                     Text("Loading…")
@@ -339,7 +339,7 @@ struct SidebarView: View {
                     .glow(AppColors.success, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(metadata.name)
-                        .font(.system(.subheadline, weight: .medium))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
                     Text("Loaded")
@@ -355,7 +355,7 @@ struct SidebarView: View {
                     .fill(AppColors.textTertiary.opacity(0.4))
                     .frame(width: 8, height: 8)
                 Text("No model loaded")
-                    .font(.system(.subheadline, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .accessibilityIdentifier("sidebar_activeModel_empty")
@@ -377,7 +377,7 @@ struct SidebarView: View {
 
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(model.name)
-                .font(.system(.subheadline, weight: .medium))
+                .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -546,7 +546,7 @@ struct SidebarView: View {
                 // Title line
                 HStack(spacing: AppSpacing.xs) {
                     Text(entry.title)
-                        .font(.system(.subheadline, weight: isActive ? .semibold : .medium))
+                        .font(isActive ? AppTypography.sectionHeader : AppTypography.subtitle)
                         .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                         .lineLimit(2)
 
@@ -715,7 +715,7 @@ private struct SidebarModelRow: View {
             // Name + Gallery badge + trash icon
             HStack(spacing: AppSpacing.xs) {
                 Text(model.metadata?.name ?? model.filename)
-                    .font(.system(.subheadline, weight: .medium))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                     .lineLimit(1)
 

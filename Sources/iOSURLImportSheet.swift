@@ -70,7 +70,7 @@ struct iOSURLImportSheet: View {
                     } label: {
                         Label("Import Model", systemImage: "arrow.down.circle")
                             .frame(maxWidth: .infinity)
-                            .font(.system(.body, weight: .semibold))
+                            .font(AppTypography.subtitle)
                     }
                     .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .accessibilityIdentifier("urlImport_importButton")
@@ -175,7 +175,7 @@ struct iOSURLImportSheet: View {
                     } label: {
                         Label("Download \(file.rfilename)", systemImage: "icloud.and.arrow.down")
                             .frame(maxWidth: .infinity)
-                            .font(.system(.body, weight: .semibold))
+                            .font(AppTypography.subtitle)
                     }
                     .accessibilityIdentifier("urlImport_downloadButton")
                 }

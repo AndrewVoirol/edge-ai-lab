@@ -19,22 +19,31 @@ import os
 // MARK: - URL Import Manager
 
 /// Orchestrates the full paste-URL-to-download pipeline for importing models
-/// from HuggingFace.
+/// from HuggingFace and Kaggle.
 ///
 /// **Workflow:**
-/// 1. User pastes a HuggingFace URL
-/// 2. Manager parses the URL to extract org/repo (and optionally a specific file)
-/// 3. Fetches model details from the HF API
-/// 4. Runs `ModelCardParser` to infer metadata
+/// 1. User pastes a HuggingFace or Kaggle model URL
+/// 2. Manager detects the source and parses the URL accordingly:
+///    - **Kaggle:** Extracts the model handle via `KaggleModelParser`
+///    - **HuggingFace:** Extracts org/repo (and optionally a specific file)
+/// 3. Fetches model details from the appropriate API
+/// 4. Runs `ModelCardParser` to infer metadata (HuggingFace) or builds
+///    metadata from the Kaggle handle directly
 /// 5. Presents the inferred metadata for user confirmation
 /// 6. On confirmation, starts the download via `ModelDownloadManager`
 /// 7. Adds the completed model to `DynamicModelCatalog`
 ///
 /// **Supported URL Formats:**
+///
+/// *HuggingFace:*
 /// - `https://huggingface.co/{org}/{repo}`
 /// - `https://huggingface.co/{org}/{repo}/blob/main/{file}`
 /// - `https://huggingface.co/{org}/{repo}/tree/main`
 /// - `https://hf.co/{org}/{repo}` (short URL)
+///
+/// *Kaggle:*
+/// - `https://www.kaggle.com/models/{owner}/{model}`
+/// - `https://www.kaggle.com/models/{owner}/{model}/{framework}/{variation}/{version}`
 ///
 /// **State Machine:**
 /// ```

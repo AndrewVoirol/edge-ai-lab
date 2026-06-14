@@ -13,7 +13,12 @@
 // limitations under the License.
 
 import XCTest
+
+#if os(iOS)
+@testable import GemmaEdgeGallery_iOS
+#elseif os(macOS)
 @testable import GemmaEdgeGallery_macOS
+#endif
 
 // MARK: - HF API Retry Tests
 

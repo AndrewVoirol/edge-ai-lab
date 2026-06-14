@@ -16,6 +16,13 @@ import LiteRTLM
 import SwiftUI
 
 // MARK: - Benchmark Card Data
+//
+// MARK: Design System Exemption Policy
+// This file renders image-export benchmark cards via ImageRenderer.
+// Labels, badges, and section headers use AppTypography tokens.
+// Hero metric numbers (96pt, 28pt) use fixed point sizes for
+// pixel-perfect image export. These are marked with:
+//   // design-system-exempt: image export requires fixed point sizes
 
 /// All the data needed to render a shareable benchmark card.
 /// Constructed from BenchmarkInfo + InferenceMetrics + model/device context.
@@ -202,10 +209,10 @@ struct BenchmarkCardView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Edge AI Lab")
-                            .font(.system(size: 20, weight: .bold, design: .default))
+                            .font(AppTypography.sectionTitle)
                             .foregroundStyle(AppColors.textPrimary)
                         Text("Benchmark Result")
-                            .font(.system(size: 13, weight: .medium, design: .default))
+                            .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                 }
@@ -216,12 +223,12 @@ struct BenchmarkCardView: View {
             // Model info pill
             VStack(alignment: .trailing, spacing: 6) {
                 Text(data.modelName)
-                    .font(.system(size: 16, weight: .semibold, design: .default))
+                    .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 HStack(spacing: 8) {
                     Text(data.modelArchitecture)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentTeal)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -229,7 +236,7 @@ struct BenchmarkCardView: View {
                         .clipShape(Capsule())
 
                     Text(data.backendLabel)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(AppTypography.badge)
                         .foregroundStyle(data.backendLabel.contains("GPU") ? AppColors.success : AppColors.warning)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -250,12 +257,12 @@ struct BenchmarkCardView: View {
             // Decode speed — the big number
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(String(format: "%.1f", data.decodeSpeed))
-                    .font(.system(size: 96, weight: .bold, design: .monospaced))
+                    .font(.system(size: 96, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(data.tier.color)
                     .shadow(color: data.tier.color.opacity(0.3), radius: 20, x: 0, y: 0)
 
                 Text("tok/s")
-                    .font(.system(size: 28, weight: .medium, design: .monospaced))
+                    .font(.system(size: 28, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(data.tier.color.opacity(0.7))
             }
 
@@ -266,7 +273,7 @@ struct BenchmarkCardView: View {
                     .frame(width: 8, height: 8)
 
                 Text(data.tier.label.uppercased())
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(AppTypography.badge)
                     .foregroundStyle(data.tier.color)
                     .tracking(2)
 
@@ -274,7 +281,7 @@ struct BenchmarkCardView: View {
                     .foregroundStyle(AppColors.textTertiary)
 
                 Text("Decode Speed")
-                    .font(.system(size: 14, weight: .medium, design: .default))
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
             }
         }
@@ -341,11 +348,11 @@ struct BenchmarkCardView: View {
                 .foregroundStyle(AppColors.textTertiary)
 
             Text(value)
-                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                .font(AppTypography.metricLarge)
                 .foregroundStyle(AppColors.textPrimary)
 
             Text(label)
-                .font(.system(size: 11, weight: .medium, design: .default))
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -374,11 +381,11 @@ struct BenchmarkCardView: View {
             // Attribution — repo URL + timestamp
             VStack(alignment: .trailing, spacing: 4) {
                 Text("github.com/AndrewVoirol/edge-ai-lab")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .font(AppTypography.metric)
                     .foregroundStyle(AppColors.accentTeal)
 
                 Text(data.timestamp, format: .dateTime.year().month(.abbreviated).day().hour().minute())
-                    .font(.system(size: 11, weight: .regular, design: .default))
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
             }
         }
@@ -389,7 +396,7 @@ struct BenchmarkCardView: View {
             Image(systemName: icon)
                 .font(.system(size: 10))
             Text(text)
-                .font(.system(size: 11, weight: .medium, design: .default))
+                .font(AppTypography.caption)
         }
         .foregroundStyle(AppColors.textSecondary)
     }

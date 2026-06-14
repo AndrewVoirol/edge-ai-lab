@@ -173,7 +173,7 @@ struct iOSEvalTabView: View {
                 } label: {
                     Label("Run Evaluation", systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
-                        .font(.system(.body, weight: .semibold))
+                        .font(AppTypography.subtitle)
                 }
                 .disabled(!canRun)
                 .listRowBackground(canRun ? AppColors.accentCyan : AppColors.backgroundTertiary)

@@ -191,7 +191,7 @@ struct CodeBlockView: View {
             HStack {
                 if let lang = language, !lang.isEmpty {
                     Text(lang.uppercased())
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentGold)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -215,7 +215,7 @@ struct CodeBlockView: View {
                         Image(systemName: copied ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 10))
                         Text(copied ? "Copied" : "Copy")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(AppTypography.caption)
                     }
                     .foregroundStyle(copied ? AppColors.success : AppColors.textSecondary)
                 }
@@ -238,7 +238,7 @@ struct CodeBlockView: View {
                     VStack(alignment: .trailing, spacing: 0) {
                         ForEach(Array(codeLines.enumerated()), id: \.offset) { index, _ in
                             Text("\(index + 1)")
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(AppTypography.mono)
                                 .foregroundStyle(AppColors.textSecondary.opacity(0.7))
                                 .frame(minWidth: 28, alignment: .trailing)
                                 .padding(.vertical, 0.5)
@@ -257,7 +257,7 @@ struct CodeBlockView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(codeLines.enumerated()), id: \.offset) { _, line in
                             Text(line.isEmpty ? " " : line)
-                                .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                .font(AppTypography.mono)
                                 .foregroundStyle(AppColors.textPrimary)
                                 .textSelection(.enabled)
                                 .padding(.vertical, 0.5)

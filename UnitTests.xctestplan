@@ -21,7 +21,9 @@
       },
       "selectedTests" : [
         "AutomationFlowRunnerTests",
+        "BatchEvalTests",
         "BenchmarkCardTests",
+        "BugFixTests",
         "BuiltInEvalSuitesTests",
         "ChatMessageTests",
         "CommunityDownloadTests",
@@ -46,14 +48,18 @@
         "FlowResultTests",
         "GalleryModelDiscoveryTests",
         "HFModelBrowserTests",
+        "HFRetryTests",
         "InferenceMetricsIntegrationTests",
         "InferenceMetricsTests",
+        "KaggleImportTests",
         "MCPClientTests",
         "MetricsStoreInferenceMetricsTests",
         "MetricsStoreTests",
         "ModelCardParserTests",
+        "ModelLifecycleTests",
         "ModelMetadataTests",
         "ModelRegistryTests",
+        "OnboardingTests",
         "PerformanceTierTests",
         "SettingsToggleTests",
         "SidebarSectionTests",
@@ -61,7 +67,12 @@
         "ThermalLevelTests",
         "ThinkingParserTests",
         "ToolCallingTests",
-        "URLImportManagerTests"
+        "URLImportE2ETests",
+        "URLImportIntegrationTests",
+        "URLImportManagerTests",
+        "iOSConversationPickerTests",
+        "iOSEvalExportTests",
+        "iOSSuiteEditorTests"
       ]
     }
   ],

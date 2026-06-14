@@ -82,7 +82,7 @@ struct ConversationAreaView: View {
 
             VStack(spacing: AppSpacing.sm) {
                 Text("Edge AI Lab")
-                    .font(.system(.title2, design: .default, weight: .semibold))
+                    .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 if viewModel.isEngineReady, let metadata = viewModel.activeModelMetadata {
@@ -212,7 +212,7 @@ struct ConversationAreaView: View {
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(.subheadline, weight: .medium))
+                        .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
                     Text(subtitle)
                         .font(AppTypography.caption)

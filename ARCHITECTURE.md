@@ -4,7 +4,7 @@
 
 This document describes the architecture of Edge AI Lab for contributors and reviewers. It covers the module structure, key protocols, data flows, and design decisions.
 
-**85+ Swift source files · 14 architectural layers · ~20K lines of production code**
+**84 Swift source files · 16 architectural layers · ~28.5K lines of production code**
 
 ---
 
@@ -19,6 +19,8 @@ This document describes the architecture of Edge AI Lab for contributors and rev
   - [Benchmark Capture & Visualization](#3-benchmark-capture--visualization)
   - [Tool Calling](#4-tool-calling)
   - [MCP Server Integration](#5-mcp-server-integration-macos)
+  - [URL Import Pipeline](#6-url-import-pipeline)
+  - [Evaluation Framework](#7-evaluation-framework)
 - [Design Decisions](#design-decisions)
 - [Where to Find Things](#where-to-find-things)
 - [Testing Architecture](#testing-architecture)
@@ -27,24 +29,26 @@ This document describes the architecture of Edge AI Lab for contributors and rev
 
 ## Module Overview
 
-The codebase is organized into 12 logical layers. Each layer has a clear responsibility and well-defined dependencies:
+The codebase is organized into 16 logical layers. Each layer has a clear responsibility and well-defined dependencies:
 
 | Layer | Files | Responsibility |
 |-------|------:|----------------|
-| **App** | 1 | Entry point, window configuration, keyboard shortcuts |
-| **Views** | 20+ | SwiftUI views — sidebar, chat, settings, benchmarks, model browser, URL import, eval |
+| **App** | 2 | Entry point, window configuration, keyboard shortcuts, app delegate |
+| **Views** | 25+ | SwiftUI views — sidebar, chat, settings, benchmarks, model browser, URL import, eval, onboarding |
 | **ViewModel** | 2 | `@Observable` state management, inference orchestration |
 | **Engine** | 1 | LiteRT-LM wrapper with instrumentation and smart fallback |
 | **Tools** | 8 | Built-in tools (6) + agent skills (2) for function calling |
-| **MCP** | 4 | Model Context Protocol client (stdio JSON-RPC, macOS only) |
-| **Model Management** | 8 | Model registry, HuggingFace browser, Kaggle parser, dynamic catalog, URL import |
+| **MCP** | 3 | Model Context Protocol client (stdio JSON-RPC, macOS only) |
+| **Model Management** | 7 | Model registry, HuggingFace browser, Kaggle parser, dynamic catalog, URL import |
+| **URL Import** | 4 | URL parsing, HuggingFace/Kaggle metadata fetch, model card analysis, import state machine |
+| **Kaggle** | 2 | Kaggle API integration, Keychain credential storage |
 | **Persistence** | 3 | JSON file-based conversation and metrics storage |
-| **Eval Framework** | 5 | Eval suites, runner, store, batch orchestrator |
-| **Benchmarking** | 3 | Device metrics, performance dashboard, automation harness |
+| **Eval Framework** | 10 | Eval suites, runner, store, results, batch orchestrator, comparison views, suite editor, benchmark card |
+| **Benchmarking** | 6 | Device metrics, performance dashboard, automation harness, benchmark cards, comparison, share sheet |
 | **Onboarding** | 2 | First-run welcome flow |
 | **Design System** | 1 | "Dark Forest" theme tokens — colors, typography, spacing |
-| **Settings** | 6 | Inference settings (general, sampler, AI features, data, Kaggle) |
-| **Utilities** | 2 | `ThinkingParser`, `ChatMessage` data models |
+| **Settings** | 8 | Inference settings (general, sampler, AI features, data, Kaggle credentials), experiment config, experimental flags |
+| **Utilities** | 3 | `ThinkingParser`, `ChatMessage` data models, `ObservationBridge` |
 
 ---
 
@@ -106,9 +110,17 @@ graph TB
         GD["GalleryModelDiscovery"]
         HFB["HFModelBrowser"]
         HFT["HFTokenStorage"]
-        UIM["URLImportManager"]
-        MCP2["ModelCardParser"]
         DMC["DynamicModelCatalog"]
+    end
+
+    subgraph "URL Import"
+        UIM["URLImportManager"]
+        MIS["macOSURLImportSheet"]
+        IIS["iOSURLImportSheet"]
+        MCP3["ModelCardParser"]
+    end
+
+    subgraph "Kaggle"
         KGP["KaggleModelParser"]
         KTS["KaggleTokenStorage"]
     end
@@ -116,8 +128,16 @@ graph TB
     subgraph "Eval Framework"
         ER["EvalRunner"]
         ES["EvalStore"]
-        BIS["BuiltInEvalSuites"]
+        BIS["BuiltInEvalSuites<br/>(Math, Tool Calling,<br/>Reasoning, Multimodal)"]
         BEO["BatchEvalOrchestrator"]
+        ERV["EvalRunnerView"]
+        ECV["EvalComparisonView"]
+        ESE["EvalSuiteEditorView"]
+    end
+
+    subgraph "Onboarding"
+        OBM["OnboardingManager"]
+        OBV["OnboardingView"]
     end
 
     subgraph "Persistence Layer"
@@ -129,6 +149,8 @@ graph TB
     subgraph "Benchmarking"
         DM["DeviceMetrics"]
         DAH["DeveloperAutomationHarness"]
+        BCC["BenchmarkCardView"]
+        BCV2["BenchmarkComparisonView"]
     end
 
     subgraph "Design System"
@@ -136,7 +158,7 @@ graph TB
     end
 
     subgraph "Settings Layer"
-        ISV["InferenceSettingsView (5 files)"]
+        ISV["InferenceSettingsView (6 files)"]
         EC["ExperimentConfig"]
         EF["ExperimentalFlagsState"]
     end
@@ -185,7 +207,16 @@ graph TB
 
     ISV --> VM & EF & MC & MSC & HFT
 
-    DS -.->|"tokens used by"| CV & SB & DC & CA & CB & IA & BB & PD & BC & SV & ISV
+    UIM --> MCP3 & DMC & MD
+    MIS & IIS --> UIM
+    KGP --> KTS
+    UIM --> KGP
+    BEO --> ER
+    ERV --> ER & ES & BIS
+    ECV --> ES
+    ESE --> BIS
+
+    DS -.-> |"tokens used by"| CV & SB & DC & CA & CB & IA & BB & PD & BC & SV & ISV
 
     style APP fill:#1a1a2e,stroke:#00bfa5,color:#e0e0e0
     style VM fill:#1a1a2e,stroke:#ff9800,color:#e0e0e0
@@ -206,12 +237,17 @@ The central abstraction for testability. All inference goes through this protoco
 ```swift
 protocol InstrumentedEngineProtocol: AnyObject {
     var isReady: Bool { get }
+    var lastBackendResult: BackendResult? { get }
     var lastBenchmarkInfo: BenchmarkInfo? { get }
     var lastInferenceMetrics: InferenceMetrics? { get }
     var flagsState: ExperimentalFlagsState { get }
 
+    func initialize(modelPath:useGPU:cacheDir:flags:samplerConfig:
+                    systemMessage:tools:supportsVision:supportsAudio:) async throws
     func initializeWithFallback(...) async throws -> BackendResult
     func sendMessageStream(_ text: String, enableThinking: Bool) -> AsyncThrowingStream<String, Error>
+    func sendMessageStream(_ text: String, imageData: Data?,
+                           audioData: Data?, enableThinking: Bool) -> AsyncThrowingStream<String, Error>
     func resetConversation() async throws
     func warmup() async throws
     func cancelGeneration()
@@ -319,6 +355,8 @@ flowchart LR
     IE -->|"fallback CPU"| IE
 ```
 
+> **Note:** `ModelMetadata.swift` also defines two Gemma 3n model entries (`gemma3nE2BStandard`, `gemma3nE2BHW`) as static properties on `ModelRegistry`. These are **not** included in `knownModels` and do not appear in the model gallery. They exist as reference definitions for potential future use and are gated behind Google authentication. Only the five Gemma 4 variants (E2B Standard/Web, E4B Standard/Web, 12B Dense) ship in the public model registry.
+
 ### 3. Benchmark Capture & Visualization
 
 ```mermaid
@@ -335,7 +373,7 @@ flowchart TB
     end
 
     subgraph "Storage"
-        MS["MetricsStore<br/>(history.json in Caches)"]
+        MS["MetricsStore<br/>(history.json in Application Support / Documents)"]
     end
 
     subgraph "Visualization"
@@ -442,6 +480,87 @@ sequenceDiagram
 
 > **Note**: MCP is macOS-only because iOS doesn't support subprocess spawning. The MCP layer is compiled out via `#if os(macOS)`.
 
+### 6. URL Import Pipeline
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Sheet as URLImportSheet
+    participant UIM as URLImportManager
+    participant MCP as ModelCardParser
+    participant HF as HuggingFace API
+    participant KG as Kaggle API
+    participant DMC as DynamicModelCatalog
+    participant MDM as ModelDownloadManager
+
+    User->>Sheet: Pastes URL (⌘I on macOS)
+    Sheet->>UIM: startImport(url)
+
+    Note over UIM: State: .parsing
+    UIM->>UIM: Detect source (HF vs Kaggle)
+
+    alt HuggingFace URL
+        UIM->>HF: Fetch repo metadata
+        HF-->>UIM: Model card, file list
+    else Kaggle URL
+        UIM->>KG: Fetch model info (Basic Auth)
+        KG-->>UIM: Model metadata
+    end
+
+    Note over UIM: State: .analyzing
+    UIM->>MCP: inferCapabilities(metadata)
+    MCP-->>UIM: DynamicModelMetadata
+    Note over MCP: Runtime type, vision/audio,<br/>architecture, quantization<br/>with confidence levels
+
+    Note over UIM: State: .readyToDownload
+    User->>Sheet: Confirms download
+
+    Note over UIM: State: .downloading
+    UIM->>MDM: download(url, metadata)
+    MDM-->>UIM: Progress updates
+
+    Note over UIM: State: .complete
+    UIM->>DMC: addImportedModel(metadata)
+    DMC->>DMC: Persist to catalog.json
+```
+
+> **Shortcut**: If the URL matches a known model in `ModelRegistry`, the import skips metadata fetching and jumps to download (after verifying the model file doesn't already exist on disk).
+
+### 7. Evaluation Framework
+
+```mermaid
+flowchart TB
+    subgraph "Suite Definition"
+        BIS["BuiltInEvalSuites<br/>(Math, Tool Calling,<br/>Reasoning, Multimodal)"]
+        CSE["Custom Suite Editor<br/>(user-defined prompts)"]
+    end
+
+    subgraph "Execution"
+        ER["EvalRunner<br/>.runSuite(suite, model)"]
+        BEO["BatchEvalOrchestrator<br/>.runAll(models)"]
+    end
+
+    subgraph "Scoring"
+        SC["7 Scoring Variants<br/>containsText, toolCall, toolCallWithArgs,<br/>toolCallChain, nonEmpty, matchesRegex, custom"]
+    end
+
+    subgraph "Storage"
+        ES["EvalStore<br/>(results.json per suite)"]
+    end
+
+    subgraph "Visualization"
+        ERV["EvalRunnerView<br/>(live results, suite picker)"]
+        ECV["EvalComparisonView<br/>(cross-model comparison)"]
+        EBC["EvalBenchmarkCard<br/>(shareable result cards)"]
+    end
+
+    BIS & CSE --> ER
+    BEO -->|"sequential across models"| ER
+    ER -->|"per-prompt"| SC
+    SC --> ES
+    ES --> ERV & ECV & EBC
+```
+
 ---
 
 ## Design Decisions
@@ -470,7 +589,18 @@ LiteRT-LM doesn't publish tagged SPM releases yet. We track `main` as a pragmati
 
 ### Dependency Injection via @Environment
 
-The `App` struct owns `@State` instances of `ConversationViewModel` and `ModelDownloadManager`, then passes them into the view hierarchy via `.environment(ConversationViewModel.self)`. Views receive dependencies with `@Environment(ConversationViewModel.self)`. This avoids singletons — ownership is explicit and scoped to the app's lifetime. Settings changes (GPU toggle, sampler config, experimental flags) propagate immediately because all views share the same `@Observable` instance through the environment. Tests get isolated instances via `ConversationViewModel()`, with no shared state leaking between test cases.
+The `App` struct owns `@State` instances of `ConversationViewModel` and `ModelDownloadManager`, then passes them into the view hierarchy via `.environment(ConversationViewModel.self)`. Views receive dependencies with `@Environment(ConversationViewModel.self)`. This avoids application-layer singletons — ownership is explicit and scoped to the app's lifetime. Settings changes (GPU toggle, sampler config, experimental flags) propagate immediately because all views share the same `@Observable` instance through the environment. Tests get isolated instances via `ConversationViewModel()`, with no shared state leaking between test cases.
+
+#### Infrastructure Singletons
+
+Two infrastructure singletons exist for cross-cutting concerns that span the entire app lifecycle:
+
+| Singleton | Location | Purpose | Thread Safety |
+|-----------|----------|---------|---------------|
+| `MCPBridgeManager.shared` | `DynamicMCPBridge.swift` | Global pool of dynamically-bridged MCP tool types | `@unchecked Sendable`, `NSRecursiveLock` |
+| `ToolExecutionTracker.shared` | `ToolRegistry.swift` | Global tool-call event bus for real-time UI observability | `@unchecked Sendable`, `NSRecursiveLock` |
+
+Both are justified: MCP tool type slots must survive across conversation resets (they are compiled-in struct types), and tool-call events must be observable from any view in the hierarchy. Neither stores user data or conversation state.
 
 ### Why Static Tool Type Pool for MCP?
 
@@ -495,6 +625,11 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 | **Run automated benchmarks** | `Sources/DeveloperAutomationHarness.swift` — triggered via CLI launch args |
 | **Change the sidebar layout** | `Sources/SidebarView.swift` — model list, conversations, benchmarks sections |
 | **Update experiment tracking** | `Sources/ExperimentConfig.swift` — snapshot of config at conversation time |
+| **Import a model from URL** | `Sources/URLImportManager.swift` — state machine, `Sources/macOSURLImportSheet.swift` or `Sources/iOSURLImportSheet.swift` for UI |
+| **Add Kaggle support** | `Sources/KaggleModelParser.swift` — API client, `Sources/KaggleTokenStorage.swift` — Keychain |
+| **Add an eval suite** | `Sources/BuiltInEvalSuites.swift` — built-in suites, `Sources/EvalSuiteEditorView.swift` — custom editor |
+| **Run batch evaluations** | `Sources/BatchEvalOrchestrator.swift` — orchestration, `Sources/EvalRunner.swift` — per-suite execution |
+| **Modify the onboarding flow** | `Sources/OnboardingView.swift` (UI) + `Sources/OnboardingManager.swift` (state) |
 
 ---
 
@@ -504,17 +639,18 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 | Category | Files | Purpose |
 |----------|------:|---------|
-| Unit Tests | 20 | Core logic: messages, persistence, settings, tools, parsing |
-| Integration Tests | 5 | Multi-component flows: multi-turn, fallback, tool calling, downloads |
+| Unit Tests | 48 | Core logic: messages, persistence, settings, tools, parsing, eval, URL import, Kaggle |
+| Integration Tests | 5 | Multi-component flows: multi-turn, fallback, tool calling, downloads, URL import E2E |
 | Performance Tests | 2 | Benchmark baselines and gallery parity checks |
-| UI Tests | 1 | End-to-end automation via XCUITest |
+| UI Tests (macOS) | 1 | End-to-end automation via XCUITest (26 tests) |
+| UI Tests (iOS) | 1 | Smoke tests via XCUITest (5 tests) |
 | Mock | 1 | `MockInstrumentedEngine` — configurable engine mock |
 
 ### Test Plans
 
 | Plan | Test Classes | Timeout | Purpose |
 |------|-------------|---------|---------|
-| `UnitTests.xctestplan` | 23 classes | 60s | Fast feedback loop — runs in CI |
+| `UnitTests.xctestplan` | 53 classes | 60s | Fast feedback loop — runs in CI |
 | `IntegrationTests.xctestplan` | 3 classes | 300s | Cross-component validation |
 | `PerformanceTests.xctestplan` | 2 classes | 600s | Regression detection |
 
@@ -529,5 +665,5 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 ---
 
 <p align="center">
-  <sub>Last updated: June 2026 · Edge AI Lab v1.0.0</sub>
+  <sub>Last updated: June 2026 · Edge AI Lab v2.0.0-rc1</sub>
 </p>

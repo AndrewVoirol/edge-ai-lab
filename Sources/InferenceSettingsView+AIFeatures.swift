@@ -212,7 +212,7 @@ extension InferenceSettingsView {
                                         }
                                     ))
                                     .frame(minHeight: 60)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(AppTypography.mono)
                                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.5), lineWidth: 0.5))
                                 }
 

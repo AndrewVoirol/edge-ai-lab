@@ -109,7 +109,7 @@ struct EvalComparisonView: View {
         HStack {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(evalRun.suiteName)
-                    .font(.system(.title3, design: .default, weight: .bold))
+                    .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 HStack(spacing: AppSpacing.sm) {
@@ -138,7 +138,7 @@ struct EvalComparisonView: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "square.and.arrow.up")
                         Text("Share")
-                            .font(.system(.caption, design: .default, weight: .semibold))
+                            .font(AppTypography.sectionHeader)
                     }
                     .foregroundStyle(AppColors.accentCyan)
                 }
@@ -219,7 +219,7 @@ struct EvalComparisonView: View {
                 .foregroundStyle(color)
 
             Text(value)
-                .font(.system(.title3, design: .monospaced, weight: .bold))
+                .font(AppTypography.metricLarge)
                 .foregroundStyle(AppColors.textPrimary)
 
             Text(title)
@@ -251,7 +251,7 @@ struct EvalComparisonView: View {
                                 .frame(width: 8, height: 8)
 
                             Text(result.modelName)
-                                .font(.system(.caption, design: .default, weight: .semibold))
+                                .font(AppTypography.sectionHeader)
                                 .foregroundStyle(
                                     isActive ? AppColors.textPrimary : AppColors.textSecondary
                                 )
@@ -296,7 +296,7 @@ struct EvalComparisonView: View {
                 } label: {
                     HStack(spacing: AppSpacing.xs) {
                         Text(filter.rawValue)
-                            .font(.system(.caption2, design: .default, weight: .semibold))
+                            .font(AppTypography.badge)
 
                         Text("\(count)")
                             .font(AppTypography.badge)
@@ -339,7 +339,7 @@ struct EvalComparisonView: View {
                 Text("Score")
                     .frame(width: 60, alignment: .trailing)
             }
-            .font(.system(.caption2, design: .default, weight: .semibold))
+            .font(AppTypography.badge)
             .foregroundStyle(AppColors.textTertiary)
             .padding(.horizontal, AppSpacing.md)
             .padding(.bottom, AppSpacing.xs)
@@ -373,7 +373,7 @@ struct EvalComparisonView: View {
             // Prompt text
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.promptText)
-                    .font(.system(.caption, design: .default))
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(2)
 
@@ -389,7 +389,7 @@ struct EvalComparisonView: View {
             // Decode speed
             if let speed = result.decodeSpeed {
                 Text(String(format: "%.1f", speed))
-                    .font(.system(.caption, design: .monospaced))
+                    .font(AppTypography.mono)
                     .foregroundStyle(AppColors.textSecondary)
                     .frame(width: 80, alignment: .trailing)
             } else {
@@ -426,7 +426,7 @@ struct EvalComparisonView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "square.and.arrow.up")
                     Text("Export JSON")
-                        .font(.system(.caption, design: .default, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                 }
                 .foregroundStyle(AppColors.accentCyan)
                 .padding(.horizontal, AppSpacing.lg)
@@ -443,7 +443,7 @@ struct EvalComparisonView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "trash")
                     Text("Delete Run")
-                        .font(.system(.caption, design: .default, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                 }
                 .foregroundStyle(AppColors.danger)
                 .padding(.horizontal, AppSpacing.lg)

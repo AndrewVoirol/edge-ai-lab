@@ -203,7 +203,7 @@ struct EvalSuiteEditorView: View {
     private var titleBar: some View {
         HStack {
             Text(suite == nil ? "New Eval Suite" : "Edit Suite")
-                .font(.system(.title3, design: .default, weight: .bold))
+                .font(AppTypography.sectionTitle)
                 .foregroundStyle(AppColors.textPrimary)
 
             Spacer()
@@ -240,7 +240,7 @@ struct EvalSuiteEditorView: View {
                     .foregroundStyle(AppColors.textTertiary)
                 TextField("e.g. My Custom Eval", text: $name)
                     .textFieldStyle(.plain)
-                    .font(.system(.body, design: .default))
+                    .font(AppTypography.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .padding(AppSpacing.sm)
                     .background(AppColors.backgroundTertiary)
@@ -255,7 +255,7 @@ struct EvalSuiteEditorView: View {
                     .foregroundStyle(AppColors.textTertiary)
                 TextField("What does this suite test?", text: $description, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.system(.body, design: .default))
+                    .font(AppTypography.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(3...6)
                     .padding(AppSpacing.sm)
@@ -288,7 +288,7 @@ struct EvalSuiteEditorView: View {
                                 Image(systemName: cat.symbolName)
                                     .font(.caption)
                                 Text(cat.displayName)
-                                    .font(.system(.caption, design: .default, weight: .semibold))
+                                    .font(AppTypography.sectionHeader)
                             }
                             .foregroundStyle(
                                 isSelected ? AppColors.textPrimary : AppColors.textSecondary
@@ -338,7 +338,7 @@ struct EvalSuiteEditorView: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Prompt")
-                            .font(.system(.caption, weight: .semibold))
+                            .font(AppTypography.sectionHeader)
                     }
                     .foregroundStyle(AppColors.accentCyan)
                 }
@@ -363,7 +363,7 @@ struct EvalSuiteEditorView: View {
                 .foregroundStyle(AppColors.textTertiary.opacity(0.5))
 
             Text("No prompts yet")
-                .font(.system(.callout, design: .default, weight: .medium))
+                .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textSecondary)
 
             Text("Add prompts to define what this suite evaluates.")
@@ -376,7 +376,7 @@ struct EvalSuiteEditorView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "plus")
                     Text("Add First Prompt")
-                        .font(.system(.caption, design: .default, weight: .semibold))
+                        .font(AppTypography.sectionHeader)
                 }
                 .foregroundStyle(AppColors.accentCyan)
                 .padding(.horizontal, AppSpacing.lg)
@@ -399,7 +399,7 @@ struct EvalSuiteEditorView: View {
             // Header: index + behavior + actions
             HStack {
                 Text("#\(index + 1)")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .font(AppTypography.metric)
                     .foregroundStyle(AppColors.accentCyan)
 
                 Text(prompt.expectedBehavior.displayName)
@@ -450,7 +450,7 @@ struct EvalSuiteEditorView: View {
                 promptEditForm(index: index)
             } else {
                 Text(prompt.promptText.isEmpty ? "Empty prompt" : prompt.promptText)
-                    .font(.system(.caption, design: .default))
+                    .font(AppTypography.caption)
                     .foregroundStyle(
                         prompt.promptText.isEmpty ? AppColors.textTertiary : AppColors.textSecondary
                     )
@@ -475,7 +475,7 @@ struct EvalSuiteEditorView: View {
             // Prompt text
             TextField("Enter prompt text…", text: $prompts[index].promptText, axis: .vertical)
                 .textFieldStyle(.plain)
-                .font(.system(.body, design: .default))
+                .font(AppTypography.body)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(2...5)
                 .padding(AppSpacing.sm)
@@ -538,7 +538,7 @@ struct EvalSuiteEditorView: View {
                     }
                 } label: {
                     Text(label)
-                        .font(.system(.caption2, design: .default, weight: .semibold))
+                        .font(AppTypography.badge)
                         .foregroundStyle(isActive ? AppColors.textPrimary : AppColors.textTertiary)
                         .padding(.horizontal, AppSpacing.sm)
                         .padding(.vertical, 3)
@@ -614,7 +614,7 @@ struct EvalSuiteEditorView: View {
                 set: { update($0) }
             ))
             .textFieldStyle(.plain)
-            .font(.system(.caption, design: .default))
+            .font(AppTypography.caption)
             .foregroundStyle(AppColors.textPrimary)
             .padding(AppSpacing.xs)
             .background(AppColors.backgroundTertiary)

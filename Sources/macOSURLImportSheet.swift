@@ -114,7 +114,7 @@ struct macOSURLImportSheet: View {
                 startImport()
             } label: {
                 Label("Import", systemImage: "arrow.down.circle.fill")
-                    .font(.system(.body, weight: .semibold))
+                    .font(AppTypography.subtitle)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColors.accentTeal)
@@ -246,7 +246,7 @@ struct macOSURLImportSheet: View {
                 } label: {
                     Label("Download \(file.rfilename)", systemImage: "icloud.and.arrow.down")
                         .frame(maxWidth: .infinity)
-                        .font(.system(.body, weight: .semibold))
+                        .font(AppTypography.subtitle)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.accentTeal)
@@ -347,7 +347,7 @@ struct macOSURLImportSheet: View {
             } label: {
                 Label("Load Model", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
-                    .font(.system(.body, weight: .semibold))
+                    .font(AppTypography.subtitle)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColors.accentGold)
@@ -379,7 +379,7 @@ struct macOSURLImportSheet: View {
                 importManager = nil
             } label: {
                 Label("Try Again", systemImage: "arrow.counterclockwise")
-                    .font(.system(.body, weight: .medium))
+                    .font(AppTypography.subtitle)
             }
             .buttonStyle(.bordered)
             .accessibilityIdentifier("urlImport_retryButton")

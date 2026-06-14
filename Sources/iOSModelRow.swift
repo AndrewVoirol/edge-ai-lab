@@ -298,7 +298,7 @@ struct iOSModelRow: View {
                         .font(.system(size: 20))
                         .foregroundStyle(AppColors.danger)
                     Text("Retry")
-                        .font(.system(.caption2, weight: .medium))
+                        .font(AppTypography.badge)
                         .foregroundStyle(AppColors.danger)
                 }
                 .frame(width: 44, height: 44)

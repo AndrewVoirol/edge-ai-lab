@@ -142,13 +142,13 @@ struct BlinkingCursor: View {
         if Self.isRunningTests {
             // Static cursor — no animation cycle to saturate the runloop
             Text("▊")
-                .font(.system(.body, design: .monospaced))
+                .font(AppTypography.mono)
                 .foregroundStyle(AppColors.textPrimary)
                 .accessibilityIdentifier("cursor_blinking")
                 .accessibilityHidden(true)
         } else {
             Text("▊")
-                .font(.system(.body, design: .monospaced))
+                .font(AppTypography.mono)
                 .foregroundStyle(AppColors.textPrimary)
                 .opacity(isVisible ? 1 : 0)
                 .onAppear {
@@ -181,7 +181,7 @@ struct BlinkingCursor: View {
             .ignoresSafeArea()
         HStack(spacing: 0) {
             Text("Hello, how can I help")
-                .foregroundStyle(Color.white)
+                .foregroundStyle(AppColors.textPrimary)
             BlinkingCursor()
         }
     }

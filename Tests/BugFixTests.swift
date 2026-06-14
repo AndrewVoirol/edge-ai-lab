@@ -52,12 +52,32 @@ final class BugFixTests: XCTestCase {
 
         let metadata = ModelMetadata(
             name: "Test Model",
+            modelId: "test-org/test-model",
             modelFile: "test.litertlm",
-            downloadURL: "https://example.com/test.litertlm",
-            sizeBytes: 1_000_000,
-            architectureType: "test",
+            description: "A test model for pause/resume callbacks",
+            sizeInBytes: 1_000_000,
+            minDeviceMemoryGB: 4,
             contextWindowSize: 2048,
-            runtimeType: .liteRT
+            architectureType: "test",
+            recommendedFor: "Testing",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: ["llm_thinking"],
+            defaultConfig: ModelDefaultConfig(
+                topK: 64,
+                topP: 0.95,
+                temperature: 1.0,
+                maxContextLength: 2048,
+                maxTokens: 1024,
+                accelerators: "gpu,cpu",
+                visionAccelerator: nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuAndCpu,
+                iOSDevice: .gpuAndCpu,
+                iOSSimulator: .cpuOnly
+            ),
+            runtimeType: .litertlm
         )
 
         let row = iOSModelRow(
@@ -80,12 +100,32 @@ final class BugFixTests: XCTestCase {
     func testIOSModelRowDefaultsPauseResumeToNil() {
         let metadata = ModelMetadata(
             name: "Test Model",
+            modelId: "test-org/test-model",
             modelFile: "test.litertlm",
-            downloadURL: "https://example.com/test.litertlm",
-            sizeBytes: 1_000_000,
-            architectureType: "test",
+            description: "A test model for nil callback defaults",
+            sizeInBytes: 1_000_000,
+            minDeviceMemoryGB: 4,
             contextWindowSize: 2048,
-            runtimeType: .liteRT
+            architectureType: "test",
+            recommendedFor: "Testing",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: ["llm_thinking"],
+            defaultConfig: ModelDefaultConfig(
+                topK: 64,
+                topP: 0.95,
+                temperature: 1.0,
+                maxContextLength: 2048,
+                maxTokens: 1024,
+                accelerators: "gpu,cpu",
+                visionAccelerator: nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuAndCpu,
+                iOSDevice: .gpuAndCpu,
+                iOSSimulator: .cpuOnly
+            ),
+            runtimeType: .litertlm
         )
 
         let row = iOSModelRow(
