@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload Coverage to Codecov
         if: success()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           xcode: true
           xcode_archive_path: TestResults.xcresult
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload Coverage to Codecov
         if: success()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           xcode: true
           xcode_archive_path: TestResults-iOS.xcresult
