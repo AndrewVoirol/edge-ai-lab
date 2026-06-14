@@ -1,0 +1,41 @@
+name: Stale Issues
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          # Timing
+          days-before-stale: 30
+          days-before-close: 15
+
+          # Messages
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not had
+            any activity in 30 days. It will be closed in 15 days if no further activity
+            occurs. If this issue is still relevant, please leave a comment or remove
+            the `stale` label. Thank you for your contributions!
+          close-issue-message: >
+            This issue has been automatically closed due to inactivity. If this is still
+            relevant, feel free to reopen it or open a new issue. Thank you!
+
+          # Labels
+          stale-issue-label: stale
+          exempt-issue-labels: 'good first issue,help wanted,pinned,security,in-progress'
+
+          # Only target issues, not PRs
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+
+          # Operations per run (GitHub API budget)
+          operations-per-run: 30

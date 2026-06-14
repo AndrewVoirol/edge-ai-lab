@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version from Tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Detect pre-release tags (-rc, -beta, -alpha)
+          if [[ "$TAG" =~ -(rc|beta|alpha) ]]; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+          echo "📦 Release: $TAG (pre-release: ${prerelease:-false})"
+
+      - name: Extract Changelog Section
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Extract the section for this version from CHANGELOG.md
+          # Matches from "## [VERSION]" to the next "## [" or end of file
+          SECTION=$(awk "/^## \\[$VERSION\\]/{found=1; next} /^## \\[/{if(found) exit} found" CHANGELOG.md)
+
+          if [[ -z "$SECTION" ]]; then
+            SECTION="See [CHANGELOG.md](https://github.com/AndrewVoirol/edge-ai-lab/blob/${{ steps.version.outputs.tag }}/CHANGELOG.md) for details."
+          fi
+
+          # Write to file to preserve multiline content
+          echo "$SECTION" > release_notes.md
+          echo "📝 Changelog section extracted"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Edge AI Lab ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          generate_release_notes: true
+          make_latest: ${{ steps.version.outputs.prerelease == 'false' }}

@@ -39,7 +39,7 @@ jobs:
       - name: SwiftLint
         run: |
           brew install swiftlint || true
-          swiftlint --strict --reporter github-actions-logging || true
+          swiftlint --strict --reporter github-actions-logging
 
       - name: Build macOS
         run: |
@@ -77,6 +77,23 @@ jobs:
         with:
           name: test-results-macos
           path: TestResults.xcresult
+
+      - name: Test Results Summary
+        uses: kishikawakatsumi/xcresulttool@v1
+        with:
+          path: TestResults.xcresult
+        if: always()
+
+      - name: Upload Coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v5
+        with:
+          xcode: true
+          xcode_archive_path: TestResults.xcresult
+          flags: macos
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build-and-test-ios:
     name: iOS Simulator Build & Test
@@ -141,6 +158,23 @@ jobs:
           name: test-results-ios
           path: TestResults-iOS.xcresult
 
+      - name: Test Results Summary
+        uses: kishikawakatsumi/xcresulttool@v1
+        with:
+          path: TestResults-iOS.xcresult
+        if: always()
+
+      - name: Upload Coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v5
+        with:
+          xcode: true
+          xcode_archive_path: TestResults-iOS.xcresult
+          flags: ios
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
   build-ios-uitests:
     name: iOS Simulator UI Smoke Tests
     runs-on: macos-26
@@ -194,3 +228,9 @@ jobs:
         with:
           name: test-results-ios-ui
           path: TestResults-iOS-UI.xcresult
+
+      - name: Test Results Summary
+        uses: kishikawakatsumi/xcresulttool@v1
+        with:
+          path: TestResults-iOS-UI.xcresult
+        if: always()
