@@ -1,0 +1,84 @@
+{
+  "name": "iOS Conversation Persistence",
+  "description": "Test conversation UI persistence. Switch to Chat tab, verify it renders, switch away and back, and verify the Chat tab remains accessible.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for Chat tab to render.",
+      "condition": "element_exists:Chat",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify Chat tab is active and responsive.",
+      "expected_elements": ["Chat"]
+    },
+    {
+      "step": 4,
+      "action": "tap_if_exists",
+      "description": "Tap the prompt text field if present (may not exist without a model loaded).",
+      "target_element": "textField_prompt",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Switch to Models tab to leave chat.",
+      "target_element": "Models"
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for Models tab to render.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify Models tab is active.",
+      "expected_elements": ["Models"]
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Switch to Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 9,
+      "action": "wait",
+      "description": "Wait for Settings to render.",
+      "condition": "element_exists:Settings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 10,
+      "action": "tap",
+      "description": "Switch back to Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 11,
+      "action": "wait",
+      "description": "Wait for Chat tab to re-render.",
+      "condition": "element_exists:Chat",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 12,
+      "action": "verify_ui",
+      "description": "Verify Chat tab is still accessible after round-trip navigation.",
+      "expected_elements": ["Chat"]
+    }
+  ]
+}

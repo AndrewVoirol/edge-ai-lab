@@ -1,0 +1,25 @@
+{
+  "name": "macOS Input Area Components",
+  "description": "Verifies chat input area: prompt field, send button. Attachment buttons are model-dependent and only appear when a multimodal model is loaded. Maps to testInputAreaComponents, testSendButtonAccessibilityStates.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify prompt text field exists.",
+      "expected_elements": ["textField_prompt"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify send button exists.",
+      "expected_elements": ["button_send"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify send button is present (it may be disabled without model loaded).",
+      "expected_elements": ["button_send"]
+    }
+  ]
+}

@@ -44,7 +44,7 @@ jobs:
       - name: Build macOS
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
+            -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
@@ -58,11 +58,11 @@ jobs:
       - name: Test macOS
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
+            -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
-            -only-testing:GemmaEdgeGallery_macOSTests \
+            -only-testing:EdgeAILab_macOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGN_IDENTITY="-" \
@@ -137,11 +137,11 @@ jobs:
       - name: Build & Test iOS (Unit Tests)
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
-            -scheme GemmaEdgeGallery_iOS \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme EdgeAILab_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
-            -only-testing:GemmaEdgeGallery_iOSTests \
+            -only-testing:EdgeAILab_iOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
             ARCHS=arm64 \
@@ -208,11 +208,11 @@ jobs:
       - name: Build & Run iOS UI Smoke Tests
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
-            -scheme GemmaEdgeGallery_iOS \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme EdgeAILab_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
-            -only-testing:GemmaEdgeGallery_iOSUITests \
+            -only-testing:EdgeAILab_iOSUITests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
             ARCHS=arm64 \
@@ -233,4 +233,48 @@ jobs:
         uses: kishikawakatsumi/xcresulttool@v1
         with:
           path: TestResults-iOS-UI.xcresult
+        if: always()
+
+  automation-flows:
+    name: Automation Flow Validation
+    runs-on: macos-26
+    timeout-minutes: 15
+    needs: build-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist Project
+        uses: ./.github/actions/setup-tuist-project
+        with:
+          spm-packages-dir: ${{ env.SPM_PACKAGES_DIR }}
+
+      - name: Run Automation Harness Dry-Run Tests
+        run: |
+          xcodebuild test \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -only-testing:EdgeAILab_macOSUITests/AutomationHarnessXCTests \
+            test \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath TestResults-Automation.xcresult \
+            2>&1 | tail -100
+
+      - name: Upload Automation Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-automation
+          path: TestResults-Automation.xcresult
+
+      - name: Test Results Summary
+        uses: kishikawakatsumi/xcresulttool@v1
+        with:
+          path: TestResults-Automation.xcresult
         if: always()

@@ -1,11 +1,11 @@
 ---
 name: device-testing
-description: Deploy and test GemmaEdgeGallery on physical iOS devices, including code signing, device connection, and running XCTest and automation flows on hardware.
+description: Deploy and test EdgeAILab on physical iOS devices, including code signing, device connection, and running XCTest and automation flows on hardware.
 ---
 
 # Device Testing
 
-This skill covers deploying GemmaEdgeGallery to physical iOS devices, handling code signing, and running the full test suite on hardware.
+This skill covers deploying EdgeAILab to physical iOS devices, handling code signing, and running the full test suite on hardware.
 
 ## Known Device
 
@@ -37,8 +37,8 @@ Previous sessions documented an "iOS 26 beta XCTest hang." The actual root cause
 |---|---|
 | Signing Style | Automatic |
 | Team ID | `Y7J7WUK693` |
-| Bundle ID | `com.andrewvoirol.GemmaEdgeGallery` |
-| Entitlements | `GemmaEdgeGallery_iOS.entitlements` |
+| Bundle ID | `com.andrewvoirol.EdgeAILab` |
+| Entitlements | `EdgeAILab_iOS.entitlements` |
 
 The Team ID is configured in `Project.swift` with environment variable override:
 
@@ -96,9 +96,9 @@ sudo killall usbmuxd
 Tool: xcodebuild-mcp → session_set_defaults
 Arguments:
   deviceId: "3B50314A-0702-5188-A321-BCD5CA5F8184"
-  scheme: "GemmaEdgeGallery_iOS"
-  workspacePath: "<project_root>/GemmaEdgeGallery.xcworkspace"
-  bundleId: "com.andrewvoirol.GemmaEdgeGallery"
+  scheme: "EdgeAILab_iOS"
+  workspacePath: "<project_root>/EdgeAILab.xcworkspace"
+  bundleId: "com.andrewvoirol.EdgeAILab"
 ```
 
 **Build only:**
@@ -115,8 +115,8 @@ Tool: xcodebuild-mcp → build_run_device
 
 ```bash
 xcodebuild build \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
   -configuration Debug \
   -quiet \
@@ -129,10 +129,10 @@ xcodebuild build \
 
 ```bash
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
-  -only-testing:GemmaEdgeGallery_iOSTests \
+  -only-testing:EdgeAILab_iOSTests \
   -allowProvisioningUpdates \
   2>&1
 ```
@@ -145,10 +145,10 @@ When piping xcodebuild output through `grep | tail`, SIGPIPE can kill the proces
 
 ```bash
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
-  -only-testing:GemmaEdgeGallery_iOSTests \
+  -only-testing:EdgeAILab_iOSTests \
   -allowProvisioningUpdates \
   > test_results.log 2>&1
 
@@ -160,10 +160,10 @@ grep -E "** TEST|Executed.*tests" test_results.log
 
 ```bash
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'id=3B50314A-0702-5188-A321-BCD5CA5F8184' \
-  -only-testing:GemmaEdgeGallery_iOSTests/SettingsToggleTests \
+  -only-testing:EdgeAILab_iOSTests/SettingsToggleTests \
   -allowProvisioningUpdates \
   2>&1
 ```
@@ -187,7 +187,7 @@ For E2E user journeys, benchmarks, and multi-configuration testing, use the Deve
 xcrun devicectl device process launch \
   --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
   --console \
-  com.andrewvoirol.GemmaEdgeGallery \
+  com.andrewvoirol.EdgeAILab \
   -- -RunAllFlows
 ```
 
@@ -199,7 +199,7 @@ xcrun devicectl device process launch \
 xcrun devicectl device process launch \
   --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
   --console \
-  com.andrewvoirol.GemmaEdgeGallery \
+  com.andrewvoirol.EdgeAILab \
   -- -RunFlow settings_flow
 ```
 
@@ -207,7 +207,7 @@ xcrun devicectl device process launch \
 
 1. **Run XCTest on device** — fast validation (418 tests, 3.4s)
    ```bash
-   xcodebuild test ... -only-testing:GemmaEdgeGallery_iOSTests -allowProvisioningUpdates
+   xcodebuild test ... -only-testing:EdgeAILab_iOSTests -allowProvisioningUpdates
    ```
 2. **Run automation flows** — E2E validation (6 flows, 37.7s)
    ```bash
@@ -246,7 +246,7 @@ The `DeveloperAutomationHarness` includes thermal throttle detection. Between be
 The app supports iTunes/Finder file sharing (`UIFileSharingEnabled`). You can copy `.litertlm` model files to the device's Documents directory via Finder:
 1. Connect device via USB
 2. Open Finder → Select device → Files tab
-3. Drag `.litertlm` files into GemmaEdgeGallery's Documents folder
+3. Drag `.litertlm` files into EdgeAILab's Documents folder
 
 ## Stopping the App
 
@@ -264,7 +264,7 @@ Arguments:
 ```bash
 xcrun devicectl device process terminate \
   --device 3B50314A-0702-5188-A321-BCD5CA5F8184 \
-  com.andrewvoirol.GemmaEdgeGallery
+  com.andrewvoirol.EdgeAILab
 ```
 
 ## Debugging on Device
@@ -275,7 +275,7 @@ xcrun devicectl device process terminate \
 # Stream device logs filtered to the app
 xcrun devicectl device process log stream \
   --device "Phactivity Monitor" \
-  --predicate 'subsystem == "com.andrewvoirol.GemmaEdgeGallery"'
+  --predicate 'subsystem == "com.andrewvoirol.EdgeAILab"'
 ```
 
 ### Check Device Info

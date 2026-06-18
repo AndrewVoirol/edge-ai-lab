@@ -1,0 +1,57 @@
+{
+  "name": "iOS Download Lifecycle",
+  "description": "Verify download UI states on iOS. Navigate to model list, find a model card, and verify download button and download state indicators are present.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify Models tab is visible with tab bar.",
+      "expected_elements": ["Models"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify the Get More Models section is present for download options.",
+      "expected_elements_any": ["Get More Models", "On This Device", "Now Running"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify at least one model card is visible in the hub.",
+      "expected_elements_any": ["Gemma 4 E2B", "Gemma 4 E4B", "Gemma 4 12B", "Desktop GPU+CPU", "Mobile GPU", "Web-Optimized"]
+    },
+    {
+      "step": 4,
+      "action": "tap_first_match",
+      "description": "Tap on the first available model card to see details.",
+      "target_elements": ["Gemma 4 E2B", "Gemma 4 E4B", "Gemma 4 12B", "Desktop GPU+CPU", "Mobile GPU", "Web-Optimized"],
+      "timeout_seconds": 5
+    },
+    {
+      "step": 5,
+      "action": "wait",
+      "description": "Wait for model detail view or sheet to appear.",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify download-related UI elements exist in detail view.",
+      "expected_elements_any": ["Download", "Load Model", "Model Size", "Parameters", "Context Length"]
+    },
+    {
+      "step": 7,
+      "action": "tap_if_exists",
+      "description": "Dismiss detail view if a back/close button is available.",
+      "target_element": "Close",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify we are back at the Model Hub.",
+      "expected_elements": ["Models"]
+    }
+  ]
+}

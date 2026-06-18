@@ -1,0 +1,69 @@
+{
+  "name": "iOS Smoke Tests",
+  "description": "Critical-path smoke tests for iOS: app launch → tab bar → model hub → chat tab → settings → empty state. Validates app navigation without model.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched with tab bar visible.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify Model Hub shows at least one section.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 4,
+      "action": "wait",
+      "description": "Wait for chat tab to render.",
+      "condition": "element_exists:Chat",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify Chat tab is selected and responsive.",
+      "expected_elements": ["Chat"]
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Navigate to Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait for settings tab to render.",
+      "condition": "element_exists:Settings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify settings tab is responsive.",
+      "expected_elements": ["Settings"]
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Switch back to Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 10,
+      "action": "verify_ui",
+      "description": "Verify tab bar remains after switching.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}

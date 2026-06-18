@@ -15,11 +15,12 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:GemmaEdgeGallery.xcodeproj",
-        "identifier" : "GemmaEdgeGallery_iOSTests",
-        "name" : "GemmaEdgeGallery_iOSTests"
+        "containerPath" : "container:EdgeAILab.xcodeproj",
+        "identifier" : "EdgeAILab_iOSTests",
+        "name" : "EdgeAILab_iOSTests"
       },
       "selectedTests" : [
+        "InferenceQualityTests",
         "SmartFallbackIntegrationTests"
       ]
     }

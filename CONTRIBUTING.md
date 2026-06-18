@@ -53,7 +53,7 @@ This resolves SPM dependencies (LiteRT-LM, MarkdownUI) and generates the `.xcwor
 
 ### 5. Build and Run
 
-Open `GemmaEdgeGallery.xcworkspace` in Xcode, select the **Edge AI Lab** scheme, and run (⌘R).
+Open `EdgeAILab.xcworkspace` in Xcode, select the **Edge AI Lab** scheme, and run (⌘R).
 
 ### 6. Get a Model
 
@@ -85,8 +85,26 @@ If you're not sure where to start, the [tutorial below](#tutorial-how-to-add-a-n
 ## Project Structure
 
 ```
-Sources/           # All app source code (84 Swift files)
-Tests/             # Unit + integration tests (48 test files)
+Sources/           # App source code in feature folders (85 Swift files)
+  App/             # Entry point, app delegate
+  Conversation/    # ViewModel, chat messages, MCP extension
+  Engine/          # LiteRT-LM wrapper
+  Models/          # Model metadata, discovery, showcase views
+  Downloads/       # Download manager, HuggingFace browser
+  Imports/         # URL import manager, coordinator, model card parser
+  Evaluation/      # Eval runner, scorer, store, suites, views
+  Benchmarking/    # Device metrics, performance dashboard
+  Tools/           # Built-in tools + agent skills
+  MCP/             # Model Context Protocol client
+  Persistence/     # Conversation + metrics storage
+  Settings/        # Inference settings, experiment config
+  Onboarding/      # First-run flow
+  DesignSystem/    # Dark Forest theme tokens
+  Platform/iOS/    # iOS-specific views
+  Platform/macOS/  # macOS-specific views
+  Views/           # Shared UI (sidebar, chat bubbles, etc.)
+  Utilities/       # Parsers, helpers
+Tests/             # Unit + integration tests in mirrored feature folders (49 test files)
 UITests/           # macOS UI tests (26 tests)
 iOSUITests/        # iOS UI smoke tests (5 tests)
 RawBenchmark/      # CLI benchmark tool
@@ -137,15 +155,15 @@ models/            # Local model files (gitignored)
 
 ```bash
 # Unit tests (~2 minutes)
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:GemmaEdgeGallery_macOSTests \
+  -only-testing:EdgeAILab_macOSTests \
   -destination 'platform=macOS,arch=arm64'
 
 # UI tests
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:GemmaEdgeGallery_macOSUITests \
+  -only-testing:EdgeAILab_macOSUITests \
   -destination 'platform=macOS,arch=arm64'
 ```
 
@@ -161,13 +179,13 @@ xcrun simctl list devices available | grep iPhone
 xcrun simctl boot "iPhone 16 Pro"
 
 # iOS unit tests
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:GemmaEdgeGallery_iOSTests \
+  -only-testing:EdgeAILab_iOSTests \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 
 # iOS UI tests
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
   -only-testing:iOSUITests \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
@@ -219,14 +237,13 @@ This step-by-step guide walks you through adding a new built-in tool — the mos
 **Time estimate:** 30–45 minutes
 
 **Files you'll touch:**
-1. `Sources/DiceRollerTool.swift` — New tool implementation
-2. `Sources/ToolRegistry.swift` — Register the tool
-3. `Sources/InferenceSettingsView.swift` — Add to Settings display
-4. `Tests/ToolCallingTests.swift` — Add tests
+1. `Sources/Tools/DiceRollerTool.swift` — New tool implementation
+2. `Sources/Tools/ToolRegistry.swift` — Register the tool
+3. `Sources/Settings/InferenceSettingsView.swift` — Add to Settings display
 
-### Step 1: Create the Tool File
+#### Step 1: Create the Tool
 
-Create `Sources/DiceRollerTool.swift` with the Apache 2.0 license header:
+Create `Sources/Tools/DiceRollerTool.swift` with the Apache 2.0 license header:
 
 ```swift
 // Copyright 2026 Andrew Voirol
@@ -324,7 +341,7 @@ struct DiceRollerTool: Tool {
 
 ### Step 3: Register in ToolRegistry
 
-Open `Sources/ToolRegistry.swift` and add your tool to the `defaultTools` array:
+Open `Sources/Tools/ToolRegistry.swift` and add your tool to the `defaultTools` array:
 
 ```swift
 static let defaultTools: [Tool] = [
@@ -340,7 +357,7 @@ static let defaultTools: [Tool] = [
 
 ### Step 4: Add to Settings Display
 
-Open `Sources/InferenceSettingsView.swift` and add a `ToolDisplayItem` to `toolDisplayItems`:
+Open `Sources/Settings/InferenceSettingsView.swift` and add a `ToolDisplayItem` to `toolDisplayItems`:
 
 ```swift
 var toolDisplayItems: [ToolDisplayItem] {
@@ -405,9 +422,9 @@ func testDefaultToolsCount() {
 swiftlint
 
 # Run unit tests
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:GemmaEdgeGallery_macOSTests \
+  -only-testing:EdgeAILab_macOSTests \
   -destination 'platform=macOS,arch=arm64'
 ```
 

@@ -1,0 +1,46 @@
+{
+  "name": "macOS Menu Commands",
+  "description": "Tests keyboard shortcuts and menu bar commands: ⌘N (new chat), ⌘D (clear), ⌘O (import), ⌘R (refresh). Maps to testMacOSMenuBarCommands, testNewChatFunctionality.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app is ready with toolbar.",
+      "expected_elements": ["button_settings"]
+    },
+    {
+      "step": 2,
+      "action": "keyboard_shortcut",
+      "description": "Press ⌘N to create a new chat.",
+      "key": "n",
+      "modifiers": ["command"]
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for new chat to be reflected in UI.",
+      "condition": "element_exists:textField_prompt",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify prompt field is empty after new chat.",
+      "expected_elements": ["textField_prompt"]
+    },
+    {
+      "step": 5,
+      "action": "keyboard_shortcut",
+      "description": "Press ⌘R to refresh community models.",
+      "key": "r",
+      "modifiers": ["command"]
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify app remains stable after refresh command.",
+      "expected_elements": ["button_settings"]
+    }
+  ]
+}

@@ -57,7 +57,7 @@ The codebase is organized into 16 logical layers. Each layer has a clear respons
 ```mermaid
 graph TB
     subgraph "App Layer"
-        APP["GemmaEdgeGalleryApp"]
+        APP["EdgeAILabApp"]
     end
 
     subgraph "View Layer"
@@ -612,24 +612,26 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 | I want to... | Look at... |
 |--------------|------------|
-| **Add a new built-in tool** | Create `Sources/YourTool.swift` conforming to LiteRTLM `Tool`, then add it to `ToolRegistry.defaultTools` |
-| **Change the UI theme** | `Sources/DesignSystem.swift` — all colors, typography, spacing, and radius tokens |
-| **Modify inference behavior** | `Sources/InstrumentedEngine.swift` — the core LiteRT-LM wrapper |
-| **Add a new settings option** | `Sources/InferenceSettingsView+*.swift` — pick the appropriate tab file |
-| **Change model metadata** | `Sources/ModelMetadata.swift` — `ModelRegistry.knownModels` static array |
-| **Modify the chat UI** | `Sources/ChatBubbleView.swift` + `Sources/ChatBubbleComponents.swift` |
-| **Change benchmark display** | `Sources/BenchmarkBarView.swift` (inline bar) or `Sources/PerformanceDashboardView.swift` (full dashboard) |
-| **Add a new model source** | `Sources/GalleryModelDiscovery.swift` — add a new search path to `discoverModels()` |
-| **Modify conversation persistence** | `Sources/ConversationStore.swift` (storage) + `Sources/SavedConversation.swift` (data model) |
-| **Add an MCP feature** | `Sources/MCPClient.swift` (protocol) + `Sources/ConversationViewModel+MCP.swift` (lifecycle) |
-| **Run automated benchmarks** | `Sources/DeveloperAutomationHarness.swift` — triggered via CLI launch args |
-| **Change the sidebar layout** | `Sources/SidebarView.swift` — model list, conversations, benchmarks sections |
-| **Update experiment tracking** | `Sources/ExperimentConfig.swift` — snapshot of config at conversation time |
-| **Import a model from URL** | `Sources/URLImportManager.swift` — state machine, `Sources/macOSURLImportSheet.swift` or `Sources/iOSURLImportSheet.swift` for UI |
-| **Add Kaggle support** | `Sources/KaggleModelParser.swift` — API client, `Sources/KaggleTokenStorage.swift` — Keychain |
-| **Add an eval suite** | `Sources/BuiltInEvalSuites.swift` — built-in suites, `Sources/EvalSuiteEditorView.swift` — custom editor |
-| **Run batch evaluations** | `Sources/BatchEvalOrchestrator.swift` — orchestration, `Sources/EvalRunner.swift` — per-suite execution |
-| **Modify the onboarding flow** | `Sources/OnboardingView.swift` (UI) + `Sources/OnboardingManager.swift` (state) |
+| **Add a new built-in tool** | Create `Sources/Tools/YourTool.swift` conforming to LiteRTLM `Tool`, then add it to `ToolRegistry.defaultTools` |
+| **Change the UI theme** | `Sources/DesignSystem/DesignSystem.swift` — all colors, typography, spacing, and radius tokens |
+| **Modify inference behavior** | `Sources/Engine/InstrumentedEngine.swift` — the core LiteRT-LM wrapper |
+| **Add a new settings option** | `Sources/Settings/InferenceSettingsView+*.swift` — pick the appropriate tab file |
+| **Change model metadata** | `Sources/Models/ModelMetadata.swift` — `ModelRegistry.knownModels` static array |
+| **Modify the chat UI** | `Sources/Views/ChatBubbleView.swift` + `Sources/Views/ChatBubbleComponents.swift` |
+| **Change benchmark display** | `Sources/Benchmarking/BenchmarkBarView.swift` (inline bar) or `Sources/Benchmarking/PerformanceDashboardView.swift` (full dashboard) |
+| **Add a new model source** | `Sources/Models/GalleryModelDiscovery.swift` — add a new search path to `discoverModels()` |
+| **Modify conversation persistence** | `Sources/Persistence/ConversationStore.swift` (storage) + `Sources/Persistence/SavedConversation.swift` (data model) |
+| **Add an MCP feature** | `Sources/MCP/MCPClient.swift` (protocol) + `Sources/Conversation/ConversationViewModel+MCP.swift` (lifecycle) |
+| **Run automated benchmarks** | `Sources/Utilities/DeveloperAutomationHarness.swift` — triggered via CLI launch args |
+| **Change the sidebar layout** | `Sources/Views/SidebarView.swift` — model list, conversations, benchmarks sections |
+| **Update experiment tracking** | `Sources/Settings/ExperimentConfig.swift` — snapshot of config at conversation time |
+| **Import a model from URL** | `Sources/Imports/URLImportManager.swift` — state machine, `Sources/Imports/URLImportCoordinator.swift` — shared logic, `Sources/Platform/*/URLImportSheet.swift` for platform UI |
+| **Add Kaggle support** | `Sources/Imports/KaggleModelParser.swift` — API client, `Sources/Imports/KaggleTokenStorage.swift` — Keychain |
+| **Add an eval suite** | `Sources/Evaluation/BuiltInEvalSuites.swift` — built-in suites, `Sources/Evaluation/EvalSuiteEditorView.swift` — custom editor |
+| **Run batch evaluations** | `Sources/Evaluation/BatchEvalOrchestrator.swift` — orchestration, `Sources/Evaluation/EvalRunner.swift` — per-suite execution |
+| **Modify the onboarding flow** | `Sources/Onboarding/OnboardingView.swift` (UI) + `Sources/Onboarding/OnboardingManager.swift` (state) |
+| **Change model loading/init** | `Sources/Conversation/ModelSessionController.swift` — engine init, sampler config, tool setup, backend fallback |
+| **Customize eval scoring** | `Sources/Evaluation/EvalScorer.swift` — pure scoring logic, decoupled from runner |
 
 ---
 
@@ -646,6 +648,24 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 | UI Tests (iOS) | 1 | Smoke tests via XCUITest (5 tests) |
 | Mock | 1 | `MockInstrumentedEngine` — configurable engine mock |
 
+Tests are organized in feature-mirrored folders under `Tests/`:
+
+```
+Tests/
+├── Conversation/    # ViewModel, sampler, fork, store, chat message, thinking parser
+├── Engine/          # Smart fallback, mock engine
+├── Models/          # Registry, card parser, lifecycle, gallery discovery
+├── Downloads/       # Download manager, infrastructure, community, HF browser
+├── Imports/         # URL import manager, integration, E2E, Kaggle
+├── Evaluation/      # Runner, scorer, store, suite, results, batch
+├── Benchmarking/    # Benchmark card, gallery parity, performance
+├── Tools/           # Tool calling unit + integration
+├── MCP/             # MCP client
+├── Settings/        # Settings toggles, experiment config
+├── Platform/        # iOS conversation picker, eval export, suite editor
+└── Integration/     # Cross-cutting: EdgeAILabTests, sprint features, bug fixes
+```
+
 ### Test Plans
 
 | Plan | Test Classes | Timeout | Purpose |
@@ -656,11 +676,11 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 ### Adding a Test
 
-1. Create your test file in `Tests/` (e.g., `Tests/YourFeatureTests.swift`)
-2. Import `@testable import GemmaEdgeGallery_macOS`
-3. Use `MockInstrumentedEngine` for any test that touches the engine
+1. Create your test file in the matching feature folder (e.g., `Tests/Evaluation/YourEvalTests.swift`)
+2. Import `@testable import EdgeAILab_macOS`
+3. Use `MockInstrumentedEngine` for any test that touches the engine (located at `Tests/Engine/MockInstrumentedEngine.swift`)
 4. Add your test class to the appropriate `.xctestplan`
-5. Run: `xcodebuild test -workspace GemmaEdgeGallery.xcworkspace -scheme "Edge AI Lab" -only-testing:GemmaEdgeGallery_macOSTests`
+5. Run: `xcodebuild test -workspace EdgeAILab.xcworkspace -scheme "Edge AI Lab" -only-testing:EdgeAILab_macOSTests`
 
 ---
 

@@ -1,0 +1,60 @@
+{
+  "name": "iOS Onboarding Experience",
+  "description": "Test the first-launch onboarding experience. Verifies onboarding pages appear (or gracefully skips if not shown) and navigates through to the Model Hub.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "wait",
+      "description": "Wait for initial UI to stabilize after launch.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 15
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Check if onboarding or tab bar is visible (first launch vs subsequent).",
+      "expected_elements_any": ["Models", "Get Started", "Welcome", "Continue", "Next"]
+    },
+    {
+      "step": 3,
+      "action": "tap_if_exists",
+      "description": "Tap Continue/Next button if onboarding is shown.",
+      "target_element": "Continue",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 4,
+      "action": "tap_if_exists",
+      "description": "Tap Next if there is a second onboarding page.",
+      "target_element": "Next",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 5,
+      "action": "tap_if_exists",
+      "description": "Tap Get Started if final onboarding page.",
+      "target_element": "Get Started",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for Model Hub to appear after onboarding completes.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 10
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify Model Hub is visible with tab bar after onboarding.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify Model Hub has content sections.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    }
+  ]
+}

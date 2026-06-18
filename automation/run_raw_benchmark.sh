@@ -41,7 +41,7 @@ echo "" >&2
 # ── Step 2: Build in Release mode ─────────────────────────────────────────
 echo "[2/4] Building RawBenchmark (Release)..." >&2
 xcodebuild \
-    -workspace GemmaEdgeGallery.xcworkspace \
+    -workspace EdgeAILab.xcworkspace \
     -scheme RawBenchmark \
     -configuration Release \
     -derivedDataPath Derived/RawBenchmark \

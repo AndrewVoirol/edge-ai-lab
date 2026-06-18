@@ -1,0 +1,63 @@
+{
+  "name": "macOS MCP Server Management",
+  "description": "Tests MCP server configuration: open settings → navigate to AI Features tab → enable tool calling → verify Add MCP button → dismiss. Maps to testAddMCPServer.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Open settings sheet.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for settings to appear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 3,
+      "action": "navigate_tab",
+      "description": "Navigate to the AI Features tab (contains Tool Calling and MCP Servers).",
+      "target_element": "AI Features"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify the Tool Calling toggle exists.",
+      "expected_elements": ["toggle_enableToolCalling"]
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Enable Tool Calling to reveal MCP Servers section.",
+      "target_element": "toggle_enableToolCalling"
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for MCP section to render after enabling tool calling.",
+      "condition": "element_exists:button_addMCP",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify Add MCP Server button exists.",
+      "expected_elements": ["button_addMCP"]
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Disable Tool Calling to restore original state.",
+      "target_element": "toggle_enableToolCalling"
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Dismiss settings.",
+      "target_element": "button_doneSettings"
+    }
+  ]
+}

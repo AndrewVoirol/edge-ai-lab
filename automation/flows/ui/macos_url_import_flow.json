@@ -1,0 +1,77 @@
+{
+  "name": "macOS URL Import",
+  "description": "Tests URL Import sheet: ⌘I → sheet appears → enter HuggingFace URL → import → verify pipeline state → try Kaggle URL → dismiss. Maps to testCommandIOpensURLImportSheet, testURLImportSheetComponents, testKaggleURLImportFlow.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify toolbar is available before shortcuts.",
+      "expected_elements": ["button_settings"]
+    },
+    {
+      "step": 2,
+      "action": "keyboard_shortcut",
+      "description": "Press ⌘I to open URL Import sheet.",
+      "key": "i",
+      "modifiers": ["command"]
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for URL Import sheet to appear.",
+      "condition": "element_exists:urlImport_urlField",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify URL Import sheet components.",
+      "expected_elements": ["urlImport_urlField", "urlImport_importButton", "urlImport_done"]
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify idle state is shown before entering a URL.",
+      "expected_elements": ["urlImport_idle"]
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Focus the URL text field.",
+      "target_element": "urlImport_urlField"
+    },
+    {
+      "step": 7,
+      "action": "type_text",
+      "description": "Enter a HuggingFace URL.",
+      "target_element": "urlImport_urlField",
+      "value": "https://huggingface.co/google/gemma-3n-E2B-it-litert-preview"
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Click Import to start the pipeline.",
+      "target_element": "urlImport_importButton"
+    },
+    {
+      "step": 9,
+      "action": "wait",
+      "description": "Wait for pipeline state transition (parsing, fetching, analyzing, or error).",
+      "condition": "element_not_exists:urlImport_idle",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 10,
+      "action": "dismiss_sheet",
+      "description": "Dismiss the URL Import sheet.",
+      "target_element": "urlImport_done"
+    },
+    {
+      "step": 11,
+      "action": "verify_not_exists",
+      "description": "Verify URL Import sheet is dismissed.",
+      "target_element": "urlImport_urlField"
+    }
+  ]
+}

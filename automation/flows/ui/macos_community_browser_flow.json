@@ -1,0 +1,40 @@
+{
+  "name": "macOS Community Models Browser",
+  "description": "Tests Community Models Browser: detail column → scroll to browser → verify it exists. Maps to testCommunityModelsBrowserExists.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify detail column exists.",
+      "expected_elements": ["detailColumn_root"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Click the detail column to register its a11y tree.",
+      "target_element": "detailColumn_root"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for detail column content to render.",
+      "condition": "element_exists:detailColumn_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "scroll_to",
+      "description": "Scroll to find the Community Models Browser.",
+      "target_element": "communityModelsBrowser",
+      "scroll_context": "detailColumn_root",
+      "max_attempts": 8
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify Community Models Browser container exists.",
+      "expected_elements": ["communityModelsBrowser"]
+    }
+  ]
+}

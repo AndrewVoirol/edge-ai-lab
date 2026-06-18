@@ -1,0 +1,51 @@
+{
+  "name": "macOS Basic Navigation",
+  "description": "Verifies core navigation: app launch → main window → settings sheet → MCP config → dismiss. Maps to testBasicNavigation, testNewChatFunctionality, testMacOSMenuBarCommands.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched and main window is visible with toolbar.",
+      "expected_elements": ["button_settings"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Open the Settings sheet via toolbar button.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for settings sheet to appear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify settings sheet is showing with Done button.",
+      "expected_elements": ["button_doneSettings"]
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Dismiss the Settings sheet.",
+      "target_element": "button_doneSettings"
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for settings sheet to dismiss.",
+      "condition": "element_not_exists:button_doneSettings",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 7,
+      "action": "verify_not_exists",
+      "description": "Verify settings sheet is fully dismissed.",
+      "target_element": "button_doneSettings"
+    }
+  ]
+}

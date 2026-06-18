@@ -1,0 +1,74 @@
+{
+  "name": "macOS Settings Interactions",
+  "description": "Tests Settings sheet: open → navigate tabs → verify toggles → verify sampler controls → system message editor → close. Maps to testSettingsInteractions, testAllSettingsTogglesExist, testSamplerControls, testSystemMessageEditor.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify toolbar is available.",
+      "expected_elements": ["button_settings"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Open settings sheet.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for settings sheet to appear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "navigate_tab",
+      "description": "Navigate to the Sampler tab in settings.",
+      "target_element": "Sampler"
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify sampler controls are visible.",
+      "expected_elements": ["stepper_topK", "slider_temperature"]
+    },
+    {
+      "step": 6,
+      "action": "navigate_tab",
+      "description": "Navigate to the General tab in settings.",
+      "target_element": "General"
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify GPU toggle exists.",
+      "expected_elements": ["toggle_useGPU"]
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify experimental benchmark flag exists on General tab.",
+      "expected_elements": ["toggle_enableBenchmark"]
+    },
+    {
+      "step": 9,
+      "action": "navigate_tab",
+      "description": "Navigate to the Sampler tab for system message.",
+      "target_element": "Sampler"
+    },
+    {
+      "step": 10,
+      "action": "verify_ui",
+      "description": "Verify system message editor components exist.",
+      "expected_elements": ["textEditor_systemMessage"]
+    },
+    {
+      "step": 11,
+      "action": "tap",
+      "description": "Dismiss settings.",
+      "target_element": "button_doneSettings"
+    }
+  ]
+}

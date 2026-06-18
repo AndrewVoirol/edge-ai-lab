@@ -1,0 +1,103 @@
+{
+  "name": "iOS Error Recovery",
+  "description": "Test app stability with rapid tab switching. Cycle through Models → Chat → Settings → Models multiple times and verify all tabs remain accessible without crashes.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify initial state: tab bar with all tabs present.",
+      "expected_elements": ["Models", "Chat", "Settings"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Rapid switch: tap Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Rapid switch: tap Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Rapid switch: tap Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Second cycle: tap Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Second cycle: tap Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Second cycle: tap Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Third cycle: tap Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Third cycle: tap Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 10,
+      "action": "tap",
+      "description": "Third cycle: tap Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 11,
+      "action": "wait",
+      "description": "Wait for UI to stabilize after rapid switching.",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 12,
+      "action": "verify_ui",
+      "description": "Verify all tabs are still accessible after rapid switching.",
+      "expected_elements": ["Models", "Chat", "Settings"]
+    },
+    {
+      "step": 13,
+      "action": "tap",
+      "description": "Final verification: navigate to Chat.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 14,
+      "action": "verify_ui",
+      "description": "Verify Chat tab renders correctly after stress test.",
+      "expected_elements_any": ["textField_prompt", "Enter your prompt here", "Chat"]
+    },
+    {
+      "step": 15,
+      "action": "tap",
+      "description": "Return to Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 16,
+      "action": "verify_ui",
+      "description": "Final verification: Models tab is fully functional.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}

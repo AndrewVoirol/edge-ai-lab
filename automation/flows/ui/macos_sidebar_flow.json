@@ -1,0 +1,51 @@
+{
+  "name": "macOS Sidebar Structure",
+  "description": "Verifies sidebar components: list exists, active model section, benchmarks section, conversations empty state, new chat button, three-column layout. Maps to testSidebarListExists, testSidebarActiveModelEmptyState, testSidebarBenchmarksSectionExists, testSidebarConversationsEmptyState, testSidebarNewChatButton, testThreeColumnLayoutStructure.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify sidebar list root exists.",
+      "expected_elements": ["sidebar_list"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify active model empty state exists in sidebar (no model loaded at launch).",
+      "expected_elements": ["sidebar_activeModel_empty"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify benchmarks section exists via dashboard link.",
+      "expected_elements": ["sidebar_benchmarks_dashboard"]
+    },
+    {
+      "step": 4,
+      "action": "scroll_to",
+      "description": "Scroll sidebar to find the New Chat button and conversations section.",
+      "target_element": "sidebar_newChat",
+      "scroll_context": "sidebar_list",
+      "max_attempts": 5
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify New Chat button exists in sidebar.",
+      "expected_elements": ["sidebar_newChat"]
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify three-column layout: sidebar, detail, chat area.",
+      "expected_elements": ["sidebar_list", "detailColumn_root"]
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify chat area elements exist in column 3.",
+      "expected_elements": ["button_send", "textField_prompt"]
+    }
+  ]
+}

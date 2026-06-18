@@ -97,7 +97,7 @@ func deviceModel() -> String {
 
 // MARK: - Signpost Logs
 
-let subsystem = "com.andrewvoirol.GemmaEdgeGallery.RawBenchmark"
+let subsystem = "com.andrewvoirol.EdgeAILab.RawBenchmark"
 let modelLoadLog = OSLog(subsystem: subsystem, category: "model-load")
 let inferenceLog = OSLog(subsystem: subsystem, category: "inference")
 let firstTokenLog = OSLog(subsystem: subsystem, category: "first-token")

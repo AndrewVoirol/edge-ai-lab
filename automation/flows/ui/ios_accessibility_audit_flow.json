@@ -1,0 +1,75 @@
+{
+  "name": "iOS Accessibility Audit",
+  "description": "Navigate through all 3 tabs (Models, Chat, Settings) and verify key elements have accessibility labels. Validates a11y coverage across the app.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched with tab bar containing all expected tabs.",
+      "expected_elements": ["Models", "Chat", "Settings"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify Models tab has accessible section headers.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 4,
+      "action": "wait",
+      "description": "Wait for chat view to render.",
+      "condition": "element_exists:Chat",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify Chat tab has accessible prompt field.",
+      "expected_elements_any": ["textField_prompt", "Enter your prompt here"]
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify Chat tab has accessible send button.",
+      "expected_elements_any": ["button_send"]
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Navigate to the Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 8,
+      "action": "wait",
+      "description": "Wait for settings view to fully render.",
+      "condition": "element_exists:Settings",
+      "timeout_seconds": 15
+    },
+    {
+      "step": 9,
+      "action": "verify_ui",
+      "description": "Verify Settings tab is accessible and responsive. Note: iOS 26 Liquid Glass does not expose Form-internal elements (Toggles, Section headers) to XCUITest on physical device, so we verify the tab itself rather than Form internals.",
+      "expected_elements": ["Settings"]
+    },
+    {
+      "step": 10,
+      "action": "tap",
+      "description": "Navigate back to Models tab to confirm full cycle.",
+      "target_element": "Models"
+    },
+    {
+      "step": 11,
+      "action": "verify_ui",
+      "description": "Verify tab bar is still fully accessible after complete navigation cycle.",
+      "expected_elements": ["Models", "Chat", "Settings"]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ci_test_runner.sh — Orchestrates the full test pyramid for GemmaEdgeGallery.
+# ci_test_runner.sh — Orchestrates the full test pyramid for EdgeAILab.
 #
 # Test Pyramid:
 #   1. UnitTests    — Fast, no model needed (MUST pass)
@@ -9,6 +9,7 @@
 # Usage:
 #   ./automation/ci_test_runner.sh [--macOS | --simulator | --device]
 #   ./automation/ci_test_runner.sh --macOS --skip-integration --skip-performance
+#   ./automation/ci_test_runner.sh --device --device-id <UDID>
 #
 # Environment:
 #   PERFORMANCE_TEST_MODEL_PATH  — Path to .litertlm model file (optional, auto-discovers)
@@ -32,6 +33,7 @@ PLATFORM="macos"
 SKIP_INTEGRATION=false
 SKIP_PERFORMANCE=false
 NO_FAIL_PERF=false
+DEVICE_ID=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -39,17 +41,41 @@ while [[ $# -gt 0 ]]; do
         --macOS|--macos)      PLATFORM="macos"; shift ;;
         --simulator)          PLATFORM="simulator"; shift ;;
         --device)             PLATFORM="device"; shift ;;
+        --device-id)          DEVICE_ID="$2"; shift 2 ;;
         --skip-integration)   SKIP_INTEGRATION=true; shift ;;
         --skip-performance)   SKIP_PERFORMANCE=true; shift ;;
         --no-fail-perf)       NO_FAIL_PERF=true; shift ;;
         -h|--help)
-            echo "Usage: $0 [--macOS|--simulator|--device] [--skip-integration] [--skip-performance] [--no-fail-perf]"
+            echo "Usage: $0 [--macOS|--simulator|--device] [--device-id <UDID>] [--skip-integration] [--skip-performance] [--no-fail-perf]"
             exit 0 ;;
         *)
             echo "Unknown argument: $1" >&2
             exit 1 ;;
     esac
 done
+
+# Resolve destination
+if [[ "$PLATFORM" == "macos" ]]; then
+    SCHEME="Edge AI Lab"
+    DESTINATION="platform=macOS"
+    TEST_TARGET="EdgeAILab_macOSTests"
+elif [[ "$PLATFORM" == "simulator" ]]; then
+    SCHEME="EdgeAILab_iOS"
+    DESTINATION="platform=iOS Simulator,name=iPhone 17 Pro Max"
+    TEST_TARGET="EdgeAILab_iOSTests"
+elif [[ "$PLATFORM" == "device" ]]; then
+    SCHEME="EdgeAILab_iOS"
+    TEST_TARGET="EdgeAILab_iOSTests"
+    if [[ -z "$DEVICE_ID" ]]; then
+        DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | grep "connected" | awk '{print $3}')
+        if [[ -z "$DEVICE_ID" ]]; then
+            echo "ERROR: No connected device found. Pass --device-id <UDID> or connect a device."
+            exit 1
+        fi
+        echo "Auto-detected device: $DEVICE_ID"
+    fi
+    DESTINATION="id=$DEVICE_ID"
+fi
 
 # Ensure output directory exists
 mkdir -p "$OUTPUT_DIR"
@@ -62,7 +88,7 @@ PERFORMANCE_STATUS="skipped"
 EXIT_CODE=0
 
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║  GemmaEdgeGallery CI Test Runner                     ║"
+echo "║  EdgeAILab CI Test Runner                            ║"
 echo "║  Platform: $PLATFORM                                ║"
 echo "║  Timestamp: $TIMESTAMP                              ║"
 echo "╚══════════════════════════════════════════════════════╝"
@@ -74,18 +100,21 @@ echo ""
 echo "🧪 Step 1/3: Unit Tests (no model required)"
 echo "─────────────────────────────────────────────"
 
-SCHEME="GemmaEdgeGallery_macOS"
-if [[ "$PLATFORM" == "simulator" || "$PLATFORM" == "device" ]]; then
-    SCHEME="GemmaEdgeGallery_iOS"
+UNIT_START=$(date +%s)
+
+XCODEBUILD_ARGS=(
+    -workspace "$PROJECT_DIR/EdgeAILab.xcworkspace"
+    -scheme "$SCHEME"
+    -destination "$DESTINATION"
+    -only-testing:"$TEST_TARGET"
+    -quiet
+)
+
+if [[ "$PLATFORM" == "device" ]]; then
+    XCODEBUILD_ARGS+=(-allowProvisioningUpdates)
 fi
 
-UNIT_START=$(date +%s)
-if xcodebuild test \
-    -project "$PROJECT_DIR/GemmaEdgeGallery.xcodeproj" \
-    -scheme "$SCHEME" \
-    -destination "platform=macOS" \
-    -only-testing:GemmaEdgeGallery_macOSTests \
-    -quiet 2>&1; then
+if xcodebuild test "${XCODEBUILD_ARGS[@]}" 2>&1; then
     UNIT_STATUS="passed"
     echo "✅ Unit tests PASSED"
 else
@@ -125,12 +154,19 @@ else
     else
         echo "   Using model: $(basename "$MODEL_PATH")"
         INTEG_START=$(date +%s)
-        if xcodebuild test \
-            -project "$PROJECT_DIR/GemmaEdgeGallery.xcodeproj" \
-            -scheme "$SCHEME" \
-            -destination "platform=macOS" \
-            -only-testing:GemmaEdgeGallery_macOSTests/SmartFallbackIntegrationTests \
-            -quiet 2>&1; then
+
+        INTEG_ARGS=(
+            -workspace "$PROJECT_DIR/EdgeAILab.xcworkspace"
+            -scheme "$SCHEME"
+            -destination "$DESTINATION"
+            -only-testing:"${TEST_TARGET}/SmartFallbackIntegrationTests"
+            -quiet
+        )
+        if [[ "$PLATFORM" == "device" ]]; then
+            INTEG_ARGS+=(-allowProvisioningUpdates)
+        fi
+
+        if xcodebuild test "${INTEG_ARGS[@]}" 2>&1; then
             INTEGRATION_STATUS="passed"
             echo "✅ Integration tests PASSED"
         else
@@ -169,12 +205,19 @@ else
     else
         echo "   Using model: $(basename "$MODEL_PATH")"
         PERF_START=$(date +%s)
-        if xcodebuild test \
-            -project "$PROJECT_DIR/GemmaEdgeGallery.xcodeproj" \
-            -scheme "$SCHEME" \
-            -destination "platform=macOS" \
-            -only-testing:GemmaEdgeGallery_macOSTests/PerformanceTests \
-            -quiet 2>&1; then
+
+        PERF_ARGS=(
+            -workspace "$PROJECT_DIR/EdgeAILab.xcworkspace"
+            -scheme "$SCHEME"
+            -destination "$DESTINATION"
+            -only-testing:"${TEST_TARGET}/PerformanceTests"
+            -quiet
+        )
+        if [[ "$PLATFORM" == "device" ]]; then
+            PERF_ARGS+=(-allowProvisioningUpdates)
+        fi
+
+        if xcodebuild test "${PERF_ARGS[@]}" 2>&1; then
             PERFORMANCE_STATUS="passed"
             echo "✅ Performance tests PASSED"
         else

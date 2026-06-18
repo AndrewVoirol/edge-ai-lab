@@ -1,4 +1,4 @@
-# GemmaEdgeGallery On-Device Benchmark Reports
+# EdgeAILab On-Device Benchmark Reports
 
 ### Benchmark Run: 2026-06-01 18:33:08
 Device ID: `YOUR_DEVICE_UUID`

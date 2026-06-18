@@ -1,6 +1,17 @@
 name: Benchmark
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Sources/Benchmarking/**'
+      - 'Sources/Evaluation/**'
+      - 'Sources/Utilities/DeveloperAutomationHarness.swift'
+      - 'Sources/Utilities/AutomationFlowRunner.swift'
+      - 'metrics/baselines.json'
+      - 'metrics/eval_baselines.json'
+      - 'automation/**'
+      - 'RawBenchmark/**'
   release:
     types: [published]
   workflow_dispatch:
@@ -49,7 +60,7 @@ jobs:
       - name: Build RawBenchmark CLI (Release)
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
+            -workspace EdgeAILab.xcworkspace \
             -scheme RawBenchmark \
             -configuration Release \
             -destination 'platform=macOS' \
@@ -60,12 +71,12 @@ jobs:
       - name: Run Unit Tests
         run: |
           xcodebuild test \
-            -workspace GemmaEdgeGallery.xcworkspace \
+            -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
-            -only-testing:GemmaEdgeGallery_macOSTests/BenchmarkCardTests \
-            -only-testing:GemmaEdgeGallery_macOSTests/SprintFeatureIntegrationTests \
+            -only-testing:EdgeAILab_macOSTests/BenchmarkCardTests \
+            -only-testing:EdgeAILab_macOSTests/SprintFeatureIntegrationTests \
             -resultBundlePath BenchmarkTestResults.xcresult \
             COMPILER_INDEX_STORE_ENABLE=NO
 
@@ -137,7 +148,7 @@ jobs:
       - name: Build RawBenchmark CLI (Release)
         run: |
           xcodebuild \
-            -workspace GemmaEdgeGallery.xcworkspace \
+            -workspace EdgeAILab.xcworkspace \
             -scheme RawBenchmark \
             -configuration Release \
             -destination 'platform=macOS' \
@@ -241,4 +252,300 @@ jobs:
             else
               echo "✅ **STABLE** — within acceptable range" >> $GITHUB_STEP_SUMMARY
             fi
+          fi
+
+  # ──────────────────────────────────────────────────────────
+  # Job 3: Dry-Run Validation (every PR, no model needed)
+  # Validates pipeline plumbing: baselines parse, flows parse,
+  # regression checker works, benchmark pipeline tests pass
+  # ──────────────────────────────────────────────────────────
+  dry-run-validation:
+    name: Pipeline Dry-Run Validation
+    runs-on: macos-26
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist Project
+        uses: ./.github/actions/setup-tuist-project
+        with:
+          spm-packages-dir: ${{ env.SPM_PACKAGES_DIR }}
+          cache-key-suffix: benchmark-dryrun
+
+      - name: Validate Baselines JSON
+        run: |
+          echo "📋 Validating metrics/baselines.json..."
+          python3 -c "
+          import json
+          with open('metrics/baselines.json') as f:
+              data = json.load(f)
+          assert '_meta' in data, 'Missing _meta'
+          assert 'baselines' in data, 'Missing baselines'
+          assert 'regression_rules' in data, 'Missing regression_rules'
+          assert len(data['baselines']) > 0, 'No baselines defined'
+          assert len(data['regression_rules']) > 0, 'No regression rules defined'
+          print(f'✅ {len(data[\"baselines\"])} baselines, {len(data[\"regression_rules\"])} rules')
+          "
+
+      - name: Validate Automation Flow JSONs
+        run: |
+          echo "📋 Validating automation/flows/*.json..."
+          for f in automation/flows/*.json; do
+            python3 -c "
+          import json, sys
+          with open('$f') as fh:
+              data = json.load(fh)
+          assert 'name' in data, f'Missing name in $f'
+          assert 'steps' in data, f'Missing steps in $f'
+          assert len(data['steps']) > 0, f'No steps in $f'
+          print(f'  ✅ {data[\"name\"]}: {len(data[\"steps\"])} steps')
+          "
+          done
+
+      - name: Validate Eval Baselines JSON
+        run: |
+          echo "📋 Validating metrics/eval_baselines.json..."
+          python3 -c "
+          import json
+          with open('metrics/eval_baselines.json') as f:
+              data = json.load(f)
+          assert '_meta' in data, 'Missing _meta'
+          assert 'baselines' in data, 'Missing baselines'
+          assert 'regression_rules' in data, 'Missing regression_rules'
+          print(f'✅ {len(data[\"baselines\"])} eval baselines, {len(data[\"regression_rules\"])} rules')
+          "
+
+      - name: Validate UI Flow JSONs
+        run: |
+          echo "📋 Validating automation/flows/ui/*.json..."
+          for f in automation/flows/ui/*.json; do
+            python3 -c "
+          import json, sys
+          with open('$f') as fh:
+              data = json.load(fh)
+          assert 'name' in data, f'Missing name in $f'
+          assert 'steps' in data, f'Missing steps in $f'
+          assert len(data['steps']) > 0, f'No steps in $f'
+          print(f'  ✅ {data[\"name\"]}: {len(data[\"steps\"])} steps')
+          "
+          done
+
+      - name: Run Benchmark Pipeline Tests
+        run: |
+          xcodebuild test \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -only-testing:EdgeAILab_macOSTests/BenchmarkPipelineTests \
+            -only-testing:EdgeAILab_macOSTests/EvalPipelineTests \
+            -only-testing:EdgeAILab_macOSTests/EvalRegressionCheckerTests \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tail -50
+
+  # ──────────────────────────────────────────────────────────
+  # Job 4: Self-Hosted Benchmark (model required, Apple Silicon)
+  # Only runs on self-hosted runners with pre-staged models
+  # ──────────────────────────────────────────────────────────
+  self-hosted-benchmark:
+    name: Self-Hosted Inference Benchmark
+    runs-on: [self-hosted, apple-silicon]
+    timeout-minutes: 60
+    if: >
+      github.event_name == 'release' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.model_path == '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist Project
+        uses: ./.github/actions/setup-tuist-project
+        with:
+          spm-packages-dir: ${{ env.SPM_PACKAGES_DIR }}
+          cache-key-suffix: benchmark-selfhosted
+
+      - name: Discover Pre-Staged Models
+        id: models
+        run: |
+          # Look for models in standard locations
+          MODEL_DIR="${HOME}/models"
+          if [[ ! -d "$MODEL_DIR" ]]; then
+            MODEL_DIR="${HOME}/Antigravity/Projects/gemma-edgegallery/models"
+          fi
+
+          MODEL_PATH=$(find "$MODEL_DIR" -name "*.litertlm" -type f 2>/dev/null | head -1)
+
+          if [[ -z "$MODEL_PATH" ]]; then
+            echo "⚠️ No pre-staged models found — skipping inference benchmark"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Found model: $(basename $MODEL_PATH)"
+            echo "path=$MODEL_PATH" >> $GITHUB_OUTPUT
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build RawBenchmark CLI (Release)
+        if: steps.models.outputs.skip != 'true'
+        run: |
+          xcodebuild \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme RawBenchmark \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            build \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Run Benchmark
+        if: steps.models.outputs.skip != 'true'
+        run: |
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          "$BINARY_PATH" "${{ steps.models.outputs.path }}" > benchmark_results.json 2> benchmark_log.txt
+          echo "📊 Results:"
+          cat benchmark_results.json | python3 -m json.tool
+
+      - name: Compare Against Baselines
+        if: steps.models.outputs.skip != 'true'
+        run: |
+          chmod +x automation/benchmark_compare.sh
+          automation/benchmark_compare.sh \
+            --results benchmark_results.json \
+            --baselines metrics/baselines.json \
+            --threshold "$REGRESSION_THRESHOLD" \
+            --output regression_report.json || true
+
+      - name: Upload Results
+        if: always() && steps.models.outputs.skip != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: self-hosted-benchmark-results
+          path: |
+            benchmark_results.json
+            benchmark_log.txt
+            regression_report.json
+
+  # ──────────────────────────────────────────────────────────
+  # Job 5: Eval Pipeline (self-hosted, informational)
+  # Runs built-in eval suites against models — informational only
+  # ──────────────────────────────────────────────────────────
+  eval-pipeline:
+    name: Eval Pipeline (Informational)
+    runs-on: [self-hosted, apple-silicon]
+    timeout-minutes: 120
+    if: >
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.model_path != '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist Project
+        uses: ./.github/actions/setup-tuist-project
+        with:
+          spm-packages-dir: ${{ env.SPM_PACKAGES_DIR }}
+          cache-key-suffix: eval
+
+      - name: Build App
+        run: |
+          xcodebuild build \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Run Eval Pipeline (Dry-Run Validation)
+        run: |
+          echo "📋 Running eval pipeline dry-run validation..."
+          # Build and launch with eval pipeline flag
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Edge AI Lab.app" -type d 2>/dev/null | head -1)
+          if [[ -n "$APP_PATH" ]]; then
+            "$APP_PATH/Contents/MacOS/Edge AI Lab" -RunEvalPipeline -DryRun 2>&1 | tee eval_output.txt || true
+          else
+            echo "⚠️ App binary not found — skipping eval pipeline"
+          fi
+
+      - name: Post Eval Summary
+        if: always()
+        run: |
+          echo "## 🧪 Eval Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ -f eval_output.txt ]]; then
+            grep '\[AUTOMATION\]' eval_output.txt | tail -20 >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo "ℹ️ Eval pipeline did not produce output" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ──────────────────────────────────────────────────────────
+  # Job 6: Eval Pipeline — Gated (self-hosted, fails on regression)
+  # Enforces threshold-based eval quality gates
+  # ──────────────────────────────────────────────────────────
+  eval-gated:
+    name: Eval Pipeline (Gated)
+    runs-on: [self-hosted, apple-silicon]
+    timeout-minutes: 120
+    if: >
+      github.event_name == 'release' ||
+      github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Tuist Project
+        uses: ./.github/actions/setup-tuist-project
+        with:
+          spm-packages-dir: ${{ env.SPM_PACKAGES_DIR }}
+          cache-key-suffix: eval-gated
+
+      - name: Build App
+        run: |
+          xcodebuild build \
+            -workspace EdgeAILab.xcworkspace \
+            -scheme "Edge AI Lab" \
+            -destination 'platform=macOS' \
+            -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Run Eval Pipeline (Gated)
+        run: |
+          echo "🔒 Running eval pipeline with CI gating enabled..."
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Edge AI Lab.app" -type d 2>/dev/null | head -1)
+          if [[ -n "$APP_PATH" ]]; then
+            "$APP_PATH/Contents/MacOS/Edge AI Lab" -RunEvalPipeline -EvalGated 2>&1 | tee eval_gated_output.txt
+            EXIT_CODE=${PIPESTATUS[0]}
+            if [[ $EXIT_CODE -ne 0 ]]; then
+              echo "❌ Eval pipeline detected critical regressions — failing build"
+              exit 1
+            fi
+          else
+            echo "⚠️ App binary not found — skipping eval pipeline"
+          fi
+
+      - name: Upload Eval Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-gated-results
+          path: eval_gated_output.txt
+
+      - name: Post Eval Gate Summary
+        if: always()
+        run: |
+          echo "## 🔒 Eval Pipeline (Gated) Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ -f eval_gated_output.txt ]]; then
+            # Extract regression results
+            grep '\[AUTOMATION_EVAL_REGRESSION\]\|\[AUTOMATION\].*regression\|\[AUTOMATION_SUCCESS\]\|\[AUTOMATION_FAILURE\]' eval_gated_output.txt | tail -20 >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo "ℹ️ Eval gated pipeline did not produce output" >> $GITHUB_STEP_SUMMARY
           fi

@@ -54,6 +54,6 @@ runs:
       shell: bash
       run: |
         xcodebuild -resolvePackageDependencies \
-          -workspace GemmaEdgeGallery.xcworkspace \
+          -workspace EdgeAILab.xcworkspace \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
           2>&1 | tail -20

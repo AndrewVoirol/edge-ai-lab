@@ -1,11 +1,11 @@
 ---
 name: simulator-management
-description: Manage iOS simulators for GemmaEdgeGallery — boot, install, launch, take screenshots, inspect UI trees, and automate UI interactions. Use this skill when deploying to simulator, debugging UI, or running automation flows on a simulated device.
+description: Manage iOS simulators for EdgeAILab — boot, install, launch, take screenshots, inspect UI trees, and automate UI interactions. Use this skill when deploying to simulator, debugging UI, or running automation flows on a simulated device.
 ---
 
 # Simulator Management
 
-This skill covers creating, booting, and interacting with iOS Simulators for GemmaEdgeGallery development and testing.
+This skill covers creating, booting, and interacting with iOS Simulators for EdgeAILab development and testing.
 
 ## Preferred Simulator
 
@@ -14,7 +14,7 @@ This skill covers creating, booting, and interacting with iOS Simulators for Gem
 | Device | Dynamic — use `xcrun simctl list devices available \| grep iPhone` |
 | Current | iPhone 17 Pro Max (iOS 26.5, UDID: C6E6FFA0-2646-4FF2-ABA1-AD78DC64B2D8) |
 | OS | iOS 26.5 |
-| Bundle ID | `com.andrewvoirol.GemmaEdgeGallery` |
+| Bundle ID | `com.andrewvoirol.EdgeAILab` |
 
 > **IMPORTANT:** Always discover simulators dynamically. The available simulator names change with Xcode/iOS SDK updates. Use UDID-based destination for reliability.
 
@@ -88,9 +88,9 @@ xcrun simctl list devices booted
 ```
 Tool: xcodebuild-mcp → build_sim
 Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
+  scheme: "EdgeAILab_iOS"
   simulator: "iPhone 16 Pro"
-  workspace: "GemmaEdgeGallery.xcworkspace"
+  workspace: "EdgeAILab.xcworkspace"
 ```
 
 ### Build & Run
@@ -98,9 +98,9 @@ Arguments:
 ```
 Tool: xcodebuild-mcp → build_run_sim
 Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
+  scheme: "EdgeAILab_iOS"
   simulator: "iPhone 16 Pro"
-  workspace: "GemmaEdgeGallery.xcworkspace"
+  workspace: "EdgeAILab.xcworkspace"
 ```
 
 ### CLI Build & Install
@@ -108,18 +108,18 @@ Arguments:
 ```bash
 # Build for simulator
 xcodebuild build \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   -quiet \
   2>&1
 
 # Find the built app
-APP_PATH=$(xcodebuild -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+APP_PATH=$(xcodebuild -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR' | awk '{print $3}')
-echo "$APP_PATH/GemmaEdgeGallery_iOS.app"
+echo "$APP_PATH/EdgeAILab_iOS.app"
 ```
 
 ## Installing the App
@@ -128,10 +128,10 @@ echo "$APP_PATH/GemmaEdgeGallery_iOS.app"
 
 ```bash
 # Install by simulator name (uses booted sim)
-xcrun simctl install booted "$APP_PATH/GemmaEdgeGallery_iOS.app"
+xcrun simctl install booted "$APP_PATH/EdgeAILab_iOS.app"
 
 # Install by UDID
-xcrun simctl install <udid> "$APP_PATH/GemmaEdgeGallery_iOS.app"
+xcrun simctl install <udid> "$APP_PATH/EdgeAILab_iOS.app"
 ```
 
 ### MCP
@@ -148,27 +148,27 @@ Arguments:
 ### Basic Launch
 
 ```bash
-xcrun simctl launch booted com.andrewvoirol.GemmaEdgeGallery
+xcrun simctl launch booted com.andrewvoirol.EdgeAILab
 ```
 
 ### Launch with Automation Arguments
 
 ```bash
 # Run all automation tests (full benchmark)
-xcrun simctl launch booted com.andrewvoirol.GemmaEdgeGallery -- -RunAllTests
+xcrun simctl launch booted com.andrewvoirol.EdgeAILab -- -RunAllTests
 
 # Run a specific automation flow
-xcrun simctl launch booted com.andrewvoirol.GemmaEdgeGallery -- -RunFlow model_setup
+xcrun simctl launch booted com.andrewvoirol.EdgeAILab -- -RunFlow model_setup
 
 # Run matrix benchmark
-xcrun simctl launch booted com.andrewvoirol.GemmaEdgeGallery -- -RunMatrixBenchmark
+xcrun simctl launch booted com.andrewvoirol.EdgeAILab -- -RunMatrixBenchmark
 ```
 
 ### Launch and Capture stdout
 
 ```bash
 # Use --console to see stdout (including [AUTOMATION] output)
-xcrun simctl launch --console booted com.andrewvoirol.GemmaEdgeGallery -- -RunAllTests
+xcrun simctl launch --console booted com.andrewvoirol.EdgeAILab -- -RunAllTests
 ```
 
 ### MCP Launch
@@ -177,21 +177,21 @@ xcrun simctl launch --console booted com.andrewvoirol.GemmaEdgeGallery -- -RunAl
 Tool: xcodebuild-mcp → launch_app_sim
 Arguments:
   simulator: "iPhone 16 Pro"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
+  bundle_id: "com.andrewvoirol.EdgeAILab"
   arguments: ["-RunFlow", "model_setup"]
 ```
 
 ## Stopping the App
 
 ```bash
-xcrun simctl terminate booted com.andrewvoirol.GemmaEdgeGallery
+xcrun simctl terminate booted com.andrewvoirol.EdgeAILab
 ```
 
 ```
 Tool: xcodebuild-mcp → stop_app_sim
 Arguments:
   simulator: "iPhone 16 Pro"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
+  bundle_id: "com.andrewvoirol.EdgeAILab"
 ```
 
 ## Taking Screenshots
@@ -306,13 +306,13 @@ Useful for inspecting app sandbox (Documents, Caches, etc.):
 Tool: xcodebuild-mcp → get_sim_app_path
 Arguments:
   simulator: "iPhone 16 Pro"
-  bundle_id: "com.andrewvoirol.GemmaEdgeGallery"
+  bundle_id: "com.andrewvoirol.EdgeAILab"
 ```
 
 ### CLI
 
 ```bash
-xcrun simctl get_app_container booted com.andrewvoirol.GemmaEdgeGallery data
+xcrun simctl get_app_container booted com.andrewvoirol.EdgeAILab data
 ```
 
 This returns the path to the app's data container. Useful subdirectories:
@@ -348,7 +348,7 @@ xcrun simctl boot "iPhone 16 Pro"
 Check simulator logs:
 ```bash
 # Tail system log for the app
-xcrun simctl spawn booted log stream --predicate 'subsystem == "com.andrewvoirol.GemmaEdgeGallery"' --level debug
+xcrun simctl spawn booted log stream --predicate 'subsystem == "com.andrewvoirol.EdgeAILab"' --level debug
 ```
 
 ### Simulator Out of Disk Space
@@ -356,7 +356,7 @@ xcrun simctl spawn booted log stream --predicate 'subsystem == "com.andrewvoirol
 Models are large (1-4 GB). Clear old data:
 ```bash
 # Get data path
-DATA_PATH=$(xcrun simctl get_app_container booted com.andrewvoirol.GemmaEdgeGallery data)
+DATA_PATH=$(xcrun simctl get_app_container booted com.andrewvoirol.EdgeAILab data)
 # Remove cached models
 rm -rf "$DATA_PATH/Documents/"*.litertlm
 ```

@@ -1,0 +1,69 @@
+{
+  "name": "iOS Orientation Layout",
+  "description": "Verify key UI elements remain visible and accessible in portrait mode (default orientation) across all three tabs.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify Models tab layout shows tab bar and at least one section.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify Model Hub content sections are visible in portrait.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Switch to Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 4,
+      "action": "wait",
+      "description": "Wait for Chat tab to render.",
+      "condition": "element_exists:Chat",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify prompt field is visible in portrait layout.",
+      "expected_elements_any": ["textField_prompt", "Enter your prompt here"]
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Switch to Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait for Settings tab to render.",
+      "condition": "element_exists:Settings",
+      "timeout_seconds": 10
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify settings toggles are visible in portrait layout. Broader match for iOS 27 Liquid Glass.",
+      "expected_elements_any": ["toggle_useGPU", "Use GPU", "toggle_enableBenchmark", "Backend"]
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Return to Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 10,
+      "action": "verify_ui",
+      "description": "Verify Models tab is intact after full tab cycle in portrait.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}

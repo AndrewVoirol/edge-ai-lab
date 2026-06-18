@@ -1,27 +1,27 @@
 ---
 name: tuist-project
-description: Manage the GemmaEdgeGallery Xcode project via Tuist — regenerate after manifest changes, add targets, update dependencies, and troubleshoot project generation issues. Use this skill when modifying Project.swift, adding targets or dependencies, or when the Xcode project needs to be regenerated.
+description: Manage the EdgeAILab Xcode project via Tuist — regenerate after manifest changes, add targets, update dependencies, and troubleshoot project generation issues. Use this skill when modifying Project.swift, adding targets or dependencies, or when the Xcode project needs to be regenerated.
 ---
 
 # Tuist Project Management
 
-This skill covers managing the GemmaEdgeGallery Xcode project using Tuist as the project generator.
+This skill covers managing the EdgeAILab Xcode project using Tuist as the project generator.
 
 ## Key Principle
 
-> **GemmaEdgeGallery uses `Project.swift` (Tuist), NOT `Package.swift` (SPM).** Never create or edit a `Package.swift` file. All project configuration is in `Project.swift`.
+> **EdgeAILab uses `Project.swift` (Tuist), NOT `Package.swift` (SPM).** Never create or edit a `Package.swift` file. All project configuration is in `Project.swift`.
 
 ## Project Manifest Overview
 
 The project manifest is at the repository root: `Project.swift`
 
 ```
-Project: GemmaEdgeGallery
-├── GemmaEdgeGallery_iOS         (iOS app)
-├── GemmaEdgeGallery_iOSTests    (iOS unit tests)
-├── GemmaEdgeGallery_macOS       (macOS app — "Edge AI Lab")
-├── GemmaEdgeGallery_macOSTests  (macOS unit tests)
-├── GemmaEdgeGallery_macOSUITests (macOS UI tests)
+Project: EdgeAILab
+├── EdgeAILab_iOS         (iOS app)
+├── EdgeAILab_iOSTests    (iOS unit tests)
+├── EdgeAILab_macOS       (macOS app — "Edge AI Lab")
+├── EdgeAILab_macOSTests  (macOS unit tests)
+├── EdgeAILab_macOSUITests (macOS UI tests)
 └── RawBenchmark                 (macOS CLI tool)
 ```
 
@@ -54,8 +54,8 @@ tuist generate
 ```
 
 This creates/updates:
-- `GemmaEdgeGallery.xcodeproj`
-- `GemmaEdgeGallery.xcworkspace`
+- `EdgeAILab.xcodeproj`
+- `EdgeAILab.xcworkspace`
 - `Derived/` directory (generated Info.plist files only — bundle and asset accessors are disabled)
 
 ### Project Options
@@ -119,25 +119,25 @@ You do NOT need to regenerate after:
 
 | Change | Reason |
 |---|---|
-| Added/removed `.swift` files in `Sources/` | Uses `Sources/**` glob — auto-discovered |
-| Added/removed `.swift` files in `Tests/` | Uses `Tests/**` glob — auto-discovered |
 | Modified existing source files | No project structure change |
 | Changed `.xctestplan` files | Test plans are independent of project generation |
 
+> **IMPORTANT:** Even though targets use `Sources/**` and `Tests/**` globs, Tuist generates **explicit file references** in the `.pbxproj`. You MUST run `tuist generate` after adding or removing `.swift` files. The glob is only evaluated at generation time.
+
 ## Targets
 
-### GemmaEdgeGallery_iOS
+### EdgeAILab_iOS
 
 ```swift
 .target(
-    name: "GemmaEdgeGallery_iOS",
+    name: "EdgeAILab_iOS",
     destinations: .iOS,
     product: .app,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery",
+    bundleId: "com.andrewvoirol.EdgeAILab",
     deploymentTargets: .iOS("26.5"),
     sources: ["Sources/**"],
     resources: ["Sources/Assets.xcassets"],
-    entitlements: .file(path: "GemmaEdgeGallery_iOS.entitlements"),
+    entitlements: .file(path: "EdgeAILab_iOS.entitlements"),
     dependencies: [
         .package(product: "LiteRTLM"),
         .package(product: "MarkdownUI")
@@ -145,18 +145,18 @@ You do NOT need to regenerate after:
 )
 ```
 
-### GemmaEdgeGallery_macOS
+### EdgeAILab_macOS
 
 ```swift
 .target(
-    name: "GemmaEdgeGallery_macOS",
+    name: "EdgeAILab_macOS",
     destinations: .macOS,
     product: .app,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac",
+    bundleId: "com.andrewvoirol.EdgeAILab.mac",
     deploymentTargets: .macOS("26.0"),
     sources: ["Sources/**"],
     resources: ["Sources/Assets.xcassets"],
-    entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
+    entitlements: .file(path: "EdgeAILab_macOS.entitlements"),
     dependencies: [
         .package(product: "LiteRTLM"),
         .package(product: "MarkdownUI")
@@ -164,40 +164,40 @@ You do NOT need to regenerate after:
     settings: .settings(
         base: [
             "PRODUCT_NAME": "Edge AI Lab",
-            "PRODUCT_MODULE_NAME": "GemmaEdgeGallery_macOS"
+            "PRODUCT_MODULE_NAME": "EdgeAILab_macOS"
         ]
     )
 )
 ```
 
-> **NOTE:** The macOS app is branded as "Edge AI Lab" via `PRODUCT_NAME` and `CFBundleDisplayName`, but the module name remains `GemmaEdgeGallery_macOS`. Import it as `@testable import GemmaEdgeGallery_macOS` in tests.
+> **NOTE:** The macOS app is branded as "Edge AI Lab" via `PRODUCT_NAME` and `CFBundleDisplayName`, but the module name remains `EdgeAILab_macOS`. Import it as `@testable import EdgeAILab_macOS` in tests.
 
-### GemmaEdgeGallery_iOSTests
+### EdgeAILab_iOSTests
 
 ```swift
 .target(
-    name: "GemmaEdgeGallery_iOSTests",
+    name: "EdgeAILab_iOSTests",
     destinations: .iOS,
     product: .unitTests,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery.Tests",
+    bundleId: "com.andrewvoirol.EdgeAILab.Tests",
     sources: ["Tests/**"],
     dependencies: [
-        .target(name: "GemmaEdgeGallery_iOS")
+        .target(name: "EdgeAILab_iOS")
     ]
 )
 ```
 
-### GemmaEdgeGallery_macOSTests
+### EdgeAILab_macOSTests
 
 ```swift
 .target(
-    name: "GemmaEdgeGallery_macOSTests",
+    name: "EdgeAILab_macOSTests",
     destinations: .macOS,
     product: .unitTests,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.Tests",
+    bundleId: "com.andrewvoirol.EdgeAILab.mac.Tests",
     sources: ["Tests/**"],
     dependencies: [
-        .target(name: "GemmaEdgeGallery_macOS")
+        .target(name: "EdgeAILab_macOS")
     ],
     settings: .settings(
         base: [
@@ -207,21 +207,21 @@ You do NOT need to regenerate after:
 )
 ```
 
-### GemmaEdgeGallery_macOSUITests
+### EdgeAILab_macOSUITests
 
 ```swift
 .target(
-    name: "GemmaEdgeGallery_macOSUITests",
+    name: "EdgeAILab_macOSUITests",
     destinations: .macOS,
     product: .uiTests,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.UITests",
+    bundleId: "com.andrewvoirol.EdgeAILab.mac.UITests",
     sources: ["UITests/**"],
     dependencies: [
-        .target(name: "GemmaEdgeGallery_macOS")
+        .target(name: "EdgeAILab_macOS")
     ],
     settings: .settings(
         base: [
-            "TEST_TARGET_NAME": "GemmaEdgeGallery_macOS"
+            "TEST_TARGET_NAME": "EdgeAILab_macOS"
         ]
     )
 )
@@ -234,7 +234,7 @@ You do NOT need to regenerate after:
     name: "RawBenchmark",
     destinations: .macOS,
     product: .commandLineTool,
-    bundleId: "com.andrewvoirol.GemmaEdgeGallery.RawBenchmark",
+    bundleId: "com.andrewvoirol.EdgeAILab.RawBenchmark",
     deploymentTargets: .macOS("26.0"),
     sources: ["RawBenchmark/**"],
     dependencies: [
@@ -282,7 +282,7 @@ let project = Project(
 2. Add it as a dependency to the relevant target(s):
 ```swift
 .target(
-    name: "GemmaEdgeGallery_iOS",
+    name: "EdgeAILab_iOS",
     // ...
     dependencies: [
         .package(product: "LiteRTLM"),
@@ -299,16 +299,16 @@ tuist generate
 
 ## Schemes
 
-### GemmaEdgeGallery_iOS
+### EdgeAILab_iOS
 
-- **Build:** `GemmaEdgeGallery_iOS`
-- **Test:** `GemmaEdgeGallery_iOSTests` (Debug, coverage enabled)
+- **Build:** `EdgeAILab_iOS`
+- **Test:** `EdgeAILab_iOSTests` (Debug, coverage enabled)
 - **Run:** Debug configuration
 
 ### Edge AI Lab
 
-- **Build:** `GemmaEdgeGallery_macOS`
-- **Test:** `GemmaEdgeGallery_macOSTests` + `GemmaEdgeGallery_macOSUITests` (Debug, coverage enabled)
+- **Build:** `EdgeAILab_macOS`
+- **Test:** `EdgeAILab_macOSTests` + `EdgeAILab_macOSUITests` (Debug, coverage enabled)
 - **Run:** Debug configuration
 
 ### RawBenchmark
@@ -389,7 +389,7 @@ DEVELOPMENT_TEAM=YOUR_TEAM_ID tuist generate
 **Fix:**
 ```bash
 tuist clean
-rm -rf ~/Library/Developer/Xcode/DerivedData/GemmaEdgeGallery-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/EdgeAILab-*
 rm -rf .build
 tuist generate
 ```
@@ -415,7 +415,7 @@ tuist generate
 ```
 Then verify:
 ```bash
-xcodebuild -workspace GemmaEdgeGallery.xcworkspace -list
+xcodebuild -workspace EdgeAILab.xcworkspace -list
 ```
 
 ### 4. "No such module" After Adding Dependency
@@ -433,7 +433,7 @@ tuist generate
 
 **Fix:** These files are generated — don't manually resolve conflicts:
 ```bash
-git checkout -- GemmaEdgeGallery.xcodeproj GemmaEdgeGallery.xcworkspace
+git checkout -- EdgeAILab.xcodeproj EdgeAILab.xcworkspace
 tuist generate
 ```
 
@@ -453,8 +453,8 @@ tuist generate
 gemma-edgegallery/
 ├── Project.swift                      # ← Tuist manifest (THE source of truth)
 ├── .mise.toml                         # Tuist version pin (4.195.9)
-├── GemmaEdgeGallery.xcworkspace/      # Generated by Tuist
-├── GemmaEdgeGallery.xcodeproj/        # Generated by Tuist
+├── EdgeAILab.xcworkspace/      # Generated by Tuist
+├── EdgeAILab.xcodeproj/        # Generated by Tuist
 ├── Derived/                           # Generated by Tuist (Info.plists only)
 │   └── InfoPlists/                    # Per-target Info.plist files
 ├── Sources/                           # App source (iOS + macOS, glob: Sources/**)
@@ -469,8 +469,8 @@ gemma-edgegallery/
 ├── UITests/                           # macOS UI tests (glob: UITests/**)
 ├── iOSUITests/                        # iOS UI tests (glob: iOSUITests/**)
 ├── RawBenchmark/                      # CLI benchmark (glob: RawBenchmark/**)
-├── GemmaEdgeGallery_iOS.entitlements  # iOS entitlements
-├── GemmaEdgeGallery_macOS.entitlements # macOS entitlements
+├── EdgeAILab_iOS.entitlements  # iOS entitlements
+├── EdgeAILab_macOS.entitlements # macOS entitlements
 ├── UnitTests.xctestplan               # Fast CI test plan
 ├── IntegrationTests.xctestplan        # Cross-component test plan
 ├── PerformanceTests.xctestplan        # Benchmark test plan

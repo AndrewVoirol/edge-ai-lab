@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "D4E5F6A7-B8C9-0123-DEF0-123456789ABC",
+      "name" : "Simulator Configuration",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true,
+    "defaultTestExecutionTimeAllowance" : 60
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:EdgeAILab.xcodeproj",
+        "identifier" : "EdgeAILab_iOSTests",
+        "name" : "EdgeAILab_iOSTests"
+      },
+      "skippedTests" : [
+        "InferenceQualityTests"
+      ]
+    }
+  ],
+  "version" : 1
+}

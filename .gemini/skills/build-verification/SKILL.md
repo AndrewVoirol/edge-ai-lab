@@ -1,18 +1,18 @@
 ---
 name: build-verification
-description: Build the GemmaEdgeGallery project for iOS and macOS platforms, verify zero errors, and troubleshoot common build failures. Use this skill whenever you need to compile the app, verify a code change builds cleanly, or diagnose build errors.
+description: Build the EdgeAILab project for iOS and macOS platforms, verify zero errors, and troubleshoot common build failures. Use this skill whenever you need to compile the app, verify a code change builds cleanly, or diagnose build errors.
 ---
 
 # Build Verification
 
-This skill covers building GemmaEdgeGallery for both iOS (simulator) and macOS, interpreting build results, and fixing common issues.
+This skill covers building EdgeAILab for both iOS (simulator) and macOS, interpreting build results, and fixing common issues.
 
 ## Project Configuration
 
 | Property | Value |
 |---|---|
-| Workspace | `GemmaEdgeGallery.xcworkspace` |
-| Xcode Project | `GemmaEdgeGallery.xcodeproj` |
+| Workspace | `EdgeAILab.xcworkspace` |
+| Xcode Project | `EdgeAILab.xcodeproj` |
 | Project Manifest | `Project.swift` (Tuist) |
 | Team ID | `Y7J7WUK693` |
 | Compilation Caching | Enabled (`COMPILATION_CACHE_ENABLE_CACHING=YES`) |
@@ -21,8 +21,8 @@ This skill covers building GemmaEdgeGallery for both iOS (simulator) and macOS, 
 
 | Scheme | Platform | Target | Product |
 |---|---|---|---|
-| `GemmaEdgeGallery_iOS` | iOS | `GemmaEdgeGallery_iOS` | App |
-| `Edge AI Lab` | macOS | `GemmaEdgeGallery_macOS` | App |
+| `EdgeAILab_iOS` | iOS | `EdgeAILab_iOS` | App |
+| `Edge AI Lab` | macOS | `EdgeAILab_macOS` | App |
 | `RawBenchmark` | macOS | `RawBenchmark` | CLI Tool |
 
 ### Build Destinations
@@ -54,9 +54,9 @@ This skill covers building GemmaEdgeGallery for both iOS (simulator) and macOS, 
 ```
 Tool: xcodebuild-mcp → build_sim
 Arguments:
-  scheme: "GemmaEdgeGallery_iOS"
+  scheme: "EdgeAILab_iOS"
   simulator: "iPhone 17 Pro Max"  # Use `xcrun simctl list devices available | grep iPhone` to find correct name
-  workspace: "GemmaEdgeGallery.xcworkspace"
+  workspace: "EdgeAILab.xcworkspace"
   project_path: "<project_root>"
 ```
 
@@ -65,7 +65,7 @@ Arguments:
 Tool: xcodebuild-mcp → build_macos
 Arguments:
   scheme: "Edge AI Lab"
-  workspace: "GemmaEdgeGallery.xcworkspace"
+  workspace: "EdgeAILab.xcworkspace"
   project_path: "<project_root>"
 ```
 
@@ -74,7 +74,7 @@ Arguments:
 ```
 Tool: xcode-tools → BuildProject
 Arguments:
-  scheme: "GemmaEdgeGallery_iOS"  (or "Edge AI Lab")
+  scheme: "EdgeAILab_iOS"  (or "Edge AI Lab")
   configuration: "Debug"
 ```
 
@@ -84,8 +84,8 @@ Arguments:
 
 ```bash
 xcodebuild build \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination "platform=iOS Simulator,id=$SIM_UDID" \  # Use dynamic UDID from above
   -configuration Debug \
   -quiet \
@@ -96,7 +96,7 @@ xcodebuild build \
 
 ```bash
 xcodebuild build \
-  -workspace GemmaEdgeGallery.xcworkspace \
+  -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
   -destination 'platform=macOS' \
   -configuration Debug \
@@ -108,7 +108,7 @@ xcodebuild build \
 
 ```bash
 xcodebuild build \
-  -workspace GemmaEdgeGallery.xcworkspace \
+  -workspace EdgeAILab.xcworkspace \
   -scheme RawBenchmark \
   -destination 'platform=macOS' \
   -configuration Release \
@@ -169,11 +169,11 @@ tuist generate
 ```bash
 # Reset SPM caches
 xcodebuild -resolvePackageDependencies \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS
 
 # Nuclear option: clear derived data
-rm -rf ~/Library/Developer/Xcode/DerivedData/GemmaEdgeGallery-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/EdgeAILab-*
 ```
 
 ### 2. Code Signing Errors
@@ -188,7 +188,7 @@ For simulator builds, code signing is not required. Add `CODE_SIGN_IDENTITY="" C
 
 ### 3. Missing Generated Files
 
-**Symptom:** `No such module 'GemmaEdgeGallery_iOS'`, missing `Info.plist`
+**Symptom:** `No such module 'EdgeAILab_iOS'`, missing `Info.plist`
 
 **Fix:**
 ```bash
@@ -204,8 +204,8 @@ tuist generate
 ```bash
 # Force re-resolve to latest main
 rm -rf .build
-rm -rf ~/Library/Developer/Xcode/DerivedData/GemmaEdgeGallery-*
-xcodebuild -resolvePackageDependencies -workspace GemmaEdgeGallery.xcworkspace -scheme GemmaEdgeGallery_iOS
+rm -rf ~/Library/Developer/Xcode/DerivedData/EdgeAILab-*
+xcodebuild -resolvePackageDependencies -workspace EdgeAILab.xcworkspace -scheme EdgeAILab_iOS
 ```
 
 ### 5. Stale Tuist Cache
@@ -240,10 +240,10 @@ After making code changes, verify both platforms build:
 
 ```bash
 # iOS
-xcodebuild build -workspace GemmaEdgeGallery.xcworkspace -scheme GemmaEdgeGallery_iOS -destination "platform=iOS Simulator,id=$SIM_UDID" -quiet 2>&1 | tail -5
+xcodebuild build -workspace EdgeAILab.xcworkspace -scheme EdgeAILab_iOS -destination "platform=iOS Simulator,id=$SIM_UDID" -quiet 2>&1 | tail -5
 
 # macOS
-xcodebuild build -workspace GemmaEdgeGallery.xcworkspace -scheme "Edge AI Lab" -destination 'platform=macOS' -quiet 2>&1 | tail -5
+xcodebuild build -workspace EdgeAILab.xcworkspace -scheme "Edge AI Lab" -destination 'platform=macOS' -quiet 2>&1 | tail -5
 ```
 
 Both should output `** BUILD SUCCEEDED **`.

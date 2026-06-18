@@ -3,76 +3,41 @@
     {
       "id" : "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
       "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "options" : {}
     }
   ],
   "defaultOptions" : {
+    "codeCoverageEnabled" : true,
     "testTimeoutsEnabled" : true,
     "defaultTestExecutionTimeAllowance" : 60
   },
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:GemmaEdgeGallery.xcodeproj",
-        "identifier" : "GemmaEdgeGallery_iOSTests",
-        "name" : "GemmaEdgeGallery_iOSTests"
+        "containerPath" : "container:EdgeAILab.xcodeproj",
+        "identifier" : "EdgeAILab_iOSTests",
+        "name" : "EdgeAILab_iOSTests"
       },
-      "selectedTests" : [
-        "AutomationFlowRunnerTests",
-        "BatchEvalTests",
-        "BenchmarkCardTests",
-        "BugFixTests",
-        "BuiltInEvalSuitesTests",
-        "ChatMessageTests",
-        "CommunityDownloadTests",
-        "ConversationForkTests",
-        "ConversationStoreTests",
-        "ConversationViewModelSamplerTests",
-        "ConversationViewModelTests",
-        "DeveloperAutomationHarnessTests",
-        "DeviceMetricsSnapshotTests",
-        "DownloadInfrastructureTests",
-        "DownloadManagerTests",
-        "DynamicModelCatalogTests",
-        "DynamicModelMetadataTests",
-        "EnvironmentInjectionTests",
-        "EvalResultTests",
-        "EvalRunnerTests",
-        "EvalScoringTests",
-        "EvalStoreTests",
-        "EvalSuiteTests",
-        "ExperimentConfigTests",
-        "ExperimentalFlagsStateTests",
-        "FlowResultTests",
-        "GalleryModelDiscoveryTests",
-        "HFModelBrowserTests",
-        "HFRetryTests",
-        "InferenceMetricsIntegrationTests",
-        "InferenceMetricsTests",
-        "KaggleImportTests",
-        "MCPClientTests",
-        "MetricsStoreInferenceMetricsTests",
-        "MetricsStoreTests",
-        "ModelCardParserTests",
-        "ModelLifecycleTests",
-        "ModelMetadataTests",
-        "ModelRegistryTests",
-        "OnboardingTests",
-        "PerformanceTierTests",
-        "SettingsToggleTests",
-        "SidebarSectionTests",
-        "SprintFeatureIntegrationTests",
-        "ThermalLevelTests",
-        "ThinkingParserTests",
-        "ToolCallingTests",
-        "URLImportE2ETests",
-        "URLImportIntegrationTests",
-        "URLImportManagerTests",
-        "iOSConversationPickerTests",
-        "iOSEvalExportTests",
-        "iOSSuiteEditorTests"
+      "skippedTests" : [
+        "InferenceQualityTests",
+        "SmartFallbackIntegrationTests",
+        "MultiTurnIntegrationTests",
+        "GalleryParityBenchmarkTests",
+        "PerformanceTests"
+      ]
+    },
+    {
+      "target" : {
+        "containerPath" : "container:EdgeAILab.xcodeproj",
+        "identifier" : "EdgeAILab_macOSTests",
+        "name" : "EdgeAILab_macOSTests"
+      },
+      "skippedTests" : [
+        "InferenceQualityTests",
+        "SmartFallbackIntegrationTests",
+        "MultiTurnIntegrationTests",
+        "GalleryParityBenchmarkTests",
+        "PerformanceTests"
       ]
     }
   ],

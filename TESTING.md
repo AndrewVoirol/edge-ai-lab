@@ -1,45 +1,59 @@
 # Testing Guide
 
-GemmaEdgeGallery uses two complementary testing strategies: **XCTest** for fast unit/integration testing and the **DeveloperAutomationHarness** for end-to-end validation with real model inference.
+EdgeAILab uses two complementary testing strategies: **XCTest** for fast unit/integration testing and the **DeveloperAutomationHarness** for end-to-end validation with real model inference.
 
 ## Quick Start
 
 ```bash
 # iOS Simulator — unit tests
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
-  -only-testing:GemmaEdgeGallery_iOSTests
+  -only-testing:EdgeAILab_iOSTests
 
 # macOS — unit tests
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
+  -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
   -destination 'platform=macOS' \
-  -only-testing:GemmaEdgeGallery_macOSTests
+  -only-testing:EdgeAILab_macOSTests
 
 # Physical device — unit tests
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'id=<DEVICE_UDID>' \
-  -only-testing:GemmaEdgeGallery_iOSTests \
+  -only-testing:EdgeAILab_iOSTests \
   -allowProvisioningUpdates
 
 # iOS Simulator — UI smoke tests
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
-  -scheme GemmaEdgeGallery_iOS \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
-  -only-testing:GemmaEdgeGallery_iOSUITests
+  -only-testing:EdgeAILab_iOSUITests
 
 # macOS — UI tests
 xcodebuild test \
-  -workspace GemmaEdgeGallery.xcworkspace \
+  -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
   -destination 'platform=macOS' \
-  -only-testing:GemmaEdgeGallery_macOSUITests
+  -only-testing:EdgeAILab_macOSUITests
+
+# Physical device — UI smoke tests
+xcodebuild test \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
+  -destination 'id=<DEVICE_UDID>' \
+  -only-testing:EdgeAILab_iOSUITests \
+  -allowProvisioningUpdates
+
+# Full test matrix (all platforms, all test types)
+./automation/run_full_matrix.sh
+
+# Full test matrix (macOS only, no device)
+./automation/run_full_matrix.sh --skip-device
 ```
 
 ## Expected Results
@@ -48,9 +62,10 @@ xcodebuild test \
 |----------|-------|---------|----------|----------|
 | iOS Simulator (Unit) | 730+ | ~12 | 0 | ~45s |
 | macOS (Unit) | 730+ | ~15 | 0 | ~30s |
-| iOS Simulator (UI) | 5 | 0 | 0 | ~90s |
-| macOS (UI) | 26 | — | — | ~60s |
+| iOS Simulator (UI) | 13 | 0 | 0 | ~120s |
+| macOS (UI) | 10 | 0 | 0 | ~270s |
 | iOS Device (Unit) | 730+ | ~15 | 0 | ~5s |
+| iOS Device (UI) | 13 | 0 | 0 | ~60s |
 
 ## Test Architecture
 
@@ -128,7 +143,9 @@ The iOS and macOS test targets share the same `Tests/**` source files. Each test
 
 UI tests run on the built app via XCUITest. They verify critical user flows without requiring model files.
 
-#### iOS UI Smoke Tests (5 tests)
+#### iOS UI Tests (13 tests: 5 smoke + 8 flow-driven)
+
+##### Smoke Tests
 
 | Test | What It Verifies |
 |------|------------------|
@@ -138,45 +155,45 @@ UI tests run on the built app via XCUITest. They verify critical user flows with
 | `testSettingsAccessible` | Settings tab shows configuration toggles |
 | `testEmptyStateGraceful` | App remains responsive with no models downloaded |
 
-Source: `iOSUITests/GemmaEdgeGalleryiOSUITests.swift`
+##### Flow-Driven Tests
 
-#### macOS UI Tests (26 tests)
+| Test Method | Flow File | What It Verifies |
+|---|---|---|
+| `testFlowIOSSmokeTest` | `ios_smoke_flow.json` | Basic tab navigation and element presence |
+| `testFlowAccessibilityAudit` | `ios_accessibility_audit_flow.json` | A11y elements across all tabs |
+| `testFlowOrientation` | `ios_orientation_flow.json` | Layout stability across tabs |
+| `testFlowOnboarding` | `ios_onboarding_flow.json` | First-launch onboarding flow |
+| `testFlowDownloadLifecycle` | `ios_download_lifecycle_flow.json` | Model download UI states |
+| `testFlowConversationPersistence` | `ios_conversation_persistence_flow.json` | Chat state survives tab switches |
+| `testFlowModelLifecycle` | `ios_model_lifecycle_flow.json` | Model card → detail → back |
+| `testFlowErrorRecovery` | `ios_error_recovery_flow.json` | Rapid tab switching stability |
 
-| Test | What It Verifies |
-|------|------------------|
-| `testBasicNavigation` | Settings, dashboard, load model buttons |
-| `testChatInteractions` | Attach image, refresh, prompt field, send |
-| `testSettingsInteractions` | GPU toggle, benchmark toggle, HF token |
-| `testQuickActionsAndModelShowcase` | Hint buttons (chat, thinking, tools, image) |
-| `testAddMCPServer` | Tool calling toggle, MCP server CRUD |
-| `testAllSettingsTogglesExist` | GPU, benchmark, MTP, constrained, thinking, tool calling, agent skills |
-| `testSamplerControls` | Top-K stepper, Top-P slider, temperature, presets |
-| `testSystemMessageEditor` | Text editor, clear button |
-| `testModelCardStripExists` | Detail column verification |
-| `testMultimodalAttachmentButtons` | Image/audio attachment buttons |
-| `testNewChatFunctionality` | ⌘N menu command |
-| `testInputAreaComponents` | Prompt field, send button, refresh, load model |
-| `testMacOSMenuBarCommands` | ⌘R, ⌘D, ⌘O, ⌘N keyboard shortcuts |
-| `testSidebarListExists` | Sidebar list in 3-column layout |
-| `testSidebarActiveModelEmptyState` | Empty/loading/loaded model states |
-| `testSidebarBenchmarksSectionExists` | Dashboard & compare links |
-| `testSidebarConversationsEmptyState` | Conversations section |
-| `testSidebarNewChatButton` | New chat button in sidebar |
-| `testThreeColumnLayoutStructure` | Full 3-column layout verification |
-| `testSendButtonAccessibilityStates` | Send button accessibility values |
+##### Accessibility Audit
 
-Source: `UITests/GemmaEdgeGalleryUITests.swift`
+`testAccessibilityAudit` calls `performAccessibilityAudit()` (iOS 17+) to automatically detect common accessibility issues including missing labels, insufficient contrast, and small hit targets.
 
-#### macOS URL Import UI Tests (6 new tests)
+Source: `iOSUITests/EdgeAILabiOSUITests.swift`
 
-| Test | What It Verifies |
-|------|------------------|
-| `testCommandIOpensURLImportSheet` | ⌘I keyboard shortcut opens import sheet |
-| `testURLImportSheetComponents` | URL text field, import button, status area |
-| `testKaggleURLImportFlow` | Kaggle URL detection and pipeline progression |
-| `testHuggingFaceSearchField` | HF browser search functionality |
-| `testCommunityModelsBrowserExists` | Community models section in sidebar |
-| `testInlineURLPasteField` | Inline paste field in detail column |
+#### macOS UI Tests (10 flow-driven tests)
+
+The macOS UI test suite uses **flow-driven testing** — test logic is defined in JSON flow files under `automation/flows/ui/`, not hardcoded in Swift. Each `testFlow*` method in `EdgeAILabUITests.swift` loads a flow JSON and executes it via `FlowDrivenUITestRunner`.
+
+| Test Method | Flow File | What It Verifies |
+|---|---|---|
+| `testFlowBasicNavigation` | `macos_basic_navigation_flow.json` | Three-column layout, sidebar, detail column |
+| `testFlowSettingsInteractions` | `macos_settings_flow.json` | Settings tabs, toggles, sampler controls |
+| `testFlowSidebarStructure` | `macos_sidebar_flow.json` | Sidebar sections, empty states |
+| `testFlowInputAreaComponents` | `macos_input_area_flow.json` | Prompt field, send button |
+| `testFlowChatInteractions` | `macos_chat_flow.json` | Chat send and response |
+| `testFlowQuickActions` | `macos_quick_actions_flow.json` | Quick action hints |
+| `testFlowMCPServerManagement` | `macos_mcp_server_flow.json` | MCP server add via settings |
+| `testFlowMenuCommands` | `macos_menu_commands_flow.json` | macOS menu bar commands |
+| `testFlowURLImport` | `macos_url_import_flow.json` | URL import sheet and components |
+| `testFlowCommunityBrowser` | `macos_community_browser_flow.json` | Community model browser |
+
+Source: `UITests/EdgeAILabUITests.swift`
+
+> **Adding new UI tests:** Create a new flow JSON in `automation/flows/ui/`, add a `testFlow*` method that calls `FlowDrivenUITestRunner.runFlow(named:)`, and register it in the XCUITest class.
 
 > **Note**: iOS UI tests run in CI via a dedicated job (`build-ios-uitests`). macOS UI tests are not currently run in CI due to GHA macOS runner limitations with windowed apps.
 
@@ -254,15 +271,50 @@ For E2E testing with real model inference, use the in-app automation harness.
 # All flows
 xcrun devicectl device process launch \
   --device <DEVICE_UDID> --console \
-  com.andrewvoirol.GemmaEdgeGallery \
+  com.andrewvoirol.EdgeAILab \
   -- -RunAllFlows
 
 # Specific flow
 xcrun devicectl device process launch \
   --device <DEVICE_UDID> --console \
-  com.andrewvoirol.GemmaEdgeGallery \
+  com.andrewvoirol.EdgeAILab \
   -- -RunFlow benchmark_flow
+
+# Dry-run mode (validates plumbing without models/UI)
+xcrun devicectl device process launch \
+  --device <DEVICE_UDID> --console \
+  com.andrewvoirol.EdgeAILab \
+  -- -RunAllFlows -DryRun
 ```
+
+### Pipelines
+
+| Pipeline | Launch Arg | Requires Model? | CI Gate? |
+|----------|-----------|-----------------|----------|
+| Benchmark Pipeline | `-RunBenchmarkPipeline` | Yes (or `-DryRun`) | Yes (critical regressions) |
+| Eval Pipeline | `-RunEvalPipeline` | Yes (or `-DryRun`) | No (informational) |
+
+```bash
+# Benchmark pipeline (compares against metrics/baselines.json)
+.../Edge\ AI\ Lab -RunBenchmarkPipeline
+
+# Eval pipeline (runs built-in eval suites)
+.../Edge\ AI\ Lab -RunEvalPipeline
+
+# Dry-run: validate pipeline plumbing without models
+.../Edge\ AI\ Lab -RunBenchmarkPipeline -DryRun
+.../Edge\ AI\ Lab -RunEvalPipeline -DryRun
+```
+
+### CI Auto-Invocation
+
+The `AutomationHarnessXCTests` class (in `UITests/`) auto-invokes the harness as XCUITests:
+- `testAllFlowsDiscoverable` — validates `-ListFlows`
+- `testE2ERegressionFlowDryRun` — validates `-RunFlow e2e_regression_flow -DryRun`
+- `testBenchmarkFlowDryRun` — validates `-RunFlow benchmark_flow -DryRun`
+- `testDryRunModifierAccepted` — validates `-RunAllFlows -DryRun`
+
+These run in CI via the `automation-flows` job in `ci.yml`.
 
 ### Adding a New Flow
 
@@ -272,7 +324,9 @@ xcrun devicectl device process launch \
   "name": "My Flow",
   "steps": [
     {"step": 1, "action": "verify_ui", "description": "Check UI", "expected_elements": ["Models"]},
-    {"step": 2, "action": "tap", "description": "Tap button", "target_element": "My Button"}
+    {"step": 2, "action": "tap", "description": "Tap button", "target_element": "My Button"},
+    {"step": 3, "action": "verify_ui", "description": "Check result", "expected_elements": ["Result"],
+     "assertion": {"type": "element_value_contains", "element": "Result", "expected": "success"}}
   ]
 }
 ```
@@ -301,6 +355,15 @@ The project uses GitHub Actions for continuous integration. The workflow:
 
 See `.github/workflows/ci.yml` for the full configuration.
 
+## Self-Hosted Runners
+
+For running benchmarks, eval pipelines, and integration tests that require model files, see [SELF_HOSTED_RUNNER.md](SELF_HOSTED_RUNNER.md) for setup instructions.
+
+The project's `benchmark.yml` workflow targets `[self-hosted, apple-silicon]` runners for:
+- Full inference benchmarks with regression detection
+- Eval pipeline execution
+- Model-dependent integration tests
+
 ## Troubleshooting
 
 ### Tests Hang
@@ -310,20 +373,41 @@ If tests hang with 130%+ CPU, a perpetual animation is saturating the runloop. C
 ### Module Import Errors
 
 ```
-error: No such module 'GemmaEdgeGallery_iOS'
+error: No such module 'EdgeAILab_iOS'
 ```
 Fix: Build the main app target first, or run `tuist generate`.
 
 ### Test Target Not Found
 
 ```
-error: Unable to find a target named 'GemmaEdgeGallery_iOSTests'
+error: Unable to find a target named 'EdgeAILab_iOSTests'
 ```
 Fix: Run `tuist generate` to regenerate the Xcode project.
 
 ### Device Provisioning Error
 
 ```
-No profiles for 'com.andrewvoirol.GemmaEdgeGallery.UITests.xctrunner'
+No profiles for 'com.andrewvoirol.EdgeAILab.UITests.xctrunner'
 ```
-Fix: Add `-allowProvisioningUpdates` to the xcodebuild command. Or use `-only-testing:GemmaEdgeGallery_iOSTests` (unit tests, not UI tests) which doesn't need a separate runner profile.
+Fix: Add `-allowProvisioningUpdates` to the xcodebuild command. Or use `-only-testing:EdgeAILab_iOSTests` (unit tests, not UI tests) which doesn't need a separate runner profile.
+
+### iOS 27 / Liquid Glass Accessibility Audit Filters
+
+The `testAccessibilityAudit` test filters known iOS 27 Liquid Glass false positives:
+
+| Filter | Reason |
+|--------|--------|
+| `.dynamicType` | SF Symbol icons use fixed `.system(size:)` — acceptable per HIG |
+| `.textClipped` | `.searchable` placeholder clips in Liquid Glass compositor (Apple bug FB14832017) |
+| `.contrast` on nav/tab/toolbar | System-owned Liquid Glass surfaces cause transient contrast changes outside developer control |
+| `.contrast` on `.searchField` | System search field placeholder text inherits system colors that produce borderline contrast on glass |
+
+**Important**: The filter does NOT suppress contrast issues on app-owned content views. Only system glass surfaces are excluded.
+
+### macOS Window Detection (macOS 26+)
+
+macOS flow-driven UI tests (`EdgeAILabUITests`) may fail with "App window did not appear after launch" on macOS 26+ with Liquid Glass. The `WindowGroup` window does not register as a traditional `XCUIElement.window` in the accessibility tree, even though the process is running. The 4 `AutomationHarnessXCTests` tests continue to pass as they use filesystem markers instead of UI queries.
+
+### Simulator GPU Tests
+
+6 `InferenceQualityTests` require a physical GPU (Metal) and will fail on the iOS Simulator with `failedToCreateEngine`. These tests should be run on a physical device only.

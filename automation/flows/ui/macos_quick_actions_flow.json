@@ -1,0 +1,25 @@
+{
+  "name": "macOS Quick Actions & Model Showcase",
+  "description": "Verifies the detail column exists and chat hint area is present. Quick action hints only appear when a model is loaded, so this flow validates the structural elements. Maps to testQuickActionsAndModelShowcase.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify detail column root exists.",
+      "expected_elements": ["detailColumn_root"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify chat area prompt field and send button exist.",
+      "expected_elements": ["textField_prompt", "button_send"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify sidebar getting started section exists (no model state).",
+      "expected_elements": ["sidebar_gettingStarted"]
+    }
+  ]
+}

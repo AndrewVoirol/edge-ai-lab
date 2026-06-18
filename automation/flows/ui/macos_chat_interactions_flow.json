@@ -1,0 +1,46 @@
+{
+  "name": "macOS Chat Interactions",
+  "description": "Tests chat area interactions: type in prompt field, verify placeholder state, quick actions. Maps to testChatInteractions, testQuickActionsAndModelShowcase.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify prompt text field is visible and ready.",
+      "expected_elements": ["textField_prompt"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Focus the prompt text field.",
+      "target_element": "textField_prompt"
+    },
+    {
+      "step": 3,
+      "action": "type_text",
+      "description": "Type a test message into the prompt field.",
+      "target_element": "textField_prompt",
+      "value": "Hello, this is a test"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify send button is accessible after typing.",
+      "expected_elements": ["button_send"]
+    },
+    {
+      "step": 5,
+      "action": "keyboard_shortcut",
+      "description": "Select all text to clear the field.",
+      "key": "a",
+      "modifiers": ["command"]
+    },
+    {
+      "step": 6,
+      "action": "keyboard_shortcut",
+      "description": "Delete selected text.",
+      "key": "delete",
+      "modifiers": []
+    }
+  ]
+}

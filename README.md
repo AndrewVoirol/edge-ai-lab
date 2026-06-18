@@ -114,7 +114,7 @@ mise install
 tuist generate
 
 # 4. Open in Xcode
-open GemmaEdgeGallery.xcworkspace
+open EdgeAILab.xcworkspace
 
 # 5. Select scheme: "Edge AI Lab"
 # 6. Build and Run (⌘R)
@@ -130,7 +130,7 @@ Models from the `litert-community` HuggingFace org download without authenticati
 **Option B — Manual download:**
 Download from [Kaggle](https://www.kaggle.com/models/google/gemma-4) or [HuggingFace](https://huggingface.co/litert-community), then place the `.litertlm` file in:
 - **macOS (debug build):** `{project-root}/models/`
-- **macOS (release):** `~/Library/Application Support/com.andrewvoirol.GemmaEdgeGallery/models/`
+- **macOS (release):** `~/Library/Application Support/com.andrewvoirol.EdgeAILab/models/`
 - **iOS:** App Documents (visible in Files.app)
 
 ---
@@ -153,7 +153,7 @@ Download from [Kaggle](https://www.kaggle.com/models/google/gemma-4) or [Hugging
 
 ```
 ┌──────────────────────────────────────────────────┐
-│               GemmaEdgeGalleryApp                 │
+│               EdgeAILabApp                 │
 │  ┌─────────────┐  ┌──────────────────┐           │
 │  │ ContentView │  │ SettingsView     │           │
 │  │  (SwiftUI)  │  │  (SwiftUI Form)  │           │
@@ -246,9 +246,9 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instr
 
 ```bash
 # Run unit tests (730+ tests)
-xcodebuild test -workspace GemmaEdgeGallery.xcworkspace \
+xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:GemmaEdgeGallery_macOSTests \
+  -only-testing:EdgeAILab_macOSTests \
   -destination 'platform=macOS,arch=arm64'
 ```
 

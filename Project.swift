@@ -18,7 +18,7 @@ import Foundation
 let teamId = ProcessInfo.processInfo.environment["DEVELOPMENT_TEAM"] ?? "Y7J7WUK693"
 
 let project = Project(
-    name: "GemmaEdgeGallery",
+    name: "EdgeAILab",
     options: .options(
         disableBundleAccessors: true,
         disableSynthesizedResourceAccessors: true
@@ -41,10 +41,10 @@ let project = Project(
     ),
     targets: [
         .target(
-            name: "GemmaEdgeGallery_iOS",
+            name: "EdgeAILab_iOS",
             destinations: .iOS,
             product: .app,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery",
+            bundleId: "com.andrewvoirol.EdgeAILab",
             deploymentTargets: .iOS("26.5"),
             infoPlist: .extendingDefault(with: [
                 "UILaunchScreen": [:],
@@ -60,29 +60,29 @@ let project = Project(
             // Increased Memory Limit entitlement for large model inference.
             // NOTE: extended-virtual-addressing requires paid Apple Developer Program;
             // increased-memory-limit works with personal teams (matches zealous-bose config).
-            entitlements: .file(path: "GemmaEdgeGallery_iOS.entitlements"),
+            entitlements: .file(path: "EdgeAILab_iOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
                 .package(product: "MarkdownUI")
             ]
         ),
         .target(
-            name: "GemmaEdgeGallery_iOSTests",
+            name: "EdgeAILab_iOSTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.Tests",
+            bundleId: "com.andrewvoirol.EdgeAILab.Tests",
             deploymentTargets: .iOS("26.5"),
             infoPlist: .default,
             sources: ["Tests/**"],
             dependencies: [
-                .target(name: "GemmaEdgeGallery_iOS")
+                .target(name: "EdgeAILab_iOS")
             ]
         ),
         .target(
-            name: "GemmaEdgeGallery_macOS",
+            name: "EdgeAILab_macOS",
             destinations: .macOS,
             product: .app,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac",
+            bundleId: "com.andrewvoirol.EdgeAILab.mac",
             deploymentTargets: .macOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
@@ -90,7 +90,7 @@ let project = Project(
             ]),
             sources: ["Sources/**"],
             resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json"],
-            entitlements: .file(path: "GemmaEdgeGallery_macOS.entitlements"),
+            entitlements: .file(path: "EdgeAILab_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
                 .package(product: "MarkdownUI")
@@ -98,20 +98,20 @@ let project = Project(
             settings: .settings(
                 base: [
                     "PRODUCT_NAME": "Edge AI Lab",
-                    "PRODUCT_MODULE_NAME": "GemmaEdgeGallery_macOS"
+                    "PRODUCT_MODULE_NAME": "EdgeAILab_macOS"
                 ]
             )
         ),
         .target(
-            name: "GemmaEdgeGallery_macOSTests",
+            name: "EdgeAILab_macOSTests",
             destinations: .macOS,
             product: .unitTests,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.Tests",
+            bundleId: "com.andrewvoirol.EdgeAILab.mac.Tests",
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
             dependencies: [
-                .target(name: "GemmaEdgeGallery_macOS")
+                .target(name: "EdgeAILab_macOS")
             ],
             settings: .settings(
                 base: [
@@ -120,36 +120,38 @@ let project = Project(
             )
         ),
         .target(
-            name: "GemmaEdgeGallery_macOSUITests",
+            name: "EdgeAILab_macOSUITests",
             destinations: .macOS,
             product: .uiTests,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.mac.UITests",
+            bundleId: "com.andrewvoirol.EdgeAILab.mac.UITests",
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["UITests/**"],
+            resources: ["automation/flows/**/*.json"],
             dependencies: [
-                .target(name: "GemmaEdgeGallery_macOS")
+                .target(name: "EdgeAILab_macOS")
             ],
             settings: .settings(
                 base: [
-                    "TEST_TARGET_NAME": "GemmaEdgeGallery_macOS"
+                    "TEST_TARGET_NAME": "EdgeAILab_macOS"
                 ]
             )
         ),
         .target(
-            name: "GemmaEdgeGallery_iOSUITests",
+            name: "EdgeAILab_iOSUITests",
             destinations: .iOS,
             product: .uiTests,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.UITests",
+            bundleId: "com.andrewvoirol.EdgeAILab.UITests",
             deploymentTargets: .iOS("26.5"),
             infoPlist: .default,
             sources: ["iOSUITests/**"],
+            resources: ["automation/flows/**/*.json"],
             dependencies: [
-                .target(name: "GemmaEdgeGallery_iOS")
+                .target(name: "EdgeAILab_iOS")
             ],
             settings: .settings(
                 base: [
-                    "TEST_TARGET_NAME": "GemmaEdgeGallery_iOS"
+                    "TEST_TARGET_NAME": "EdgeAILab_iOS"
                 ]
             )
         ),
@@ -157,7 +159,7 @@ let project = Project(
             name: "RawBenchmark",
             destinations: .macOS,
             product: .commandLineTool,
-            bundleId: "com.andrewvoirol.GemmaEdgeGallery.RawBenchmark",
+            bundleId: "com.andrewvoirol.EdgeAILab.RawBenchmark",
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["RawBenchmark/**"],
@@ -178,30 +180,22 @@ let project = Project(
     ],
     schemes: [
         .scheme(
-            name: "GemmaEdgeGallery_iOS",
+            name: "EdgeAILab_iOS",
             shared: true,
-            buildAction: .buildAction(targets: ["GemmaEdgeGallery_iOS"]),
-            testAction: .targets(
-                [
-                    "GemmaEdgeGallery_iOSTests",
-                    "GemmaEdgeGallery_iOSUITests"
-                ],
-                configuration: .debug,
-                options: .options(coverage: true)
+            buildAction: .buildAction(targets: ["EdgeAILab_iOS"]),
+            testAction: .testPlans(
+                ["UnitTests.xctestplan"],
+                configuration: .debug
             ),
             runAction: .runAction(configuration: .debug)
         ),
         .scheme(
             name: "Edge AI Lab",
             shared: true,
-            buildAction: .buildAction(targets: ["GemmaEdgeGallery_macOS"]),
-            testAction: .targets(
-                [
-                    "GemmaEdgeGallery_macOSTests",
-                    "GemmaEdgeGallery_macOSUITests"
-                ],
-                configuration: .debug,
-                options: .options(coverage: true)
+            buildAction: .buildAction(targets: ["EdgeAILab_macOS"]),
+            testAction: .testPlans(
+                ["UnitTests.xctestplan"],
+                configuration: .debug
             ),
             runAction: .runAction(configuration: .debug)
         ),

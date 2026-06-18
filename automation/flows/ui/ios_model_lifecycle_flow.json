@@ -1,0 +1,64 @@
+{
+  "name": "iOS Model Lifecycle",
+  "description": "Test model selection flow on iOS. Verify model cards are visible, tap a model to view details or a sheet, then navigate back to the hub.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify Models tab is active with tab bar visible.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify Model Hub sections are present.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify at least one model card is visible.",
+      "expected_elements_any": ["Gemma 4 E2B", "Gemma 4 E4B", "Gemma 4 12B", "Desktop GPU+CPU", "Mobile GPU", "Web-Optimized"]
+    },
+    {
+      "step": 4,
+      "action": "tap_first_match",
+      "description": "Tap the first available model card.",
+      "target_elements": ["Gemma 4 E2B", "Gemma 4 E4B", "Gemma 4 12B", "Desktop GPU+CPU", "Mobile GPU", "Web-Optimized"],
+      "timeout_seconds": 5
+    },
+    {
+      "step": 5,
+      "action": "wait",
+      "description": "Wait for detail view or sheet animation.",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify detail view shows model info or action buttons.",
+      "expected_elements_any": ["Download", "Load Model", "Parameters", "Context Length", "Model Size", "Close", "Dismiss"]
+    },
+    {
+      "step": 7,
+      "action": "tap_first_match",
+      "description": "Navigate back: tap Close, Dismiss, or back button.",
+      "target_elements": ["Close", "Dismiss", "Models"],
+      "timeout_seconds": 5
+    },
+    {
+      "step": 8,
+      "action": "wait",
+      "description": "Wait for navigation back to hub.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 9,
+      "action": "verify_ui",
+      "description": "Verify Model Hub is visible after returning from detail.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}
