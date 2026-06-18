@@ -60,11 +60,11 @@ xcodebuild test \
 
 | Platform | Tests | Skipped | Failures | Duration |
 |----------|-------|---------|----------|----------|
-| iOS Simulator (Unit) | 730+ | ~12 | 0 | ~45s |
-| macOS (Unit) | 730+ | ~15 | 0 | ~30s |
+| macOS (Unit) | 718 | ~6 (Benchmark Pipeline on device) | 0 | ~9s |
+| iOS Simulator (Unit) | 720 | 0 | 0 | ~8s |
+| iPhone Device (Unit) | 720 | ~6 (Benchmark Pipeline) | 0 | ~7s |
 | iOS Simulator (UI) | 13 | 0 | 0 | ~120s |
 | macOS (UI) | 10 | 0 | 0 | ~270s |
-| iOS Device (Unit) | 730+ | ~15 | 0 | ~5s |
 | iOS Device (UI) | 13 | 0 | 0 | ~60s |
 
 ## Test Architecture
