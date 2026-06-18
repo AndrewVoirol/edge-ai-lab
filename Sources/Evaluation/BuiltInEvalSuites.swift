@@ -32,7 +32,7 @@ enum BuiltInEvalSuites {
 
     // MARK: - Math Accuracy
 
-    /// Tests calculator and unit converter tool usage with 10 math-focused prompts.
+    /// Tests calculator and unit converter tool usage with 30 math-focused prompts.
     ///
     /// Validates that the model correctly identifies when to use the `calculate` and
     /// `convert_units` tools, and that the results are incorporated into the response.
@@ -81,13 +81,111 @@ enum BuiltInEvalSuites {
                 prompt: "Convert 100 meters per second to miles per hour",
                 expectedBehavior: .toolCall(toolName: "convert_units")
             ),
+
+            // --- New prompts (11–30) ---
+
+            // Arithmetic edge cases
+            EvalPrompt(
+                prompt: "What is 999999 * 999999?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "What is 7 divided by 0?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "What is 0.1 + 0.2?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "Calculate 2 to the power of 10",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+
+            // Word problems
+            EvalPrompt(
+                prompt: "A shirt costs $45 and is on sale for 20% off. What is the sale price?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "If a train travels 180 miles in 3 hours, what is its average speed in miles per hour?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "I bought 4 notebooks at $3.75 each and 2 pens at $1.50 each. What is the total cost?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+
+            // Multi-step calculations
+            EvalPrompt(
+                prompt: "What is ((42 + 18) * 3) - 50?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "If a rectangle has a length of 15 and width of 8, what is its area?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "What is the average of 85, 92, 78, 96, and 88?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+
+            // Percentages
+            EvalPrompt(
+                prompt: "A restaurant bill is $84. What is an 18% tip?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+            EvalPrompt(
+                prompt: "If a stock goes from $120 to $156, what is the percentage increase?",
+                expectedBehavior: .toolCall(toolName: "calculate")
+            ),
+
+            // Unit conversions — temperature
+            EvalPrompt(
+                prompt: "Convert absolute zero (0 Kelvin) to Celsius",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+            EvalPrompt(
+                prompt: "What is body temperature (98.6°F) in Celsius?",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+
+            // Unit conversions — distance
+            EvalPrompt(
+                prompt: "How many inches are in 3 yards?",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+            EvalPrompt(
+                prompt: "Convert 5280 feet to miles",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+
+            // Unit conversions — weight
+            EvalPrompt(
+                prompt: "How many grams are in 3.5 kilograms?",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+            EvalPrompt(
+                prompt: "Convert 16 ounces to pounds",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+
+            // Unit conversions — data storage
+            EvalPrompt(
+                prompt: "How many megabytes are in 2 gigabytes?",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+            EvalPrompt(
+                prompt: "Convert 5000 kilobytes to megabytes",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
         ],
         isBuiltIn: true
     )
 
     // MARK: - Tool Calling Reliability
 
-    /// Tests tool selection accuracy with 12 prompts spanning all registered tools.
+    /// Tests tool selection accuracy with 20 prompts spanning all registered tools.
     ///
     /// Includes positive tests (should call specific tools), adversarial tests
     /// (should NOT call tools), and multi-tool chain tests.
@@ -157,13 +255,64 @@ enum BuiltInEvalSuites {
                 expectedBehavior: .toolCallChain(["get_system_health", "convert_units"]),
                 timeoutSeconds: 90
             ),
+
+            // --- New prompts (13–20) ---
+
+            // DateTime with timezone argument
+            EvalPrompt(
+                prompt: "What time is it in Tokyo right now?",
+                expectedBehavior: .toolCallWithArgs(toolName: "get_current_datetime", key: "timezone", expectedValue: "Asia/Tokyo")
+            ),
+
+            // System health — disk space
+            EvalPrompt(
+                prompt: "How much free disk space does this device have?",
+                expectedBehavior: .toolCall(toolName: "get_system_health")
+            ),
+
+            // Device info — OS version
+            EvalPrompt(
+                prompt: "What operating system version is this device running?",
+                expectedBehavior: .toolCall(toolName: "get_device_info")
+            ),
+
+            // Text analyzer — language detection
+            EvalPrompt(
+                prompt: "What language is this text written in: 'Bonjour le monde, comment ça va?'",
+                expectedBehavior: .toolCall(toolName: "analyze_text")
+            ),
+
+            // Adversarial: mentions tools but shouldn't call any
+            EvalPrompt(
+                prompt: "List all the tools you have access to and describe what each one does",
+                expectedBehavior: .nonEmpty
+            ),
+
+            // Ambiguous tool selection — calculator vs. unit converter
+            EvalPrompt(
+                prompt: "How many bytes are in 1 terabyte?",
+                expectedBehavior: .toolCall(toolName: "convert_units")
+            ),
+
+            // Multi-tool chain — device info then text analysis
+            EvalPrompt(
+                prompt: "Get the device model name and analyze that text string for word count",
+                expectedBehavior: .toolCallChain(["get_device_info", "analyze_text"]),
+                timeoutSeconds: 90
+            ),
+
+            // Adversarial: math-adjacent but conceptual
+            EvalPrompt(
+                prompt: "What is the history of the number zero?",
+                expectedBehavior: .nonEmpty
+            ),
         ],
         isBuiltIn: true
     )
 
     // MARK: - Reasoning
 
-    /// Tests logic and multi-step deduction with 8 reasoning-focused prompts.
+    /// Tests logic and multi-step deduction with 25 reasoning-focused prompts.
     ///
     /// Includes logic puzzles with known answers, syllogisms, and general
     /// coherence checks.
@@ -219,13 +368,116 @@ enum BuiltInEvalSuites {
                 expectedBehavior: .nonEmpty,
                 timeoutSeconds: 45
             ),
+
+            // --- New prompts (9–25) ---
+
+            // Syllogisms
+            EvalPrompt(
+                prompt: "All mammals are warm-blooded. All dogs are mammals. Are all dogs warm-blooded?",
+                expectedBehavior: .containsText("yes"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "Some birds can fly. Penguins are birds. Can penguins fly?",
+                expectedBehavior: .containsText("no"),
+                timeoutSeconds: 45
+            ),
+
+            // Spatial reasoning
+            EvalPrompt(
+                prompt: "If I'm facing north and turn 90 degrees to my right, then turn 180 degrees, which direction am I facing?",
+                expectedBehavior: .containsText("west"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "A cube has 6 faces. If I paint 3 adjacent faces red, what is the maximum number of red faces visible from a single viewpoint?",
+                expectedBehavior: .containsText("3"),
+                timeoutSeconds: 45
+            ),
+
+            // Common sense reasoning
+            EvalPrompt(
+                prompt: "If I put ice cream in a hot oven for an hour, what will happen to it?",
+                expectedBehavior: .containsText("melt"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "Can a person stand inside a basketball? Answer yes or no and explain.",
+                expectedBehavior: .containsText("no"),
+                timeoutSeconds: 45
+            ),
+
+            // Adversarial / trick questions
+            EvalPrompt(
+                prompt: "A farmer has 17 sheep. All but 9 run away. How many sheep does the farmer have left?",
+                expectedBehavior: .containsText("9"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "How many times can you subtract 5 from 25?",
+                expectedBehavior: .containsText("1"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "If you have a bowl with six apples and you take away four, how many do you have?",
+                expectedBehavior: .containsText("4"),
+                timeoutSeconds: 45
+            ),
+
+            // Deduction chains
+            EvalPrompt(
+                prompt: "In a race, you overtake the person in 2nd place. What position are you in now?",
+                expectedBehavior: .containsText("2nd"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "Tom is older than Jane. Jane is older than Sam. Sam is older than Rita. Who is the youngest?",
+                expectedBehavior: .containsText("Rita"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "If Monday is two days after the day before yesterday, what day is today?",
+                expectedBehavior: .containsText("Wednesday"),
+                timeoutSeconds: 45
+            ),
+
+            // Analogies
+            EvalPrompt(
+                prompt: "Hot is to cold as tall is to what?",
+                expectedBehavior: .containsText("short"),
+                timeoutSeconds: 45
+            ),
+            EvalPrompt(
+                prompt: "Book is to reading as fork is to what?",
+                expectedBehavior: .containsText("eating"),
+                timeoutSeconds: 45
+            ),
+
+            // Logic puzzles
+            EvalPrompt(
+                prompt: "There are three boxes: one has only apples, one has only oranges, and one has both. All boxes are mislabeled. You pick one fruit from the box labeled 'Both'. It's an apple. What does the 'Both' box actually contain?",
+                expectedBehavior: .containsText("apples"),
+                timeoutSeconds: 60
+            ),
+            EvalPrompt(
+                prompt: "I speak without a mouth and hear without ears. I have no body but I come alive with the wind. What am I?",
+                expectedBehavior: .containsText("echo"),
+                timeoutSeconds: 45
+            ),
+
+            // Pattern recognition
+            EvalPrompt(
+                prompt: "What comes next: 1, 1, 2, 3, 5, 8, 13, ?",
+                expectedBehavior: .containsText("21"),
+                timeoutSeconds: 45
+            ),
         ],
         isBuiltIn: true
     )
 
     // MARK: - Multimodal
 
-    /// Tests vision and audio capabilities with 6 multimodal prompts.
+    /// Tests vision and audio capabilities with 25 multimodal prompts.
     ///
     /// **Note**: This suite ships with nil image/audio data placeholders.
     /// Models that don't support the required modality will skip those prompts
@@ -274,6 +526,136 @@ enum BuiltInEvalSuites {
                 prompt: "What language is being spoken in this audio?",
                 expectedBehavior: .nonEmpty,
                 audioData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // --- New image prompts (7–25) ---
+
+            // Object identification
+            EvalPrompt(
+                prompt: "What fruit is shown in this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "How many objects are visible in this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "What animal is in this photo?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Is there a person in this image? If so, describe what they are doing.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // Scene understanding
+            EvalPrompt(
+                prompt: "Is this photo taken indoors or outdoors?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "What time of day does this image appear to be taken? Morning, afternoon, or night?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Describe the weather conditions visible in this image.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "What type of location or setting is shown in this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // Spatial reasoning on images
+            EvalPrompt(
+                prompt: "What is in the foreground versus the background of this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Describe the spatial arrangement of the objects in this image from left to right.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // Color and style analysis
+            EvalPrompt(
+                prompt: "What is the overall mood or feeling conveyed by this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Is this image a photograph, illustration, or diagram?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // OCR and text recognition
+            EvalPrompt(
+                prompt: "Read all the text visible in this image and list each line.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "What brand or logo is visible in this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // Counting and detail
+            EvalPrompt(
+                prompt: "How many people are in this group photo?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "What color is the car in this image?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Identify the type of food shown on this plate.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+
+            // Comparison and judgment
+            EvalPrompt(
+                prompt: "Which object in this image is the largest?",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
+                timeoutSeconds: 90
+            ),
+            EvalPrompt(
+                prompt: "Does this image contain any safety hazards? Describe them if so.",
+                expectedBehavior: .nonEmpty,
+                imageData: nil,
                 timeoutSeconds: 90
             ),
         ],

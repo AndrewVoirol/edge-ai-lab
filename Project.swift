@@ -74,6 +74,7 @@ let project = Project(
             deploymentTargets: .iOS("26.5"),
             infoPlist: .default,
             sources: ["Tests/**"],
+            resources: ["Tests/Resources/**"],
             dependencies: [
                 .target(name: "EdgeAILab_iOS")
             ]
@@ -110,6 +111,7 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
+            resources: ["Tests/Resources/**"],
             dependencies: [
                 .target(name: "EdgeAILab_macOS")
             ],

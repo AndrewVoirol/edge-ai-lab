@@ -43,28 +43,28 @@ final class BuiltInEvalSuitesTests: XCTestCase {
         let suite = BuiltInEvalSuites.mathAccuracy
         XCTAssertEqual(suite.name, "Math Accuracy")
         XCTAssertEqual(suite.category, .math)
-        XCTAssertEqual(suite.promptCount, 10)
+        XCTAssertEqual(suite.promptCount, 30)
     }
 
     func testToolCallingSuite() {
         let suite = BuiltInEvalSuites.toolCallingReliability
         XCTAssertEqual(suite.name, "Tool Calling Reliability")
         XCTAssertEqual(suite.category, .toolCalling)
-        XCTAssertEqual(suite.promptCount, 12)
+        XCTAssertEqual(suite.promptCount, 20)
     }
 
     func testReasoningSuite() {
         let suite = BuiltInEvalSuites.reasoning
         XCTAssertEqual(suite.name, "Reasoning")
         XCTAssertEqual(suite.category, .reasoning)
-        XCTAssertEqual(suite.promptCount, 8)
+        XCTAssertEqual(suite.promptCount, 25)
     }
 
     func testMultimodalSuite() {
         let suite = BuiltInEvalSuites.multimodal
         XCTAssertEqual(suite.name, "Multimodal")
         XCTAssertEqual(suite.category, .multimodal)
-        XCTAssertEqual(suite.promptCount, 6)
+        XCTAssertEqual(suite.promptCount, 25)
     }
 
     // MARK: - Uniqueness & Completeness

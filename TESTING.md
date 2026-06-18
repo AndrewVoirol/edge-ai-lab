@@ -410,4 +410,57 @@ macOS flow-driven UI tests (`EdgeAILabUITests`) may fail with "App window did no
 
 ### Simulator GPU Tests
 
-6 `InferenceQualityTests` require a physical GPU (Metal) and will fail on the iOS Simulator with `failedToCreateEngine`. These tests should be run on a physical device only.
+5 E2E test classes require a physical GPU (Metal) and are automatically skipped on the iOS Simulator via `#if targetEnvironment(simulator)` guards in `setUp()`:
+
+| Class | Guard |
+|-------|-------|
+| `InferenceQualityTests` | `setUpWithError()` |
+| `SmartFallbackIntegrationTests` | `setUpWithError()` |
+| `MultiTurnIntegrationTests` | `setUp() async throws` |
+| `GalleryParityBenchmarkTests` | `setUpWithError()` |
+| `PerformanceTests` | `setUpWithError()` |
+
+These are also in the `skippedTests` blocklist in `UnitTests.xctestplan` so they don't run during routine test plan execution. To run them on a physical device:
+
+```bash
+xcodebuild test \
+  -workspace EdgeAILab.xcworkspace \
+  -scheme EdgeAILab_iOS \
+  -destination 'id=<DEVICE_UDID>' \
+  -only-testing:EdgeAILab_iOSTests/InferenceQualityTests \
+  -allowProvisioningUpdates
+```
+
+---
+
+## Regression Policy
+
+### Zero-Failure Bar
+
+The test suite must maintain **zero failures** on both macOS and iOS Simulator at all times. There is no concept of "flaky" tests — every failure gets a root cause investigation.
+
+### Intentional Regressions
+
+If a change intentionally breaks a test (e.g., changing expected behavior, removing a feature):
+
+1. **Commit prefix**: Use `BREAKING:` prefix in the commit message
+2. **Baseline update**: Update the relevant baseline (eval baselines, benchmark baselines) in the **same commit**
+3. **Test update**: Update or remove the affected test assertions in the **same commit**
+4. **Documentation**: Add a `change_log` entry to the affected baseline JSON
+
+Example:
+```
+BREAKING: Remove calculator precision mode
+
+- Updated 3 math eval prompts that depended on high-precision mode
+- Updated baselines.json with new expected scores
+- Removed testCalculatorPrecisionMode from ToolCallingTests
+```
+
+### Coverage Targets
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| App code (Sources/) | 25.9% | ≥40% (Phase 1) → ≥60% (Phase 2) |
+| Test code (Tests/) | 83.7% | Maintain ≥80% |
+| Eval prompts | 100 | ≥100, expand as features grow |

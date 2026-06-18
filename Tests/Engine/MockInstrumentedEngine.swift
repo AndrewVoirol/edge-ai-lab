@@ -48,6 +48,25 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// Delay between response chunks (seconds). Default 0 for fast tests.
     var chunkDelay: TimeInterval = 0
 
+    /// When set, the mock throws `inferenceError` (or a default NSError) after emitting
+    /// this many chunks in sendMessageStream. Default nil (no mid-stream error).
+    var errorAtChunkIndex: Int?
+
+    /// When true, `cancelGeneration()` sets an internal flag that causes any running
+    /// stream to stop emitting further chunks. Default false (current no-op preserved).
+    var simulateCancelBehavior: Bool = false
+
+    /// When set, `warmup()` throws this error instead of succeeding. Default nil.
+    var warmupError: Error?
+
+    /// When set, `initializeWithFallback()` throws this error (simulating both
+    /// backends failing). Default nil.
+    var fallbackError: Error?
+
+    /// Delay before the FIRST chunk is emitted, distinct from `chunkDelay` which
+    /// applies between subsequent chunks. Default 0.
+    var ttftDelay: TimeInterval = 0
+
     // MARK: - Call Tracking
 
     /// Number of times initialize was called.
@@ -101,6 +120,12 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     /// The last supportsAudio value passed to initialize.
     private(set) var lastSupportsAudio: Bool = false
 
+    /// Tracks every prompt sent via sendMessageStream for multi-turn test assertions.
+    private(set) var conversationTurns: [String] = []
+
+    /// Internal flag set by `cancelGeneration()` when `simulateCancelBehavior` is true.
+    private var isCancelled = false
+
     // MARK: - Protocol Conformance
 
     var isReady = false
@@ -153,6 +178,11 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         supportsVision: Bool = false,
         supportsAudio: Bool = false
     ) async throws -> BackendResult {
+        // If fallbackError is set, simulate both backends failing
+        if let error = fallbackError {
+            throw error
+        }
+
         // Delegate to regular initialize
         try await initialize(
             modelPath: modelPath,
@@ -180,29 +210,63 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         sendMessageCallCount += 1
         lastPromptText = text
         lastEnableThinking = enableThinking
+        conversationTurns.append(text)
+
+        // Reset cancellation flag at the start of each stream
+        isCancelled = false
 
         let chunks = mockResponseChunks
         let delay = chunkDelay
         let error = inferenceError
         let benchmarkInfo = mockBenchmarkInfo
+        let ttft = ttftDelay
+        let errorAtIndex = errorAtChunkIndex
 
         return AsyncThrowingStream { continuation in
-            Task {
+            Task { [weak self] in
                 if let error = error {
                     continuation.finish(throwing: error)
                     return
                 }
 
-                for chunk in chunks {
-                    if delay > 0 {
+                for (index, chunk) in chunks.enumerated() {
+                    // Check for simulated cancellation
+                    if self?.simulateCancelBehavior == true && self?.isCancelled == true {
+                        continuation.finish()
+                        return
+                    }
+
+                    // Check for mid-stream error injection
+                    if let errorIdx = errorAtIndex, index >= errorIdx {
+                        let midStreamError = self?.inferenceError
+                            ?? NSError(
+                                domain: "MockInstrumentedEngine",
+                                code: -1,
+                                userInfo: [NSLocalizedDescriptionKey: "Simulated mid-stream inference error"]
+                            )
+                        continuation.finish(throwing: midStreamError)
+                        return
+                    }
+
+                    // Apply TTFT delay before the first chunk
+                    if index == 0 && ttft > 0 {
+                        try? await Task.sleep(for: .seconds(ttft))
+                    }
+
+                    // Apply inter-chunk delay for subsequent chunks
+                    if index > 0 && delay > 0 {
+                        try? await Task.sleep(for: .seconds(delay))
+                    } else if index == 0 && delay > 0 && ttft == 0 {
+                        // Preserve original behavior: chunkDelay applies to all chunks when ttftDelay is 0
                         try? await Task.sleep(for: .seconds(delay))
                     }
+
                     continuation.yield(chunk)
                 }
 
                 // Simulate benchmark capture
-                self.lastBenchmarkInfo = benchmarkInfo
-                self.lastInferenceMetrics = self.mockInferenceMetrics
+                self?.lastBenchmarkInfo = benchmarkInfo
+                self?.lastInferenceMetrics = self?.mockInferenceMetrics
 
                 continuation.finish()
             }
@@ -230,12 +294,20 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
 
     func warmup() async throws {
         warmupCallCount += 1
+
+        if let error = warmupError {
+            throw error
+        }
+
         // Simulate benchmark priming — set lastBenchmarkInfo after warmup
         lastBenchmarkInfo = mockBenchmarkInfo
     }
 
     func cancelGeneration() {
-        // Mock cancellation: could set a flag or throw if needed in specific tests
+        // Mock cancellation: set internal flag when simulateCancelBehavior is enabled
+        if simulateCancelBehavior {
+            isCancelled = true
+        }
     }
 
     func shutdown() async {
@@ -244,5 +316,40 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         lastBenchmarkInfo = nil
         lastInferenceMetrics = nil
         lastBackendResult = nil
+    }
+
+    // MARK: - Static Factory Methods
+
+    /// Default config, fast responses — ideal for happy-path unit tests.
+    static func happyPath() -> MockInstrumentedEngine {
+        let engine = MockInstrumentedEngine()
+        engine.mockResponseChunks = ["Hello", ", ", "world", "!"]
+        return engine
+    }
+
+    /// Slow inference with realistic delays — useful for testing loading states and timeouts.
+    static func slowInference() -> MockInstrumentedEngine {
+        let engine = MockInstrumentedEngine()
+        engine.ttftDelay = 2.0
+        engine.chunkDelay = 0.5
+        return engine
+    }
+
+    /// Engine that fails on initialization — useful for testing error handling paths.
+    static func failingEngine() -> MockInstrumentedEngine {
+        let engine = MockInstrumentedEngine()
+        engine.initError = NSError(
+            domain: "MockInstrumentedEngine",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Simulated initialization failure"]
+        )
+        return engine
+    }
+
+    /// Engine that fails mid-stream after 3 chunks — useful for testing partial response recovery.
+    static func intermittentFailure() -> MockInstrumentedEngine {
+        let engine = MockInstrumentedEngine()
+        engine.errorAtChunkIndex = 3
+        return engine
     }
 }
