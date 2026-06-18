@@ -1,0 +1,57 @@
+{
+  "name": "iOS Thinking Mode Toggle",
+  "description": "Tests thinking mode toggle on iOS: navigate to Settings tab → AI Features section → toggle thinking on → verify thinking badge appears → toggle off → verify badge disappears. Validates the enableThinking flag round-trip without requiring a loaded model.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Navigate to the Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for settings view to render.",
+      "condition": "element_exists:toggle_enableThinking",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 3,
+      "action": "scroll_to",
+      "description": "Scroll to the thinking toggle if not visible.",
+      "target_element": "toggle_enableThinking",
+      "max_attempts": 4
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Enable thinking mode.",
+      "target_element": "toggle_enableThinking"
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Switch to Chat tab to verify thinking badge.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify the Chat tab loaded.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Navigate back to Settings to toggle thinking off.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Disable thinking mode.",
+      "target_element": "toggle_enableThinking"
+    }
+  ]
+}

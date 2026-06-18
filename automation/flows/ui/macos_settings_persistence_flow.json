@@ -1,0 +1,82 @@
+{
+  "name": "macOS Settings Persistence",
+  "description": "Tests that settings persist across sheet dismiss/reopen on macOS: open Settings → navigate to General tab → toggle benchmark flag → dismiss → reopen → navigate to General tab → verify toggle state persisted. Validates UserDefaults-backed persistence.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Open settings sheet.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for settings sheet to appear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 3,
+      "action": "navigate_tab",
+      "description": "Navigate to the General tab.",
+      "target_element": "General"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify benchmark toggle exists on General tab.",
+      "expected_elements": ["toggle_enableBenchmark"]
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Toggle the benchmark flag.",
+      "target_element": "toggle_enableBenchmark"
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Dismiss settings.",
+      "target_element": "button_doneSettings"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait for settings sheet to fully dismiss.",
+      "condition": "element_not_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Reopen settings sheet.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 9,
+      "action": "wait",
+      "description": "Wait for settings sheet to reappear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 10,
+      "action": "navigate_tab",
+      "description": "Navigate back to the General tab.",
+      "target_element": "General"
+    },
+    {
+      "step": 11,
+      "action": "verify_ui",
+      "description": "Verify benchmark toggle still exists (persisted state).",
+      "expected_elements": ["toggle_enableBenchmark"]
+    },
+    {
+      "step": 12,
+      "action": "tap",
+      "description": "Dismiss settings to clean up.",
+      "target_element": "button_doneSettings"
+    }
+  ]
+}

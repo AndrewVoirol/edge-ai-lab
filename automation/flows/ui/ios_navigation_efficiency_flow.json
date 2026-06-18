@@ -1,0 +1,55 @@
+{
+  "name": "iOS Navigation Efficiency",
+  "description": "Rapid tab navigation on iOS: cycle through all four tabs (Models → Chat → Evals → Settings) and verify each tab's root view loads. Validates tab bar responsiveness and that no tab crashes on activation.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify Chat tab root view loaded.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Navigate to the Evals tab.",
+      "target_element": "Evals"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify Evals tab root view loaded.",
+      "expected_elements": ["evalTab_root"]
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Navigate to the Settings tab.",
+      "target_element": "Settings"
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify Settings view loaded with a known toggle.",
+      "expected_elements_any": ["toggle_useGPU", "toggle_enableBenchmark", "toggle_enableThinking"]
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Navigate back to the Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify Models tab loaded.",
+      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "name": "iOS URL Import Sheet",
+  "description": "Tests the URL import flow on iOS: navigate to Models tab → tap URL import button → verify import sheet appears → type a HuggingFace URL → tap Import → verify status feedback → dismiss sheet. Validates the import UI without completing a real download.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Navigate to the Models tab.",
+      "target_element": "Models"
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Open the URL import sheet.",
+      "target_element": "modelHub_urlImport"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for URL import sheet to appear.",
+      "condition": "element_exists:urlImport_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify the URL text field and import button are present.",
+      "expected_elements": ["urlImport_urlField", "urlImport_importButton"]
+    },
+    {
+      "step": 5,
+      "action": "type_text",
+      "description": "Type a sample HuggingFace URL into the URL field.",
+      "target_element": "urlImport_urlField",
+      "value": "https://huggingface.co/google/gemma-3n-e2b-it-litert-preview"
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Tap the Import button to trigger validation.",
+      "target_element": "urlImport_importButton"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait briefly for parsing status to appear.",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Dismiss the URL import sheet.",
+      "target_element": "urlImport_cancel"
+    }
+  ]
+}

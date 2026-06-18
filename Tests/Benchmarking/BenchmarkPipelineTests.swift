@@ -23,6 +23,20 @@ import Foundation
 
 // MARK: - Benchmark Pipeline Tests (Swift Testing)
 
+/// Check if baselines.json is accessible from the project root via `#filePath`.
+/// Returns `false` on device where the compile-time source path doesn't exist.
+/// Defined at file scope to avoid circular reference with the `@Suite` macro.
+private let _benchmarkBaselinesAccessible: Bool = {
+    let testFile = URL(fileURLWithPath: #filePath)
+    let baselinesURL = testFile
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("metrics")
+        .appendingPathComponent("baselines.json")
+    return FileManager.default.fileExists(atPath: baselinesURL.path)
+}()
+
 /// Validates the benchmark pipeline plumbing:
 /// - baselines.json parsing and schema integrity
 /// - Regression rule coverage for all baseline metrics
@@ -30,7 +44,11 @@ import Foundation
 ///
 /// These tests do NOT require a model file — they exercise the Codable models
 /// and regression checker logic using the actual baselines.json and mock results.
-@Suite("Benchmark Pipeline")
+///
+/// **Note:** These tests require access to the project filesystem (`metrics/baselines.json`)
+/// via `#filePath`. On physical devices, `#filePath` resolves to a compile-time path that
+/// doesn't exist on the device filesystem, so the suite is automatically disabled.
+@Suite("Benchmark Pipeline", .enabled(if: _benchmarkBaselinesAccessible))
 struct BenchmarkPipelineTests {
 
     // MARK: - Helpers
@@ -49,6 +67,14 @@ struct BenchmarkPipelineTests {
         let baselinesURL = projectRoot
             .appendingPathComponent("metrics")
             .appendingPathComponent("baselines.json")
+
+        // On-device, #filePath resolves to the compile-time source path which
+        // doesn't exist. Use #require so the test is recorded as a known
+        // precondition failure rather than an unexpected test failure.
+        try #require(
+            FileManager.default.fileExists(atPath: baselinesURL.path),
+            "baselines.json not available at \(baselinesURL.path) — test requires project filesystem (skipped on device)"
+        )
 
         let data = try Data(contentsOf: baselinesURL)
         let decoder = JSONDecoder()
@@ -92,11 +118,14 @@ struct BenchmarkPipelineTests {
     /// Internal error for test setup failures.
     private enum BaselineTestError: Error, CustomStringConvertible {
         case noGPUBaseline
+        case fileNotFound(String)
 
         var description: String {
             switch self {
             case .noGPUBaseline:
                 return "No GPU baseline entry found in baselines.json"
+            case .fileNotFound(let path):
+                return "baselines.json not found at \(path) — skipped on device"
             }
         }
     }

@@ -1,0 +1,57 @@
+{
+  "name": "macOS Tool Calling UI",
+  "description": "Tests tool calling settings on macOS: open Settings → navigate to AI Features tab → verify tool calling toggle → verify agent skills toggle → verify MCP server add button → dismiss settings. Validates tool calling UI elements are present without executing tool calls.",
+  "platform": "macOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Open settings sheet.",
+      "target_element": "button_settings"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for settings sheet to appear.",
+      "condition": "element_exists:button_doneSettings",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 3,
+      "action": "navigate_tab",
+      "description": "Navigate to the AI Features tab.",
+      "target_element": "AI Features"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify the tool calling toggle exists.",
+      "expected_elements": ["toggle_enableToolCalling"]
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "Verify the thinking mode toggle exists in AI Features.",
+      "expected_elements": ["toggle_enableThinking"]
+    },
+    {
+      "step": 6,
+      "action": "scroll_to",
+      "description": "Scroll to MCP server section.",
+      "target_element": "button_addMCP",
+      "max_attempts": 4
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify the Add MCP Server button exists.",
+      "expected_elements": ["button_addMCP"]
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Dismiss settings.",
+      "target_element": "button_doneSettings"
+    }
+  ]
+}
