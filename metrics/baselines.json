@@ -78,6 +78,24 @@
       },
       "source": "MacBook Pro M4 Max — 2026-05-31",
       "notes": "CPU (XNNPACK) fallback — 3.5x slower than GPU. Used when Metal unavailable or for parity testing."
+    },
+    {
+      "id": "gemma4-e2b-standard-gpu-iphone16promax",
+      "model": "gemma-4-e2b-it.litertlm",
+      "variant": "Gemma 4 E2B Standard",
+      "backend": "gpu",
+      "device_family": "iPhone 16 Pro Max (A18 Pro)",
+      "metrics": {
+        "sdk_decode_tok_s": 45.0,
+        "sdk_prefill_tok_s": 95.0,
+        "sdk_ttft_s": 0.35,
+        "wall_pure_decode_tok_s": 40.0,
+        "decode_median_latency_ms": 22.0,
+        "decode_p95_latency_ms": 38.0,
+        "model_load_time_s": 3.5
+      },
+      "source": "iPhone 16 Pro Max — 2026-06-18 (estimated)",
+      "notes": "ESTIMATED baseline for iPhone 16 Pro Max (A18 Pro). Needs validation with controlled run (airplane mode, 3 iterations averaged). Expected ~45% of M4 Max GPU throughput."
     }
   ],
   "regression_rules": {
@@ -123,5 +141,22 @@
       "severity": "info",
       "description": "Model load time — varies with cache state"
     }
-  }
+  },
+  "change_log": [
+    {
+      "date": "2026-06-18",
+      "author": "automation",
+      "description": "Initial baseline establishment with production-grade test infrastructure"
+    },
+    {
+      "date": "2026-06-09",
+      "author": "manual",
+      "description": "Initial baseline establishment — MacBook Pro M4 Max, 4 model/backend combos"
+    },
+    {
+      "date": "2026-06-18",
+      "author": "automation",
+      "description": "Added iPhone 16 Pro Max estimated baseline, added change_log array"
+    }
+  ]
 }

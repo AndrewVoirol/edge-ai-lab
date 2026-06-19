@@ -197,7 +197,11 @@ final class BatchEvalOrchestrator {
 
             state = .running(suiteIndex: suiteIndex, suiteName: suite.name)
 
-            let runner = EvalRunner(engine: engine, store: store)
+            let runner = EvalRunner(
+                engine: engine,
+                store: store,
+                exportPersistence: EvalResultPersistence()
+            )
             currentRunner = runner
 
             do {

@@ -143,6 +143,9 @@ final class EvalRunner {
     /// Store for persisting completed runs.
     private let store: EvalStore
 
+    /// Portable export persistence for timestamped JSON exports.
+    private let exportPersistence: EvalResultPersistence?
+
     /// Active task for cancellation support.
     private var runTask: Task<Void, Never>?
 
@@ -151,13 +154,19 @@ final class EvalRunner {
 
     // MARK: - Init
 
-    /// Initialize the eval runner with an engine and store.
+    /// Initialize the eval runner with an engine, store, and optional export persistence.
     /// - Parameters:
     ///   - engine: The instrumented engine to use for inference.
     ///   - store: The eval store for persisting results.
-    init(engine: InstrumentedEngineProtocol, store: EvalStore) {
+    ///   - exportPersistence: Optional portable export persistence for timestamped JSON exports.
+    init(
+        engine: InstrumentedEngineProtocol,
+        store: EvalStore,
+        exportPersistence: EvalResultPersistence? = nil
+    ) {
         self.engine = engine
         self.store = store
+        self.exportPersistence = exportPersistence
     }
 
     // MARK: - Run Evaluation
@@ -262,6 +271,16 @@ final class EvalRunner {
             Self.logger.info("✅ Eval complete: \(suite.name, privacy: .public) — \(run.displaySummary, privacy: .public)")
         } catch {
             Self.logger.error("❌ Failed to persist eval run: \(error.localizedDescription, privacy: .public)")
+        }
+
+        // Export a portable timestamped JSON copy
+        if let exportPersistence {
+            do {
+                let exportURL = try exportPersistence.save(run)
+                Self.logger.info("📤 Exported eval results to: \(exportURL.lastPathComponent, privacy: .public)")
+            } catch {
+                Self.logger.error("❌ Failed to export eval results: \(error.localizedDescription, privacy: .public)")
+            }
         }
 
         let totalTime = CFAbsoluteTimeGetCurrent() - runStartTime

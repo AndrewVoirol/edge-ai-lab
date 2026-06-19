@@ -318,7 +318,11 @@ struct iOSEvalTabView: View {
         guard !modelEntries.isEmpty else { return }
 
         // Create the runner
-        let runner = EvalRunner(engine: viewModel.engine, store: evalStore)
+        let runner = EvalRunner(
+            engine: viewModel.engine,
+            store: evalStore,
+            exportPersistence: EvalResultPersistence()
+        )
         evalRunner = runner
         isRunning = true
         runProgress = 0

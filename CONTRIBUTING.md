@@ -444,6 +444,75 @@ Follow the [Submitting Changes](#submitting-changes) checklist below. Your PR de
 6. Commit with [conventional commit](https://www.conventionalcommits.org/) messages
 7. Open a Pull Request
 
+## Regression Policy
+
+Performance regressions are treated as high-priority bugs. This section defines the rules for managing benchmark baselines and handling breaking changes.
+
+### Breaking Changes
+
+Commits that intentionally regress a tracked metric (e.g., swapping a faster kernel for a more accurate one) **must** use the `BREAKING:` commit prefix:
+
+```
+BREAKING: Switch to FP16 decode path (trades 8% throughput for accuracy)
+```
+
+The `BREAKING:` prefix:
+- Triggers extra CI scrutiny (full benchmark matrix instead of smoke-only)
+- Appears in release notes under "⚠️ Breaking Changes"
+- Requires explicit reviewer approval from a `CODEOWNERS` maintainer
+
+### Baseline Update Requirements
+
+When a `BREAKING:` change modifies benchmark performance:
+
+1. **The baseline update must be in the same commit** as the code change. Split commits (code in one, baseline in another) will be rejected by CI.
+2. Run the full benchmark matrix on the reference device (MacBook Pro M4 Max) before updating baselines.
+3. Update `metrics/baselines.json` with the new values **and** append an entry to the `change_log` array.
+
+### Baseline `change_log` Format
+
+Every baseline update must append an entry to the top-level `change_log` array in `metrics/baselines.json`:
+
+```json
+"change_log": [
+  {
+    "date": "YYYY-MM-DD",
+    "author": "github_username",
+    "description": "Brief description of what changed and why"
+  }
+]
+```
+
+**Required fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `date` | `String` | ISO 8601 date (YYYY-MM-DD) |
+| `author` | `String` | GitHub username or `"automation"` for CI-generated updates |
+| `description` | `String` | Human-readable explanation of the change |
+
+**Example entry:**
+
+```json
+{
+  "date": "2026-07-15",
+  "author": "janedoe",
+  "description": "BREAKING: Updated E2B Standard GPU baseline after Metal shader pipeline refactor (-5% decode, +12% prefill)"
+}
+```
+
+### Regression Thresholds
+
+Regression thresholds are defined per-metric in `metrics/baselines.json` under `regression_rules`. The CI benchmark comparator uses these thresholds to flag regressions:
+
+| Severity | Action |
+|----------|--------|
+| `critical` | Blocks merge. Must be fixed or acknowledged with `BREAKING:`. |
+| `warning` | Flags in PR review. Requires maintainer sign-off. |
+| `info` | Informational only. Logged but does not block. |
+
+See [`metrics/baselines.json`](metrics/baselines.json) for the full list of tracked metrics and their thresholds.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](LICENSE).
