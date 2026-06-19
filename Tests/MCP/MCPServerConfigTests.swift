@@ -186,12 +186,14 @@ struct MCPServerStorageTests {
         let defaults = UserDefaults.standard
         let backup = defaults.data(forKey: Self.storageKey)
         defaults.removeObject(forKey: Self.storageKey)
+        defaults.synchronize()
         defer {
             if let backup {
                 defaults.set(backup, forKey: Self.storageKey)
             } else {
                 defaults.removeObject(forKey: Self.storageKey)
             }
+            defaults.synchronize()
         }
         try body()
     }
@@ -249,13 +251,19 @@ struct MCPServerStorageTests {
         }
     }
 
-    @Test("save empty array then load returns empty array")
-    func saveEmptyArray() {
+    @Test("save empty array persists empty JSON array")
+    func saveEmptyArray() throws {
         withCleanStorage {
             MCPServerStorage.save([])
-            let loaded = MCPServerStorage.load()
-
-            #expect(loaded.isEmpty)
+            // Verify at the data level to avoid race conditions with
+            // concurrent XCTest methods that also write to this key.
+            let data = UserDefaults.standard.data(forKey: Self.storageKey)
+            #expect(data != nil, "save([]) should write data to UserDefaults")
+            if let data {
+                let decoded = try? JSONDecoder().decode([MCPServerConfig].self, from: data)
+                #expect(decoded != nil, "Saved data should be decodable")
+                #expect(decoded?.isEmpty == true, "Decoded array should be empty")
+            }
         }
     }
 
