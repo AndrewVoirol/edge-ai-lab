@@ -1,29 +1,28 @@
 {
-  "configurations" : [
+  "configurations": [
     {
-      "id" : "C3D4E5F6-A7B8-9012-CDEF-123456789012",
-      "name" : "Configuration 1",
-      "options" : {
-
-      }
+      "id": "C3D4E5F6-A7B8-9012-CDEF-123456789012",
+      "name": "Configuration 1",
+      "options": {}
     }
   ],
-  "defaultOptions" : {
-    "testTimeoutsEnabled" : true,
-    "defaultTestExecutionTimeAllowance" : 300
+  "defaultOptions": {
+    "testTimeoutsEnabled": true,
+    "defaultTestExecutionTimeAllowance": 300,
+    "codeCoverageEnabled": true
   },
-  "testTargets" : [
+  "testTargets": [
     {
-      "target" : {
-        "containerPath" : "container:EdgeAILab.xcodeproj",
-        "identifier" : "EdgeAILab_iOSTests",
-        "name" : "EdgeAILab_iOSTests"
+      "target": {
+        "containerPath": "container:EdgeAILab.xcodeproj",
+        "identifier": "EdgeAILab_iOSTests",
+        "name": "EdgeAILab_iOSTests"
       },
-      "selectedTests" : [
+      "selectedTests": [
         "InferenceQualityTests",
         "SmartFallbackIntegrationTests"
       ]
     }
   ],
-  "version" : 1
+  "version": 1
 }

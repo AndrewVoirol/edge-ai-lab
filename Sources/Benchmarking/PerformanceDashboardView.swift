@@ -151,7 +151,7 @@ struct PerformanceDashboardView: View {
     private var emptyState: some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "chart.bar.xaxis")
-                .font(.system(size: 48))
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.textTertiary)
 
             Text("No benchmark data yet")

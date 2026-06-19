@@ -132,7 +132,7 @@ struct iOSModelRow: View {
                 )
 
             Image(systemName: iconName)
-                .font(.system(size: 18, weight: .medium))
+                .font(AppIconSize.lg)
                 .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textSecondary)
         }
     }
@@ -218,7 +218,7 @@ struct iOSModelRow: View {
     private func queuedRow(position: Int) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "clock")
-                .font(.system(size: 10))
+                .font(AppIconSize.xxs)
                 .foregroundStyle(AppColors.textTertiary)
             Text("Queued (#\(position))")
                 .font(AppTypography.listTertiary)
@@ -234,7 +234,7 @@ struct iOSModelRow: View {
                 .tint(AppColors.warning)
             HStack(spacing: 4) {
                 Image(systemName: "pause.fill")
-                    .font(.system(size: 10))
+                    .font(AppIconSize.xxs)
                     .foregroundStyle(AppColors.warning)
                 Text(String(format: "Paused at %.0f%%", progress * 100))
                     .font(AppTypography.listTertiary)
@@ -255,7 +255,7 @@ struct iOSModelRow: View {
                 onDownloadTap?()
             } label: {
                 Image(systemName: metadata.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
-                    .font(.system(size: 20))
+                    .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentCyan)
                     .frame(width: 44, height: 44) // HIG: 44pt minimum tap target
             }
@@ -271,7 +271,7 @@ struct iOSModelRow: View {
                     Circle()
                         .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: 2)
                     Image(systemName: "stop.fill")
-                        .font(.system(size: 8))
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.accentCyan)
                 }
                 .frame(width: 28, height: 28)
@@ -283,7 +283,7 @@ struct iOSModelRow: View {
 
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
+                .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.success)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Downloaded")
@@ -295,7 +295,7 @@ struct iOSModelRow: View {
             } label: {
                 VStack(spacing: 2) {
                     Image(systemName: "exclamationmark.circle.fill")
-                        .font(.system(size: 20))
+                        .font(AppIconSize.lg)
                         .foregroundStyle(AppColors.danger)
                     Text("Retry")
                         .font(AppTypography.badge)
@@ -309,7 +309,7 @@ struct iOSModelRow: View {
 
         case .authRequired:
             Image(systemName: "lock.circle.fill")
-                .font(.system(size: 20))
+                .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.warning)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Authentication required")
@@ -318,7 +318,7 @@ struct iOSModelRow: View {
         case .queued:
             // Clock icon for queued state
             Image(systemName: "clock.fill")
-                .font(.system(size: 20))
+                .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.textSecondary)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Queued for download")
@@ -330,7 +330,7 @@ struct iOSModelRow: View {
                 onResumeTap?()
             } label: {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 20))
+                    .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentCyan)
                     .frame(width: 44, height: 44)
             }

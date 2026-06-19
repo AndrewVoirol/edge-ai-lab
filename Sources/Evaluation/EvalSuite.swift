@@ -190,6 +190,19 @@ enum ExpectedBehavior: Codable, Sendable {
     /// Response must contain the specified text (case-insensitive).
     case containsText(String)
 
+    /// Response must contain ANY of the specified texts (case-insensitive).
+    ///
+    /// Useful for multimodal eval where the model may use synonyms for the same
+    /// concept (e.g., "bicycle" vs "bike" vs "cycle"). Passes if at least one
+    /// of the provided strings is found in the response.
+    case containsAny([String])
+
+    /// Response must contain ALL of the specified texts (case-insensitive).
+    ///
+    /// Useful for multi-aspect queries (e.g., "What is this and what color?").
+    /// Passes only if every string in the array is found in the response.
+    case containsAll([String])
+
     /// Model must invoke a tool with the given name.
     case toolCall(toolName: String)
 
@@ -215,6 +228,12 @@ enum ExpectedBehavior: Codable, Sendable {
         switch self {
         case .containsText(let text):
             return "Contains: \"\(text)\""
+        case .containsAny(let alternatives):
+            let joined = alternatives.map { "\"\($0)\"" }.joined(separator: ", ")
+            return "Contains any of: [\(joined)]"
+        case .containsAll(let required):
+            let joined = required.map { "\"\($0)\"" }.joined(separator: ", ")
+            return "Contains all of: [\(joined)]"
         case .toolCall(toolName: let name):
             return "Calls tool: \(name)"
         case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let value):

@@ -19,10 +19,12 @@
         "name" : "EdgeAILab_iOSTests"
       },
       "skippedTests" : [
+        "BatchEvalTests",
         "ChatMessageTests",
         "EvalScoringTests",
         "GalleryParityBenchmarkTests",
         "InferenceQualityTests",
+        "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
         "SmartFallbackIntegrationTests",
@@ -36,10 +38,12 @@
         "name" : "EdgeAILab_macOSTests"
       },
       "skippedTests" : [
+        "BatchEvalTests",
         "ChatMessageTests",
         "EvalScoringTests",
         "GalleryParityBenchmarkTests",
         "InferenceQualityTests",
+        "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
         "SmartFallbackIntegrationTests",

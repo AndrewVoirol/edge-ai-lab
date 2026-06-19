@@ -244,6 +244,94 @@ final class EvalScoringTests: XCTestCase {
         }
     }
 
+    // MARK: - containsAny
+
+    func testContainsAny_synonymMatch() {
+        let result = EvalScorer.score(
+            response: "I see a bike leaning there",
+            toolCallEvents: [],
+            against: .containsAny(["bicycle", "bike", "cycle"])
+        )
+        XCTAssertTrue(result.isPass)
+    }
+
+    func testContainsAny_caseInsensitive() {
+        let result = EvalScorer.score(
+            response: "There is a BICYCLE here",
+            toolCallEvents: [],
+            against: .containsAny(["bicycle", "bike", "cycle"])
+        )
+        XCTAssertTrue(result.isPass)
+    }
+
+    func testContainsAny_noMatch() {
+        let result = EvalScorer.score(
+            response: "I see a car",
+            toolCallEvents: [],
+            against: .containsAny(["bicycle", "bike", "cycle"])
+        )
+        XCTAssertTrue(result.isFailure)
+    }
+
+    func testContainsAny_emptyAlternatives() {
+        let result = EvalScorer.score(
+            response: "Some response",
+            toolCallEvents: [],
+            against: .containsAny([])
+        )
+        XCTAssertTrue(result.isFailure)
+    }
+
+    // MARK: - containsAll
+
+    func testContainsAll_allPresent() {
+        let result = EvalScorer.score(
+            response: "I see a red apple",
+            toolCallEvents: [],
+            against: .containsAll(["red", "apple"])
+        )
+        XCTAssertTrue(result.isPass)
+    }
+
+    func testContainsAll_missingOne() {
+        let result = EvalScorer.score(
+            response: "I see a red fruit",
+            toolCallEvents: [],
+            against: .containsAll(["red", "apple"])
+        )
+        XCTAssertTrue(result.isFailure)
+    }
+
+    func testContainsAll_emptyArray() {
+        let result = EvalScorer.score(
+            response: "Some response",
+            toolCallEvents: [],
+            against: .containsAll([])
+        )
+        XCTAssertTrue(result.isPass, "Empty required list should always pass")
+    }
+
+    func testContainsAll_failureMessageListsMissing() {
+        let result = EvalScorer.score(
+            response: "I see a red thing",
+            toolCallEvents: [],
+            against: .containsAll(["red", "apple", "tree"])
+        )
+        if case .fail(let reason) = result {
+            XCTAssertTrue(reason.contains("apple"), "Should list 'apple' as missing")
+            XCTAssertTrue(reason.contains("tree"), "Should list 'tree' as missing")
+            // Extract the bracketed list to verify 'red' is not among missing items.
+            // Note: 'red' appears in the boilerplate word "required" so we can't just check the whole string.
+            if let bracketStart = reason.range(of: "["),
+               let bracketEnd = reason.range(of: "]") {
+                let missingList = String(reason[bracketStart.upperBound..<bracketEnd.lowerBound])
+                XCTAssertFalse(missingList.contains("red"), "'red' should not be in the missing items list")
+            }
+        } else {
+            XCTFail("Expected .fail, got: \(result)")
+        }
+    }
+
     // MARK: - Helpers
 
     private func makeToolCallEvent(

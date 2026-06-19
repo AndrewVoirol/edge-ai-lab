@@ -259,19 +259,37 @@ enum AppRadius {
     static let pill: CGFloat = 100
 }
 
-// MARK: - Icon Sizes
-
-/// Standard icon sizes for SF Symbol fonts.
-/// Use `.font(.system(size: AppIconSize.md))` instead of hardcoded point sizes.
+/// Dynamic Type–aware icon sizing for SF Symbols.
+///
+/// Use these instead of `.font(.system(size:))` on `Image(systemName:)`.
+/// Each tier maps to a text style that scales with the user's preferred size.
+///
+/// Tier mapping (approximate default point sizes):
+/// - `xxs` → caption2 (~11pt) — tiny metric indicators (bolt, timer)
+/// - `xs`  → caption  (~12pt) — small inline icons (sparkle, copy)
+/// - `sm`  → footnote (~13pt) — inline icons (category, checkbox)
+/// - `md`  → subheadline (~15pt) — medium icons (chevron, feature chips)
+/// - `lg`  → body (~17pt) — action icons (download states, model arch)
+/// - `xl`  → title3 (~20pt) — card action buttons, section icons
+/// - `xxl` → title (~28pt) — large state icons (success, failure)
+/// - `hero` → largeTitle (~34pt) — empty state heroes, onboarding
 enum AppIconSize {
-    /// Small icons — inline badges, status dots (16pt).
-    static let sm: CGFloat = 16
-    /// Medium icons — toolbar actions, list accessories (28pt).
-    static let md: CGFloat = 28
-    /// Large icons — empty state heroes, onboarding illustrations (48pt).
-    static let lg: CGFloat = 48
-    /// Extra large icons — feature highlights, splash elements (56pt).
-    static let xl: CGFloat = 56
+    /// Tiny inline metric indicators (bolt, timer, stop).
+    static let xxs: Font = .system(.caption2)
+    /// Small inline icons (sparkle, copy, clock, pause).
+    static let xs: Font = .system(.caption)
+    /// Inline icons (category icons, branding, checkbox).
+    static let sm: Font = .system(.footnote)
+    /// Medium icons (chevron, feature highlights, clipboard).
+    static let md: Font = .system(.subheadline)
+    /// Action icons (download states, model architecture, active badges).
+    static let lg: Font = .system(.body)
+    /// Card action buttons, suite picker icons, section headers.
+    static let xl: Font = .system(.title3)
+    /// Large state icons (success/failure cards, model detail).
+    static let xxl: Font = .system(.title)
+    /// Empty state heroes, onboarding illustrations, welcome headers.
+    static let hero: Font = .system(.largeTitle)
 }
 
 // MARK: - Animations

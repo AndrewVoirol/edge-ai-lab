@@ -103,7 +103,7 @@ struct EvalBenchmarkCard: View {
                 // Category badge
                 HStack(spacing: 8) {
                     Image(systemName: data.category.symbolName)
-                        .font(.system(size: 14))
+                        .font(AppIconSize.sm)
                     Text(data.category.displayName)
                         .font(AppTypography.badge)
                 }
@@ -215,7 +215,7 @@ struct EvalBenchmarkCard: View {
             // Device info
             HStack(spacing: 12) {
                 Image(systemName: "desktopcomputer")
-                    .font(.system(size: 14))
+                    .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.textTertiary)
                 Text(data.deviceName)
                     .font(AppTypography.subtitle)
@@ -232,7 +232,7 @@ struct EvalBenchmarkCard: View {
             // Branding
             HStack(spacing: 8) {
                 Image(systemName: "flask.fill")
-                    .font(.system(size: 14))
+                    .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.accentTeal)
                 Text("Edge AI Lab")
                     .font(AppTypography.sectionHeader)
@@ -387,7 +387,7 @@ struct EvalBenchmarkCardShareSheet: View {
         Button(action: action) {
             VStack(spacing: AppSpacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(AppIconSize.xl)
                     .foregroundStyle(color)
                 Text(label)
                     .font(AppTypography.caption)

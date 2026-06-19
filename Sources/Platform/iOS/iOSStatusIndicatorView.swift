@@ -142,7 +142,7 @@ struct iOSStatusIndicatorView: View {
 
             // Expand/collapse chevron
             Image(systemName: "chevron.up")
-                .font(.system(size: 10, weight: .semibold))
+                .font(AppIconSize.xxs)
                 .foregroundStyle(AppColors.textTertiary)
                 .rotationEffect(.degrees(isExpanded ? 0 : 180))
                 .accessibilityHidden(true)

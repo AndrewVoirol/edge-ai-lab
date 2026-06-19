@@ -96,7 +96,7 @@ struct macOSURLImportSheet: View {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "doc.on.clipboard")
                     .foregroundStyle(AppColors.textTertiary)
-                    .font(.system(size: 13))
+                    .font(AppIconSize.sm)
 
                 TextField("https://huggingface.co/org/model", text: $urlText)
                     .textFieldStyle(.plain)
@@ -130,7 +130,7 @@ struct macOSURLImportSheet: View {
         VStack(spacing: AppSpacing.md) {
             Spacer()
             Image(systemName: "link.badge.plus")
-                .font(.system(size: 36))
+                .font(AppIconSize.xxl)
                 .foregroundStyle(AppColors.textTertiary)
             Text("Paste a HuggingFace model URL above to get started.")
                 .font(AppTypography.listSubtitle)
@@ -335,7 +335,7 @@ struct macOSURLImportSheet: View {
     private func completeCard(meta: DynamicModelMetadata) -> some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 40))
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.success)
                 .glow(AppColors.success, radius: 14, opacity: 0.5)
 
@@ -372,7 +372,7 @@ struct macOSURLImportSheet: View {
     private func failedCard(error: String) -> some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 36))
+                .font(AppIconSize.xxl)
                 .foregroundStyle(AppColors.danger)
 
             Text(error)

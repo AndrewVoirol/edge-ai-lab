@@ -89,19 +89,52 @@ if [ "${NO_CONSOLE}" = "1" ]; then
     echo ""
     echo "App launched. Monitor via: log stream --device $DEVICE_ID --predicate 'subsystem == \"com.andrewvoirol.EdgeAILab\"' --level info"
 else
-    echo "Launching with console output..."
+    echo "Launching with log streaming..."
+    # Default timeout: 10 minutes (600s). Override with CONSOLE_TIMEOUT env var.
+    CONSOLE_TIMEOUT="${CONSOLE_TIMEOUT:-600}"
+    LOG_OUTPUT="$OUTPUT_DIR/device_console_$(date +%Y%m%d_%H%M%S).log"
+
+    # Launch app without --console (which hangs indefinitely)
     if [ -n "$LAUNCH_ARGS" ]; then
         xcrun devicectl device process launch \
             --device "$DEVICE_ID" \
             --terminate-existing \
-            --console \
             "$BUNDLE_ID" \
             -- $LAUNCH_ARGS
     else
         xcrun devicectl device process launch \
             --device "$DEVICE_ID" \
             --terminate-existing \
-            --console \
             "$BUNDLE_ID"
     fi
+
+    echo "Streaming device logs to $LOG_OUTPUT (timeout: ${CONSOLE_TIMEOUT}s)..."
+    echo "Watching for [AUTOMATION] completion signal..."
+
+    # Stream logs in the background, teeing to file and stdout.
+    # Use `log stream` with a predicate for our subsystem.
+    log stream --device "$DEVICE_ID" \
+        --predicate 'subsystem == "com.andrewvoirol.EdgeAILab"' \
+        --level info 2>&1 | tee "$LOG_OUTPUT" &
+    LOG_PID=$!
+
+    # Watch the log file for the completion signal
+    ELAPSED=0
+    while [ "$ELAPSED" -lt "$CONSOLE_TIMEOUT" ]; do
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+        if [ -f "$LOG_OUTPUT" ] && grep -q "Signaling completion" "$LOG_OUTPUT" 2>/dev/null; then
+            echo ""
+            echo "✅ Automation completion detected after ${ELAPSED}s."
+            kill "$LOG_PID" 2>/dev/null || true
+            wait "$LOG_PID" 2>/dev/null || true
+            exit 0
+        fi
+    done
+
+    echo ""
+    echo "⚠️  Timeout (${CONSOLE_TIMEOUT}s) reached without completion signal."
+    kill "$LOG_PID" 2>/dev/null || true
+    wait "$LOG_PID" 2>/dev/null || true
+    exit 1
 fi

@@ -110,6 +110,9 @@ struct iOSModelHubView: View {
     var body: some View {
         modelList
             .listStyle(.insetGrouped)
+            // FB14832017: .searchable text clipping in Liquid Glass (iOS 26 beta).
+            // Search bar text truncates when the bar collapses into the navigation
+            // title area. No API workaround exists; filed as Apple Feedback.
             .searchable(text: $searchText, prompt: "Search models…")
             .refreshable {
                 viewModel.refreshDiscoveredModels()
@@ -333,7 +336,7 @@ struct iOSModelHubView: View {
                             .stroke(AppColors.accentCyan.opacity(0.3), lineWidth: 0.5)
                     )
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentCyan)
             }
             .frame(width: 40, height: 40)

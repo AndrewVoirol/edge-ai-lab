@@ -116,7 +116,7 @@ struct DeveloperAutomationHarness {
     /// Marker file path written when automation completes. XCUITests
     /// check for this file instead of relying on accessibility elements
     /// or process exit (both unreliable under XCUITest).
-    static let completionMarkerPath = "/tmp/automation_complete.txt"
+    nonisolated static let completionMarkerPath = "/tmp/automation_complete.txt"
     
     /// Static completion code set by the harness when automation finishes.
     nonisolated(unsafe) static var completionCode: Int32? = nil
@@ -130,7 +130,7 @@ struct DeveloperAutomationHarness {
     ///
     /// We do NOT call exit() because XCUITest detects process termination
     /// and relaunches the app without the original launch arguments.
-    nonisolated private static func signalComplete(_ code: Int32, message: String = "") {
+    nonisolated static func signalComplete(_ code: Int32, message: String = "") {
         fflush(stdout)
         automationLog("[AUTOMATION] Signaling completion with code \(code): \(message)")
         completionCode = code
@@ -1112,7 +1112,7 @@ struct DeveloperAutomationHarness {
     // MARK: - Baselines Discovery
     
     /// Finds the baselines.json file in the project.
-    private static func findBaselinesFile() -> URL? {
+    static func findBaselinesFile() -> URL? {
         // 1. Check bundle resources
         if let bundlePath = Bundle.main.url(forResource: "baselines", withExtension: "json") {
             return bundlePath
@@ -1139,7 +1139,7 @@ struct DeveloperAutomationHarness {
     }
     
     /// Finds the eval_baselines.json file in the project.
-    private static func findEvalBaselinesFile() -> URL? {
+    static func findEvalBaselinesFile() -> URL? {
         // 1. Check bundle resources
         if let bundlePath = Bundle.main.url(forResource: "eval_baselines", withExtension: "json") {
             return bundlePath
@@ -1168,7 +1168,7 @@ struct DeveloperAutomationHarness {
     /// Persists eval results to metrics/eval_history.json.
     /// On macOS, writes to the project's metrics/ directory.
     /// On iOS, writes to the app's Documents/metrics/ directory (pullable via devicectl).
-    private static func persistEvalHistory(results: [(suiteName: String, passRate: Double, promptCount: Int)], model: String) {
+    static func persistEvalHistory(results: [(suiteName: String, passRate: Double, promptCount: Int)], model: String) {
         // Find or create the eval_history.json file
         let historyURL: URL = {
             // 1. Check macOS project paths

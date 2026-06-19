@@ -93,6 +93,8 @@ struct iOSSuiteEditorSheet: View {
     enum ExpectedBehaviorConfig: Hashable {
         case nonEmpty
         case containsText(String)
+        case containsAny([String])
+        case containsAll([String])
         case toolCall(String)
         case toolCallWithArgs(String, String, String)
         case toolCallChain([String])
@@ -105,6 +107,10 @@ struct iOSSuiteEditorSheet: View {
                 self = .nonEmpty
             case .containsText(let text):
                 self = .containsText(text)
+            case .containsAny(let alternatives):
+                self = .containsAny(alternatives)
+            case .containsAll(let required):
+                self = .containsAll(required)
             case .toolCall(toolName: let name):
                 self = .toolCall(name)
             case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let value):
@@ -124,6 +130,10 @@ struct iOSSuiteEditorSheet: View {
                 return .nonEmpty
             case .containsText(let text):
                 return .containsText(text)
+            case .containsAny(let alternatives):
+                return .containsAny(alternatives)
+            case .containsAll(let required):
+                return .containsAll(required)
             case .toolCall(let name):
                 return .toolCall(toolName: name)
             case .toolCallWithArgs(let name, let key, let value):
@@ -141,6 +151,8 @@ struct iOSSuiteEditorSheet: View {
             switch self {
             case .nonEmpty: return "Non-empty response"
             case .containsText: return "Contains text"
+            case .containsAny: return "Contains any of"
+            case .containsAll: return "Contains all of"
             case .toolCall: return "Tool call"
             case .toolCallWithArgs: return "Tool call (args)"
             case .toolCallChain: return "Tool chain"
@@ -329,7 +341,7 @@ struct iOSSuiteEditorSheet: View {
     private var emptyPromptsState: some View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "text.bubble")
-                .font(.system(size: 32))
+                .font(AppIconSize.xxl)
                 .foregroundStyle(AppColors.textTertiary.opacity(0.5))
 
             Text("No prompts yet")

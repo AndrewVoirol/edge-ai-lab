@@ -256,4 +256,95 @@ struct EvalScoringSwiftTestingTests {
             Issue.record("Expected .manualReviewNeeded for custom behavior, got: \(result)")
         }
     }
+
+    // MARK: - containsAny (Parameterized)
+
+    @Test(
+        "containsAny scoring",
+        arguments: [
+            ("I see a bike leaning there", ["bicycle", "bike", "cycle"], true, "synonym match"),
+            ("There is a BICYCLE here", ["bicycle", "bike", "cycle"], true, "case insensitive"),
+            ("I see a car", ["bicycle", "bike", "cycle"], false, "no match"),
+            ("Multiple: bike and cycle", ["bicycle", "bike", "cycle"], true, "first match wins"),
+        ] as [(String, [String], Bool, String)]
+    )
+    func containsAny(response: String, alternatives: [String], shouldPass: Bool, label: String) {
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .containsAny(alternatives)
+        )
+        if shouldPass {
+            #expect(result.isPass, "Expected pass for '\(label)'")
+        } else {
+            #expect(result.isFailure, "Expected failure for '\(label)'")
+        }
+    }
+
+    @Test("containsAny with empty alternatives always fails")
+    func containsAnyEmptyAlternatives() {
+        let result = EvalScorer.score(
+            response: "Some response",
+            toolCallEvents: [],
+            against: .containsAny([])
+        )
+        #expect(result.isFailure)
+    }
+
+    // MARK: - containsAll (Parameterized)
+
+    @Test(
+        "containsAll scoring",
+        arguments: [
+            ("I see a red apple", ["red", "apple"], true, "all present"),
+            ("I see a RED APPLE", ["red", "apple"], true, "case insensitive"),
+            ("I see a red fruit", ["red", "apple"], false, "missing one"),
+            ("Nothing matches", ["red", "apple"], false, "missing all"),
+        ] as [(String, [String], Bool, String)]
+    )
+    func containsAll(response: String, required: [String], shouldPass: Bool, label: String) {
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .containsAll(required)
+        )
+        if shouldPass {
+            #expect(result.isPass, "Expected pass for '\(label)'")
+        } else {
+            #expect(result.isFailure, "Expected failure for '\(label)'")
+        }
+    }
+
+    @Test("containsAll with empty array always passes")
+    func containsAllEmptyRequired() {
+        let result = EvalScorer.score(
+            response: "Some response",
+            toolCallEvents: [],
+            against: .containsAll([])
+        )
+        #expect(result.isPass, "Empty required list should always pass")
+    }
+
+    @Test("containsAll failure message lists missing items")
+    func containsAllFailureMessage() {
+        let result = EvalScorer.score(
+            response: "I see a red thing",
+            toolCallEvents: [],
+            against: .containsAll(["red", "apple", "tree"])
+        )
+        if case .fail(let reason) = result {
+            #expect(reason.contains("apple"), "Should list 'apple' as missing")
+            #expect(reason.contains("tree"), "Should list 'tree' as missing")
+            // 'red' appears in the boilerplate "required" but should NOT appear
+            // in the missing items list since the response contains it.
+            // Extract the bracketed list to verify.
+            if let bracketStart = reason.range(of: "["),
+               let bracketEnd = reason.range(of: "]") {
+                let missingList = String(reason[bracketStart.upperBound..<bracketEnd.lowerBound])
+                #expect(!missingList.contains("red"), "'red' should not be in the missing items list")
+            }
+        } else {
+            Issue.record("Expected .fail, got: \(result)")
+        }
+    }
 }

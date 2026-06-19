@@ -114,7 +114,7 @@ struct iOSConversationPickerSheet: View {
     private var emptyState: some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 48))
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.textTertiary)
 
             Text("No saved conversations")

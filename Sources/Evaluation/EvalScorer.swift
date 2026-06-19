@@ -45,6 +45,21 @@ struct EvalScorer {
             }
             return .fail(reason: "Response does not contain expected text: \"\(expected)\"")
 
+        case .containsAny(let alternatives):
+            if alternatives.contains(where: { response.localizedCaseInsensitiveContains($0) }) {
+                return .pass
+            }
+            let joined = alternatives.joined(separator: ", ")
+            return .fail(reason: "Response does not contain any of: [\(joined)]")
+
+        case .containsAll(let required):
+            let missing = required.filter { !response.localizedCaseInsensitiveContains($0) }
+            if missing.isEmpty {
+                return .pass
+            }
+            let missingJoined = missing.joined(separator: ", ")
+            return .fail(reason: "Response missing required text(s): [\(missingJoined)]")
+
         case .toolCall(toolName: let expected):
             if toolCallEvents.contains(where: { $0.toolName == expected && $0.succeeded }) {
                 return .pass

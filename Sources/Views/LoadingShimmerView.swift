@@ -44,7 +44,7 @@ struct LoadingShimmerView: View {
                     .frame(width: 28, height: 28)
                     .overlay {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(AppIconSize.xs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -70,7 +70,7 @@ struct LoadingShimmerView: View {
                     .frame(width: 28, height: 28)
                     .overlay {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(AppIconSize.xs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {

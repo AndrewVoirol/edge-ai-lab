@@ -165,7 +165,7 @@ struct iOSModelDetailView: View {
                     Image(systemName: metadata.architectureType.contains("MoE")
                         ? "square.grid.3x3.topleft.filled"
                         : "square.stack.3d.up.fill")
-                        .font(.system(size: 36, weight: .medium))
+                        .font(AppIconSize.xxl)
                         .foregroundStyle(isActiveModel ? AppColors.accentCyan : AppColors.textSecondary)
 
                     if isActiveModel {
@@ -650,17 +650,11 @@ struct iOSModelDetailView: View {
     // MARK: - Helpers
 
     private var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file)
+        ModelDetailFormatters.formattedSize(metadata.sizeInBytes)
     }
 
     private var formattedContextWindow: String {
-        if metadata.contextWindowSize >= 1_000_000 {
-            return "\(metadata.contextWindowSize / 1_000_000)M ctx"
-        } else if metadata.contextWindowSize >= 1_000 {
-            return "\(metadata.contextWindowSize / 1_000)K ctx"
-        } else {
-            return "\(metadata.contextWindowSize) ctx"
-        }
+        ModelDetailFormatters.formattedContextWindow(metadata.contextWindowSize)
     }
 
     /// Confirm download with storage check.

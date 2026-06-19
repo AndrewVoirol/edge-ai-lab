@@ -219,6 +219,111 @@ struct AutomationFlowRunnerTests {
         let sorted = flows.sorted()
         #expect(flows == sorted, "Discovered flows should be sorted alphabetically")
     }
+
+    // MARK: - Bundled Flows Parsing
+
+    @Test("All bundled flow JSON files parse as valid AutomationFlow")
+    func bundledFlowsAllParse() throws {
+        let flowsDir = AutomationFlowRunner.flowsDirectory()
+        let fm = FileManager.default
+
+        guard fm.fileExists(atPath: flowsDir.path) else {
+            // Flows directory not found in test bundle — skip on CI or device
+            Issue.record(
+                "Flows directory not found at \(flowsDir.path). Flow files are bundled via app resources in Project.swift and may not be available in the unit test bundle."
+            )
+            return
+        }
+
+        // Recursively collect all .json files (including ui/ subdirectory)
+        guard let enumerator = fm.enumerator(
+            at: flowsDir,
+            includingPropertiesForKeys: nil
+        ) else {
+            Issue.record("Could not enumerate flows directory: \(flowsDir.path)")
+            return
+        }
+
+        var jsonURLs: [URL] = []
+        for case let url as URL in enumerator where url.pathExtension == "json" {
+            jsonURLs.append(url)
+        }
+
+        #expect(!jsonURLs.isEmpty, "Expected at least one flow JSON file")
+
+        let decoder = JSONDecoder()
+        for url in jsonURLs {
+            let data = try Data(contentsOf: url)
+            let flow = try decoder.decode(AutomationFlow.self, from: data)
+            #expect(!flow.name.isEmpty, "Flow in \(url.lastPathComponent) should have a name")
+            #expect(!flow.steps.isEmpty, "Flow '\(flow.name)' should have at least one step")
+        }
+    }
+
+    // MARK: - Empty Steps
+
+    @Test("Flow with empty steps array decodes correctly")
+    func flowWithEmptySteps() throws {
+        let json = """
+        {
+            "name": "Empty Flow",
+            "steps": []
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let flow = try JSONDecoder().decode(AutomationFlow.self, from: data)
+
+        #expect(flow.name == "Empty Flow")
+        #expect(flow.steps.isEmpty)
+    }
+
+    // MARK: - All Known Actions
+
+    @Test(
+        "All known action strings are valid in flow steps",
+        arguments: ["verify_ui", "tap", "type_text", "wait", "screenshot"]
+    )
+    func flowStepAllActions(action: String) throws {
+        let json = """
+        {
+            "name": "Action Test",
+            "steps": [
+                {
+                    "step": 1,
+                    "action": "\(action)",
+                    "description": "Test \(action)"
+                }
+            ]
+        }
+        """
+
+        let data = json.data(using: .utf8)!
+        let flow = try JSONDecoder().decode(AutomationFlow.self, from: data)
+
+        #expect(flow.steps[0].action == action)
+    }
+
+    // MARK: - Multiple Variable Interpolation
+
+    @Test("Interpolate multiple environment variables in one string")
+    func interpolateMultipleVars() throws {
+        let input = "$HOME/path/$USER"
+        let result = AutomationFlowRunner.interpolateEnvironmentVariables(input)
+
+        // Both $HOME and $USER should be replaced (they exist on macOS/iOS)
+        if let home = ProcessInfo.processInfo.environment["HOME"] {
+            #expect(result.contains(home), "Should interpolate $HOME")
+            #expect(!result.contains("$HOME"), "$HOME should be replaced")
+        }
+        if let user = ProcessInfo.processInfo.environment["USER"] {
+            #expect(result.contains(user), "Should interpolate $USER")
+            #expect(!result.contains("$USER"), "$USER should be replaced")
+        }
+
+        // The "/path/" separator should be preserved
+        #expect(result.contains("/path/"), "Literal path segments should be preserved")
+    }
 }
 
 // MARK: - FlowResult Tests
@@ -258,5 +363,63 @@ struct FlowResultTests {
 
         #expect(result.summary.contains("FAILED"))
         #expect(result.failedStep == 2)
+    }
+
+    // MARK: - Serialization Round-Trip
+
+    @Test("FlowResult round-trips through manual JSON dictionary encoding")
+    func flowResultSerialization() throws {
+        // FlowResult is Sendable but not Codable, so we test the manual
+        // dictionary-based JSON encoding path used by printFlowResult().
+        let stepResults = [
+            FlowStepResult(step: 1, action: "tap", description: "Tap button", passed: true, message: "OK", durationMs: 15.5),
+            FlowStepResult(step: 2, action: "verify_ui", description: "Verify", passed: false, message: "Missing", durationMs: 22.3),
+        ]
+
+        let original = FlowResult(
+            flowName: "Serialize Flow",
+            passed: false,
+            stepResults: stepResults,
+            totalDurationMs: 37.8,
+            failedStep: 2
+        )
+
+        // Encode to JSON using the same dictionary structure as printFlowResult()
+        let stepDicts: [[String: Any]] = original.stepResults.map { step in
+            [
+                "step": step.step,
+                "action": step.action,
+                "description": step.description,
+                "passed": step.passed,
+                "message": step.message,
+                "duration_ms": step.durationMs,
+            ]
+        }
+
+        let resultDict: [String: Any] = [
+            "flow_name": original.flowName,
+            "passed": original.passed,
+            "total_duration_ms": original.totalDurationMs,
+            "failed_step": original.failedStep as Any,
+            "steps": stepDicts,
+        ]
+
+        let jsonData = try JSONSerialization.data(withJSONObject: resultDict, options: [.sortedKeys])
+        #expect(!jsonData.isEmpty, "JSON data should not be empty")
+
+        // Decode back and verify key fields
+        let decoded = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
+        #expect(decoded["flow_name"] as? String == "Serialize Flow")
+        #expect(decoded["passed"] as? Bool == false)
+        #expect(decoded["failed_step"] as? Int == 2)
+
+        let decodedSteps = decoded["steps"] as! [[String: Any]]
+        #expect(decodedSteps.count == 2)
+        #expect(decodedSteps[0]["action"] as? String == "tap")
+        #expect(decodedSteps[1]["passed"] as? Bool == false)
+
+        // Verify the total_duration_ms round-trips accurately
+        let decodedDuration = decoded["total_duration_ms"] as? Double ?? 0
+        #expect(abs(decodedDuration - 37.8) < 0.001, "Duration should round-trip accurately")
     }
 }

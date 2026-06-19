@@ -1,0 +1,111 @@
+{
+  "_meta": {
+    "version": 1,
+    "description": "Code coverage baselines for regression detection. Measured via xcodebuild test with -enableCodeCoverage YES.",
+    "last_updated": "2026-06-19T16:19:00Z",
+    "methodology": "macOS unit tests via test_macos (UnitTests.xctestplan), 908 tests passing, coverage extracted via xcrun xccov from .xcresult bundle.",
+    "target_coverage_pct": 80,
+    "notes": "App-code coverage (Edge AI Lab.app) is the primary metric. Test target coverage reflects test-file self-coverage and is not actionable. MarkdownUI is a third-party dependency — excluded from coverage goals."
+  },
+  "baselines": {
+    "overall": {
+      "coverage_pct": 40.3,
+      "covered_lines": 50106,
+      "total_lines": 124304,
+      "notes": "Includes all targets. Inflated by test-target self-coverage; deflated by MarkdownUI (0%)."
+    },
+    "app_code": {
+      "target": "Edge AI Lab.app",
+      "coverage_pct": 26.6,
+      "covered_lines": 11235,
+      "total_lines": 42205,
+      "notes": "Primary metric — this is what matters for production code quality."
+    },
+    "test_targets": {
+      "macOS_tests": {
+        "target": "EdgeAILab_macOSTests.xctest",
+        "coverage_pct": 82.1,
+        "covered_lines": 15956,
+        "total_lines": 19442
+      },
+      "iOS_tests": {
+        "target": "EdgeAILab_iOSTests.xctest",
+        "coverage_pct": 82.1,
+        "covered_lines": 15956,
+        "total_lines": 19442
+      },
+      "macOS_ui_tests": {
+        "target": "EdgeAILab_macOSUITests.xctest",
+        "coverage_pct": 0.0,
+        "covered_lines": 0,
+        "total_lines": 866,
+        "notes": "UI tests are not run via UnitTests.xctestplan — coverage is expected to be 0% here."
+      }
+    },
+    "third_party": {
+      "MarkdownUI": {
+        "coverage_pct": 0.0,
+        "total_lines": 4446,
+        "notes": "Third-party dependency — excluded from coverage goals."
+      }
+    }
+  },
+  "high_coverage_files": [
+    { "file": "EvalRunnerLogic.swift", "pct": 100.0 },
+    { "file": "ModelDetailFormatters.swift", "pct": 100.0 },
+    { "file": "DateTimeTool.swift", "pct": 100.0 },
+    { "file": "BuiltInEvalSuites.swift", "pct": 100.0 },
+    { "file": "EvalResult.swift", "pct": 99.4 },
+    { "file": "ExperimentConfig.swift", "pct": 98.8 },
+    { "file": "EvalScorer.swift", "pct": 98.0 },
+    { "file": "ThinkingParser.swift", "pct": 97.2 },
+    { "file": "SavedConversation.swift", "pct": 97.2 },
+    { "file": "EvalSuite.swift", "pct": 97.0 },
+    { "file": "KaggleModelParser.swift", "pct": 96.7 },
+    { "file": "EvalRegressionChecker.swift", "pct": 96.2 },
+    { "file": "BenchmarkCardView.swift", "pct": 93.3 },
+    { "file": "ModelSessionController.swift", "pct": 85.9 },
+    { "file": "ConversationViewModel+MCP.swift", "pct": 80.0 }
+  ],
+  "zero_coverage_files": [
+    { "file": "EvalBenchmarkCard.swift", "lines": 846 },
+    { "file": "macOSURLImportSheet.swift", "lines": 752 },
+    { "file": "InferenceSettingsView+Data.swift", "lines": 548 },
+    { "file": "BenchmarkValidationView.swift", "lines": 374 },
+    { "file": "BenchmarkComparisonView.swift", "lines": 442 },
+    { "file": "ChatBubbleView.swift", "lines": 1259 },
+    { "file": "EvalSuiteEditorView.swift", "lines": 1326 },
+    { "file": "ChatBubbleComponents.swift", "lines": 669 },
+    { "file": "PerformanceDashboardView.swift", "lines": 845 },
+    { "file": "BenchmarkBarView.swift", "lines": 851 },
+    { "file": "iOSModelDetailView.swift", "lines": 1529 },
+    { "file": "iOSEvalTabView.swift", "lines": 1119 },
+    { "file": "EvalRunnerView.swift", "lines": 1808 },
+    { "file": "EvalComparisonView.swift", "lines": 1184 },
+    { "file": "InferenceSettingsView+AIFeatures.swift", "lines": 1155 },
+    { "file": "iOSSuiteEditorSheet.swift", "lines": 1350 }
+  ],
+  "coverage_gap_summary": {
+    "total_zero_coverage_view_lines": 15107,
+    "total_zero_coverage_files": 29,
+    "biggest_impact_files": "EvalRunnerView.swift (1808), iOSModelDetailView.swift (1529), iOSSuiteEditorSheet.swift (1350), EvalSuiteEditorView.swift (1326)",
+    "notes": "Most zero-coverage files are SwiftUI views. These require UI tests or snapshot tests to improve coverage. Logic-heavy files (ViewModel, Store, Runner) already have strong coverage."
+  },
+  "test_counts": {
+    "total_passing": 908,
+    "unit_test_suites": 16,
+    "total_test_files": 58
+  },
+  "change_log": [
+    {
+      "date": "2026-06-19",
+      "author": "automation",
+      "description": "Coverage session 3: +42 tests (866→908). Extracted EvalRunnerLogic (100%) and ModelDetailFormatters (100%) from zero-coverage SwiftUI views. Added ModelSessionControllerTests (8), ConversationViewModelMCPTests (5), EvalRunnerLogicTests (15), ModelDetailFormattersTests (parameterized). Expanded DeveloperAutomationHarnessTests (+8, now 12.7%). Raised CI coverage floor 20%→25%. ConversationViewModel+MCP 48.1%→80.0%."
+    },
+    {
+      "date": "2026-06-19",
+      "author": "automation",
+      "description": "Initial coverage baseline established. 785 tests passing. App-code coverage at 25.6%. Coverage enabled in all 6 test plans."
+    }
+  ]
+}

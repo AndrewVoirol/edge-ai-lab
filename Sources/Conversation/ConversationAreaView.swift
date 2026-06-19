@@ -70,7 +70,7 @@ struct ConversationAreaView: View {
             Spacer()
 
             Image(systemName: "sparkles")
-                .font(.system(size: 48))
+                .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
                         colors: [AppColors.accentGold, AppColors.accentTeal],

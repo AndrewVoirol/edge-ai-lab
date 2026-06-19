@@ -204,7 +204,7 @@ struct BenchmarkCardView: View {
                             .fill(AppColors.accentTeal.opacity(0.2))
                             .frame(width: 40, height: 40)
                         Text("⚡")
-                            .font(.system(size: 22))
+                            .font(AppIconSize.xl)
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -344,7 +344,7 @@ struct BenchmarkCardView: View {
     private func metricCell(label: String, value: String, icon: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(AppIconSize.sm)
                 .foregroundStyle(AppColors.textTertiary)
 
             Text(value)
@@ -394,7 +394,7 @@ struct BenchmarkCardView: View {
     private func deviceInfoPill(icon: String, text: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(AppIconSize.xxs)
             Text(text)
                 .font(AppTypography.caption)
         }

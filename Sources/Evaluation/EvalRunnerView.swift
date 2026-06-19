@@ -49,7 +49,7 @@ struct EvalRunnerView: View {
 
     /// All available suites (built-in + custom).
     private var allSuites: [EvalSuite] {
-        BuiltInEvalSuites.allBuiltIn + customSuites
+        EvalRunnerLogic.allSuites(builtIn: BuiltInEvalSuites.allBuiltIn, custom: customSuites)
     }
 
     /// The currently selected suite, if any.
@@ -60,7 +60,7 @@ struct EvalRunnerView: View {
 
     /// Whether the Run button should be enabled.
     private var canRun: Bool {
-        selectedSuiteId != nil && !selectedModelFiles.isEmpty && !isRunning
+        EvalRunnerLogic.canRun(selectedSuiteId: selectedSuiteId, selectedModelFiles: selectedModelFiles, isRunning: isRunning)
     }
 
     // MARK: - Body
@@ -190,7 +190,7 @@ struct EvalRunnerView: View {
             VStack(spacing: AppSpacing.sm) {
                 // Icon
                 Image(systemName: suite.category.symbolName)
-                    .font(.system(size: 24))
+                    .font(AppIconSize.xl)
                     .foregroundStyle(
                         isSelected
                             ? AppColors.accentCyan
@@ -336,7 +336,7 @@ struct EvalRunnerView: View {
                     systemName: isSelected
                         ? "checkmark.square.fill" : "square"
                 )
-                .font(.system(size: 18))
+                .font(AppIconSize.lg)
                 .foregroundStyle(
                     isSelected ? AppColors.accentCyan : AppColors.textTertiary
                 )
@@ -389,7 +389,7 @@ struct EvalRunnerView: View {
         } label: {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: isRunning ? "stop.fill" : "play.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppIconSize.sm)
                 Text(isRunning ? "Running…" : "Run Evaluation")
                     .font(AppTypography.subtitle)
             }
@@ -426,7 +426,7 @@ struct EvalRunnerView: View {
         } label: {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: isBatchRunning ? "stop.fill" : "forward.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppIconSize.sm)
                 Text(isBatchRunning ? "Batch Running…" : "Run All")
                     .font(AppTypography.subtitle)
             }
@@ -668,12 +668,7 @@ struct EvalRunnerView: View {
 
 
     private func formatTimeRemaining(_ seconds: TimeInterval) -> String {
-        let mins = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        if mins > 0 {
-            return "~\(mins)m \(secs)s remaining"
-        }
-        return "~\(secs)s remaining"
+        EvalRunnerLogic.formatTimeRemaining(seconds)
     }
 
     // MARK: - Eval Execution

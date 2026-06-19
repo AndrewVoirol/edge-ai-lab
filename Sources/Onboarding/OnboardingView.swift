@@ -87,7 +87,7 @@ struct OnboardingView: View {
         return VStack(spacing: AppSpacing.xl) {
             // SF Symbol icon with glow
             Image(systemName: page.iconName)
-                .font(.system(size: 48, weight: .medium))
+                .font(AppIconSize.hero)
                 .foregroundStyle(iconColor(for: currentPage))
                 .glow(iconColor(for: currentPage), radius: 16, opacity: 0.3)
                 .accessibilityIdentifier("onboarding_icon_\(currentPage)")

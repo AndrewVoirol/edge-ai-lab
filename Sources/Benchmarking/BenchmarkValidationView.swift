@@ -257,7 +257,7 @@ struct BenchmarkValidationView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(runner.results) { result in
                         Text(result.text)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(AppTypography.mono)
                             .foregroundColor(result.text.contains("PASS") ? .green : .red)
                     }
                 }

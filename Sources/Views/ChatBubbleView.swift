@@ -484,7 +484,7 @@ struct ChatBubbleView: View {
             // Decode speed — the hero metric
             HStack(spacing: 3) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 8))
+                    .font(AppIconSize.xxs)
                     .foregroundStyle(tier.color)
                 Text(String(format: "%.1f tok/s", benchmark.decodeTokensPerSecond))
                     .font(AppTypography.metric)
@@ -494,7 +494,7 @@ struct ChatBubbleView: View {
             // TTFT
             HStack(spacing: 3) {
                 Image(systemName: "timer")
-                    .font(.system(size: 8))
+                    .font(AppIconSize.xxs)
                 Text(String(format: "%.2fs", benchmark.timeToFirstToken))
                     .font(AppTypography.metric)
             }

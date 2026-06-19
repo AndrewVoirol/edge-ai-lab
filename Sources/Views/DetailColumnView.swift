@@ -302,7 +302,7 @@ private struct ModelDetailPanel: View {
                 // Welcome header
                 VStack(spacing: AppSpacing.md) {
                     Image(systemName: "tree")
-                        .font(.system(size: 56))
+                        .font(AppIconSize.hero)
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [AppColors.accentTeal, AppColors.accentCyan],
@@ -393,7 +393,7 @@ private struct ModelDetailPanel: View {
     ) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 28))
+                .font(AppIconSize.xl)
                 .foregroundStyle(iconColor)
 
             Text(title)
@@ -420,7 +420,7 @@ private struct ModelDetailPanel: View {
     ) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(AppIconSize.md)
                 .foregroundStyle(iconColor)
                 .frame(width: 24)
 
@@ -539,7 +539,7 @@ private struct ConversationDetailPlaceholder: View {
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 48))
+                .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
                         colors: [AppColors.accentGold, AppColors.accentGold.opacity(0.6)],

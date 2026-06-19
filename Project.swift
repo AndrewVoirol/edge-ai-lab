@@ -186,7 +186,7 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["EdgeAILab_iOS"]),
             testAction: .testPlans(
-                ["UnitTests.xctestplan"],
+                ["UnitTests.xctestplan", "iOSUITests.xctestplan"],
                 configuration: .debug
             ),
             runAction: .runAction(configuration: .debug)
@@ -196,7 +196,7 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["EdgeAILab_macOS"]),
             testAction: .testPlans(
-                ["UnitTests.xctestplan"],
+                ["UnitTests.xctestplan", "macOSUITests.xctestplan"],
                 configuration: .debug
             ),
             runAction: .runAction(configuration: .debug)

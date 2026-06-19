@@ -112,7 +112,7 @@ struct BenchmarkComparisonView: View {
     private var emptyState: some View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "chart.bar.xaxis.ascending")
-                .font(.system(size: 40))
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.textTertiary)
 
             Text("No benchmark data yet.\nRun inference with different models to compare performance.")
@@ -129,7 +129,7 @@ struct BenchmarkComparisonView: View {
     private func errorState(_ message: String) -> some View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.warning)
 
             Text(message)

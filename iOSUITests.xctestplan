@@ -1,0 +1,26 @@
+{
+  "configurations" : [
+    {
+      "id" : "F1A2B3C4-D5E6-7890-ABCD-1234567890AB",
+      "name" : "Device Configuration",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverageEnabled" : true,
+    "testTimeoutsEnabled" : true,
+    "defaultTestExecutionTimeAllowance" : 120
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:EdgeAILab.xcodeproj",
+        "identifier" : "EdgeAILab_iOSUITests",
+        "name" : "EdgeAILab_iOSUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

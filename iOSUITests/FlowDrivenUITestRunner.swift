@@ -649,25 +649,21 @@ class FlowDrivenUITestRunner {
         XCTFail("scroll_to: Element '\(identifier)' not found after \(maxAttempts) scroll attempts")
         throw FlowRunnerError.elementNotFound(identifier)
         #else
-        // On iOS, use swipeUp() on the scrollable container (Form/List).
-        // Prefer swiping on a scrollView if available, otherwise on the app.
-        let scrollTarget: XCUIElement = {
-            let scrollView = app.scrollViews.firstMatch
-            if scrollView.exists { return scrollView }
-            let table = app.tables.firstMatch
-            if table.exists { return table }
-            return app
-        }()
-
+        // On iOS, use coordinate-based drag scrolling.
+        // `app.swipeUp()` triggers XCUITest's idle-wait system which hangs
+        // indefinitely on iOS 26 physical devices with Liquid Glass momentum
+        // scrolling. Coordinate-based drag avoids the idle-wait.
         for attempt in 0..<maxAttempts {
-            scrollTarget.swipeUp()
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+            from.press(forDuration: 0.05, thenDragTo: to)
             usleep(500_000)
             if element.exists {
-                print("[FLOW_RUNNER]   scroll_to: Found '\(identifier)' after \(attempt + 1) swipe(s)")
+                print("[FLOW_RUNNER]   scroll_to: Found '\(identifier)' after \(attempt + 1) scroll(s)")
                 return
             }
         }
-        XCTFail("scroll_to: Element '\(identifier)' not found after \(maxAttempts) swipe attempts")
+        XCTFail("scroll_to: Element '\(identifier)' not found after \(maxAttempts) scroll attempts")
         throw FlowRunnerError.elementNotFound(identifier)
         #endif
     }

@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 
 DEFAULT_DEVICE_ID = os.environ.get("EDGE_AI_LAB_DEVICE_ID", "3B50314A-0702-5188-A321-BCD5CA5F8184")
-BUNDLE_ID = "com.andrewvoirol.GemmaEdgeGallery"
+BUNDLE_ID = "com.andrewvoirol.EdgeAILab"
 REPORT_DIR = "automation/results"
 REPORT_FILE = os.path.join(REPORT_DIR, "benchmark_report.md")
 
@@ -180,7 +180,7 @@ def main():
     file_exists = os.path.exists(REPORT_FILE)
     with open(REPORT_FILE, "a") as f:
         if not file_exists:
-            f.write("# GemmaEdgeGallery On-Device Benchmark Reports\n\n")
+            f.write("# Edge AI Lab On-Device Benchmark Reports\n\n")
         f.write(report_header)
         f.write(table_md)
         f.write("\n\n---\n\n")

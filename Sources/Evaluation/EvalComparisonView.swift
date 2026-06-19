@@ -233,7 +233,7 @@ struct EvalComparisonView: View {
     ) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(AppIconSize.lg)
                 .foregroundStyle(color)
 
             Text(value)

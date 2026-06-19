@@ -234,6 +234,65 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────
+# Coverage Threshold Check
+# ──────────────────────────────────────────────────────────
+COVERAGE_STATUS="skipped"
+COVERAGE_PCT="N/A"
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD_PCT:-25}"
+
+if [[ "$UNIT_STATUS" == "passed" && "$PLATFORM" == "macos" ]]; then
+    echo "📊 Coverage Check (threshold: ${COVERAGE_THRESHOLD}%)"
+    echo "─────────────────────────────────────────────"
+
+    # Find the most recent xcresult bundle
+    DERIVED_DATA_DIR="${DERIVED_DATA_PATH:-$HOME/Library/Developer/Xcode/DerivedData}"
+    XCRESULT=$(find "$DERIVED_DATA_DIR" -name "*.xcresult" -newer "$RESULTS_FILE" -o -name "*.xcresult" 2>/dev/null | head -1)
+
+    if [[ -n "$XCRESULT" && -f "$XCRESULT" ]] || [[ -n "$XCRESULT" && -d "$XCRESULT" ]]; then
+        # Extract overall coverage percentage using xccov
+        COVERAGE_JSON=$(xcrun xccov view --report --json "$XCRESULT" 2>/dev/null || true)
+        if [[ -n "$COVERAGE_JSON" ]]; then
+            COVERAGE_PCT=$(echo "$COVERAGE_JSON" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+# Find the app target (not test targets, not 3rd party)
+for target in data.get('targets', []):
+    name = target.get('name', '')
+    if 'Edge AI Lab' in name and '.xctest' not in name:
+        print(f\"{target.get('lineCoverage', 0) * 100:.1f}\")
+        sys.exit(0)
+# Fallback to overall
+print(f\"{data.get('lineCoverage', 0) * 100:.1f}\")
+" 2>/dev/null || echo "N/A")
+
+            if [[ "$COVERAGE_PCT" != "N/A" ]]; then
+                echo "   App code coverage: ${COVERAGE_PCT}%"
+                # Compare using integer math (bash doesn't do float comparison)
+                COVERAGE_INT=$(echo "$COVERAGE_PCT" | cut -d. -f1)
+                if [[ "$COVERAGE_INT" -lt "$COVERAGE_THRESHOLD" ]]; then
+                    COVERAGE_STATUS="failed"
+                    echo "   ❌ Coverage ${COVERAGE_PCT}% is below threshold ${COVERAGE_THRESHOLD}%"
+                    EXIT_CODE=4
+                else
+                    COVERAGE_STATUS="passed"
+                    echo "   ✅ Coverage ${COVERAGE_PCT}% meets threshold ${COVERAGE_THRESHOLD}%"
+                fi
+            else
+                echo "   ⚠️  Could not parse coverage from xcresult"
+                COVERAGE_STATUS="parse_error"
+            fi
+        else
+            echo "   ⚠️  xccov failed to read xcresult"
+            COVERAGE_STATUS="xccov_error"
+        fi
+    else
+        echo "   ⚠️  No xcresult bundle found — run tests with -enableCodeCoverage YES"
+        COVERAGE_STATUS="no_xcresult"
+    fi
+    echo ""
+fi
+
+# ──────────────────────────────────────────────────────────
 # Results Summary
 # ──────────────────────────────────────────────────────────
 echo "╔══════════════════════════════════════════════════════╗"
@@ -242,6 +301,7 @@ echo "╠═══════════════════════�
 printf "║  Unit Tests:        %-32s ║\n" "$UNIT_STATUS"
 printf "║  Integration Tests: %-32s ║\n" "$INTEGRATION_STATUS"
 printf "║  Performance Tests: %-32s ║\n" "$PERFORMANCE_STATUS"
+printf "║  Coverage Check:    %-32s ║\n" "$COVERAGE_STATUS ($COVERAGE_PCT%)"
 echo "╠══════════════════════════════════════════════════════╣"
 printf "║  Exit Code: %-40s ║\n" "$EXIT_CODE"
 echo "╚══════════════════════════════════════════════════════╝"
@@ -254,7 +314,10 @@ cat > "$RESULTS_FILE" <<EOF
   "results": {
     "unit_tests": "$UNIT_STATUS",
     "integration_tests": "$INTEGRATION_STATUS",
-    "performance_tests": "$PERFORMANCE_STATUS"
+    "performance_tests": "$PERFORMANCE_STATUS",
+    "coverage_check": "$COVERAGE_STATUS",
+    "coverage_pct": "$COVERAGE_PCT",
+    "coverage_threshold_pct": "$COVERAGE_THRESHOLD"
   },
   "exit_code": $EXIT_CODE
 }

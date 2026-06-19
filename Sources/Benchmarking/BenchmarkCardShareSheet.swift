@@ -227,7 +227,7 @@ struct BenchmarkCardShareSheet: View {
     private func actionButtonLabel(icon: String, label: String, color: Color) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(AppIconSize.xl)
                 .foregroundStyle(color)
 
             Text(label)
