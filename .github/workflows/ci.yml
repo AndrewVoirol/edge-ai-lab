@@ -80,7 +80,7 @@ jobs:
           path: TestResults.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v2
+        uses: kishikawakatsumi/xcresulttool@v1
         with:
           path: TestResults.xcresult
         if: always()
@@ -176,7 +176,7 @@ jobs:
           path: TestResults-iOS.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v2
+        uses: kishikawakatsumi/xcresulttool@v1
         with:
           path: TestResults-iOS.xcresult
         if: always()
@@ -247,7 +247,7 @@ jobs:
           path: TestResults-iOS-UI.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v2
+        uses: kishikawakatsumi/xcresulttool@v1
         with:
           path: TestResults-iOS-UI.xcresult
         if: always()
@@ -291,7 +291,7 @@ jobs:
           path: TestResults-Automation.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v2
+        uses: kishikawakatsumi/xcresulttool@v1
         with:
           path: TestResults-Automation.xcresult
         if: always()
