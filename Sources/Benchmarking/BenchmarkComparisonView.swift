@@ -21,29 +21,6 @@ import SwiftUI
 // best TTFT, average tokens — and a relative performance bar.
 // Data is loaded from the on-disk MetricsStore JSON history.
 
-/// Aggregated benchmark summary for a single model, derived from all of its
-/// ``MetricsStore.Entry`` records.
-private struct ModelBenchmarkSummary: Identifiable {
-    var id: String { modelName }
-
-    /// Display name (matches ``MetricsStore.Entry.model``).
-    let modelName: String
-
-    /// Total number of benchmark runs recorded for this model.
-    let runCount: Int
-
-    /// Best (highest) decode speed in tokens/second across all runs.
-    let bestDecodeSpeed: Double
-
-    /// Best (lowest) time-to-first-token in seconds across all runs.
-    let bestTTFT: Double
-
-    /// Average total decode token count across all runs.
-    let averageDecodeTokens: Double
-
-    /// Average total prefill token count across all runs.
-    let averagePrefillTokens: Double
-}
 
 // MARK: - BenchmarkComparisonView
 
@@ -167,28 +144,7 @@ struct BenchmarkComparisonView: View {
                 return
             }
 
-            // Group by model name.
-            let grouped = Dictionary(grouping: entries, by: \.model)
-
-            // Build summaries, sorted by best decode speed descending.
-            let built: [ModelBenchmarkSummary] = grouped.map { modelName, modelEntries in
-                let bestDecode = modelEntries.map(\.metrics.decodeTokensPerSecond).max() ?? 0
-                let bestTTFT = modelEntries.map(\.metrics.ttftSeconds).min() ?? 0
-                let avgDecodeTokens = modelEntries.map { Double($0.metrics.lastDecodeTokenCount) }
-                    .reduce(0, +) / Double(modelEntries.count)
-                let avgPrefillTokens = modelEntries.map { Double($0.metrics.lastPrefillTokenCount) }
-                    .reduce(0, +) / Double(modelEntries.count)
-
-                return ModelBenchmarkSummary(
-                    modelName: modelName,
-                    runCount: modelEntries.count,
-                    bestDecodeSpeed: bestDecode,
-                    bestTTFT: bestTTFT,
-                    averageDecodeTokens: avgDecodeTokens,
-                    averagePrefillTokens: avgPrefillTokens
-                )
-            }
-            .sorted { $0.bestDecodeSpeed > $1.bestDecodeSpeed }
+            let built = BenchmarkComparisonLogic.buildSummaries(from: entries)
 
             summaries = built
             overallBestSpeed = built.first?.bestDecodeSpeed ?? 0
