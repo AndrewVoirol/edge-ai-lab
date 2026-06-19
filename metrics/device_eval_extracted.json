@@ -1,0 +1,26 @@
+{
+  "model" : "gemma-4-E2B-it.litertlm",
+  "suites" : [
+    {
+      "model" : "gemma-4-E2B-it.litertlm",
+      "pass_rate" : 0.933,
+      "suite" : "Math Accuracy"
+    },
+    {
+      "model" : "gemma-4-E2B-it.litertlm",
+      "pass_rate" : 0.95,
+      "suite" : "Tool Calling Reliability"
+    },
+    {
+      "model" : "gemma-4-E2B-it.litertlm",
+      "pass_rate" : 0.84,
+      "suite" : "Reasoning"
+    },
+    {
+      "model" : "gemma-4-E2B-it.litertlm",
+      "pass_rate" : 0.20,
+      "suite" : "Multimodal"
+    }
+  ],
+  "timestamp" : "2026-06-19T19:15:29Z"
+}
