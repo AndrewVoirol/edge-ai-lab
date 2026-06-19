@@ -1,0 +1,25 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 25%
+        threshold: 2%
+    patch:
+      default:
+        target: 50%
+        informational: true
+
+flags:
+  macos:
+    paths:
+      - Sources/
+    carryforward: true
+  ios:
+    paths:
+      - Sources/
+    carryforward: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false

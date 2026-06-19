@@ -63,6 +63,7 @@ jobs:
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -only-testing:EdgeAILab_macOSTests \
+            -enableCodeCoverage YES \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGN_IDENTITY="-" \
@@ -84,8 +85,24 @@ jobs:
           path: TestResults.xcresult
         if: always()
 
-      - name: Upload Coverage to Codecov
+      - name: Check Coverage Threshold
         if: success()
+        run: |
+          COVERAGE=$(xcrun xccov view --report --only-targets TestResults.xcresult 2>/dev/null | \
+            grep "EdgeAILab_macOS" | head -1 | awk '{print $NF}' | tr -d '%')
+          if [ -z "$COVERAGE" ]; then
+            echo "⚠️  Could not extract coverage — skipping threshold check"
+            exit 0
+          fi
+          echo "App-code coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 25" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below 25% floor"
+            exit 1
+          fi
+          echo "✅ Coverage ${COVERAGE}% meets 25% floor"
+
+      - name: Upload Coverage to Codecov
+        if: success() && secrets.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@v5
         with:
           xcode: true
@@ -165,7 +182,7 @@ jobs:
         if: always()
 
       - name: Upload Coverage to Codecov
-        if: success()
+        if: success() && secrets.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@v5
         with:
           xcode: true

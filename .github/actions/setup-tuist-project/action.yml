@@ -32,13 +32,19 @@ runs:
       shell: bash
       run: |
         REPO_DIR="${{ inputs.spm-packages-dir }}/LiteRT-LM"
+        # Remove stale bare mirrors from cache — SPM can't check out from bare repos
+        if [ -d "$REPO_DIR" ] && git -C "$REPO_DIR" rev-parse --is-bare-repository 2>/dev/null | grep -q true; then
+          echo "Removing stale bare mirror..."
+          rm -rf "$REPO_DIR"
+        fi
         if [ -d "$REPO_DIR" ]; then
           echo "Updating existing clone..."
-          git -C "$REPO_DIR" fetch --all 2>&1 || true
+          git -C "$REPO_DIR" fetch origin main --depth 1 2>&1 || true
+          git -C "$REPO_DIR" checkout FETCH_HEAD 2>&1 || true
         else
-          echo "Cloning LiteRT-LM..."
+          echo "Cloning LiteRT-LM (treeless)..."
           mkdir -p "${{ inputs.spm-packages-dir }}"
-          git clone --bare --mirror https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+          git clone --filter=blob:none --branch main https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
         fi
         echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
 
