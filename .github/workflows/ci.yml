@@ -81,6 +81,7 @@ jobs:
 
       - name: Test Results Summary
         uses: kishikawakatsumi/xcresulttool@v1
+        continue-on-error: true  # v1 targets Node.js 20, deprecated on macos-26 runners
         with:
           path: TestResults.xcresult
         if: always()
@@ -177,6 +178,7 @@ jobs:
 
       - name: Test Results Summary
         uses: kishikawakatsumi/xcresulttool@v1
+        continue-on-error: true  # v1 targets Node.js 20, deprecated on macos-26 runners
         with:
           path: TestResults-iOS.xcresult
         if: always()
@@ -248,6 +250,7 @@ jobs:
 
       - name: Test Results Summary
         uses: kishikawakatsumi/xcresulttool@v1
+        continue-on-error: true  # v1 targets Node.js 20, deprecated on macos-26 runners
         with:
           path: TestResults-iOS-UI.xcresult
         if: always()
@@ -292,6 +295,7 @@ jobs:
 
       - name: Test Results Summary
         uses: kishikawakatsumi/xcresulttool@v1
+        continue-on-error: true  # v1 targets Node.js 20, deprecated on macos-26 runners
         with:
           path: TestResults-Automation.xcresult
         if: always()
