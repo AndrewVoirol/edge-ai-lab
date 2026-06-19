@@ -73,3 +73,16 @@
 - If a new file needs tracking in a gitignored directory, add an exclusion rule (`!path/to/file`) to `.gitignore` first.
 - Never use `tail -N` on streaming console output from `deploy_device.sh` — it creates zombie background tasks when the stream ends before N lines. Use `head -N` or redirect to a file instead.
 
+## CI Debugging
+- **Read the FULL error output** from a failed CI run before forming any hypothesis. Use `gh run view <id> --log-failed` without grep filters first. The root cause is often buried in verbose output that keyword grepping misses.
+- **Never push speculative CI fixes.** Each push triggers a 3-8 minute CI cycle. Before pushing, verify your hypothesis can be tested locally or confirmed from existing log data. Aim for 1-2 fix commits, not 5+.
+- **Check for Git LFS and submodules** whenever you see "Couldn't check out revision" or "Could not resolve package dependencies" in SPM/xcodebuild. These are the #1 cause of CI-only checkout failures.
+- **Verify GitHub Actions versions exist** before referencing them (e.g., `@v2`). Use the repo's releases page or `gh api repos/{owner}/{repo}/tags` to confirm.
+
+## Strategic Recommendations
+- **Never project numeric outcomes without evidence.** If you haven't measured it, say "unknown — requires measurement" instead of estimating a range. Fabricated projections (e.g., "expected 50-80%") erode trust when reality doesn't match.
+- **Verify current state before recommending changes.** Before recommending "activate CI," check if CI is already running. Before recommending a tool, check if the user's situation (solo dev, team, open source) makes it relevant. Run `gh run list`, `gh secret list`, etc. — 10 seconds of verification prevents bad advice.
+- **Disclose when a recommendation is opinion vs. evidence.** Use explicit qualifiers: "I haven't tested this, but..." or "Based on [specific data]..." Never present speculation as analysis.
+
+## Codecov
+- Codecov is optional for this project. The 25% coverage floor is enforced by a bash script in `ci.yml` (`Check Coverage Threshold` step) — no third-party service needed. Only set up Codecov if/when the project accepts external contributors who would benefit from PR coverage comments.
