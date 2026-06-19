@@ -71,6 +71,7 @@ runs:
         echo "Resolving packages with clonedSourcePackagesDirPath..."
         xcodebuild -resolvePackageDependencies \
           -workspace EdgeAILab.xcworkspace \
+          -scheme "Edge AI Lab" \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
           2>&1 | tail -30
 
