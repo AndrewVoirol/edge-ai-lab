@@ -62,9 +62,24 @@ struct CalculatorTool: Tool {
         }
 
         let doubleResult = result.doubleValue
+        
+        // Guard against non-finite values (e.g., 1/0 = Infinity, 0/0 = NaN)
+        // JSONSerialization throws an uncatchable NSInvalidArgumentException for Infinity/NaN
+        guard doubleResult.isFinite else {
+            let errorDescription = doubleResult.isInfinite ? "infinity" : "not a number"
+            resultString = jsonString(from: [
+                "error": "Result is \(errorDescription)",
+                "expression": expression,
+                "formatted_result": doubleResult.isInfinite
+                    ? (doubleResult > 0 ? "Infinity" : "-Infinity")
+                    : "NaN"
+            ])
+            return resultString
+        }
+        
         // Format nicely: strip trailing .0 for integer results
         let formatted: String
-        if doubleResult == doubleResult.rounded() && !doubleResult.isInfinite && !doubleResult.isNaN {
+        if doubleResult == doubleResult.rounded() {
             formatted = String(format: "%.0f", doubleResult)
         } else {
             formatted = String(format: "%.6g", doubleResult)

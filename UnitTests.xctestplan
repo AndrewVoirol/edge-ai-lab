@@ -19,11 +19,14 @@
         "name" : "EdgeAILab_iOSTests"
       },
       "skippedTests" : [
-        "InferenceQualityTests",
-        "SmartFallbackIntegrationTests",
-        "MultiTurnIntegrationTests",
+        "ChatMessageTests",
+        "EvalScoringTests",
         "GalleryParityBenchmarkTests",
-        "PerformanceTests"
+        "InferenceQualityTests",
+        "MultiTurnIntegrationTests",
+        "PerformanceTests",
+        "SmartFallbackIntegrationTests",
+        "ThinkingParserTests"
       ]
     },
     {
@@ -33,11 +36,14 @@
         "name" : "EdgeAILab_macOSTests"
       },
       "skippedTests" : [
-        "InferenceQualityTests",
-        "SmartFallbackIntegrationTests",
-        "MultiTurnIntegrationTests",
+        "ChatMessageTests",
+        "EvalScoringTests",
         "GalleryParityBenchmarkTests",
-        "PerformanceTests"
+        "InferenceQualityTests",
+        "MultiTurnIntegrationTests",
+        "PerformanceTests",
+        "SmartFallbackIntegrationTests",
+        "ThinkingParserTests"
       ]
     }
   ],

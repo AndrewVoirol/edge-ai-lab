@@ -1005,9 +1005,11 @@ struct DeveloperAutomationHarness {
                 let totalResults = run.modelResults.flatMap { $0.promptResults }
                 let passed = totalResults.filter(\.passed).count
                 let passRate = totalResults.isEmpty ? 0.0 : Double(passed) / Double(totalResults.count)
+                // Guard against non-finite values that crash JSONSerialization
+                let safePassRate = passRate.isFinite ? passRate : 0.0
                 
-                allResults.append((suiteName: suite.name, passRate: passRate, promptCount: suite.promptCount))
-                automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", passRate * 100))%)")
+                allResults.append((suiteName: suite.name, passRate: safePassRate, promptCount: suite.promptCount))
+                automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", safePassRate * 100))%)")
             } catch {
                 automationLog("[AUTOMATION_FAILURE] Suite '\(suite.name)' failed: \(error.localizedDescription)")
                 allResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount))
@@ -1037,7 +1039,7 @@ struct DeveloperAutomationHarness {
                 automationLog("[AUTOMATION]   \(icon) \(result.suiteName): \(String(format: "%.0f", result.passRate * 100))%")
                 evalReport.append([
                     "suite": result.suiteName,
-                    "pass_rate": result.passRate,
+                    "pass_rate": result.passRate.isFinite ? result.passRate : 0.0,
                     "model": targetModel.modelFile
                 ])
             }
@@ -1218,7 +1220,7 @@ struct DeveloperAutomationHarness {
                 }
                 return [
                     "name": result.suiteName,
-                    "pass_rate": result.passRate,
+                    "pass_rate": result.passRate.isFinite ? result.passRate : 0.0,
                     "prompt_count": result.promptCount
                 ] as [String: Any]
             }

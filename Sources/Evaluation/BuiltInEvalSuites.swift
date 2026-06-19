@@ -479,186 +479,195 @@ enum BuiltInEvalSuites {
 
     /// Tests vision and audio capabilities with 25 multimodal prompts.
     ///
-    /// **Note**: This suite ships with nil image/audio data placeholders.
-    /// Models that don't support the required modality will skip those prompts
-    /// (the eval runner marks them as failed with a descriptive reason).
-    /// To run these tests with real data, create a custom suite with actual
-    /// image/audio payloads.
+    /// Uses real test images loaded from the app bundle via ``EvalImageLoader``.
+    /// Each image-based prompt has content-specific scoring (`.containsText`,
+    /// `.matchesRegex`) instead of trivial `.nonEmpty` checks.
+    ///
+    /// If an image fails to load from the bundle (e.g., in test environments where
+    /// the app bundle doesn't include eval images), the prompt gracefully falls back
+    /// to `imageData: nil` — the eval runner will mark it as failed with a descriptive
+    /// reason rather than crashing.
     static let multimodal = EvalSuite(
         name: "Multimodal",
-        description: "Tests vision and audio capabilities. Ships with placeholder prompts — requires actual image/audio data for meaningful evaluation.",
+        description: "Tests vision and audio capabilities with real test images and content-specific scoring.",
         category: .multimodal,
-        prompts: [
-            // Image description tasks (nil imageData placeholder)
-            EvalPrompt(
-                prompt: "Describe what you see in this image in detail.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What colors are dominant in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Is there any text visible in this image? If so, what does it say?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+        prompts: {
+            // Load images from the app bundle at suite construction time.
+            // Returns nil gracefully if an image isn't found.
+            func img(_ name: String) -> Data? {
+                EvalImageLoader.loadImage(named: name)
+            }
 
-            // Audio understanding tasks (nil audioData placeholder)
-            EvalPrompt(
-                prompt: "What is being said in this audio clip?",
-                expectedBehavior: .nonEmpty,
-                audioData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Describe the sounds you hear in this audio.",
-                expectedBehavior: .nonEmpty,
-                audioData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What language is being spoken in this audio?",
-                expectedBehavior: .nonEmpty,
-                audioData: nil,
-                timeoutSeconds: 90
-            ),
+            return [
+                // --- Image prompts with real images and content-specific scoring ---
 
-            // --- New image prompts (7–25) ---
+                // Object identification
+                EvalPrompt(
+                    prompt: "What fruit is in this image?",
+                    expectedBehavior: .containsText("apple"),
+                    imageData: img("simple_red_apple"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What type of sign is this?",
+                    expectedBehavior: .containsText("stop"),
+                    imageData: img("stop_sign"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What vehicle is in this image?",
+                    expectedBehavior: .containsText("bus"),
+                    imageData: img("yellow_school_bus"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What objects are shown in this image?",
+                    expectedBehavior: .containsText("dice"),
+                    imageData: img("two_dice"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What flower is in this image?",
+                    expectedBehavior: .containsText("sunflower"),
+                    imageData: img("sunflower"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What is leaning against the wall?",
+                    expectedBehavior: .containsText("bicycle"),
+                    imageData: img("red_bicycle"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What is in the cup?",
+                    expectedBehavior: .containsText("coffee"),
+                    imageData: img("blue_coffee_cup"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What breed of dog is this?",
+                    expectedBehavior: .containsText("retriever"),
+                    imageData: img("golden_retriever"),
+                    timeoutSeconds: 90
+                ),
 
-            // Object identification
-            EvalPrompt(
-                prompt: "What fruit is shown in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "How many objects are visible in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What animal is in this photo?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Is there a person in this image? If so, describe what they are doing.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // Counting
+                EvalPrompt(
+                    prompt: "How many cats are in this image?",
+                    expectedBehavior: .matchesRegex("3|three"),
+                    imageData: img("three_cats"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "How many pencils are there?",
+                    expectedBehavior: .matchesRegex("5|five"),
+                    imageData: img("five_pencils"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "How many dice are shown?",
+                    expectedBehavior: .matchesRegex("2|two"),
+                    imageData: img("two_dice"),
+                    timeoutSeconds: 90
+                ),
 
-            // Scene understanding
-            EvalPrompt(
-                prompt: "Is this photo taken indoors or outdoors?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What time of day does this image appear to be taken? Morning, afternoon, or night?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Describe the weather conditions visible in this image.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What type of location or setting is shown in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // OCR / Text recognition
+                EvalPrompt(
+                    prompt: "What text is shown in this image?",
+                    expectedBehavior: .containsText("hello"),
+                    imageData: img("text_hello_world"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "Read all the text visible in this image.",
+                    expectedBehavior: .containsText("world"),
+                    imageData: img("text_hello_world"),
+                    timeoutSeconds: 90
+                ),
 
-            // Spatial reasoning on images
-            EvalPrompt(
-                prompt: "What is in the foreground versus the background of this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Describe the spatial arrangement of the objects in this image from left to right.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // Chart understanding
+                EvalPrompt(
+                    prompt: "What type of chart is shown?",
+                    expectedBehavior: .containsText("bar"),
+                    imageData: img("bar_chart"),
+                    timeoutSeconds: 90
+                ),
 
-            // Color and style analysis
-            EvalPrompt(
-                prompt: "What is the overall mood or feeling conveyed by this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Is this image a photograph, illustration, or diagram?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // Color identification
+                EvalPrompt(
+                    prompt: "What color is the fruit in this image?",
+                    expectedBehavior: .containsText("red"),
+                    imageData: img("simple_red_apple"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What color is the bicycle?",
+                    expectedBehavior: .containsText("red"),
+                    imageData: img("red_bicycle"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What color is the cup?",
+                    expectedBehavior: .containsText("blue"),
+                    imageData: img("blue_coffee_cup"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What color is the bus?",
+                    expectedBehavior: .containsText("yellow"),
+                    imageData: img("yellow_school_bus"),
+                    timeoutSeconds: 90
+                ),
 
-            // OCR and text recognition
-            EvalPrompt(
-                prompt: "Read all the text visible in this image and list each line.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What brand or logo is visible in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // Scene understanding
+                EvalPrompt(
+                    prompt: "Describe what you see in this image in detail.",
+                    expectedBehavior: .containsText("dog"),
+                    imageData: img("golden_retriever"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "Is this photo taken indoors or outdoors?",
+                    expectedBehavior: .nonEmpty,
+                    imageData: img("sunflower"),
+                    timeoutSeconds: 90
+                ),
 
-            // Counting and detail
-            EvalPrompt(
-                prompt: "How many people are in this group photo?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "What color is the car in this image?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Identify the type of food shown on this plate.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
+                // Multi-aspect queries
+                EvalPrompt(
+                    prompt: "What is in this image and what color is it?",
+                    expectedBehavior: .containsText("flower"),
+                    imageData: img("sunflower"),
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "Describe the items in this image. How many are there?",
+                    expectedBehavior: .containsText("pencil"),
+                    imageData: img("five_pencils"),
+                    timeoutSeconds: 90
+                ),
 
-            // Comparison and judgment
-            EvalPrompt(
-                prompt: "Which object in this image is the largest?",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-            EvalPrompt(
-                prompt: "Does this image contain any safety hazards? Describe them if so.",
-                expectedBehavior: .nonEmpty,
-                imageData: nil,
-                timeoutSeconds: 90
-            ),
-        ],
+                // Audio understanding tasks (nil audioData placeholder — retained as-is)
+                EvalPrompt(
+                    prompt: "What is being said in this audio clip?",
+                    expectedBehavior: .nonEmpty,
+                    audioData: nil,
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "Describe the sounds you hear in this audio.",
+                    expectedBehavior: .nonEmpty,
+                    audioData: nil,
+                    timeoutSeconds: 90
+                ),
+                EvalPrompt(
+                    prompt: "What language is being spoken in this audio?",
+                    expectedBehavior: .nonEmpty,
+                    audioData: nil,
+                    timeoutSeconds: 90
+                ),
+            ]
+        }(),
         isBuiltIn: true
     )
 }

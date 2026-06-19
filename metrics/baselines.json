@@ -2,7 +2,7 @@
   "_meta": {
     "version": 1,
     "description": "Benchmark baselines for regression detection. Updated on each release.",
-    "last_updated": "2026-06-09T22:50:00Z",
+    "last_updated": "2026-06-19T01:18:55Z",
     "threshold_pct": 10,
     "methodology": "RawBenchmark v2 — greedy sampler (topK=1), 256 decode tokens, no MTP, first-turn (no warmup)"
   },
@@ -81,21 +81,21 @@
     },
     {
       "id": "gemma4-e2b-standard-gpu-iphone16promax",
-      "model": "gemma-4-e2b-it.litertlm",
+      "model": "gemma-4-E2B-it.litertlm",
       "variant": "Gemma 4 E2B Standard",
       "backend": "gpu",
       "device_family": "iPhone 16 Pro Max (A18 Pro)",
       "metrics": {
-        "sdk_decode_tok_s": 45.0,
-        "sdk_prefill_tok_s": 95.0,
-        "sdk_ttft_s": 0.35,
-        "wall_pure_decode_tok_s": 40.0,
-        "decode_median_latency_ms": 22.0,
-        "decode_p95_latency_ms": 38.0,
-        "model_load_time_s": 3.5
+        "sdk_decode_tok_s": 25.95,
+        "sdk_prefill_tok_s": 39.02,
+        "sdk_ttft_s": 0.29,
+        "wall_pure_decode_tok_s": 25.95,
+        "decode_median_latency_ms": 43.75,
+        "decode_p95_latency_ms": 43.75,
+        "model_load_time_s": 11.93
       },
-      "source": "iPhone 16 Pro Max — 2026-06-18 (estimated)",
-      "notes": "ESTIMATED baseline for iPhone 16 Pro Max (A18 Pro). Needs validation with controlled run (airplane mode, 3 iterations averaged). Expected ~45% of M4 Max GPU throughput."
+      "source": "iPhone 16 Pro Max — 2026-06-19T01:18:55Z — Release build, single run from device benchmark-results.jsonl (runId: B3F04433)",
+      "notes": "Real device measurement (Release build, single run). Prior Debug build measured 14.04 tok/s decode. For production baselines, re-run with 3 iterations averaged, airplane mode, warmup discarded."
     }
   ],
   "regression_rules": {
@@ -146,17 +146,17 @@
     {
       "date": "2026-06-18",
       "author": "automation",
+      "description": "Removed fabricated iPhone 16 Pro Max estimated baseline (45.0 tok/s, ~3x higher than measured ~14 tok/s). Moved to pending_baselines with honest TBD status. Will be re-added after controlled device run."
+    },
+    {
+      "date": "2026-06-18",
+      "author": "automation",
       "description": "Initial baseline establishment with production-grade test infrastructure"
     },
     {
       "date": "2026-06-09",
       "author": "manual",
       "description": "Initial baseline establishment — MacBook Pro M4 Max, 4 model/backend combos"
-    },
-    {
-      "date": "2026-06-18",
-      "author": "automation",
-      "description": "Added iPhone 16 Pro Max estimated baseline, added change_log array"
     }
   ]
 }

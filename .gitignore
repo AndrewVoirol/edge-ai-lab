@@ -52,6 +52,7 @@ Packages/
 metrics/
 # But track the regression baselines and dashboard
 !metrics/baselines.json
+!metrics/eval_baselines.json
 !metrics/DASHBOARD.md
 default.profraw
 *.trace

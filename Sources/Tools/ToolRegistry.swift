@@ -86,9 +86,21 @@ public struct ToolCallEvent: Identifiable, Sendable, Codable {
 
 /// Converts a dictionary to a pretty-printed JSON string.
 /// Falls back to a debug description if serialization fails.
+/// Sanitizes non-finite Double values (Infinity/NaN) to prevent
+/// uncatchable NSInvalidArgumentException from JSONSerialization.
 func jsonString(from dictionary: [String: Any]) -> String {
+    // Sanitize non-finite floats that would crash JSONSerialization
+    let sanitized = dictionary.mapValues { value -> Any in
+        if let d = value as? Double, !d.isFinite {
+            return d.isInfinite ? (d > 0 ? "Infinity" : "-Infinity") : "NaN"
+        }
+        if let f = value as? Float, !f.isFinite {
+            return f.isInfinite ? (f > 0 ? "Infinity" : "-Infinity") : "NaN"
+        }
+        return value
+    }
     guard let data = try? JSONSerialization.data(
-        withJSONObject: dictionary,
+        withJSONObject: sanitized,
         options: [.prettyPrinted, .sortedKeys]
     ) else {
         return "{\"error\": \"Failed to serialize result\"}"
