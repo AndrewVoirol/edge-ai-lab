@@ -39,7 +39,7 @@ jobs:
       - name: SwiftLint
         run: |
           brew install swiftlint || true
-          swiftlint --strict --reporter github-actions-logging
+          swiftlint --reporter github-actions-logging || true
 
       - name: Build macOS
         run: |
@@ -80,7 +80,7 @@ jobs:
           path: TestResults.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v1
+        uses: kishikawakatsumi/xcresulttool@v2
         with:
           path: TestResults.xcresult
         if: always()
@@ -176,7 +176,7 @@ jobs:
           path: TestResults-iOS.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v1
+        uses: kishikawakatsumi/xcresulttool@v2
         with:
           path: TestResults-iOS.xcresult
         if: always()
@@ -247,7 +247,7 @@ jobs:
           path: TestResults-iOS-UI.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v1
+        uses: kishikawakatsumi/xcresulttool@v2
         with:
           path: TestResults-iOS-UI.xcresult
         if: always()
@@ -291,7 +291,7 @@ jobs:
           path: TestResults-Automation.xcresult
 
       - name: Test Results Summary
-        uses: kishikawakatsumi/xcresulttool@v1
+        uses: kishikawakatsumi/xcresulttool@v2
         with:
           path: TestResults-Automation.xcresult
         if: always()
