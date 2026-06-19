@@ -151,6 +151,114 @@ struct EvalRunnerLogicTests {
         }
     }
 
+    // MARK: - passRatePercent
+
+    @Suite("passRatePercent")
+    struct PassRatePercentTests {
+
+        @Test("Zero rate returns 0%")
+        func zeroRate() {
+            #expect(EvalRunnerLogic.passRatePercent(0.0) == 0)
+        }
+
+        @Test("Full rate returns 100%")
+        func fullRate() {
+            #expect(EvalRunnerLogic.passRatePercent(1.0) == 100)
+        }
+
+        @Test("Half rate returns 50%")
+        func halfRate() {
+            #expect(EvalRunnerLogic.passRatePercent(0.5) == 50)
+        }
+
+        @Test("0.753 truncates to 75%")
+        func truncates() {
+            #expect(EvalRunnerLogic.passRatePercent(0.753) == 75)
+        }
+
+        @Test("0.999 truncates to 99%")
+        func nearlyFull() {
+            #expect(EvalRunnerLogic.passRatePercent(0.999) == 99)
+        }
+    }
+
+    // MARK: - selectAllToggleLabel
+
+    @Suite("selectAllToggleLabel")
+    struct SelectAllToggleLabelTests {
+
+        @Test("All selected shows Deselect All")
+        func allSelected() {
+            #expect(EvalRunnerLogic.selectAllToggleLabel(selectedCount: 5, totalCount: 5) == "Deselect All")
+        }
+
+        @Test("None selected shows Select All")
+        func noneSelected() {
+            #expect(EvalRunnerLogic.selectAllToggleLabel(selectedCount: 0, totalCount: 5) == "Select All")
+        }
+
+        @Test("Partial selection shows Select All")
+        func partialSelection() {
+            #expect(EvalRunnerLogic.selectAllToggleLabel(selectedCount: 3, totalCount: 5) == "Select All")
+        }
+
+        @Test("Both zero shows Deselect All")
+        func bothZero() {
+            #expect(EvalRunnerLogic.selectAllToggleLabel(selectedCount: 0, totalCount: 0) == "Deselect All")
+        }
+    }
+
+    // MARK: - batchCanRun
+
+    @Suite("batchCanRun")
+    struct BatchCanRunTests {
+
+        @Test("All conditions met — can run")
+        func allConditionsMet() {
+            #expect(EvalRunnerLogic.batchCanRun(
+                isRunning: false,
+                isBatchRunning: false,
+                modelCount: 3
+            ) == true)
+        }
+
+        @Test("isRunning disables batch")
+        func isRunningDisablesBatch() {
+            #expect(EvalRunnerLogic.batchCanRun(
+                isRunning: true,
+                isBatchRunning: false,
+                modelCount: 3
+            ) == false)
+        }
+
+        @Test("isBatchRunning disables batch")
+        func batchAlreadyRunning() {
+            #expect(EvalRunnerLogic.batchCanRun(
+                isRunning: false,
+                isBatchRunning: true,
+                modelCount: 3
+            ) == false)
+        }
+
+        @Test("No models disables batch")
+        func noModels() {
+            #expect(EvalRunnerLogic.batchCanRun(
+                isRunning: false,
+                isBatchRunning: false,
+                modelCount: 0
+            ) == false)
+        }
+
+        @Test("All invalid — running, batch running, no models")
+        func allInvalid() {
+            #expect(EvalRunnerLogic.batchCanRun(
+                isRunning: true,
+                isBatchRunning: true,
+                modelCount: 0
+            ) == false)
+        }
+    }
+
     // MARK: - Helpers
 
     /// Creates a minimal `EvalSuite` for testing.

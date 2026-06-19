@@ -33,4 +33,80 @@ enum ModelDetailFormatters {
             return "\(size) ctx"
         }
     }
+
+    // MARK: - Capability Badges
+
+    /// Builds an ordered array of capability badge labels from model flags.
+    ///
+    /// Always includes "Text Generation" as the first badge. Conditional badges
+    /// are appended in display order: Vision, Audio, MTP/Speculative, Tool Calling, Thinking.
+    ///
+    /// - Parameters:
+    ///   - supportsImage: Whether the model supports image input.
+    ///   - supportsAudio: Whether the model supports audio input.
+    ///   - supportsMTP: Whether the model supports Multi-Token Prediction.
+    ///   - supportsToolCalling: Whether the model supports function calling.
+    ///   - supportsThinking: Whether the model has thinking/reasoning capability.
+    /// - Returns: An ordered array of badge label strings.
+    static func capabilityBadges(
+        supportsImage: Bool,
+        supportsAudio: Bool,
+        supportsMTP: Bool,
+        supportsToolCalling: Bool,
+        supportsThinking: Bool
+    ) -> [String] {
+        var badges = ["Text Generation"]
+        if supportsImage { badges.append("Vision") }
+        if supportsAudio { badges.append("Audio") }
+        if supportsMTP { badges.append("MTP / Speculative") }
+        if supportsToolCalling { badges.append("Tool Calling") }
+        if supportsThinking { badges.append("Thinking") }
+        return badges
+    }
+
+    // MARK: - Model Count Label
+
+    /// Formats a model count with proper singular/plural phrasing.
+    ///
+    /// - Parameters:
+    ///   - count: The number of models.
+    ///   - noun: The noun to pluralize (default: "model").
+    /// - Returns: A string like "1 model" or "3 models".
+    static func modelCountLabel(_ count: Int, noun: String = "model") -> String {
+        "\(count) \(noun)\(count == 1 ? "" : "s")"
+    }
+
+    // MARK: - Token Count Formatting
+
+    /// Formats a token count with K/M suffixes (e.g., 128000 → "128K", 1000000 → "1M").
+    ///
+    /// Unlike `formattedContextWindow`, this does NOT append a " ctx" suffix.
+    /// Used for raw count display in model detail panels.
+    ///
+    /// - Parameter count: The token count to format.
+    /// - Returns: A compact string representation.
+    static func formatTokenCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.0fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.0fK", Double(count) / 1_000)
+        }
+        return "\(count)"
+    }
+
+    // MARK: - Download Count Formatting
+
+    /// Formats a download count with K/M suffixes (e.g., 12345 → "12.3K").
+    ///
+    /// - Parameter count: The download count.
+    /// - Returns: A compact string representation.
+    static func formatDownloadCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK", Double(count) / 1_000)
+        }
+        return "\(count)"
+    }
 }
+

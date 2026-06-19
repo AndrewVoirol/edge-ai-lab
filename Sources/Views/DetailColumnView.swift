@@ -442,12 +442,7 @@ private struct ModelDetailPanel: View {
 
     /// Formats large token counts for display (e.g., 128000 → "128K").
     private func formatTokenCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            return String(format: "%.0fM", Double(count) / 1_000_000)
-        } else if count >= 1_000 {
-            return String(format: "%.0fK", Double(count) / 1_000)
-        }
-        return "\(count)"
+        ModelDetailFormatters.formatTokenCount(count)
     }
 }
 

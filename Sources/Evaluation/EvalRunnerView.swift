@@ -281,8 +281,10 @@ struct EvalRunnerView: View {
                         }
                     } label: {
                         Text(
-                            selectedModelFiles.count == viewModel.discoveredModels.count
-                                ? "Deselect All" : "Select All"
+                            EvalRunnerLogic.selectAllToggleLabel(
+                                selectedCount: selectedModelFiles.count,
+                                totalCount: viewModel.discoveredModels.count
+                            )
                         )
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.accentCyan)
@@ -445,7 +447,11 @@ struct EvalRunnerView: View {
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         }
         .buttonStyle(.plain)
-        .disabled(isRunning || isBatchRunning || viewModel.discoveredModels.isEmpty)
+        .disabled(!EvalRunnerLogic.batchCanRun(
+            isRunning: isRunning,
+            isBatchRunning: isBatchRunning,
+            modelCount: viewModel.discoveredModels.count
+        ))
         .accessibilityIdentifier("evalRunner_runAllButton")
         .alert("Run All Evaluations?", isPresented: $showBatchConfirm) {
             Button("Cancel", role: .cancel) {}
@@ -642,7 +648,7 @@ struct EvalRunnerView: View {
     // MARK: - Pass Rate Indicator
 
     private func passRateIndicator(_ rate: Double) -> some View {
-        let percent = Int(rate * 100)
+        let percent = EvalRunnerLogic.passRatePercent(rate)
         let color = PassRateTier.color(for: rate)
 
         return ZStack {

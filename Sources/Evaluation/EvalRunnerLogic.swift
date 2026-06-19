@@ -72,4 +72,43 @@ enum EvalRunnerLogic {
     ) -> Bool {
         selectedSuiteId != nil && !selectedModelFiles.isEmpty && !isRunning
     }
+
+    // MARK: - Pass Rate Display
+
+    /// Converts a 0.0–1.0 pass rate to an integer percentage for display.
+    ///
+    /// - Parameter rate: The pass rate as a fraction (0.0 to 1.0).
+    /// - Returns: The percentage as an integer (0 to 100).
+    static func passRatePercent(_ rate: Double) -> Int {
+        Int(rate * 100)
+    }
+
+    // MARK: - Toggle Label
+
+    /// Returns the appropriate label for a Select All / Deselect All toggle.
+    ///
+    /// - Parameters:
+    ///   - selectedCount: Number of currently selected items.
+    ///   - totalCount: Total number of available items.
+    /// - Returns: `"Deselect All"` when all are selected, `"Select All"` otherwise.
+    static func selectAllToggleLabel(selectedCount: Int, totalCount: Int) -> String {
+        selectedCount == totalCount ? "Deselect All" : "Select All"
+    }
+
+    // MARK: - Batch Run Gate
+
+    /// Determines whether a batch evaluation can be started.
+    ///
+    /// - Parameters:
+    ///   - isRunning: Whether a single evaluation is in progress.
+    ///   - isBatchRunning: Whether a batch evaluation is already in progress.
+    ///   - modelCount: Number of discovered models on disk.
+    /// - Returns: `true` if the Run All button should be enabled.
+    static func batchCanRun(
+        isRunning: Bool,
+        isBatchRunning: Bool,
+        modelCount: Int
+    ) -> Bool {
+        !isRunning && !isBatchRunning && modelCount > 0
+    }
 }

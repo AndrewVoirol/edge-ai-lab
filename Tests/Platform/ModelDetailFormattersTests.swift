@@ -83,4 +83,97 @@ struct ModelDetailFormattersTests {
         let result = ModelDetailFormatters.formattedSize(Int64.max)
         #expect(!result.isEmpty)
     }
+
+    // MARK: - capabilityBadges
+
+    @Test("Text-only model has only Text Generation badge")
+    func capabilityBadgesTextOnly() {
+        let badges = ModelDetailFormatters.capabilityBadges(
+            supportsImage: false,
+            supportsAudio: false,
+            supportsMTP: false,
+            supportsToolCalling: false,
+            supportsThinking: false
+        )
+        #expect(badges == ["Text Generation"])
+    }
+
+    @Test("Model with all capabilities has 6 badges in order")
+    func capabilityBadgesAllEnabled() {
+        let badges = ModelDetailFormatters.capabilityBadges(
+            supportsImage: true,
+            supportsAudio: true,
+            supportsMTP: true,
+            supportsToolCalling: true,
+            supportsThinking: true
+        )
+        #expect(badges == [
+            "Text Generation",
+            "Vision",
+            "Audio",
+            "MTP / Speculative",
+            "Tool Calling",
+            "Thinking"
+        ])
+    }
+
+    @Test("Vision-only model has Text Generation and Vision")
+    func capabilityBadgesVisionOnly() {
+        let badges = ModelDetailFormatters.capabilityBadges(
+            supportsImage: true,
+            supportsAudio: false,
+            supportsMTP: false,
+            supportsToolCalling: false,
+            supportsThinking: false
+        )
+        #expect(badges == ["Text Generation", "Vision"])
+    }
+
+    @Test("Tool calling and thinking model badges in correct order")
+    func capabilityBadgesToolsAndThinking() {
+        let badges = ModelDetailFormatters.capabilityBadges(
+            supportsImage: false,
+            supportsAudio: false,
+            supportsMTP: false,
+            supportsToolCalling: true,
+            supportsThinking: true
+        )
+        #expect(badges == ["Text Generation", "Tool Calling", "Thinking"])
+    }
+
+    @Test("Text Generation is always the first badge")
+    func capabilityBadgesTextGenerationFirst() {
+        let badges = ModelDetailFormatters.capabilityBadges(
+            supportsImage: false,
+            supportsAudio: true,
+            supportsMTP: true,
+            supportsToolCalling: false,
+            supportsThinking: false
+        )
+        #expect(badges.first == "Text Generation")
+        #expect(badges == ["Text Generation", "Audio", "MTP / Speculative"])
+    }
+
+    // MARK: - modelCountLabel
+
+    @Test("Singular: 1 model")
+    func modelCountLabelSingular() {
+        #expect(ModelDetailFormatters.modelCountLabel(1) == "1 model")
+    }
+
+    @Test("Plural: 3 models")
+    func modelCountLabelPlural() {
+        #expect(ModelDetailFormatters.modelCountLabel(3) == "3 models")
+    }
+
+    @Test("Zero: 0 models")
+    func modelCountLabelZero() {
+        #expect(ModelDetailFormatters.modelCountLabel(0) == "0 models")
+    }
+
+    @Test("Custom noun: 1 suite vs 2 suites")
+    func modelCountLabelCustomNoun() {
+        #expect(ModelDetailFormatters.modelCountLabel(1, noun: "suite") == "1 suite")
+        #expect(ModelDetailFormatters.modelCountLabel(2, noun: "suite") == "2 suites")
+    }
 }

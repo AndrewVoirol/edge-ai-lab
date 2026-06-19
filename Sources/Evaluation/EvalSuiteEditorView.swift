@@ -162,9 +162,10 @@ struct EvalSuiteEditorView: View {
     // MARK: - Validation
 
     private var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
-        && !prompts.isEmpty
-        && prompts.allSatisfy { !$0.promptText.trimmingCharacters(in: .whitespaces).isEmpty }
+        EvalSuiteEditorLogic.isValid(
+            name: name,
+            promptTexts: prompts.map(\.promptText)
+        )
     }
 
     // MARK: - Init
@@ -641,16 +642,10 @@ struct EvalSuiteEditorView: View {
         _ lhs: ExpectedBehaviorConfig,
         _ rhs: ExpectedBehaviorConfig
     ) -> Bool {
-        switch (lhs, rhs) {
-        case (.nonEmpty, .nonEmpty): return true
-        case (.containsText, .containsText): return true
-        case (.toolCall, .toolCall): return true
-        case (.toolCallWithArgs, .toolCallWithArgs): return true
-        case (.toolCallChain, .toolCallChain): return true
-        case (.matchesRegex, .matchesRegex): return true
-        case (.custom, .custom): return true
-        default: return false
-        }
+        EvalSuiteEditorLogic.isSameBehaviorType(
+            lhs.toExpectedBehavior(),
+            rhs.toExpectedBehavior()
+        )
     }
 
     private func loadSuite() {
@@ -671,14 +666,13 @@ struct EvalSuiteEditorView: View {
 
     private func saveSuite() {
         let evalPrompts = prompts.map { $0.toEvalPrompt() }
-        let savedSuite = EvalSuite(
-            id: suite?.id ?? UUID(),
-            name: name.trimmingCharacters(in: .whitespaces),
-            description: description.trimmingCharacters(in: .whitespaces),
+        let savedSuite = EvalSuiteEditorLogic.buildSuite(
+            existingSuiteId: suite?.id,
+            name: name,
+            description: description,
             category: category,
             prompts: evalPrompts,
-            isBuiltIn: false,
-            createdAt: suite?.createdAt ?? Date()
+            existingCreatedAt: suite?.createdAt
         )
         onSave(savedSuite)
     }

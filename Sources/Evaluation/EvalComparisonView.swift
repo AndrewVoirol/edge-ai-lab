@@ -29,19 +29,13 @@ struct EvalComparisonView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedModelIndex: Int = 0
     @State private var showShareSheet = false
-    @State private var filterStatus: ResultFilter = .all
+    @State private var filterStatus: EvalComparisonLogic.ResultFilter = .all
     @State private var exportError: String?
     @State private var deleteError: String?
 
-    // MARK: - Filter
+    // MARK: - Type Aliases
 
-    enum ResultFilter: String, CaseIterable, Identifiable {
-        case all = "All"
-        case passed = "Passed"
-        case failed = "Failed"
-
-        var id: String { rawValue }
-    }
+    private typealias ResultFilter = EvalComparisonLogic.ResultFilter
 
     // MARK: - Computed
 
@@ -52,18 +46,12 @@ struct EvalComparisonView: View {
 
     /// The currently selected model's results.
     private var activeModelResult: ModelEvalResult? {
-        guard selectedModelIndex < modelResults.count else { return nil }
-        return modelResults[selectedModelIndex]
+        EvalComparisonLogic.activeModelResult(at: selectedModelIndex, from: modelResults)
     }
 
     /// Filtered prompt results for the active model.
     private var filteredPromptResults: [PromptEvalResult] {
-        guard let model = activeModelResult else { return [] }
-        switch filterStatus {
-        case .all: return model.promptResults
-        case .passed: return model.promptResults.filter { $0.passed }
-        case .failed: return model.promptResults.filter { !$0.passed }
-        }
+        EvalComparisonLogic.filteredPromptResults(from: activeModelResult, filter: filterStatus)
     }
 
     // MARK: - Body
@@ -143,7 +131,7 @@ struct EvalComparisonView: View {
                     Text("·")
                         .foregroundStyle(AppColors.textTertiary)
 
-                    Text("\(modelResults.count) model\(modelResults.count == 1 ? "" : "s")")
+                    Text(EvalComparisonLogic.modelCountLabel(modelResults.count))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                 }
@@ -181,7 +169,7 @@ struct EvalComparisonView: View {
 
     /// Total prompts across all models (summed from model results).
     private var totalPromptCount: Int {
-        modelResults.reduce(0) { $0 + $1.promptResults.count }
+        EvalComparisonLogic.totalPromptCount(from: modelResults)
     }
 
     private var summaryCards: some View {
@@ -189,7 +177,7 @@ struct EvalComparisonView: View {
             // Overall pass rate
             summaryCard(
                 title: "Pass Rate",
-                value: String(format: "%.0f%%", evalRun.overallPassRate * 100),
+                value: EvalComparisonLogic.passRateLabel(evalRun.overallPassRate),
                 icon: "checkmark.circle.fill",
                 color: PassRateTier.color(for: evalRun.overallPassRate),
                 identifier: "evalComparison_passRate"
@@ -208,7 +196,7 @@ struct EvalComparisonView: View {
             if let avgSpeed = averageDecodeSpeed {
                 summaryCard(
                     title: "Avg Speed",
-                    value: String(format: "%.1f tok/s", avgSpeed),
+                    value: EvalComparisonLogic.speedLabel(avgSpeed),
                     icon: "speedometer",
                     color: AppColors.accentTeal,
                     identifier: "evalComparison_avgSpeed"
@@ -218,7 +206,7 @@ struct EvalComparisonView: View {
             // Duration
             summaryCard(
                 title: "Duration",
-                value: formatDuration(evalRun.duration ?? 0),
+                value: EvalComparisonLogic.formatDuration(evalRun.duration ?? 0),
                 icon: "clock.fill",
                 color: AppColors.accentGold,
                 identifier: "evalComparison_duration"
@@ -525,27 +513,11 @@ struct EvalComparisonView: View {
     // MARK: - Helpers
 
     private var averageDecodeSpeed: Double? {
-        let speeds = modelResults.flatMap(\.promptResults).compactMap(\.decodeSpeed)
-        guard !speeds.isEmpty else { return nil }
-        return speeds.reduce(0, +) / Double(speeds.count)
+        EvalComparisonLogic.averageDecodeSpeed(from: modelResults)
     }
 
     private func countForFilter(_ filter: ResultFilter) -> Int {
-        guard let model = activeModelResult else { return 0 }
-        switch filter {
-        case .all: return model.promptResults.count
-        case .passed: return model.promptResults.filter { $0.passed }.count
-        case .failed: return model.promptResults.filter { !$0.passed }.count
-        }
-    }
-
-
-
-    private func formatDuration(_ interval: TimeInterval) -> String {
-        let mins = Int(interval) / 60
-        let secs = Int(interval) % 60
-        if mins > 0 { return "\(mins)m \(secs)s" }
-        return "\(secs)s"
+        EvalComparisonLogic.countForFilter(filter, in: activeModelResult)
     }
 
     private func exportRunJSON() {
