@@ -1,5 +1,5 @@
 name: 'Setup Tuist Project'
-description: 'Install Tuist, generate the Xcode project, and resolve SPM dependencies with pre-cloned LiteRT-LM'
+description: 'Install Tuist, generate the Xcode project, and resolve SPM dependencies'
 
 inputs:
   spm-packages-dir:
@@ -24,46 +24,24 @@ runs:
       uses: actions/cache@v5
       with:
         path: ${{ inputs.spm-packages-dir }}
-        key: ${{ runner.os }}-spm-cloned-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
+        key: ${{ runner.os }}-spm-v2-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
         restore-keys: |
-          ${{ runner.os }}-spm-cloned-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
-
-    - name: Pre-clone LiteRT-LM
-      shell: bash
-      run: |
-        PKG_DIR="${{ inputs.spm-packages-dir }}"
-        REPO_DIR="$PKG_DIR/LiteRT-LM"
-        # Remove stale bare mirrors from cache — SPM can't check out from bare repos
-        if [ -d "$REPO_DIR" ] && git -C "$REPO_DIR" rev-parse --is-bare-repository 2>/dev/null | grep -q true; then
-          echo "Removing stale bare mirror..."
-          rm -rf "$REPO_DIR"
-        fi
-        if [ -d "$REPO_DIR" ]; then
-          echo "Updating existing clone..."
-          git -C "$REPO_DIR" fetch origin main --depth 1 2>&1 || true
-          git -C "$REPO_DIR" checkout FETCH_HEAD 2>&1 || true
-        else
-          echo "Cloning LiteRT-LM..."
-          mkdir -p "$PKG_DIR"
-          git clone --depth 1 --branch main https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
-        fi
-        echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
+          ${{ runner.os }}-spm-v2-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
 
     - name: Generate Xcode Project
       shell: bash
       run: |
         tuist clean
         # tuist generate creates the workspace, then attempts package resolution.
-        # Resolution may fail because tuist's internal xcodebuild doesn't use
-        # -clonedSourcePackagesDirPath. We allow failure here and resolve next.
-        tuist generate --no-open || echo "⚠️ tuist generate failed (likely SPM resolution) — will retry with clonedSourcePackagesDirPath"
+        # Resolution may fail for large deps (LiteRT-LM). We allow failure here
+        # and resolve separately with -clonedSourcePackagesDirPath.
+        tuist generate --no-open || echo "⚠️ tuist generate package resolution failed — will retry"
       env:
         GIT_TERMINAL_PROMPT: "0"
 
     - name: Resolve Packages
       shell: bash
       run: |
-        # Verify workspace exists (tuist generates it before resolution)
         if [ ! -d "EdgeAILab.xcworkspace" ]; then
           echo "❌ EdgeAILab.xcworkspace not found — tuist generate failed before workspace creation"
           exit 1
@@ -73,5 +51,4 @@ runs:
           -workspace EdgeAILab.xcworkspace \
           -scheme "Edge AI Lab" \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
-          2>&1 | tail -30
-
+          2>&1 | tail -50
