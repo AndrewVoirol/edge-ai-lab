@@ -461,6 +461,7 @@ BREAKING: Remove calculator precision mode
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| App code (Sources/) | 25.9% | ≥40% (Phase 1) → ≥60% (Phase 2) |
-| Test code (Tests/) | 83.7% | Maintain ≥80% |
+| App code (Sources/) | 28.4% | ≥40% (Phase 1) → ≥60% (Phase 2) |
+| Test code (Tests/) | 85.6% | Maintain ≥80% |
+| Total tests passing | 1407 (macOS) / 1386 (iOS) | Continue growth |
 | Eval prompts | 100 | ≥100, expand as features grow |

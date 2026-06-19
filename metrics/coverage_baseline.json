@@ -2,8 +2,8 @@
   "_meta": {
     "version": 1,
     "description": "Code coverage baselines for regression detection. Measured via xcodebuild test with -enableCodeCoverage YES.",
-    "last_updated": "2026-06-19T16:19:00Z",
-    "methodology": "macOS unit tests via test_macos (UnitTests.xctestplan), 908 tests passing, coverage extracted via xcrun xccov from .xcresult bundle.",
+    "last_updated": "2026-06-19T18:15:00Z",
+    "methodology": "macOS unit tests via test_macos (UnitTests.xctestplan), 1407 tests passing, coverage extracted via xcrun xccov from .xcresult bundle.",
     "target_coverage_pct": 80,
     "notes": "App-code coverage (Edge AI Lab.app) is the primary metric. Test target coverage reflects test-file self-coverage and is not actionable. MarkdownUI is a third-party dependency — excluded from coverage goals."
   },
@@ -16,17 +16,17 @@
     },
     "app_code": {
       "target": "Edge AI Lab.app",
-      "coverage_pct": 26.6,
-      "covered_lines": 11235,
-      "total_lines": 42205,
+      "coverage_pct": 28.4,
+      "covered_lines": 11745,
+      "total_lines": 41339,
       "notes": "Primary metric — this is what matters for production code quality."
     },
     "test_targets": {
       "macOS_tests": {
         "target": "EdgeAILab_macOSTests.xctest",
-        "coverage_pct": 82.1,
-        "covered_lines": 15956,
-        "total_lines": 19442
+        "coverage_pct": 85.6,
+        "covered_lines": 21190,
+        "total_lines": 24748
       },
       "iOS_tests": {
         "target": "EdgeAILab_iOSTests.xctest",
@@ -92,11 +92,16 @@
     "notes": "Most zero-coverage files are SwiftUI views. These require UI tests or snapshot tests to improve coverage. Logic-heavy files (ViewModel, Store, Runner) already have strong coverage."
   },
   "test_counts": {
-    "total_passing": 908,
-    "unit_test_suites": 16,
-    "total_test_files": 58
+    "total_passing": 1407,
+    "unit_test_suites": 34,
+    "total_test_files": 76
   },
   "change_log": [
+    {
+      "date": "2026-06-19",
+      "author": "automation",
+      "description": "Coverage push Phase 1-4: +499 tests (908→1407). 18 new test files covering EvalResultPersistence, AutomationEvent, DeviceMetrics, SavedConversation, MCPServerConfig, URLImportCoordinator, KaggleTokenStorage, EvalImageLoader, ExperimentalFlagsState, OnboardingManager, DynamicMCPBridge, InstrumentedEngine, HFModelBrowser, DownloadManager, ConversationViewModel, DesignSystemTiers, EvalComparisonLogic, BenchmarkComparisonLogic. Extracted EvalComparisonLogic + BenchmarkComparisonLogic from views. App-code coverage 26.6%→28.4%. Test target coverage 82.1%→85.6%."
+    },
     {
       "date": "2026-06-19",
       "author": "automation",
