@@ -38,6 +38,10 @@ runs:
         tuist generate --no-open || echo "⚠️ tuist generate package resolution failed — will retry"
       env:
         GIT_TERMINAL_PROMPT: "0"
+        # LiteRT-LM uses Git LFS for Android prebuilt binaries (.so files).
+        # SPM only needs the Swift source — skip LFS smudge to avoid
+        # "remote missing object" errors on Android artifacts.
+        GIT_LFS_SKIP_SMUDGE: "1"
 
     - name: Resolve Packages
       shell: bash
@@ -52,3 +56,6 @@ runs:
           -scheme "Edge AI Lab" \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
           2>&1 | tail -50
+      env:
+        GIT_LFS_SKIP_SMUDGE: "1"
+
