@@ -31,7 +31,8 @@ runs:
     - name: Pre-clone LiteRT-LM
       shell: bash
       run: |
-        REPO_DIR="${{ inputs.spm-packages-dir }}/LiteRT-LM"
+        PKG_DIR="${{ inputs.spm-packages-dir }}"
+        REPO_DIR="$PKG_DIR/LiteRT-LM"
         # Remove stale bare mirrors from cache — SPM can't check out from bare repos
         if [ -d "$REPO_DIR" ] && git -C "$REPO_DIR" rev-parse --is-bare-repository 2>/dev/null | grep -q true; then
           echo "Removing stale bare mirror..."
@@ -42,9 +43,9 @@ runs:
           git -C "$REPO_DIR" fetch origin main --depth 1 2>&1 || true
           git -C "$REPO_DIR" checkout FETCH_HEAD 2>&1 || true
         else
-          echo "Cloning LiteRT-LM (treeless)..."
-          mkdir -p "${{ inputs.spm-packages-dir }}"
-          git clone --filter=blob:none --branch main https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
+          echo "Cloning LiteRT-LM..."
+          mkdir -p "$PKG_DIR"
+          git clone --depth 1 --branch main https://github.com/google-ai-edge/LiteRT-LM.git "$REPO_DIR" 2>&1
         fi
         echo "LiteRT-LM HEAD: $(git -C "$REPO_DIR" rev-parse HEAD)"
 
@@ -52,14 +53,24 @@ runs:
       shell: bash
       run: |
         tuist clean
-        tuist generate --no-open
+        # tuist generate creates the workspace, then attempts package resolution.
+        # Resolution may fail because tuist's internal xcodebuild doesn't use
+        # -clonedSourcePackagesDirPath. We allow failure here and resolve next.
+        tuist generate --no-open || echo "⚠️ tuist generate failed (likely SPM resolution) — will retry with clonedSourcePackagesDirPath"
       env:
         GIT_TERMINAL_PROMPT: "0"
 
     - name: Resolve Packages
       shell: bash
       run: |
+        # Verify workspace exists (tuist generates it before resolution)
+        if [ ! -d "EdgeAILab.xcworkspace" ]; then
+          echo "❌ EdgeAILab.xcworkspace not found — tuist generate failed before workspace creation"
+          exit 1
+        fi
+        echo "Resolving packages with clonedSourcePackagesDirPath..."
         xcodebuild -resolvePackageDependencies \
           -workspace EdgeAILab.xcworkspace \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
-          2>&1 | tail -20
+          2>&1 | tail -30
+
