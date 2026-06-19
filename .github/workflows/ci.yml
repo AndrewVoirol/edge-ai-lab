@@ -102,7 +102,7 @@ jobs:
           echo "✅ Coverage ${COVERAGE}% meets 25% floor"
 
       - name: Upload Coverage to Codecov
-        if: success() && secrets.CODECOV_TOKEN != ''
+        if: success()
         uses: codecov/codecov-action@v5
         with:
           xcode: true
@@ -182,7 +182,7 @@ jobs:
         if: always()
 
       - name: Upload Coverage to Codecov
-        if: success() && secrets.CODECOV_TOKEN != ''
+        if: success()
         uses: codecov/codecov-action@v5
         with:
           xcode: true
