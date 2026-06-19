@@ -25,3 +25,16 @@
 - **Never declare "100% complete" without line-by-line verification** against the original plan text. Cross-reference every numbered item, every listed file, every specific deliverable. Use the `plan-compliance-audit` skill.
 - **Never use estimated/fabricated values as deliverables** without the word "ESTIMATED" in the value itself AND the surrounding context. Prefer leaving a placeholder like `"TBD — requires controlled run"` over a fake number.
 - **Subagent outputs must be spot-checked** against the original task requirements. Don't forward subagent completion claims without verifying at least: (a) the files exist, (b) they address the specific plan items, (c) they don't conflict with other work.
+
+## JSONSerialization Safety
+- `JSONSerialization` throws `NSInvalidArgumentException` (ObjC exception) for non-finite `Double` values (Infinity, NaN). Swift `try?`/`try`/`catch` **cannot** catch ObjC exceptions — they crash the process.
+- Always validate/sanitize `Double`/`Float` values before passing dictionaries to `JSONSerialization.data(withJSONObject:)`.
+- Prefer `JSONEncoder` (Swift) which throws catchable `EncodingError` for non-finite values.
+- Use `value.isFinite` guard before any `JSONSerialization` call that might contain computed numeric values.
+
+## Post-Edit Git Verification
+- After creating or editing files, verify they appear in `git status` before claiming "done".
+- For files in potentially gitignored directories (e.g., `metrics/`, `build/`, `output/`), run `git check-ignore -v <path>` to confirm tracking.
+- If a new file needs tracking in a gitignored directory, add an exclusion rule (`!path/to/file`) to `.gitignore` first.
+- Never use `tail -N` on streaming console output from `deploy_device.sh` — it creates zombie background tasks when the stream ends before N lines. Use `head -N` or redirect to a file instead.
+

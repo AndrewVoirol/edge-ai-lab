@@ -572,3 +572,25 @@ xcodebuild test \
   -test-iterations 3 \
   2>&1
 ```
+
+## Device Pipeline Debugging
+
+### deploy_device.sh Console Hang
+- `devicectl --console` keeps streaming after the automation harness signals completion
+- The harness calls `exit(0)` but `devicectl` may not exit immediately
+- **Workaround**: Use `NO_CONSOLE=1` for unattended runs; pull results from device `Documents/metrics/` afterward using `xcrun devicectl device copy from`
+- **Never pipe** `deploy_device.sh` output through `tail -N` — use `head -N` or redirect to a log file. `tail` buffers until N lines accumulate, creating zombie background tasks if the stream ends early.
+
+### JSONSerialization Crash Pattern
+If the app crashes with `NSInvalidArgumentException: Invalid number value (infinite) in JSON write`:
+1. Search ALL `JSONSerialization.data(withJSONObject:)` callers (not just pipeline code)
+2. Check tool execution paths (`CalculatorTool`, `UnitConverterTool`, etc.) — the model may request operations that produce `Infinity` (e.g., `1/0`)
+3. The `jsonString(from:)` helper in `ToolRegistry.swift` sanitizes non-finite values, but new tools must also guard at the source
+4. Swift `try?`/`catch` **cannot catch** ObjC `NSInvalidArgumentException` — values must be sanitized **before** the `JSONSerialization` call
+
+### Build Configuration Notes
+- **Debug build**: ~14 tok/s decode on iPhone 16 Pro Max
+- **Release build**: ~26 tok/s decode — **always** use `BUILD_CONFIG=Release` for benchmark baselines
+- Eval pipeline: ~5 min for 100 prompts on device (Release build)
+- Pull results from device: `xcrun devicectl device copy from --device <ID> --domain-type appDataContainer --domain-identifier com.andrewvoirol.EdgeAILab --source Documents/metrics/<file> --destination /tmp/<file>`
+
