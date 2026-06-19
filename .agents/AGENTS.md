@@ -21,8 +21,11 @@
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
 - All perpetual animations MUST have `XCTestConfigurationFilePath` guard.
 - **Test resources don't bundle to physical iOS devices** via Tuist. Tests that load from `Bundle(for:)` must include an XCTSkip guard when the resource returns nil.
+- **Tuist bundles resources into macOS/Simulator test targets.** Unlike physical iOS devices, the macOS and iOS Simulator test runners DO have access to app resources. Tests should accept both `nil` (resources absent) and valid data (resources present) unless the test specifically requires one. Never assert `loadImage() == nil` in a test that runs on macOS — the resource may be there.
 - **`generate_image` produces JPEG data with `.png` extension.** Never assert PNG magic bytes (`0x89 0x50 0x4E 0x47`). Accept both JPEG (`0xFF 0xD8 0xFF`) and PNG headers.
 - **Swift Testing migration**: When creating a new `@Suite` Swift Testing file that replaces an XCTest file, add the XCTest class name to `UnitTests.xctestplan` → `skippedTests` in the same commit. Never leave both versions running simultaneously.
+- **Swift Testing name collisions**: Tuist compiles all test files into a single target. A `@Suite struct FooTests` will collide with any existing `class FooTests: XCTestCase`. Before naming a new Swift Testing struct, grep for the name across `Tests/`. If it exists, suffix with `SwiftTests` (e.g., `FooSwiftTests`).
+- **UserDefaults cross-framework races**: `.serialized` only serializes tests within a single Swift Testing `@Suite`. XCTestCase methods that touch the same `UserDefaults` keys run concurrently. Mitigations: (1) call `defaults.synchronize()` in `withCleanStorage` helpers, (2) verify at the data level (`defaults.data(forKey:)`) rather than through `load()` functions that can see stale/polluted state, (3) consider skipping the old XCTestCase method via `skippedTests` in the `.xctestplan`.
 - **Tuist `testPlans` API**: Coverage is controlled by the `.xctestplan` JSON (`codeCoverageEnabled: true`), NOT by Tuist's `options: .options(coverage: true)`.
 - **Test file imports**: Always use platform-conditional imports in test files:
   ```swift
@@ -34,6 +37,7 @@
   ```
   Never use `@testable import EdgeAILab` — the module doesn't exist. Tuist generates `EdgeAILab_iOS` and `EdgeAILab_macOS` as separate targets.
 - **`ByteCountFormatter` output is locale/precision-dependent.** Never assert exact strings (e.g., `== "5 GB"`). Use `contains("GB")` or similar unit-suffix checks. `.file` style uses decimal (SI) formatting that varies with exact byte count.
+- **IEEE 754 rounding in format tests**: `String(format: "%.1f", 12.35)` may produce `"12.3"` (not `"12.4"`) due to IEEE 754 representation. Never use `.5` boundary values in format-string tests. Use values that round unambiguously (e.g., `12.36 → "12.4"`, `12.34 → "12.3"`).
 - **When testing methods with multi-path filesystem resolution** (e.g., methods that check Bundle → cwd → home → Documents), mirror the method's search priority in the test to find the actual write location. Don't hardcode a single expected path — the test runner's cwd and home may differ from your assumptions.
 
 ## Code Style
