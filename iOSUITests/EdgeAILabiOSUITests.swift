@@ -196,33 +196,43 @@ final class EdgeAILabiOSUITests: XCTestCase {
         chatTab.tap()
         usleep(500_000) // Wait for tab switch animation
 
-        // The chat interface should show a prompt input field.
-        // The accessibilityIdentifier is "textField_prompt" and the
-        // actual placeholder on iOS is "Ask Gemma anything..."
+        // The chat interface shows either:
+        // 1. Active chat (prompt field + send button) when a model is loaded
+        // 2. Empty state (Browse Models CTA) when no model is loaded
+        // Both are valid states — the test passes if either is present.
+
         let promptField = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier == 'textField_prompt'"))
             .firstMatch
-
-        // SwiftUI TextField with axis: .vertical may render as a textView
         let promptTextView = app.textViews["textField_prompt"]
-
-        // Also try by placeholder text
         let promptByPlaceholder = app.textFields["Ask Gemma anything..."]
 
-        let hasPromptField = promptField.waitForExistence(timeout: 10.0) ||
-                             promptTextView.waitForExistence(timeout: 3.0) ||
-                             promptByPlaceholder.waitForExistence(timeout: 3.0)
+        let hasPromptField = promptField.waitForExistence(timeout: 5.0) ||
+                             promptTextView.waitForExistence(timeout: 2.0) ||
+                             promptByPlaceholder.waitForExistence(timeout: 2.0)
 
-        XCTAssertTrue(hasPromptField,
-                      "Chat tab should contain a prompt text field")
+        if hasPromptField {
+            // Model is loaded — active chat interface
+            let sendButton = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier == 'button_send'"))
+                .firstMatch
+            if sendButton.waitForExistence(timeout: 3.0) {
+                XCTAssertTrue(sendButton.exists, "Send button should exist in chat view")
+            }
+        } else {
+            // No model loaded — empty state should show Browse Models CTA
+            let emptyState = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "identifier == 'chatTab_emptyState'"))
+                .firstMatch
+            let browseModels = app.buttons["chatTab_browseModels"]
+            let goToModels = app.buttons["chatTab_goToModels"]
 
-        // The send button should also exist
-        let sendButton = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == 'button_send'"))
-            .firstMatch
+            let hasEmptyStateUI = emptyState.waitForExistence(timeout: 5.0) ||
+                                  browseModels.waitForExistence(timeout: 3.0) ||
+                                  goToModels.waitForExistence(timeout: 3.0)
 
-        if sendButton.waitForExistence(timeout: 3.0) {
-            XCTAssertTrue(sendButton.exists, "Send button should exist in chat view")
+            XCTAssertTrue(hasEmptyStateUI,
+                          "Chat tab should show either a prompt field (model loaded) or empty state with navigation (no model)")
         }
     }
 
@@ -425,6 +435,182 @@ final class EdgeAILabiOSUITests: XCTestCase {
             let tabBar = app.tabBars.firstMatch
             XCTAssertTrue(tabBar.waitForExistence(timeout: 5.0),
                           "Tab bar should be accessible")
+        }
+    }
+
+    // MARK: - Navigation Flow Tests (Dead-End Fixes)
+
+    /// Verifies the Chat tab has a toolbar button to navigate to Models.
+    ///
+    /// This is the primary fix for the Chat tab dead-end: users should always
+    /// have a visible affordance (beyond the tab bar) to reach the Models tab.
+    func testChatTabHasModelNavigationAffordance() throws {
+        let app = launchApp()
+
+        // Navigate to Chat tab
+        let chatTab = app.tabBars.buttons["Chat"]
+        guard chatTab.waitForExistence(timeout: 5.0) else {
+            XCTFail("Chat tab should exist in the tab bar")
+            return
+        }
+        chatTab.tap()
+        usleep(1_000_000)
+
+        // Look for the "Switch to Models" toolbar button
+        let goToModelsButton = app.buttons["chatTab_goToModels"]
+        let found = goToModelsButton.waitForExistence(timeout: 5.0)
+        XCTAssertTrue(found,
+                      "Chat tab should have a 'Switch to Models' toolbar button (a11y ID: chatTab_goToModels)")
+    }
+
+    /// Verifies tapping the Models button on the Chat tab actually switches to Models.
+    ///
+    /// Tests the full navigation flow: Chat → tap Models button → Models tab is active.
+    func testChatTabSelectModelNavigatesToModels() throws {
+        let app = launchApp()
+
+        // Navigate to Chat tab
+        let chatTab = app.tabBars.buttons["Chat"]
+        guard chatTab.waitForExistence(timeout: 5.0) else {
+            XCTFail("Chat tab should exist")
+            return
+        }
+        chatTab.tap()
+        usleep(1_000_000)
+
+        // Tap the "Switch to Models" button
+        let goToModelsButton = app.buttons["chatTab_goToModels"]
+        guard goToModelsButton.waitForExistence(timeout: 5.0) else {
+            XCTFail("chatTab_goToModels button should exist")
+            return
+        }
+        goToModelsButton.tap()
+        usleep(1_000_000)
+
+        // Verify we're now on the Models tab
+        let modelsTab = app.tabBars.buttons["Models"]
+        if modelsTab.waitForExistence(timeout: 3.0) {
+            XCTAssertTrue(modelsTab.isSelected || modelsTab.isHittable,
+                          "Models tab should be selected after tapping the go-to-models button")
+        }
+
+        // Verify Models content is visible (iOSModelHub identifier)
+        let modelHub = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'iOSModelHub'"))
+            .firstMatch
+        let hubVisible = modelHub.waitForExistence(timeout: 5.0) ||
+                         app.staticTexts["On This Device"].exists ||
+                         app.staticTexts["Get More Models"].exists ||
+                         app.staticTexts["Now Running"].exists
+        XCTAssertTrue(hubVisible,
+                      "Models tab content should be visible after navigation from Chat")
+    }
+
+    /// Verifies the Eval tab has a toolbar button to navigate to Models.
+    ///
+    /// Same dead-end fix applied to the Evaluations tab.
+    func testEvalTabHasNavigationAffordance() throws {
+        let app = launchApp()
+
+        // Navigate to Evals tab
+        let evalsTab = app.tabBars.buttons["Evals"]
+        guard evalsTab.waitForExistence(timeout: 5.0) else {
+            XCTFail("Evals tab should exist in the tab bar")
+            return
+        }
+        evalsTab.tap()
+        usleep(1_000_000)
+
+        // Look for the "Switch to Models" toolbar button
+        let goToModelsButton = app.buttons["evalTab_goToModels"]
+        let found = goToModelsButton.waitForExistence(timeout: 5.0)
+        XCTAssertTrue(found,
+                      "Eval tab should have a 'Switch to Models' toolbar button (a11y ID: evalTab_goToModels)")
+    }
+
+    /// Verifies every tab has at least one exit path (interactive element
+    /// that leads to a different tab or pushes a view).
+    ///
+    /// This is a navigation reachability test — it ensures no tab is a dead-end.
+    /// For each tab, we verify that at least one of these exists:
+    /// - A toolbar button with a navigation identifier
+    /// - A NavigationLink (model cards)
+    /// - A button that triggers a sheet
+    func testEveryTabHasExitPath() throws {
+        let app = launchApp()
+
+        // Tab 1: Models — should have model cards (NavigationLinks) or empty state buttons
+        let modelsTab = app.tabBars.buttons["Models"]
+        XCTAssertTrue(modelsTab.waitForExistence(timeout: 5.0), "Models tab should exist")
+        modelsTab.tap()
+        usleep(1_000_000)
+        let modelsHasNavigation = !app.cells.allElementsBoundByIndex.isEmpty ||
+                                   app.buttons["modelHub_addModel"].exists ||
+                                   app.buttons["modelHub_urlImport"].exists
+        XCTAssertTrue(modelsHasNavigation,
+                      "Models tab should have interactive elements (cells, add button, or URL import)")
+
+        // Tab 2: Chat — should have the go-to-models button
+        let chatTab = app.tabBars.buttons["Chat"]
+        XCTAssertTrue(chatTab.waitForExistence(timeout: 3.0), "Chat tab should exist")
+        chatTab.tap()
+        usleep(1_000_000)
+        let chatHasExit = app.buttons["chatTab_goToModels"].waitForExistence(timeout: 5.0)
+        XCTAssertTrue(chatHasExit,
+                      "Chat tab should have a go-to-models button as an exit path")
+
+        // Tab 3: Evals — should have the go-to-models button
+        let evalsTab = app.tabBars.buttons["Evals"]
+        XCTAssertTrue(evalsTab.waitForExistence(timeout: 3.0), "Evals tab should exist")
+        evalsTab.tap()
+        usleep(1_000_000)
+        let evalsHasExit = app.buttons["evalTab_goToModels"].waitForExistence(timeout: 5.0)
+        XCTAssertTrue(evalsHasExit,
+                      "Evals tab should have a go-to-models button as an exit path")
+
+        // Tab 4: Settings — always has form elements and the tab bar
+        let settingsTab = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(settingsTab.waitForExistence(timeout: 3.0), "Settings tab should exist")
+        settingsTab.tap()
+        usleep(1_000_000)
+        // Settings always has the tab bar visible — that's its exit path
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.exists, "Tab bar should remain visible on Settings tab")
+    }
+
+    /// Verifies the Chat tab empty state has a "Browse Models" CTA when no model is loaded.
+    ///
+    /// Tests the empty state redesign: when the user has no active model,
+    /// the Chat tab should show a prominent button to navigate to Models.
+    func testChatEmptyStateHasBrowseModelsCTA() throws {
+        let app = launchApp()
+
+        // Navigate to Chat tab
+        let chatTab = app.tabBars.buttons["Chat"]
+        guard chatTab.waitForExistence(timeout: 5.0) else {
+            XCTFail("Chat tab should exist")
+            return
+        }
+        chatTab.tap()
+        usleep(1_000_000)
+
+        // In a clean launch without a loaded model, the empty state should show
+        let emptyState = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'chatTab_emptyState'"))
+            .firstMatch
+        let browseButton = app.buttons["chatTab_browseModels"]
+
+        // At least one of these should exist (empty state or browse button)
+        // The browse button might not exist if a model is already loaded
+        if emptyState.waitForExistence(timeout: 3.0) {
+            // Empty state is showing — browse button should be present
+            XCTAssertTrue(browseButton.waitForExistence(timeout: 3.0),
+                          "Empty state should contain a 'Browse Models' button")
+        } else {
+            // A model might be loaded — the toolbar button should still exist
+            let toolbarModels = app.buttons["chatTab_goToModels"]
+            XCTAssertTrue(toolbarModels.waitForExistence(timeout: 3.0),
+                          "Chat tab should have either an empty state CTA or a toolbar Models button")
         }
     }
 }

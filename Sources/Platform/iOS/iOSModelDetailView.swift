@@ -39,6 +39,7 @@ import SwiftUI
 struct iOSModelDetailView: View {
     @Environment(ConversationViewModel.self) private var viewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(iOSNavigationRouter.self) private var router
     let metadata: ModelMetadata
 
     @State private var showDeleteConfirmation = false
@@ -224,21 +225,48 @@ struct iOSModelDetailView: View {
     private var actionSection: some View {
         Group {
             if isActiveModel {
-                // Running state — show status
-                HStack(spacing: AppSpacing.sm) {
-                    Circle()
-                        .fill(AppColors.success)
-                        .frame(width: 8, height: 8)
-                        .pulsingGlow(AppColors.success)
-                    Text("Model is running")
-                        .font(AppTypography.subtitle)
-                        .foregroundStyle(AppColors.success)
+                // Running state — show status + Open Chat action
+                VStack(spacing: AppSpacing.sm) {
+                    HStack(spacing: AppSpacing.sm) {
+                        Circle()
+                            .fill(AppColors.success)
+                            .frame(width: 8, height: 8)
+                            .pulsingGlow(AppColors.success)
+                        Text("Model is running")
+                            .font(AppTypography.subtitle)
+                            .foregroundStyle(AppColors.success)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(AppColors.success.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                    .accessibilityIdentifier("modelDetail_running")
+
+                    Button {
+                        router.navigateToChat()
+                    } label: {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(AppIconSize.md)
+                            Text("Open Chat")
+                                .font(AppTypography.subtitle)
+                        }
+                        .foregroundStyle(AppColors.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.md)
+                        .background(
+                            LinearGradient(
+                                colors: [AppColors.accentCyan, AppColors.accentTeal],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                    }
+                    .sensoryFeedback(.impact(weight: .medium), trigger: router.selectedTab)
+                    .accessibilityLabel("Open chat with this model")
+                    .accessibilityIdentifier("modelDetail_openChat")
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.md)
-                .background(AppColors.success.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
-                .accessibilityIdentifier("modelDetail_running")
 
             } else if isLoading {
                 // Loading state

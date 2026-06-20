@@ -31,6 +31,7 @@ import SwiftUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSEvalTabView: View {
     @Environment(ConversationViewModel.self) private var viewModel
+    @Environment(iOSNavigationRouter.self) private var router
 
     @State private var evalStore = EvalStore()
     @State private var selectedSuiteId: UUID?
@@ -249,6 +250,16 @@ struct iOSEvalTabView: View {
         }
         .listStyle(.insetGrouped)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    router.navigateToModels()
+                } label: {
+                    Image(systemName: "cpu")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .accessibilityLabel("Switch to Models")
+                .accessibilityIdentifier("evalTab_goToModels")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {

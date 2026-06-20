@@ -41,6 +41,9 @@ import PhotosUI
 /// for agent discoverability and UI testing.
 struct ContentView: View {
     @Environment(ConversationViewModel.self) private var viewModel
+    #if os(iOS)
+    @Environment(iOSNavigationRouter.self) private var navigationRouter
+    #endif
     @State private var showSettings = false
     @State private var showDashboard = false
     @State private var showcaseModel: ModelMetadata?
@@ -51,8 +54,6 @@ struct ContentView: View {
     @State private var selectedModelId: String?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    // iOS tab selection
-    @State private var selectedTab: Int = 0
 
     var body: some View {
         @Bindable var viewModel = viewModel
@@ -162,10 +163,11 @@ struct ContentView: View {
 
     #if os(iOS)
     private var iOSLayout: some View {
-        appliedSharedModifiers(
-        TabView(selection: $selectedTab) {
+        @Bindable var router = navigationRouter
+        return appliedSharedModifiers(
+        TabView(selection: $router.selectedTab) {
             // Tab 1: Models (primary — the Model Hub)
-            NavigationStack {
+            NavigationStack(path: $router.modelsPath) {
                 iOSModelHubView()
                     .navigationTitle("Models")
                     .navigationBarTitleDisplayMode(.large)
@@ -173,7 +175,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Models", systemImage: "cpu")
             }
-            .tag(0)
+            .tag(AppTab.models)
 
             // Tab 2: Chat (inference)
             NavigationStack {
@@ -184,7 +186,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Chat", systemImage: "bubble.left.and.bubble.right")
             }
-            .tag(1)
+            .tag(AppTab.chat)
 
             // Tab 3: Evaluations
             NavigationStack {
@@ -195,7 +197,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Evals", systemImage: "testtube.2")
             }
-            .tag(2)
+            .tag(AppTab.evaluations)
 
             // Tab 4: Settings
             NavigationStack {
@@ -206,7 +208,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
             }
-            .tag(3)
+            .tag(AppTab.settings)
         }
         .foregroundStyle(AppColors.textPrimary)
         .preferredColorScheme(.dark)

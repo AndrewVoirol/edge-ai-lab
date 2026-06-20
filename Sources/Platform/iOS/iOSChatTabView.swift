@@ -22,14 +22,29 @@ import SwiftUI
 /// Architecture:
 /// - Reuses the existing `chatColumn` content (ConversationAreaView, InputAreaView)
 /// - Adds the `iOSStatusIndicatorView` above the input area
-/// - Provides iOS-specific toolbar buttons (New Chat, Settings)
+/// - Provides iOS-specific toolbar buttons (New Chat, History, Models)
+/// - Shows a premium empty state when no model is loaded, guiding users
+///   to the Models tab to select and load a model.
+///
+/// Navigation fix:
+/// - The trailing toolbar button provides an always-visible escape hatch
+///   from the Chat tab to the Models tab (per Apple HIG: every screen
+///   should have a clear path to other destinations).
+/// - The empty state CTA provides a contextual, prominent path to Models
+///   when the user has no model loaded.
 ///
 /// This view is the root of the Chat tab in the iOS TabView.
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSChatTabView: View {
     @Environment(ConversationViewModel.self) private var viewModel
+    @Environment(iOSNavigationRouter.self) private var router
     @State private var showConversationPicker = false
+
+    /// Whether the chat has an active model ready for inference.
+    private var hasActiveModel: Bool {
+        viewModel.isEngineReady
+    }
 
     var body: some View {
         ZStack {
@@ -37,34 +52,13 @@ struct iOSChatTabView: View {
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
 
-            VStack(spacing: 0) {
-                // Conversation area — chat bubbles
-                ConversationAreaView()
-                    .frame(maxHeight: .infinity)
-
-                // Benchmark bar (shown when data is available)
-                if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
-                    Rectangle()
-                        .fill(AppColors.border)
-                        .frame(height: 0.5)
-                    BenchmarkBarView(info: info)
-                        .padding(.horizontal, AppSpacing.md)
-                        .padding(.vertical, AppSpacing.xs)
-                }
-
-                // Status indicator — iOS-specific content-layer status row
-                iOSStatusIndicatorView()
-
-                Rectangle()
-                    .fill(AppColors.border)
-                    .frame(height: 0.5)
-
-                // Input area with multimodal attachments
-                InputAreaView()
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
+            if hasActiveModel || viewModel.isLoadingModel {
+                // Active chat interface
+                activeChatContent
+            } else {
+                // Empty state — no model loaded
+                chatEmptyState
             }
-            .accessibilityElement(children: .contain)
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -88,6 +82,17 @@ struct iOSChatTabView: View {
                     .accessibilityIdentifier("chatTab_conversationHistory")
                 }
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.navigateToModels()
+                } label: {
+                    Image(systemName: "cpu")
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .accessibilityLabel("Switch to Models")
+                .accessibilityIdentifier("chatTab_goToModels")
+            }
         }
         .sheet(isPresented: $showConversationPicker) {
             iOSConversationPickerSheet()
@@ -95,6 +100,149 @@ struct iOSChatTabView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chatTab_root")
+    }
+
+    // MARK: - Active Chat Content
+
+    /// The full chat interface shown when a model is loaded or loading.
+    private var activeChatContent: some View {
+        VStack(spacing: 0) {
+            // Conversation area — chat bubbles
+            ConversationAreaView()
+                .frame(maxHeight: .infinity)
+
+            // Benchmark bar (shown when data is available)
+            if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(height: 0.5)
+                BenchmarkBarView(info: info)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.xs)
+            }
+
+            // Status indicator — iOS-specific content-layer status row
+            iOSStatusIndicatorView()
+
+            Rectangle()
+                .fill(AppColors.border)
+                .frame(height: 0.5)
+
+            // Input area with multimodal attachments
+            InputAreaView()
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.sm)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    // MARK: - Empty State
+
+    /// Premium empty state shown when no model is loaded.
+    ///
+    /// Design: A visually rich, animated prompt that guides the user
+    /// to the Models tab. Uses the Dark Forest palette with layered
+    /// radial gradients and a prominent CTA button.
+    private var chatEmptyState: some View {
+        VStack(spacing: AppSpacing.xl) {
+            Spacer()
+
+            // Hero icon — animated glow
+            ZStack {
+                // Ambient glow ring
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            gradient: Gradient(colors: [
+                                AppColors.accentCyan.opacity(0.15),
+                                AppColors.accentCyan.opacity(0.02),
+                                .clear
+                            ]),
+                            center: .center,
+                            startRadius: 30,
+                            endRadius: 120
+                        )
+                    )
+                    .frame(width: 240, height: 240)
+
+                // Inner glass circle
+                Circle()
+                    .fill(AppColors.backgroundTertiary.opacity(0.6))
+                    .frame(width: 100, height: 100)
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                LinearGradient(
+                                    colors: [AppColors.accentCyan.opacity(0.4), AppColors.accentTeal.opacity(0.1)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                    .shadow(color: AppColors.accentCyan.opacity(0.2), radius: 20, x: 0, y: 4)
+
+                // CPU icon
+                Image(systemName: "cpu")
+                    .font(AppIconSize.xxl)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [AppColors.accentCyan, AppColors.accentTeal],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .accessibilityHidden(true)
+
+            // Text content
+            VStack(spacing: AppSpacing.sm) {
+                Text("No Model Loaded")
+                    .font(AppTypography.pageTitle)
+                    .foregroundStyle(AppColors.textPrimary)
+
+                Text("Load a model from the Model Hub to start\nchatting, running benchmarks, or evaluations.")
+                    .font(AppTypography.subtitle)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+            }
+
+            // Primary CTA
+            Button {
+                withAnimation(AppAnimation.spring) {
+                    router.navigateToModels()
+                }
+            } label: {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "cpu")
+                        .font(AppIconSize.md)
+                    Text("Browse Models")
+                        .font(AppTypography.subtitle)
+                }
+                .foregroundStyle(AppColors.textPrimary)
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.vertical, AppSpacing.md)
+                .background(
+                    LinearGradient(
+                        colors: [AppColors.accentCyan, AppColors.accentTeal],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(Capsule())
+                .shadow(color: AppColors.accentCyan.opacity(0.3), radius: 12, x: 0, y: 4)
+            }
+            .sensoryFeedback(.impact(weight: .light), trigger: router.selectedTab)
+            .accessibilityLabel("Browse models to load one for chat")
+            .accessibilityIdentifier("chatTab_browseModels")
+
+            Spacer()
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.xl)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("chatTab_emptyState")
     }
 }
 #endif

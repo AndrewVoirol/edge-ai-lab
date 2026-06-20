@@ -31,6 +31,10 @@ struct EdgeAILabApp: App {
     @State private var viewModel: ConversationViewModel
     @State private var showOnboarding = false
 
+    #if os(iOS)
+    @State private var navigationRouter = iOSNavigationRouter()
+    #endif
+
     /// Static reference for AppDelegate's background session callback.
     /// This is NOT a singleton — it's the App's owned dependency shared
     /// with UIKit-era code that can't participate in SwiftUI's environment.
@@ -66,6 +70,9 @@ struct EdgeAILabApp: App {
                 .accessibilityIdentifier("mainWindow")
                 .environment(viewModel)
                 .environment(downloadManager)
+                #if os(iOS)
+                .environment(navigationRouter)
+                #endif
                 .onAppear {
                     // Skip onboarding when running under test harness or automation
                     guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
