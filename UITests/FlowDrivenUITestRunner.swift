@@ -126,7 +126,7 @@ class FlowDrivenUITestRunner {
     /// 2. `automation/flows/<flowName>.json` (fallback)
     /// 3. Direct bundle resource lookup by name
     private func loadFlow() throws -> AutomationFlow {
-        let testBundle = Bundle(for: type(of: self) as! AnyClass)
+        let testBundle = Bundle(for: type(of: self))
 
         // Strategy 1: Look in the flow subdirectory
         if let url = testBundle.url(
@@ -230,10 +230,13 @@ class FlowDrivenUITestRunner {
             try performTypeText(target: target, value: value, timeout: timeout)
 
         case "wait":
-            guard let condition = step.condition else {
-                throw FlowRunnerError.missingField("condition", step: step.step)
+            if let condition = step.condition {
+                try performWait(condition: condition, timeout: timeout)
+            } else {
+                // Simple delay — no condition, just wait for UI to stabilize
+                let delayMs = UInt32(timeout * 1_000_000)
+                usleep(delayMs)
             }
-            try performWait(condition: condition, timeout: timeout)
 
 
         case "keyboard_shortcut":
@@ -305,20 +308,17 @@ class FlowDrivenUITestRunner {
     func resolveElement(_ target: String, timeout: TimeInterval? = nil) -> XCUIElement? {
         let resolveTimeout = timeout ?? stepTimeout
 
-        // Strategy 1: Accessibility Identifier (most specific, preferred)
-        let byIdentifier = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == %@", target))
+        // Strategy 1+2: Identifier OR Label (combined to avoid wasting full
+        // timeout on identifier-only when the element is found by label, e.g.
+        // tab bar buttons like "Models", "Chat", "Settings").
+        let byIdOrLabel = app.descendants(matching: .any)
+            .matching(NSPredicate(
+                format: "identifier == %@ OR label == %@",
+                target, target
+            ))
             .firstMatch
-        if byIdentifier.waitForExistence(timeout: resolveTimeout) {
-            return byIdentifier
-        }
-
-        // Strategy 2: Accessibility Label (common for buttons, tabs)
-        let byLabel = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", target))
-            .firstMatch
-        if byLabel.waitForExistence(timeout: min(resolveTimeout, 2.0)) {
-            return byLabel
+        if byIdOrLabel.waitForExistence(timeout: resolveTimeout) {
+            return byIdOrLabel
         }
 
         // Strategy 3: Broad descendant predicate (partial match fallback)
@@ -334,6 +334,7 @@ class FlowDrivenUITestRunner {
 
         return nil
     }
+
 
     // MARK: - Action Handlers
 
@@ -372,16 +373,25 @@ class FlowDrivenUITestRunner {
             throw FlowRunnerError.elementNotFound(target)
         }
 
-        if element.isHittable {
-            element.click()
-        } else {
-            // macOS NavigationSplitView workaround: elements may exist in the
-            // a11y tree but not be "hittable". Use coordinate-based click.
-            element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
-        }
+        print("[FLOW_RUNNER]   tap: '\(target)' frame=\(element.frame) hittable=\(element.isHittable) type=\(element.elementType.rawValue)")
 
-        // Brief pause to allow SwiftUI state propagation
-        usleep(300_000)
+        #if os(macOS)
+        // macOS: Always use coordinate-based click. When resolveElement returns
+        // a staticText child of a NavigationLink, a direct .click() doesn't
+        // trigger the List(selection:) binding. Coordinate click hits the row
+        // at the element's center, which reliably triggers selection changes.
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        #else
+        if element.isHittable {
+            element.tap()
+        } else {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+        #endif
+
+        // Longer pause for sidebar NavigationLink selection propagation
+        let isSidebarTarget = target.hasPrefix("sidebar_")
+        usleep(isSidebarTarget ? 1_000_000 : 300_000)
     }
 
     /// Type text into a target text field.
@@ -521,6 +531,13 @@ class FlowDrivenUITestRunner {
         // macOS scroll: use the window's coordinate space for drag gestures.
         // Falls back to keyboard Page Down if coordinates produce INFINITY
         // (can happen when the scroll target is inside a sidebar or sheet).
+        //
+        // Sidebar detection: if the target identifier starts with "sidebar_",
+        // scroll the left column of the NavigationSplitView (dx ~0.15) instead
+        // of the center (dx 0.5) which hits the detail column.
+        let isSidebar = identifier.hasPrefix("sidebar_")
+        let scrollDx: CGFloat = isSidebar ? 0.15 : 0.5
+
         for attempt in 0..<maxAttempts {
             let scrollTarget = app.windows.count > 0 ? app.windows.firstMatch : app
             let frame = scrollTarget.frame
@@ -528,8 +545,8 @@ class FlowDrivenUITestRunner {
             if frame.origin.x.isFinite && frame.origin.y.isFinite
                 && frame.width > 0 && frame.height > 0 {
                 // Coordinate-based scroll within the valid frame
-                let from = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
-                let to = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+                let from = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: scrollDx, dy: 0.7))
+                let to = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: scrollDx, dy: 0.2))
                 from.press(forDuration: 0.05, thenDragTo: to)
             } else {
                 // Fallback: keyboard-based scrolling

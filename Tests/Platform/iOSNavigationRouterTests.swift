@@ -48,7 +48,7 @@ struct AppTabTests {
     func hashableDistinctness() {
         #if os(iOS)
         let allCases = AppTab.allCases
-        let uniqueHashes = Set(allCases.map { $0.hashValue })
+        _ = Set(allCases.map { $0.hashValue })
         // In practice hash collisions are possible, but for 4 trivial enum cases they shouldn't collide
         #expect(allCases.count == Set(allCases).count, "All AppTab cases should be unique in a Set")
         #else

@@ -130,7 +130,7 @@ final class ViewModelE2ETests: XCTestCase {
         XCTAssertFalse(vm.conversation.isEmpty, "Conversation should not be empty")
 
         // Save current conversation (auto-save happens on newConversation)
-        let conversationIdBeforeNew = vm.activeConversationId
+        _ = vm.activeConversationId
 
         // New conversation triggers auto-save of current
         await vm.newConversation()

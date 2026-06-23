@@ -587,7 +587,7 @@ struct DownloadErrorHandlingTests {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("DownloadManagerDeepTests-\(UUID().uuidString)")
         let config = URLSessionConfiguration.ephemeral
-        let manager = ModelDownloadManager(
+        _ = ModelDownloadManager(
             configuration: config,
             documentsDirectory: tempDir
         )

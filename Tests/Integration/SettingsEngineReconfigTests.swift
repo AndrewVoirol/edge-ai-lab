@@ -243,7 +243,7 @@ final class SettingsEngineReconfigTests: XCTestCase {
 
     /// Verify that ExperimentalFlagsState round-trips through Codable encoding/decoding.
     func testSettingsPersistence() throws {
-        var flags = ExperimentalFlagsState(
+        let flags = ExperimentalFlagsState(
             enableBenchmark: true,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: true,
@@ -298,7 +298,7 @@ final class SettingsEngineReconfigTests: XCTestCase {
         )
 
         // Prepare a new flags state with multiple changes
-        var newFlags = ExperimentalFlagsState(
+        let newFlags = ExperimentalFlagsState(
             enableBenchmark: false,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: true,

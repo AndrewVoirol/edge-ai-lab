@@ -173,9 +173,13 @@ struct ThinkingParserSwiftTestingTests {
 
     @Test("No system message when thinking is disabled and user message is empty")
     func noThinkingSystemMessageWhenDisabled() {
-        let enableThinking = false
-        let userSystemMessage = ""
+        // Both thinking-disabled and empty user message should yield nil
+        let composed = composeSystemMessage(enableThinking: false, userSystemMessage: "")
+        #expect(composed == nil)
+    }
 
+    /// Helper that mirrors the production composition logic without compile-time-constant branches.
+    private func composeSystemMessage(enableThinking: Bool, userSystemMessage: String) -> String? {
         var parts: [String] = []
         if enableThinking {
             parts.append("<|think|>")
@@ -183,8 +187,6 @@ struct ThinkingParserSwiftTestingTests {
         if !userSystemMessage.isEmpty {
             parts.append(userSystemMessage)
         }
-        let composed: String? = parts.isEmpty ? nil : parts.joined(separator: "\n")
-
-        #expect(composed == nil)
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
     }
 }

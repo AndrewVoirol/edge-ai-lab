@@ -130,7 +130,7 @@ class FlowDrivenUITestRunner {
     /// 2. `automation/flows/<flowName>.json` (fallback)
     /// 3. Direct bundle resource lookup by name
     private func loadFlow() throws -> AutomationFlow {
-        let testBundle = Bundle(for: type(of: self) as! AnyClass)
+        let testBundle = Bundle(for: type(of: self))
 
         // Strategy 1: Look in the flow subdirectory
         if let url = testBundle.url(
@@ -369,20 +369,17 @@ class FlowDrivenUITestRunner {
     func resolveElement(_ target: String, timeout: TimeInterval? = nil) -> XCUIElement? {
         let resolveTimeout = timeout ?? stepTimeout
 
-        // Strategy 1: Accessibility Identifier (most specific, preferred)
-        let byIdentifier = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier == %@", target))
+        // Strategy 1+2: Identifier OR Label (combined to avoid wasting full
+        // timeout on identifier-only when the element is found by label, e.g.
+        // tab bar buttons like "Models", "Chat", "Settings").
+        let byIdOrLabel = app.descendants(matching: .any)
+            .matching(NSPredicate(
+                format: "identifier == %@ OR label == %@",
+                target, target
+            ))
             .firstMatch
-        if byIdentifier.waitForExistence(timeout: resolveTimeout) {
-            return byIdentifier
-        }
-
-        // Strategy 2: Accessibility Label (common for buttons, tabs)
-        let byLabel = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", target))
-            .firstMatch
-        if byLabel.waitForExistence(timeout: min(resolveTimeout, 2.0)) {
-            return byLabel
+        if byIdOrLabel.waitForExistence(timeout: resolveTimeout) {
+            return byIdOrLabel
         }
 
         // Strategy 3: Broad descendant predicate (partial match fallback)
@@ -398,6 +395,7 @@ class FlowDrivenUITestRunner {
 
         return nil
     }
+
 
     // MARK: - Action Handlers
 

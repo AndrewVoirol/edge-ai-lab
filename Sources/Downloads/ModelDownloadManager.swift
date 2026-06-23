@@ -434,37 +434,33 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
         guard let taskId = fileToTaskId[filename],
               let task = await getDownloadTask(for: taskId) else { return }
 
-        task.cancel(byProducingResumeData: { [weak self] resumeData in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                let currentProgress: Double
-                if case .downloading(let p) = self.downloadStates[filename] {
-                    currentProgress = p
-                } else {
-                    currentProgress = 0
-                }
+        let resumeData = await task.cancelByProducingResumeData()
+        let currentProgress: Double
+        if case .downloading(let p) = self.downloadStates[filename] {
+            currentProgress = p
+        } else {
+            currentProgress = 0
+        }
 
-                if let resumeData {
-                    self.downloadStates[filename] = .paused(resumeData: resumeData, progress: currentProgress)
-                    // Persist resume data
-                    if var record = self.activeRecords[taskId] {
-                        record.resumeData = resumeData
-                        record.progress = currentProgress
-                        self.activeRecords[taskId] = record
-                    }
-                } else {
-                    self.downloadStates[filename] = .failed("Could not save download progress for resume.")
-                }
-
-                // Clean up task references
-                self.activeRecords.removeValue(forKey: taskId)
-                self.fileToTaskId.removeValue(forKey: filename)
-                self.speedSamples.removeValue(forKey: filename)
-                self.downloadProgress.removeValue(forKey: filename)
-                self.saveRecords()
-                self.processQueue()
+        if let resumeData, !resumeData.isEmpty {
+            self.downloadStates[filename] = .paused(resumeData: resumeData, progress: currentProgress)
+            // Persist resume data
+            if var record = self.activeRecords[taskId] {
+                record.resumeData = resumeData
+                record.progress = currentProgress
+                self.activeRecords[taskId] = record
             }
-        })
+        } else {
+            self.downloadStates[filename] = .failed("Could not save download progress for resume.")
+        }
+
+        // Clean up task references
+        self.activeRecords.removeValue(forKey: taskId)
+        self.fileToTaskId.removeValue(forKey: filename)
+        self.speedSamples.removeValue(forKey: filename)
+        self.downloadProgress.removeValue(forKey: filename)
+        self.saveRecords()
+        self.processQueue()
     }
 
     /// Resume a paused download using saved resume data.
