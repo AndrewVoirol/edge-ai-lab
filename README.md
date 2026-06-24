@@ -265,7 +265,7 @@ Gemma models are subject to the [Gemma Terms of Use](https://ai.google.dev/gemma
 ---
 
 <p align="center">
-  Built with LiteRT-LM by Google AI Edge<br/>
+  Built with Antigravity by Google AI <br/>
   <sub>Gemma 4 — On-device AI that respects your privacy.</sub>
 </p>
 
