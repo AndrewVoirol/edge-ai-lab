@@ -97,7 +97,9 @@ struct EvalComparisonView: View {
                 .padding(AppSpacing.xl)
             }
         }
+        #if os(macOS)
         .frame(minWidth: 700, idealWidth: 900, minHeight: 600, idealHeight: 750)
+        #endif
         .background(AppColors.backgroundPrimary)
         .sheet(isPresented: $showShareSheet) {
             EvalBenchmarkCardShareSheet(evalRun: evalRun)
@@ -346,21 +348,26 @@ struct EvalComparisonView: View {
 
     private var promptResultsTable: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            // Header row
-            HStack(spacing: 0) {
-                Text("Status")
-                    .frame(width: 60, alignment: .leading)
-                Text("Prompt")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("Speed")
-                    .frame(width: 80, alignment: .trailing)
-                Text("Score")
-                    .frame(width: 60, alignment: .trailing)
+            // Header row (hidden on compact devices, visible on larger screens)
+            ViewThatFits {
+                HStack(spacing: 0) {
+                    Text("Status")
+                        .frame(width: 60, alignment: .leading)
+                    Text("Prompt")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Speed")
+                        .frame(width: 80, alignment: .trailing)
+                    Text("Score")
+                        .frame(width: 60, alignment: .trailing)
+                }
+                .font(AppTypography.badge)
+                .foregroundStyle(AppColors.textTertiary)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.bottom, AppSpacing.xs)
+
+                // Compact mode doesn't need column headers as it's card-based
+                Color.clear.frame(height: 0)
             }
-            .font(AppTypography.badge)
-            .foregroundStyle(AppColors.textTertiary)
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.bottom, AppSpacing.xs)
 
             Divider().overlay(AppColors.border.opacity(0.3))
 
@@ -381,54 +388,95 @@ struct EvalComparisonView: View {
     }
 
     private func promptResultRow(_ result: PromptEvalResult) -> some View {
-        HStack(spacing: 0) {
-            // Status icon
-            Image(systemName: result.score.symbolName)
-                .font(.caption)
-                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
-                .frame(width: 60, alignment: .leading)
+        ViewThatFits {
+            // Desktop / Wide Layout
+            HStack(spacing: 0) {
+                Image(systemName: result.score.symbolName)
+                    .font(.caption)
+                    .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                    .frame(width: 60, alignment: .leading)
 
-            // Prompt text
-            VStack(alignment: .leading, spacing: 2) {
-                Text(result.promptText)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textPrimary)
-                    .lineLimit(2)
-
-                if let reason = result.score.reason {
-                    Text(reason)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.promptText)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.danger.opacity(0.8))
-                        .lineLimit(1)
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(2)
+
+                    if let reason = result.score.reason {
+                        Text(reason)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.danger.opacity(0.8))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let speed = result.decodeSpeed {
+                    Text(String(format: "%.1f", speed))
+                        .font(AppTypography.mono)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .frame(width: 80, alignment: .trailing)
+                } else {
+                    Text("—")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                        .frame(width: 80, alignment: .trailing)
+                }
+
+                Text(result.score.displayLabel)
+                    .font(AppTypography.badge)
+                    .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                    .frame(width: 60, alignment: .trailing)
+            }
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.sm)
+                    .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+            )
+
+            // Mobile / Compact Layout
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                HStack(alignment: .top) {
+                    Image(systemName: result.score.symbolName)
+                        .font(.caption)
+                        .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(result.promptText)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .lineLimit(3)
+
+                        if let reason = result.score.reason {
+                            Text(reason)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.danger.opacity(0.8))
+                                .lineLimit(2)
+                        }
+                    }
+                    Spacer()
+                }
+
+                HStack {
+                    if let speed = result.decodeSpeed {
+                        Text(String(format: "%.1f tok/s", speed))
+                            .font(AppTypography.mono)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    Spacer()
+                    Text(result.score.displayLabel)
+                        .font(AppTypography.badge)
+                        .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Decode speed
-            if let speed = result.decodeSpeed {
-                Text(String(format: "%.1f", speed))
-                    .font(AppTypography.mono)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .frame(width: 80, alignment: .trailing)
-            } else {
-                Text("—")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
-                    .frame(width: 80, alignment: .trailing)
-            }
-
-            // Score
-            Text(result.score.displayLabel)
-                .font(AppTypography.badge)
-                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
-                .frame(width: 60, alignment: .trailing)
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.sm)
+                    .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+            )
         }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
-        )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
     }
 

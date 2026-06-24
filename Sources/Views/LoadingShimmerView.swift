@@ -38,55 +38,19 @@ struct LoadingShimmerView: View {
     var body: some View {
         if Self.isRunningTests {
             // Static placeholder — no animation cycle to saturate the runloop
-            HStack(alignment: .top, spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(AppColors.backgroundTertiary)
-                    .frame(width: 28, height: 28)
-                    .overlay {
-                        Image(systemName: "sparkle")
-                            .font(AppIconSize.xs)
-                            .foregroundStyle(AppColors.textTertiary)
-                    }
-                VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    shimmerBar(width: 200)
-                    shimmerBar(width: 160)
-                    shimmerBar(width: 120)
-                }
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.vertical, AppSpacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: AppRadius.bubble)
-                        .fill(AppColors.assistantBubble.opacity(0.6))
-                }
-                Spacer(minLength: 60)
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                shimmerBar(width: 200)
+                shimmerBar(width: 160)
+                shimmerBar(width: 120)
             }
-            .padding(.horizontal, AppSpacing.lg)
             .accessibilityIdentifier("shimmer_loading")
             .accessibilityLabel("Loading response")
         } else {
-            HStack(alignment: .top, spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(AppColors.backgroundTertiary)
-                    .frame(width: 28, height: 28)
-                    .overlay {
-                        Image(systemName: "sparkle")
-                            .font(AppIconSize.xs)
-                            .foregroundStyle(AppColors.textTertiary)
-                    }
-                VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    shimmerBar(width: 200)
-                    shimmerBar(width: 160)
-                    shimmerBar(width: 120)
-                }
-                .padding(.horizontal, AppSpacing.lg)
-                .padding(.vertical, AppSpacing.md)
-                .background {
-                    RoundedRectangle(cornerRadius: AppRadius.bubble)
-                        .fill(AppColors.assistantBubble.opacity(0.6))
-                }
-                Spacer(minLength: 60)
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                shimmerBar(width: 200)
+                shimmerBar(width: 160)
+                shimmerBar(width: 120)
             }
-            .padding(.horizontal, AppSpacing.lg)
             .onAppear {
                 withAnimation(
                     .linear(duration: 1.5)
