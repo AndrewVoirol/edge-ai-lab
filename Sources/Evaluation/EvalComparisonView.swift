@@ -192,11 +192,11 @@ struct EvalComparisonView: View {
                 identifier: "evalComparison_totalPrompts"
             )
 
-            // Avg decode speed
+            // Avg decode speed — numeric value only, unit folded into title
             if let avgSpeed = averageDecodeSpeed {
                 summaryCard(
-                    title: "Avg Speed",
-                    value: EvalComparisonLogic.speedLabel(avgSpeed),
+                    title: "Avg tok/s",
+                    value: EvalComparisonLogic.speedValue(avgSpeed),
                     icon: "speedometer",
                     color: AppColors.accentTeal,
                     identifier: "evalComparison_avgSpeed"
@@ -221,7 +221,7 @@ struct EvalComparisonView: View {
         color: Color,
         identifier: String
     ) -> some View {
-        VStack(spacing: AppSpacing.sm) {
+        VStack(spacing: AppSpacing.xs) {
             Image(systemName: icon)
                 .font(AppIconSize.lg)
                 .foregroundStyle(color)
@@ -229,6 +229,8 @@ struct EvalComparisonView: View {
             Text(value)
                 .font(AppTypography.metricLarge)
                 .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
             Text(title)
                 .font(AppTypography.caption)
@@ -336,26 +338,23 @@ struct EvalComparisonView: View {
 
     private var promptResultsTable: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            // Header row (hidden on compact devices, visible on larger screens)
-            ViewThatFits {
-                HStack(spacing: 0) {
-                    Text("Status")
-                        .frame(width: 60, alignment: .leading)
-                    Text("Prompt")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Speed")
-                        .frame(width: 80, alignment: .trailing)
-                    Text("Score")
-                        .frame(width: 60, alignment: .trailing)
-                }
-                .font(AppTypography.badge)
-                .foregroundStyle(AppColors.textTertiary)
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.bottom, AppSpacing.xs)
-
-                // Compact mode doesn't need column headers as it's card-based
-                Color.clear.frame(height: 0)
+            // Column headers — only useful on macOS wide table layout
+            #if os(macOS)
+            HStack(spacing: 0) {
+                Text("Status")
+                    .frame(width: 60, alignment: .leading)
+                Text("Prompt")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Speed")
+                    .frame(width: 80, alignment: .trailing)
+                Text("Score")
+                    .frame(width: 60, alignment: .trailing)
             }
+            .font(AppTypography.badge)
+            .foregroundStyle(AppColors.textTertiary)
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.bottom, AppSpacing.xs)
+            #endif
 
             Divider().overlay(AppColors.border.opacity(0.3))
 
@@ -376,81 +375,32 @@ struct EvalComparisonView: View {
     }
 
     private func promptResultRow(_ result: PromptEvalResult) -> some View {
-        ViewThatFits {
-            // Desktop / Wide Layout
-            HStack(spacing: 0) {
-                Image(systemName: result.score.symbolName)
-                    .font(.caption)
-                    .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
-                    .frame(width: 60, alignment: .leading)
+        #if os(iOS)
+        // iOS: Card-based row with top-aligned icon and text
+        HStack(alignment: .top, spacing: AppSpacing.sm) {
+            Image(systemName: result.score.symbolName)
+                .font(.body)
+                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .frame(width: 24, alignment: .center)
+                .padding(.top, 2)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(result.promptText)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(2)
-
-                    if let reason = result.score.reason {
-                        Text(reason)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.danger.opacity(0.8))
-                            .lineLimit(1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if let speed = result.decodeSpeed {
-                    Text(String(format: "%.1f", speed))
-                        .font(AppTypography.mono)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .frame(width: 80, alignment: .trailing)
-                } else {
-                    Text("—")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
-                        .frame(width: 80, alignment: .trailing)
-                }
-
-                Text(result.score.displayLabel)
-                    .font(AppTypography.badge)
-                    .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
-                    .frame(width: 60, alignment: .trailing)
-            }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, AppSpacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
-            )
-
-            // Mobile / Compact Layout
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                HStack(alignment: .top) {
-                    Image(systemName: result.score.symbolName)
-                        .font(.caption)
-                        .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                Text(result.promptText)
+                    .font(AppTypography.listSubtitle)
+                    .foregroundStyle(AppColors.textPrimary)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.promptText)
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textPrimary)
-                            .lineLimit(3)
-
-                        if let reason = result.score.reason {
-                            Text(reason)
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.danger.opacity(0.8))
-                                .lineLimit(2)
-                        }
-                    }
-                    Spacer()
+                if let reason = result.score.reason {
+                    Text(reason)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.danger.opacity(0.8))
+                        .lineLimit(3)
                 }
 
                 HStack {
                     if let speed = result.decodeSpeed {
                         Text(String(format: "%.1f tok/s", speed))
                             .font(AppTypography.mono)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(AppColors.textTertiary)
                     }
                     Spacer()
                     Text(result.score.displayLabel)
@@ -458,14 +408,62 @@ struct EvalComparisonView: View {
                         .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
                 }
             }
-            .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, AppSpacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
-            )
         }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.sm)
+                .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+        )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
+        #else
+        // macOS: Wide table row with fixed-width columns
+        HStack(spacing: 0) {
+            Image(systemName: result.score.symbolName)
+                .font(.caption)
+                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .frame(width: 60, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.promptText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(2)
+
+                if let reason = result.score.reason {
+                    Text(reason)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.danger.opacity(0.8))
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let speed = result.decodeSpeed {
+                Text(String(format: "%.1f", speed))
+                    .font(AppTypography.mono)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .frame(width: 80, alignment: .trailing)
+            } else {
+                Text("—")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+                    .frame(width: 80, alignment: .trailing)
+            }
+
+            Text(result.score.displayLabel)
+                .font(AppTypography.badge)
+                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .frame(width: 60, alignment: .trailing)
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.sm)
+                .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+        )
+        .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
+        #endif
     }
 
     // MARK: - Bottom Actions

@@ -141,6 +141,17 @@ enum EvalComparisonLogic {
         String(format: "%.1f tok/s", speed)
     }
 
+    /// Format a decode speed as a numeric-only string (e.g., 42.5 → "42.5").
+    ///
+    /// Use this when rendering the value and unit as separate `Text` views
+    /// (e.g., in summary cards where value + unit are split to prevent wrapping).
+    ///
+    /// - Parameter speed: The decode speed in tokens per second.
+    /// - Returns: A formatted numeric string without the unit.
+    static func speedValue(_ speed: Double) -> String {
+        String(format: "%.1f", speed)
+    }
+
     /// Format a time-to-first-token value (e.g., 0.87 → "0.87s").
     ///
     /// - Parameter ttft: The TTFT in seconds.

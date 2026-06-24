@@ -185,23 +185,37 @@ struct EvalBenchmarkCard: View {
                 )
                 metricPill(
                     label: "Speed",
-                    value: String(format: "%.1f tok/s", summary.avgDecodeSpeed),
+                    value: String(format: "%.1f", summary.avgDecodeSpeed),
+                    unit: "tok/s",
                     color: AppColors.accentCyan
                 )
                 metricPill(
                     label: "TTFT",
-                    value: String(format: "%.2fs", summary.avgTTFT),
+                    value: String(format: "%.2f", summary.avgTTFT),
+                    unit: "s",
                     color: AppColors.accentGold
                 )
             }
         }
     }
 
-    private func metricPill(label: String, value: String, color: Color) -> some View {
+    // design-system-exempt — fixed-size font for image-export card
+    private func metricPill(label: String, value: String, unit: String = "", color: Color) -> some View {
         VStack(spacing: 2) {
-            Text(value)
-                .font(AppTypography.metricLarge)
-                .foregroundStyle(color)
+            if unit.isEmpty {
+                Text(value)
+                    .font(AppTypography.metricLarge)
+                    .foregroundStyle(color)
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(AppTypography.metricLarge)
+                        .foregroundStyle(color)
+                    Text(unit)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+            }
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)

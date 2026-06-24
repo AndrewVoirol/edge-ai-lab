@@ -247,6 +247,8 @@ struct PerformanceDashboardView: View {
             Text(value)
                 .font(AppTypography.metricLarge)
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .contentTransition(.numericText())
             if !unit.isEmpty {
                 Text(unit)
