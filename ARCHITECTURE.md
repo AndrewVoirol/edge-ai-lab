@@ -4,7 +4,7 @@
 
 This document describes the architecture of Edge AI Lab for contributors and reviewers. It covers the module structure, key protocols, data flows, and design decisions.
 
-**84 Swift source files · 16 architectural layers · ~28.5K lines of production code**
+**102 Swift source files · 16 architectural layers · ~28.5K lines of production code**
 
 ---
 
@@ -641,11 +641,10 @@ LiteRT-LM's `Tool` protocol requires conforming types at compile time. MCP tools
 
 | Category | Files | Purpose |
 |----------|------:|---------|
-| Unit Tests | 48 | Core logic: messages, persistence, settings, tools, parsing, eval, URL import, Kaggle |
-| Integration Tests | 5 | Multi-component flows: multi-turn, fallback, tool calling, downloads, URL import E2E |
+| Unit Tests | 117 | Core logic: messages, persistence, settings, tools, parsing, eval, URL import, Kaggle, integration |
 | Performance Tests | 2 | Benchmark baselines and gallery parity checks |
 | UI Tests (macOS) | 1 | End-to-end automation via XCUITest (26 tests) |
-| UI Tests (iOS) | 1 | Smoke tests via XCUITest (5 tests) |
+| UI Tests (iOS) | 5 | Flow-driven tests + Dynamic Type via XCUITest |
 | Mock | 1 | `MockInstrumentedEngine` — configurable engine mock |
 
 Tests are organized in feature-mirrored folders under `Tests/`:
@@ -668,9 +667,9 @@ Tests/
 
 ### Test Plans
 
-| Plan | Test Classes | Timeout | Purpose |
-|------|-------------|---------|---------|
-| `UnitTests.xctestplan` | 53 classes | 60s | Fast feedback loop — runs in CI |
+| Plan | Scope | Timeout | Purpose |
+|------|------|---------|---------|
+| `UnitTests.xctestplan` | ~2,000 tests | 60s | Fast feedback loop — runs in CI |
 | `IntegrationTests.xctestplan` | 3 classes | 300s | Cross-component validation |
 | `PerformanceTests.xctestplan` | 2 classes | 600s | Regression detection |
 
@@ -685,5 +684,5 @@ Tests/
 ---
 
 <p align="center">
-  <sub>Last updated: June 2026 · Edge AI Lab v2.0.0-rc1</sub>
+  <sub>Last updated: June 24, 2026 · Edge AI Lab v2.0.0-rc1</sub>
 </p>

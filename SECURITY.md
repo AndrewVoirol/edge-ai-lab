@@ -36,7 +36,7 @@ Edge AI Lab performs all inference entirely on-device. There are no backend serv
 
 | Version | Supported          |
 |---------|--------------------|
-| 2.0.x   | ✅ Current release |
+| 2.0.0-rc1 | ✅ Current pre-release |
 | 1.0.x   | ✅ Security fixes  |
 
 ## Disclosure Policy

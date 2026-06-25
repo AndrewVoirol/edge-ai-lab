@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Flow-Driven UI Test Framework** — 33 JSON automation flows (6 core + 27 UI) with `FlowDrivenUITestRunner` covering both macOS and iOS platforms. Each flow defines navigation steps, element assertions, and expected states.
+- **iOS UI Test Parity** — Dedicated `iOSUITests` target with platform-specific `FlowDrivenUITestRunner.swift` and 13 iOS UI flow files.
+- **macOS UI Test Suite** — 14 macOS-specific UI flow files covering chat, settings, model hub, eval, benchmark, and navigation flows.
+- **Device Benchmarking Pipeline** — `deploy_device.sh` with `--console` stdout streaming, `SKIP_BUILD=1` support, and `devicectl` result pulling for physical iOS device benchmarks.
+- **Eval Baselines** — Real device-measured eval baselines (`eval_baselines.json`) with pass rates across Math, Tool Calling, Reasoning, and Multimodal suites.
+- **Coverage Enforcement** — CI coverage threshold at 28% floor with `coverage_baseline.json` tracking. Codecov integration with macOS/iOS flags.
+- **Automation Harness Improvements** — `AutomationFlowRunner` with flow validation (`validate_flows.sh`), benchmark comparison (`benchmark_compare.sh`), and eval comparison (`eval_comparison.sh`) scripts.
+- **Logic Extraction for Testability** — Extracted pure logic from SwiftUI views into `enum` namespaces (`EvalRunnerLogic`, `ModelDetailFormatters`, etc.) for unit testing.
+- **~900 New Tests** — Coverage push adding 10+ new test files and ~900 test methods across unit, integration, and UI test targets.
+
+### Fixed
+
+- **macOS Model Loading Regression** — Fixed path resolution and download-to-load lifecycle that prevented models from loading on macOS.
+- **iOS Eval View Layout** — Fixed alignment, wrapping, and layout consistency issues in the iOS evaluation runner view.
+- **iOS Navigation Dead-Ends** — Eliminated navigation dead-ends in Chat, Eval, and Model Detail tabs on iOS.
+- **UI Clipping** — Fixed clipping in Chat and EvalComparison views.
+- **Compiler Warnings** — Resolved compiler errors and warnings across the codebase.
+
+### Changed
+
+- **xcresulttool Made Non-Blocking** — `kishikawakatsumi/xcresulttool@v1` now runs with `continue-on-error: true` due to Node.js 20 deprecation on macos-26 runners.
+- **SwiftLint Severity** — Downgraded SwiftLint severity levels to reduce noise in CI.
+- **CI Hardening** — Fixed Git LFS smudge filter conflicts with LiteRT-LM Android binaries, added SPM resolution retry with `clonedSourcePackagesDirPath` fallback, improved cache busting.
+
+### Infrastructure
+
+- **Dependabot Bumps** — `codecov/codecov-action` v5→v7, `softprops/action-gh-release` v2→v3, `actions/stale` v9→v10.
+- **AGENTS.md Rules** — Added CI debugging, strategic recommendations, Codecov policy, JSONSerialization safety, NSExpression safety, and verification integrity rules.
+- **Automation Scripts** — Added `run_full_matrix.sh`, `ci_test_runner.sh`, `eval_comparison.sh`, `benchmark_compare.sh`, `validate_flows.sh`, `device_health_check.sh`, `monitor_device.sh`, and `update_eval_baselines.sh`.
 
 ## [2.0.0-rc1] - 2026-06-13
 

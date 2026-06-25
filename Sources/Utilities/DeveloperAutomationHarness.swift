@@ -1,3 +1,4 @@
+// Copyright 2026 Andrew Voirol. Apache-2.0
 // Copyright 2026 Andrew Voirol
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1190,7 +1191,7 @@ struct DeveloperAutomationHarness {
         // 3. Check known project path
         #if os(macOS)
         let homePath = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Antigravity/Projects/gemma-edgegallery/metrics/baselines.json")
+            .appendingPathComponent("Antigravity/Projects/edge-ai-lab/metrics/baselines.json")
         if FileManager.default.fileExists(atPath: homePath.path) {
             return homePath
         }
@@ -1217,7 +1218,7 @@ struct DeveloperAutomationHarness {
         // 3. Check known project path
         #if os(macOS)
         let homePath = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Antigravity/Projects/gemma-edgegallery/metrics/eval_baselines.json")
+            .appendingPathComponent("Antigravity/Projects/edge-ai-lab/metrics/eval_baselines.json")
         if FileManager.default.fileExists(atPath: homePath.path) {
             return homePath
         }
@@ -1238,7 +1239,7 @@ struct DeveloperAutomationHarness {
                 URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
                     .appendingPathComponent("metrics/eval_history.json"),
                 FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent("Antigravity/Projects/gemma-edgegallery/metrics/eval_history.json")
+                    .appendingPathComponent("Antigravity/Projects/edge-ai-lab/metrics/eval_history.json")
             ]
             if let existing = projectPaths.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
                 return existing

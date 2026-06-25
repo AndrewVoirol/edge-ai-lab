@@ -1,3 +1,4 @@
+// Copyright 2026 Andrew Voirol. Apache-2.0
 // Copyright 2026 Andrew Voirol
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -530,7 +531,7 @@ struct AutomationFlowRunner {
         // Last resort: check common paths (macOS only)
         #if os(macOS)
         let homeFlows = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Antigravity/Projects/gemma-edgegallery/automation/flows")
+            .appendingPathComponent("Antigravity/Projects/edge-ai-lab/automation/flows")
         return homeFlows
         #else
         // On iOS, flows should always be in the bundle or current directory

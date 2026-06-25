@@ -112,7 +112,7 @@ bash automation/device_health_check.sh [DEVICE_ID]
 ```bash
 bash automation/validate_flows.sh
 ```
-- **Checks**: Syntax, required fields, known action types, step numbering for all 31 flow JSON files
+- **Checks**: Syntax, required fields, known action types, step numbering for all 33 flow JSON files
 - **Pass criteria**: 0 failures (warnings about optional fields are acceptable)
 - **Dependencies**: None
 
@@ -129,7 +129,7 @@ xcodebuild test -workspace EdgeAILab.xcworkspace \
     -destination "platform=macOS" \
     -only-testing:EdgeAILab_macOSTests
 ```
-- **Scope**: ~730 tests in `EdgeAILab_macOSTests`
+- **Scope**: ~2,000 tests in `EdgeAILab_macOSTests`
 - **Test plan exclusions** (7 classes): `BatchEvalTests`, `GalleryParityBenchmarkTests`, `InferenceQualityTests`, `MetricsStoreTests`, `MultiTurnIntegrationTests`, `PerformanceTests`, `SmartFallbackIntegrationTests`
 - **Pass criteria**: 0 failures
 
@@ -144,7 +144,7 @@ xcodebuild test -workspace EdgeAILab.xcworkspace \
     -destination "platform=iOS Simulator,name=iPhone 16 Pro Max" \
     -only-testing:EdgeAILab_iOSTests
 ```
-- **Scope**: ~1880 tests in `EdgeAILab_iOSTests`
+- **Scope**: ~2,000 tests in `EdgeAILab_iOSTests`
 - **Test plan exclusions**: `InferenceQualityTests` (requires real Metal GPU)
 - **Expected skips**: ~39 tests (XCTSkip for platform-specific or resource-dependent)
 - **Pass criteria**: 0 failures

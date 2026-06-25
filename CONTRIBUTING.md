@@ -85,7 +85,7 @@ If you're not sure where to start, the [tutorial below](#tutorial-how-to-add-a-n
 ## Project Structure
 
 ```
-Sources/           # App source code in feature folders (85 Swift files)
+Sources/           # App source code in feature folders (102 Swift files)
   App/             # Entry point, app delegate
   Conversation/    # ViewModel, chat messages, MCP extension
   Engine/          # LiteRT-LM wrapper
@@ -104,7 +104,7 @@ Sources/           # App source code in feature folders (85 Swift files)
   Platform/macOS/  # macOS-specific views
   Views/           # Shared UI (sidebar, chat bubbles, etc.)
   Utilities/       # Parsers, helpers
-Tests/             # Unit + integration tests in mirrored feature folders (49 test files)
+Tests/             # Unit + integration tests in mirrored feature folders (123 test files)
 UITests/           # macOS UI tests (26 tests)
 iOSUITests/        # iOS UI smoke tests (5 tests)
 RawBenchmark/      # CLI benchmark tool
@@ -180,13 +180,13 @@ xcrun simctl boot "iPhone 16 Pro"
 
 # iOS unit tests
 xcodebuild test -workspace EdgeAILab.xcworkspace \
-  -scheme "Edge AI Lab" \
+  -scheme EdgeAILab_iOS \
   -only-testing:EdgeAILab_iOSTests \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 
 # iOS UI tests
 xcodebuild test -workspace EdgeAILab.xcworkspace \
-  -scheme "Edge AI Lab" \
+  -scheme EdgeAILab_iOS \
   -only-testing:iOSUITests \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 ```

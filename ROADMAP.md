@@ -25,7 +25,7 @@ This roadmap provides visibility into where Edge AI Lab is heading. It's organiz
 - [ ] Performance optimizations for 12B Dense model inference
 - [ ] Enhanced MCP server discovery and configuration UI
 - [ ] Conversation export formats (Markdown, PDF)
-- [ ] Code coverage reporting and thresholds in CI
+
 
 ## Later — Future (Aspirational)
 
@@ -39,6 +39,10 @@ This roadmap provides visibility into where Edge AI Lab is heading. It's organiz
 - [ ] Prompt template library
 - [ ] Localization (i18n)
 
+## ✅ Done
+
+- [x] Code coverage reporting and thresholds in CI (Implemented: ci.yml enforces 28% floor)
+
 ---
 
-*Last updated: June 2026 · Edge AI Lab v2.0.0-rc1*
+*Last updated: June 24, 2026 · Edge AI Lab v2.0.0-rc1*

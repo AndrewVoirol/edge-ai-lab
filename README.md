@@ -245,14 +245,14 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instr
 - [ROADMAP.md](ROADMAP.md) — Project roadmap and where contributions are most impactful
 
 ```bash
-# Run unit tests (730+ tests)
+# Run unit tests (2,000+ tests)
 xcodebuild test -workspace EdgeAILab.xcworkspace \
   -scheme "Edge AI Lab" \
-  -only-testing:EdgeAILab_macOSTests \
+  -testPlan UnitTests \
   -destination 'platform=macOS,arch=arm64'
 ```
 
-**84 Swift source files · 50 test files · 730+ tests · 3 CI jobs · 6 automation flows**
+**102 Swift source files · 123 test files · 2,000+ tests · 4 CI jobs · 33 automation flows**
 
 ---
 

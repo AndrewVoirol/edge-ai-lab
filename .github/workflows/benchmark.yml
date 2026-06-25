@@ -91,7 +91,7 @@ jobs:
         id: build-metrics
         run: |
           # Capture build time and binary size
-          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 -not -path "*.dSYM*" 2>/dev/null | head -1)
           if [[ -n "$BINARY_PATH" ]]; then
             BINARY_SIZE=$(stat -f%z "$BINARY_PATH" 2>/dev/null || echo "0")
             echo "binary_size=$BINARY_SIZE" >> $GITHUB_OUTPUT
@@ -159,7 +159,7 @@ jobs:
       - name: Locate Binary
         id: binary
         run: |
-          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 -not -path "*.dSYM*" 2>/dev/null | head -1)
           if [[ -z "$BINARY_PATH" ]]; then
             echo "❌ RawBenchmark binary not found"
             exit 1
@@ -378,7 +378,7 @@ jobs:
           # Look for models in standard locations
           MODEL_DIR="${HOME}/models"
           if [[ ! -d "$MODEL_DIR" ]]; then
-            MODEL_DIR="${HOME}/Antigravity/Projects/gemma-edgegallery/models"
+            MODEL_DIR="${HOME}/Antigravity/Projects/edge-ai-lab/models"
           fi
 
           MODEL_PATH=$(find "$MODEL_DIR" -name "*.litertlm" -type f 2>/dev/null | head -1)
@@ -407,7 +407,7 @@ jobs:
       - name: Run Benchmark
         if: steps.models.outputs.skip != 'true'
         run: |
-          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 2>/dev/null | head -1)
+          BINARY_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "RawBenchmark" -type f -perm +111 -not -path "*.dSYM*" 2>/dev/null | head -1)
           "$BINARY_PATH" "${{ steps.models.outputs.path }}" > benchmark_results.json 2> benchmark_log.txt
           echo "📊 Results:"
           cat benchmark_results.json | python3 -m json.tool

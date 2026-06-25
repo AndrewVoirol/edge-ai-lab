@@ -134,7 +134,7 @@ huggingface-cli download litert-community/gemma-4-e2b-it-litertlm \
   --local-dir ~/models/
 
 # Or copy from project directory if available
-cp /path/to/gemma-edgegallery/models/*.litertlm ~/models/
+cp /path/to/edge-ai-lab/models/*.litertlm ~/models/
 ```
 
 ### 3. Expected File Names
@@ -149,7 +149,7 @@ cp /path/to/gemma-edgegallery/models/*.litertlm ~/models/
 The `self-hosted-benchmark` job in `benchmark.yml` searches for models in this order:
 
 1. `~/models/` — primary location
-2. `~/Antigravity/Projects/gemma-edgegallery/models/` — fallback
+2. `~/Antigravity/Projects/edge-ai-lab/models/` — fallback
 
 The first `.litertlm` file found is used for benchmarking. To override auto-discovery, set the `PERFORMANCE_TEST_MODEL_PATH` environment variable:
 
@@ -187,7 +187,7 @@ source ~/.zshrc
 
 ```bash
 # From the project root — version is pinned in .mise.toml
-cd ~/Antigravity/Projects/gemma-edgegallery
+cd ~/Antigravity/Projects/edge-ai-lab
 mise install tuist
 ```
 
@@ -207,7 +207,7 @@ This creates `EdgeAILab.xcworkspace` and all `.xcodeproj` files needed for `xcod
 |----------|----------|---------|-------------|
 | `PERFORMANCE_TEST_MODEL_PATH` | No | Auto-discovered | Absolute path to a `.litertlm` model file |
 | `CODECOV_TOKEN` | No | — | Token for uploading code coverage reports |
-| `DEVELOPMENT_TEAM` | No | `Y7J7WUK693` | Apple Developer Team ID for code signing |
+| `DEVELOPMENT_TEAM` | No | `YOUR_TEAM_ID` | Apple Developer Team ID for code signing. Replace `YOUR_TEAM_ID` with your Apple Development Team ID (find it in Xcode → Settings → Accounts → select your team → Team ID). |
 
 ### Setting Variables
 

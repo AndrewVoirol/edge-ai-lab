@@ -15,7 +15,7 @@ Closes #
 - [ ] All tests pass (`xcodebuild test`)
 - [ ] Design system tokens used (no hardcoded colors/spacing)
 - [ ] Accessibility identifiers added to interactive elements
-- [ ] Apache 2.0 license header included on new files
+- [ ] One-line copyright comment on new files (`// Copyright 2026 Andrew Voirol. Apache-2.0`)
 - [ ] No `print()` statements — use `os.Logger` instead
 - [ ] SwiftLint passes with no new warnings
 

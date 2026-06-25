@@ -1,3 +1,4 @@
+// Copyright 2026 Andrew Voirol. Apache-2.0
 // Copyright 2026 Andrew Voirol
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -226,7 +227,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
             URL(fileURLWithPath: fm.currentDirectoryPath)
                 .appendingPathComponent("metrics/eval_history.json"),
             fm.homeDirectoryForCurrentUser
-                .appendingPathComponent("Antigravity/Projects/gemma-edgegallery/metrics/eval_history.json")
+                .appendingPathComponent("Antigravity/Projects/edge-ai-lab/metrics/eval_history.json")
         ]
         if let existing = projectPaths.first(where: { fm.fileExists(atPath: $0.path) }) {
             return existing
