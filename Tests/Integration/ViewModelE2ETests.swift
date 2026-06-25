@@ -90,17 +90,12 @@ final class ViewModelE2ETests: XCTestCase {
     }
 
     /// Initialize the mock engine on the ViewModel so isEngineReady is true.
+    ///
+    /// Uses `sessionController.initializeEngine()` (not direct `engine.initialize()`)
+    /// so the `onEngineReadyChanged` callback fires and sets the tracked
+    /// `isEngineReady` property on the ViewModel.
     private func initializeEngine(on vm: ConversationViewModel) async throws {
-        let engine = vm.engine as! MockInstrumentedEngine
-        try await engine.initialize(
-            modelPath: "/fake/model.litertlm",
-            useGPU: false,
-            cacheDir: NSTemporaryDirectory(),
-            flags: vm.experimentalFlags,
-            samplerConfig: nil,
-            systemMessage: nil,
-            tools: nil
-        )
+        await vm.sessionController.initializeEngine(modelPath: "/fake/model.litertlm")
     }
 
     // MARK: - Tests

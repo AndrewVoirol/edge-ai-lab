@@ -1,6 +1,6 @@
 {
   "name": "macOS Eval Execution UI",
-  "description": "Tests the evaluation runner UI on macOS: navigate to evaluations via sidebar → verify eval runner view loads → verify suite picker → verify model picker → verify run button → verify results list. Maps to eval UI readiness without executing a real eval run.",
+  "description": "Tests the evaluation runner UI on macOS: navigate to evaluations via sidebar → verify eval runner view loads → verify suite picker → verify model picker → verify run button → verify results list.",
   "platform": "macOS",
   "steps": [
     {
@@ -17,50 +17,44 @@
     },
     {
       "step": 3,
-      "action": "wait",
-      "description": "Wait for eval runner view to appear.",
-      "condition": "element_exists:evalRunnerView_root",
-      "timeout_seconds": 5
+      "action": "verify_ui",
+      "description": "Verify the eval runner title loaded.",
+      "expected_elements": ["evalRunner_title"],
+      "timeout_seconds": 15
     },
     {
       "step": 4,
-      "action": "verify_ui",
-      "description": "Verify eval runner title is visible.",
-      "expected_elements": ["evalRunner_title"]
-    },
-    {
-      "step": 5,
       "action": "verify_ui",
       "description": "Verify suite picker exists.",
       "expected_elements": ["evalRunner_suitePicker"]
     },
     {
-      "step": 6,
+      "step": 5,
       "action": "verify_ui",
       "description": "Verify model picker section exists.",
       "expected_elements": ["evalRunner_modelPicker"]
     },
     {
-      "step": 7,
+      "step": 6,
       "action": "verify_ui",
       "description": "Verify the Run Evaluation button exists.",
       "expected_elements": ["evalRunner_runButton"]
     },
     {
-      "step": 8,
+      "step": 7,
       "action": "verify_ui",
       "description": "Verify the New Suite button exists.",
       "expected_elements": ["evalRunner_newSuiteButton"]
     },
     {
-      "step": 9,
+      "step": 8,
       "action": "scroll_to",
       "description": "Scroll to the results list.",
       "target_element": "evalRunner_resultsList",
       "max_attempts": 4
     },
     {
-      "step": 10,
+      "step": 9,
       "action": "verify_ui",
       "description": "Verify results list section is present.",
       "expected_elements": ["evalRunner_resultsList"]

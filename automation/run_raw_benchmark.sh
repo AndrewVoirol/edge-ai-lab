@@ -26,7 +26,16 @@ if [[ "${1:-}" == "--no-trace" ]]; then
     NO_TRACE=true
 fi
 
-MODEL_PATH="$PROJECT_ROOT/models/gemma-4-12B-it.litertlm"
+if [[ -n "${MODEL_PATH:-}" ]]; then
+    : # User-provided via environment variable, use as-is
+else
+    MODEL_PATH=$(find "$PROJECT_ROOT/models" -name '*.litertlm' -type f 2>/dev/null | head -1)
+    if [[ -z "$MODEL_PATH" ]]; then
+        echo "❌ No .litertlm model found in $PROJECT_ROOT/models/" >&2
+        echo "   Set MODEL_PATH environment variable or place a model in models/" >&2
+        exit 1
+    fi
+fi
 
 echo "═══════════════════════════════════════════════════════════" >&2
 echo "  RawBenchmark Runner" >&2
@@ -49,7 +58,7 @@ xcodebuild \
 echo "" >&2
 
 # ── Locate the binary ────────────────────────────────────────────────────
-BINARY=$(find Derived/RawBenchmark/Build/Products/Release* -name "RawBenchmark" -type f 2>/dev/null | head -1)
+BINARY=$(find Derived/RawBenchmark/Build/Products/Release* -name "RawBenchmark" -type f -not -path "*.dSYM*" 2>/dev/null | head -1)
 if [[ -z "$BINARY" ]]; then
     echo "❌ Could not find RawBenchmark binary in Derived/RawBenchmark/" >&2
     echo "   Attempting to find it..." >&2

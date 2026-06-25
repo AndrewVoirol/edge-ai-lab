@@ -309,7 +309,8 @@ final class BenchmarkCardTests: XCTestCase {
         let metrics = InferenceMetrics(
             startSnapshot: startSnapshot,
             endSnapshot: endSnapshot,
-            tokenLatenciesMs: [10.0, 12.0, 15.0, 11.0, 50.0],
+            ttftMs: nil,
+            decodeLatenciesMs: [10.0, 12.0, 15.0, 11.0, 50.0],
             totalTokenCount: 5
         )
 
@@ -468,7 +469,8 @@ final class BenchmarkCardTests: XCTestCase {
         )
         let metrics = InferenceMetrics(
             startSnapshot: start, endSnapshot: end,
-            tokenLatenciesMs: [10.0], totalTokenCount: 1
+            ttftMs: nil,
+            decodeLatenciesMs: [10.0], totalTokenCount: 1
         )
         XCTAssertTrue(metrics.thermalStateChanged)
     }
@@ -506,7 +508,8 @@ final class BenchmarkCardTests: XCTestCase {
         )
         return InferenceMetrics(
             startSnapshot: start, endSnapshot: end,
-            tokenLatenciesMs: latencies, totalTokenCount: latencies.count
+            ttftMs: nil,
+            decodeLatenciesMs: latencies, totalTokenCount: latencies.count
         )
     }
 }

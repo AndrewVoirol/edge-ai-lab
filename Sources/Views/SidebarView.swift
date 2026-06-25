@@ -218,6 +218,7 @@ struct SidebarView: View {
                 NavigationLink(value: SidebarSection.evaluations) {
                     Label("Run Evaluation", systemImage: "play.circle")
                 }
+                .tag(SidebarSection.evaluations)
                 .accessibilityIdentifier("sidebar_evaluations_run")
             } header: {
                 Label("Evaluations", systemImage: SidebarSection.evaluations.systemImage)
@@ -443,7 +444,7 @@ struct SidebarView: View {
                 }
             }
 
-        case .downloaded:
+        case .downloaded(let fileURL):
             HStack(spacing: AppSpacing.xs) {
                 Circle()
                     .fill(AppColors.success)
@@ -464,6 +465,14 @@ struct SidebarView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("sidebar_deleteModel_\(model.modelFile)")
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                selectedSection = .models
+                Task {
+                    await viewModel.handleModelSelection(fileURL)
+                }
+            }
+            .accessibilityHint("Double-tap to load this model")
 
         case .failed(let message):
             HStack(spacing: AppSpacing.xs) {

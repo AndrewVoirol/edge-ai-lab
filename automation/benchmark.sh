@@ -109,7 +109,7 @@ run_single_benchmark() {
 
     # Find the built binary
     local binary
-    binary=$(find ~/Library/Developer/Xcode/DerivedData/EdgeAILab-*/Build/Products/Release -name "RawBenchmark" -type f 2>/dev/null | head -1)
+    binary=$(find ~/Library/Developer/Xcode/DerivedData/EdgeAILab-*/Build/Products/Release -name "RawBenchmark" -type f -not -path "*.dSYM*" 2>/dev/null | head -1)
     if [[ -z "$binary" ]]; then
         echo "❌ Cannot find built RawBenchmark binary"
         exit 1
@@ -119,7 +119,25 @@ run_single_benchmark() {
     local output
     output=$("$binary" "$model_path" 2>&1) || true
     echo "$output"
-    echo "$output"
+
+    # Extract the JSON object from the binary output (last { ... } block)
+    local json_output
+    json_output=$(echo "$output" | python3 -c "
+import sys, json
+text = sys.stdin.read()
+# Find the last JSON object in the output
+last_brace = text.rfind('}')
+if last_brace >= 0:
+    first_brace = text.rfind('{', 0, last_brace)
+    if first_brace >= 0:
+        try:
+            obj = json.loads(text[first_brace:last_brace+1])
+            json.dump(obj, sys.stdout)
+        except: pass
+" 2>/dev/null) || true
+    if [[ -n "$json_output" ]]; then
+        LAST_BENCHMARK_JSON="$json_output"
+    fi
 }
 
 # --- Main ---
@@ -145,7 +163,7 @@ build_benchmark
 
 # Run benchmarks
 mkdir -p "$METRICS_DIR"
-RESULTS=()
+LAST_BENCHMARK_JSON=""
 
 for ((i = 1; i <= ITERATIONS; i++)); do
     if [[ $i -gt 1 ]]; then
@@ -164,15 +182,33 @@ echo ""
 echo "Results saved to: $REPORT_FILE"
 echo ""
 
-# Generate report metadata
-cat > "$REPORT_FILE" << EOF
+# Generate report: use the last captured benchmark JSON if available, else metadata-only
+if [[ -n "$LAST_BENCHMARK_JSON" ]]; then
+    # Use the last run's JSON (runs 2+ are the non-warmup runs)
+    echo "$LAST_BENCHMARK_JSON" | python3 -c "
+import sys, json
+obj = json.load(sys.stdin)
+# Add metadata the binary doesn't include
+obj['benchmark_iterations'] = $ITERATIONS
+obj['cooldown_seconds'] = $COOLDOWN
+obj['methodology'] = {
+    'thermal_check': True,
+    'cooldown_between_runs': True,
+    'release_build': True,
+    'warmup_discarded': True
+}
+json.dump(obj, sys.stdout, indent=2, sort_keys=True)
+" > "$REPORT_FILE"
+else
+    # Fallback: metadata-only (binary produced no parseable JSON)
+    cat > "$REPORT_FILE" << EOF
 {
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "device": "${DEVICE_UDID:-macOS}",
   "model": "$(basename "$MODEL_PATH")",
   "iterations": $ITERATIONS,
   "cooldown_seconds": $COOLDOWN,
-  "note": "Run 1 is warmup. Average runs 2-$ITERATIONS for stable metrics.",
+  "note": "No benchmark JSON captured from binary.",
   "methodology": {
     "thermal_check": true,
     "cooldown_between_runs": true,
@@ -181,6 +217,7 @@ cat > "$REPORT_FILE" << EOF
   }
 }
 EOF
+fi
 
 echo "📄 Report written to $REPORT_FILE"
 

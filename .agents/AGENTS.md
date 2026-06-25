@@ -11,16 +11,23 @@
 - **Call `session_show_defaults` before the first build/test/run** in every session. Set defaults with `session_set_defaults` if missing.
 - `extraArgs` = xcodebuild flags (e.g., `-testPlan`, `-only-testing:`). `launchArgs` = runtime app args (NOT available on `test_*` tools).
 - **When MCP tools fail unexpectedly**, read the MCP build log (path in tool output) and compare the exact `xcodebuild` command to what works from terminal. Common differences: `-derivedDataPath`, `-destination`, `-configuration`. Don't assume "permissions" or "environment" without evidence.
-- **macOS UI tests**: Set `derivedDataPath` in session defaults to the standard Xcode DerivedData path. MCP's isolated DerivedData produces test runner binaries that macOS hasn't authorized for UI automation.
+- **macOS UI tests**: If a "Timed out while enabling automation mode" error occurs, it means the XCUITest runner binary hasn't been authorized for UI automation. macOS TCC keys this authorization to the binary's **absolute path** in DerivedData — every rebuild invalidates it. The permanent fix is `automationmodetool enable-automationmode-without-authentication` (requires user password once). See `TESTING.md` Prerequisites. Without this tool, every rebuild triggers a Touch ID / password prompt.
+- **`scheme` passed as a tool parameter may not override session defaults** on all MCP tools. When switching between macOS (`"Edge AI Lab"`) and iOS (`EdgeAILab_iOS`) testing, always update session defaults via `session_set_defaults` rather than relying on per-call parameter overrides. Reset defaults back after.
+- **`config.yaml` `sessionDefaults` take precedence over `session_set_defaults`**. The `.xcodebuildmcp/config.yaml` file's `sessionDefaults` section cannot be overridden at runtime. For macOS tests (scheme `"Edge AI Lab"`), use raw `xcodebuild` commands directly instead of MCP tools, or temporarily edit `config.yaml`.
 
 ## Testing
 - Read the `test-runner` skill before running any tests.
 - **When adding a new test target**: (1) Create a `.xctestplan` JSON in the project root, (2) add it to the relevant scheme's `testAction` in `Project.swift`, (3) run `tuist generate`. A target not in any test plan is unreachable from `xcodebuild test`.
 - **Two `FlowDrivenUITestRunner.swift` files exist**: `UITests/` (macOS target) and `iOSUITests/` (iOS target). They are independent copies — changes to one do NOT propagate to the other. Always apply UI test runner fixes to both files.
-- **macOS UI tests require Cmd+N after launch** — see `test-runner` skill for details.
+- **macOS UI tests require Cmd+N after launch** — `launchApp()` retries Cmd+N up to 3 times with increasing delays (2s, 3s, 4s). A single attempt is unreliable on macOS 26 Liquid Glass. See `test-runner` skill for details.
+- **Never run concurrent xcodebuild UI test processes.** macOS UI tests and iOS Simulator UI tests share the screen, keyboard, and accessibility session. Running two xcodebuild test sessions simultaneously produces false failures (stale snapshots, missed clicks, wrong window focus). Always wait for one UI test run to complete before starting another. Unit tests (`-only-testing:*Tests` without UI targets) are safe to run concurrently.
+- **Never pipe `xcodebuild test` through `tail -N` for long-running UI tests.** `tail` buffers all output until the upstream process exits, making progress invisible during execution. Instead, redirect to a file and check it: `xcodebuild test ... > /tmp/ui_test_output.log 2>&1` then `tail -20 /tmp/ui_test_output.log` to check progress. For short tests (<60s), `tail -N` piping is acceptable.
+- **Flow test `expected_elements` should use accessibility identifiers, not display text.** Display text in SwiftUI `Section` headers, `Label`, and `Text` views may not reliably appear in the iOS 27 accessibility tree. Conditional sections (gated by data presence) won't appear on a clean simulator. Always verify against `.accessibilityIdentifier()` values from the source code, not user-visible strings.
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
+- iOS Simulator destination: `iPhone 16 Pro Max` (ID: `CD9FBA60-9BA8-42DC-8D19-335ECEF4C915`). Custom simulator matching the physical device for parity. The default `iPhone 17 Pro Max` sim has been deleted.
 - All perpetual animations MUST have `XCTestConfigurationFilePath` guard.
 - **Test resources don't bundle to physical iOS devices** via Tuist. Tests that load from `Bundle(for:)` must include an XCTSkip guard when the resource returns nil.
+- **`/tmp` is not writable on physical iOS devices.** Tests that write to `/tmp` will fail on device (iOS sandbox restriction). Use the app's Documents directory or `NSTemporaryDirectory()` (which resolves to the sandboxed temp dir) instead, or add an `XCTSkip` guard for device runs.
 - **Tuist bundles resources into macOS/Simulator test targets.** Unlike physical iOS devices, the macOS and iOS Simulator test runners DO have access to app resources. Tests should accept both `nil` (resources absent) and valid data (resources present) unless the test specifically requires one. Never assert `loadImage() == nil` in a test that runs on macOS — the resource may be there.
 - **`generate_image` produces JPEG data with `.png` extension.** Never assert PNG magic bytes (`0x89 0x50 0x4E 0x47`). Accept both JPEG (`0xFF 0xD8 0xFF`) and PNG headers.
 - **Swift Testing migration**: When creating a new `@Suite` Swift Testing file that replaces an XCTest file, add the XCTest class name to `UnitTests.xctestplan` → `skippedTests` in the same commit. Never leave both versions running simultaneously.
@@ -51,9 +58,31 @@
 - For `static let` properties with `Sendable` types (e.g., `String`, `Int`) on `@MainActor` types, use `nonisolated` (NOT `nonisolated(unsafe)`). The `unsafe` qualifier is only needed for mutable (`var`) or non-`Sendable` statics.
 
 ## XCUITest on Physical Devices
-- **Never use `app.swipeUp()`/`swipeDown()`** on physical iOS devices — these trigger XCUITest's idle-wait which hangs indefinitely with iOS 26 Liquid Glass momentum scrolling.
+- **Never use `app.swipeUp()`/`swipeDown()`** on physical iOS devices — these trigger XCUITest's idle-wait which hangs indefinitely with iOS 27 Liquid Glass momentum scrolling.
 - Use coordinate-based drag instead: `app.coordinate(withNormalizedOffset:).press(forDuration:thenDragTo:)`.
 - On macOS, prefer window-coordinate drag with a Page Down keyboard fallback for INFINITY frame values.
+
+## iOS Device Automation
+- **Use `devicectl device process launch --console`** for live stdout streaming from physical iOS devices. This connects the app's stdout/stderr to the host terminal. The app's `automationLog()` calls `print()` → stdout, which `--console` captures. Verified working 2026-06-21.
+- **`--console` waits for app termination.** `signalComplete()` calls `_exit()` (NOT `exit()`) when not under XCUITest. `exit()` hangs indefinitely because LiteRT C++ destructors try to `join()` stuck GPU threadpool workers. `_exit()` is POSIX immediate termination — no atexit handlers, no destructors.
+- **Signal completion BEFORE engine shutdown.** `signalComplete` must fire before `engine.shutdown()` because shutdown can hang on LiteRT's threadpool. Under XCUITest, the marker file write is the signal; standalone, `automationLog` + `_exit()` is the signal.
+- **`XCTestConfigurationFilePath` is NOT set in the app process during XCUITest** — only in the test runner process. Use `CommandLine.arguments.contains("-RunAutomationHarness")` as the detection mechanism for automation harness flows.
+- **`log stream --device` does NOT exist.** `log stream` only supports `--process` and `--user` (confirmed via `log help stream`). Never use `--device` with `log stream`.
+- **`idevicesyslog` status is unverified.** It was installed via Homebrew but never re-tested after installation. Do not claim it is "broken on iOS 27" without testing — its status is unknown.
+- **Use `devicectl device copy from`** to pull result files from the device's app container:
+  ```bash
+  xcrun devicectl device copy from \
+    --device <DEVICE_ID> \
+    --source Documents/metrics/<filename> \
+    --domain-type appDataContainer \
+    --domain-identifier com.andrewvoirol.EdgeAILab \
+    --destination <local_path>
+  ```
+- **`devicectl device process terminate` requires `--pid`**, not a bundle identifier. To terminate by bundle ID, find the PID first or kill the `--console` process group.
+- **Automation harness results location**: The app writes benchmark results to `Documents/metrics/benchmark-results.jsonl` and eval results to `Documents/eval_results/` with an `index.json` manifest.
+- **`deploy_device.sh` completion flow**: `--console` captures stdout → watcher detects `"Signaling completion"` → kills pipeline → pulls results via `devicectl device copy from` → exits.
+- **`deploy_device.sh` supports `SKIP_BUILD=1`** to skip the xcodebuild + install phases when the Release build is already on-device. Use `SKIP_BUILD=1 BUILD_CONFIG=Release bash automation/deploy_device.sh <DEVICE_ID> <args>` for re-runs.
+- **Device model download can take 60+ minutes** for ~1.4GB models (gemma-4-E2B-it.litertlm). If the pipeline times out during download, wait for the download to complete independently, then re-run with `SKIP_BUILD=1`. The app caches downloaded models — subsequent runs skip the download.
 
 ## Plan Execution Discipline
 - **Never silently drop or rename a plan item.** If a planned deliverable can't be completed or needs to change, update the plan artifact with a `> [!WARNING]` block explaining what changed and why BEFORE marking it done.
@@ -67,6 +96,11 @@
 - Prefer `JSONEncoder` (Swift) which throws catchable `EncodingError` for non-finite values.
 - Use `value.isFinite` guard before any `JSONSerialization` call that might contain computed numeric values.
 
+## NSExpression Safety
+- `NSExpression(format:)` interprets `%` as an Objective-C format specifier, throwing an uncatchable `NSInvalidArgumentException`. Swift `try`/`catch` **cannot** catch this.
+- Never pass user-provided or model-generated strings directly to `NSExpression(format:)`. Sanitize first: convert `15%` → `(15/100)`, reject non-mathematical text (`of`, `==`, `is`), and whitelist allowed characters.
+- `CalculatorTool.swift` applies this pattern — use it as reference.
+
 ## Post-Edit Git Verification
 - After creating or editing files, verify they appear in `git status` before claiming "done".
 - For files in potentially gitignored directories (e.g., `metrics/`, `build/`, `output/`), run `git check-ignore -v <path>` to confirm tracking.
@@ -78,11 +112,64 @@
 - **Never push speculative CI fixes.** Each push triggers a 3-8 minute CI cycle. Before pushing, verify your hypothesis can be tested locally or confirmed from existing log data. Aim for 1-2 fix commits, not 5+.
 - **Check for Git LFS and submodules** whenever you see "Couldn't check out revision" or "Could not resolve package dependencies" in SPM/xcodebuild. These are the #1 cause of CI-only checkout failures.
 - **Verify GitHub Actions versions exist** before referencing them (e.g., `@v2`). Use the repo's releases page or `gh api repos/{owner}/{repo}/tags` to confirm.
+- **Simulate CI metric extraction locally before optimizing.** Before spending effort to move a CI-enforced metric (coverage, lint score, build size), run the exact extraction command from the CI script against a local result bundle. Verify it (1) targets the intended data (e.g., app target vs. test target), (2) parses the correct field, and (3) produces a plausible number. One `grep | awk` simulation catches broken scripts that documentation and prior agent claims won't.
 
 ## Strategic Recommendations
 - **Never project numeric outcomes without evidence.** If you haven't measured it, say "unknown — requires measurement" instead of estimating a range. Fabricated projections (e.g., "expected 50-80%") erode trust when reality doesn't match.
 - **Verify current state before recommending changes.** Before recommending "activate CI," check if CI is already running. Before recommending a tool, check if the user's situation (solo dev, team, open source) makes it relevant. Run `gh run list`, `gh secret list`, etc. — 10 seconds of verification prevents bad advice.
 - **Disclose when a recommendation is opinion vs. evidence.** Use explicit qualifiers: "I haven't tested this, but..." or "Based on [specific data]..." Never present speculation as analysis.
 
+## Verification Integrity
+- **When the user asks to re-run tests, re-run ALL of them.** Do not selectively skip levels, platforms, or test plans based on predictions about what will or won't change. The purpose of a verification run is to challenge assumptions — skipping parts defeats that purpose.
+- **Never declare a failure "permanent" or "known" after a single occurrence.** Transient infrastructure issues (auth timeouts, device connection interruptions, Gatekeeper blocks) may self-resolve on retry. Always verify with at least one re-run before classifying a failure as systemic.
+- **Before declaring a tool "broken", verify you understand its intended behavior.** A tool that "hangs" may be waiting for a condition you haven't met (e.g., `devicectl --console` waits for app termination — if the app never calls `exit()`, that's a usage issue, not a tool bug). Read `--help` output and test with minimal cases before concluding a tool doesn't work. The cost of a wrong "broken" label is high: it gets written into rules and propagated across sessions.
+- **Never write speculative failure diagnoses into AGENTS.md.** Phrases like "likely an iOS 27 issue" or "probably a compatibility problem" are opinions, not evidence. If you haven't verified the root cause, write "status unknown — not verified" instead. Rules in AGENTS.md are treated as facts by future sessions — speculation in rules compounds into persistent misinformation.
+- **Verify comparison/regression script outputs contain actual comparisons.** A script that reports "no regressions" with zero comparisons is a vacuous truth, not a meaningful pass. Always check the `comparisons` array (or equivalent) in the output — if it's empty, the result is INCONCLUSIVE, not PASS.
+- **When a script exits 0 (success), verify the output data matches expectations.** Exit code alone is insufficient evidence of a meaningful result. Check at least one substantive field in the output file.
+
+## Verification Run Discipline
+- During a verification run (any time the user asks to "run tests", "run the pyramid", or "verify"), do NOT skip any item unless the user explicitly says to skip it.
+- If an item fails, record the exact error output and continue to the next item. Do not stop to fix it, do not explain why the failure is acceptable, and do not remove the item from the checklist.
+- If a prerequisite is missing (e.g., no model for benchmark), record "BLOCKED: [reason]" and continue. Do not silently drop the item.
+- At the start of every verification session, state which items you plan to run. At the end, state which items you actually ran and their results. The two lists must match — any difference must be called out explicitly.
+- Never use `--skip-benchmarks`, `--skip-device`, or `--only-unit` flags on `run_full_matrix.sh` unless the user explicitly requests a partial run.
+
+## Test Result Reporting
+- When reporting test results, always distinguish between:
+  - **(a) Tests passed** — ran and succeeded
+  - **(b) Tests failed** — ran and failed
+  - **(c) Tests skipped at runtime** — xcodebuild reported as skipped (XCTSkip, etc.)
+  - **(d) Test classes excluded by the test plan** — never ran because `skippedTests` in the `.xctestplan` filtered them out before execution
+- For category (d), name the excluded classes. Never report "0 skipped" when test plan exclusions exist — they are a different kind of skip than runtime XCTSkip.
+- UnitTests.xctestplan excludes 7 classes: `BatchEvalTests`, `GalleryParityBenchmarkTests`, `InferenceQualityTests`, `MetricsStoreTests` (XCTestCase version), `MultiTurnIntegrationTests`, `PerformanceTests`, `SmartFallbackIntegrationTests`. Always note this when reporting UnitTests results.
+- IntegrationTests.xctestplan, PerformanceTests.xctestplan, and SimulatorTests.xctestplan are in the `EdgeAILab_iOS` scheme. They require explicit `-testPlan` flags to run (they are not the default plan).
+
 ## Codecov
-- Codecov is optional for this project. The 25% coverage floor is enforced by a bash script in `ci.yml` (`Check Coverage Threshold` step) — no third-party service needed. Only set up Codecov if/when the project accepts external contributors who would benefit from PR coverage comments.
+- Codecov is optional for this project. The 28% app-code coverage floor is enforced by a bash script in `ci.yml` (`Check Coverage Threshold` step) — no third-party service needed. This measures `Edge AI Lab.app` (not the test target). The floor is a regression guard; ~70% of executable lines are SwiftUI view body code that unit tests can't reach. Only set up Codecov if/when the project accepts external contributors who would benefit from PR coverage comments.
+
+## Automation Scripts
+- **When using `find` to locate built binaries**, always exclude `.dSYM` directories: `find ... -not -path "*.dSYM*"`. The `.dSYM` bundle contains a file with the same name as the binary that sorts alphabetically before the actual executable.
+- **Automation scripts require bash 5.x** (installed via Homebrew: `brew install bash`). macOS ships bash 3.2 (GPLv2 freeze from 2007). Do not constrain scripts to bash 3.2 compatibility — use modern features freely. If a script fails with "bad array subscript" or similar, verify `bash --version` first.
+- **When an automation script runs a binary that produces structured output (JSON), the script must capture and persist that output.** Printing to stdout alone is insufficient — stdout is ephemeral. Always write the binary's output to a file or merge it into the report. Verify the report file contains the expected data after the script completes.
+- **Always use `stdbuf -oL tee` (not bare `tee`)** in automation pipelines where a downstream `grep` needs to find output before the pipe closes. macOS `tee` uses full stdio buffering by default — if the upstream process calls `_exit()`, unflushed buffer content is lost. `stdbuf -oL` forces line-buffered writes.
+- **`benchmark_compare.sh` expects JSON, not JSONL.** Device benchmark results (`benchmark-results.jsonl`) are JSON Lines format. Extract the last data line (skip warmup events): `grep -v '"event"' benchmark-results.jsonl | tail -1 > /tmp/latest.json` before passing to `--results`. Additionally, the script matches on `model`/`backend` keys but JSONL uses `configId` — this is a known schema mismatch that produces `no_baseline` with zero comparisons.
+- **`eval_comparison.sh` does not populate iOS columns from `devicectl` pulls.** The script successfully pulls `index.json` from the device but shows "—" for all iOS eval scores. To get iOS eval numbers, read the `[AUTOMATION_EVAL_RESULTS_JSON]` block from the device console log (`metrics/device_console_*.log`) or parse `metrics/device_eval_pull/index.json` directly.
+
+## SwiftUI didSet Cascade Prevention
+- When bulk-syncing multiple properties that have `didSet` side-effects (e.g., engine re-initialization), use a guard flag (e.g., `isSyncingSettings`) to suppress the side-effects during the sync block. Set the flag before the first assignment, clear it after the last, then perform any needed side-effect once. Without this, each assignment triggers the side-effect independently, causing redundant work and UI state flip-flopping.
+
+## SwiftUI TextField Send on iOS
+- `TextField(axis: .vertical)` with `lineLimit(1...N)` does NOT reliably fire `.onSubmit` on iOS — the return key inserts a newline instead. `.submitLabel(.send)` only changes the key's label.
+- To implement "Return = Send" on iOS multi-line TextFields, use a `.onChange(of: text)` interceptor that detects a trailing newline, strips it, and calls the submit action. Keep `.onSubmit` as a fallback for edge cases where it does fire.
+- On macOS, the return key correctly inserts newlines in multi-line fields; use Cmd+Enter for send.
+
+## SwiftUI Notification Timing
+- A parent view's `.onAppear` fires BEFORE conditionally-displayed child views are created. Notifications posted from parent `.onAppear` will NOT be received by children that appear later (e.g., gated by `if someState`). To reliably reach a child view, either:
+  (a) Post from the child's own `.onAppear`, or
+  (b) Set `@FocusState`/`@State` directly on the child rather than relying on notifications.
+- This is especially relevant for keyboard dismissal: posting `.dismissKeyboardRequested` from a container `onAppear` doesn't reach `InputAreaView` if it's conditionally inserted.
+
+## FlowDrivenUITestRunner Wait Conditions
+- The `wait` action in flow JSON files only supports two condition types: `element_exists:<identifier>` and `element_not_exists:<identifier>`.
+- There is NO `element_exists_any` condition for `wait`. If you need to wait for one of several elements, pick the most reliable single element (e.g., a container identifier that wraps all variants).
+- The `verify_ui` action supports both `expected_elements` (all must exist) and `expected_elements_any` (at least one must exist). Do not confuse `verify_ui` capabilities with `wait` capabilities.

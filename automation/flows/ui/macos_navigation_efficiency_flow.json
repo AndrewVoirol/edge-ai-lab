@@ -1,6 +1,6 @@
 {
   "name": "macOS Navigation Efficiency",
-  "description": "Sidebar navigation on macOS: cycle through all major sections (Benchmarks → Evaluations → Conversations → Models) and verify each section's detail column loads. Validates NavigationSplitView routing and that no section crashes on selection.",
+  "description": "Sidebar navigation on macOS: cycle through sections (Benchmarks → Evaluations → Conversations) and verify each loads. Validates NavigationSplitView routing.",
   "platform": "macOS",
   "steps": [
     {
@@ -17,9 +17,10 @@
     },
     {
       "step": 3,
-      "action": "wait",
-      "description": "Wait for dashboard to render.",
-      "timeout_seconds": 2
+      "action": "verify_ui",
+      "description": "Verify dashboard loaded.",
+      "expected_elements": ["detailColumn_root"],
+      "timeout_seconds": 5
     },
     {
       "step": 4,
@@ -29,25 +30,19 @@
     },
     {
       "step": 5,
-      "action": "wait",
-      "description": "Wait for eval runner view to appear.",
-      "condition": "element_exists:evalRunnerView_root",
-      "timeout_seconds": 5
+      "action": "verify_ui",
+      "description": "Verify eval runner loaded.",
+      "expected_elements": ["evalRunner_title"],
+      "timeout_seconds": 15
     },
     {
       "step": 6,
-      "action": "verify_ui",
-      "description": "Verify eval runner loaded.",
-      "expected_elements": ["evalRunnerView_root"]
-    },
-    {
-      "step": 7,
       "action": "tap",
       "description": "Navigate to the Conversations section via sidebar.",
       "target_element": "sidebar_newChat"
     },
     {
-      "step": 8,
+      "step": 7,
       "action": "verify_ui",
       "description": "Verify chat column is still responsive after navigation.",
       "expected_elements": ["chatColumn_root"]

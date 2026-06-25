@@ -87,54 +87,123 @@ if [ "${NO_CONSOLE}" = "1" ]; then
             "$BUNDLE_ID"
     fi
     echo ""
-    echo "App launched. Monitor via: log stream --device $DEVICE_ID --predicate 'subsystem == \"com.andrewvoirol.EdgeAILab\"' --level info"
+    echo "App launched. Monitor via: idevicesyslog -u $DEVICE_ID -m EdgeAILab | grep AUTOMATION"
 else
-    echo "Launching with log streaming..."
+    echo "Launching with --console log streaming..."
     # Default timeout: 10 minutes (600s). Override with CONSOLE_TIMEOUT env var.
     CONSOLE_TIMEOUT="${CONSOLE_TIMEOUT:-600}"
+    OUTPUT_DIR="$DIR/metrics"
+    mkdir -p "$OUTPUT_DIR"
     LOG_OUTPUT="$OUTPUT_DIR/device_console_$(date +%Y%m%d_%H%M%S).log"
 
-    # Launch app without --console (which hangs indefinitely)
+    echo "Log output: $LOG_OUTPUT"
+    echo "Timeout: ${CONSOLE_TIMEOUT}s"
+
+    # Helper: pull results from device after successful completion
+    pull_device_results() {
+        echo ""
+        echo "Pulling results from device..."
+        local PULL_DIR="$OUTPUT_DIR/device_pull_$(date +%Y%m%d_%H%M%S)"
+        mkdir -p "$PULL_DIR"
+
+        # Pull benchmark results
+        xcrun devicectl device copy from \
+            --device "$DEVICE_ID" \
+            --source Documents/metrics/ \
+            --domain-type appDataContainer \
+            --domain-identifier "$BUNDLE_ID" \
+            --destination "$PULL_DIR/" 2>/dev/null && \
+            echo "   📄 Pulled metrics/ from device" || \
+            echo "   ⚠️  No metrics/ found on device (may not apply to this run)"
+
+        # Pull eval results
+        xcrun devicectl device copy from \
+            --device "$DEVICE_ID" \
+            --source Documents/eval_results/ \
+            --domain-type appDataContainer \
+            --domain-identifier "$BUNDLE_ID" \
+            --destination "$PULL_DIR/" 2>/dev/null && \
+            echo "   📄 Pulled eval_results/ from device" || \
+            echo "   ⚠️  No eval_results/ found on device (may not apply to this run)"
+
+        echo ""
+        echo "Results directory: $PULL_DIR"
+    }
+    echo ""
+
+    # Use `devicectl --console` which connects the app's stdout/stderr to this terminal.
+    # The app's automationLog() calls print() → stdout, so all [AUTOMATION] output is captured.
+    #
+    # --console waits for the app to terminate. signalComplete() calls exit() when NOT
+    # under XCUITest, so --console should return naturally. We still run in the background
+    # with a timeout as a safety net in case exit() hangs (e.g., LiteRT thread cleanup).
+    #
+    # We wrap in a subshell so $! captures the group leader. Killing -$PID kills
+    # both devicectl and tee (a bare pipeline's $! is only the last element).
     if [ -n "$LAUNCH_ARGS" ]; then
-        xcrun devicectl device process launch \
+        ( xcrun devicectl device process launch \
             --device "$DEVICE_ID" \
             --terminate-existing \
+            --console \
             "$BUNDLE_ID" \
-            -- $LAUNCH_ARGS
+            -- $LAUNCH_ARGS 2>&1 | stdbuf -oL tee "$LOG_OUTPUT" ) &
     else
-        xcrun devicectl device process launch \
+        ( xcrun devicectl device process launch \
             --device "$DEVICE_ID" \
             --terminate-existing \
-            "$BUNDLE_ID"
+            --console \
+            "$BUNDLE_ID" 2>&1 | stdbuf -oL tee "$LOG_OUTPUT" ) &
     fi
+    CONSOLE_PID=$!
 
-    echo "Streaming device logs to $LOG_OUTPUT (timeout: ${CONSOLE_TIMEOUT}s)..."
     echo "Watching for [AUTOMATION] completion signal..."
-
-    # Stream logs in the background, teeing to file and stdout.
-    # Use `log stream` with a predicate for our subsystem.
-    log stream --device "$DEVICE_ID" \
-        --predicate 'subsystem == "com.andrewvoirol.EdgeAILab"' \
-        --level info 2>&1 | tee "$LOG_OUTPUT" &
-    LOG_PID=$!
 
     # Watch the log file for the completion signal
     ELAPSED=0
     while [ "$ELAPSED" -lt "$CONSOLE_TIMEOUT" ]; do
         sleep 2
         ELAPSED=$((ELAPSED + 2))
+
+        # Check if --console exited on its own (app crashed or terminated)
+        if ! kill -0 "$CONSOLE_PID" 2>/dev/null; then
+            echo ""
+            echo "⚠️  App process exited after ${ELAPSED}s."
+            wait "$CONSOLE_PID" 2>/dev/null
+            CONSOLE_EXIT=$?
+            if [ -f "$LOG_OUTPUT" ] && grep -q "Signaling completion" "$LOG_OUTPUT" 2>/dev/null; then
+                echo "✅ Completion signal found in log output."
+                pull_device_results
+                exit 0
+            else
+                echo "❌ No completion signal found. Console exit code: $CONSOLE_EXIT"
+                exit 1
+            fi
+        fi
+
+        # Check for completion signal while --console is still running
         if [ -f "$LOG_OUTPUT" ] && grep -q "Signaling completion" "$LOG_OUTPUT" 2>/dev/null; then
             echo ""
             echo "✅ Automation completion detected after ${ELAPSED}s."
-            kill "$LOG_PID" 2>/dev/null || true
-            wait "$LOG_PID" 2>/dev/null || true
+
+            # Extract the exit code from the completion signal line
+            COMPLETION_LINE=$(grep "Signaling completion" "$LOG_OUTPUT" | tail -1)
+            echo "   $COMPLETION_LINE"
+
+            # Kill the entire --console pipeline (subshell + devicectl + tee).
+            # Using negative PID kills the process group. The app continues running
+            # on device (harmless — it already completed) until iOS reclaims it.
+            kill -- -"$CONSOLE_PID" 2>/dev/null || kill "$CONSOLE_PID" 2>/dev/null || true
+            wait "$CONSOLE_PID" 2>/dev/null || true
+
+            pull_device_results
             exit 0
         fi
     done
 
     echo ""
     echo "⚠️  Timeout (${CONSOLE_TIMEOUT}s) reached without completion signal."
-    kill "$LOG_PID" 2>/dev/null || true
-    wait "$LOG_PID" 2>/dev/null || true
+    # Kill the entire --console pipeline and clean up
+    kill -- -"$CONSOLE_PID" 2>/dev/null || kill "$CONSOLE_PID" 2>/dev/null || true
+    wait "$CONSOLE_PID" 2>/dev/null || true
     exit 1
 fi

@@ -17,6 +17,7 @@ Derived/
 # LLM weights are large (1.5GB+) and locally provisioned
 # See CONTRIBUTING.md for model provisioning instructions
 models/
+!Tests/Models/
 *.litertlm
 
 # --- Build Artifacts ---

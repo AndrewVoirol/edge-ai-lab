@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "id": "D5E6F7A8-B9C0-1234-DEF0-567890ABCDEF",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "testTimeoutsEnabled": true,
+    "defaultTestExecutionTimeAllowance": 600,
+    "codeCoverageEnabled": true
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:EdgeAILab.xcodeproj",
+        "identifier": "EdgeAILab_macOSTests",
+        "name": "EdgeAILab_macOSTests"
+      },
+      "selectedTests": [
+        "PerformanceTests",
+        "SmartFallbackIntegrationTests"
+      ]
+    }
+  ],
+  "version": 1
+}

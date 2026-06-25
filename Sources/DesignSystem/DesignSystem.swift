@@ -708,4 +708,7 @@ extension Notification.Name {
 
     /// Posted when the user requests to show the photo picker (e.g., from an image hint card).
     static let showPhotoPickerRequested = Notification.Name("com.andrewvoirol.EdgeAILab.showPhotoPickerRequested")
+
+    /// Posted when the keyboard should be dismissed (e.g., on tab switch away from Chat).
+    static let dismissKeyboardRequested = Notification.Name("com.andrewvoirol.EdgeAILab.dismissKeyboardRequested")
 }

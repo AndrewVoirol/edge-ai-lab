@@ -361,7 +361,20 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     /// Refresh download states for all registry models.
+    ///
+    /// Clears stale cached entries (downloaded, notDownloaded, failed, authRequired)
+    /// so `checkState()` re-scans the filesystem. In-flight states (downloading,
+    /// queued, paused) are preserved to avoid interrupting active downloads.
     func refreshStates() {
+        // Preserve only in-flight states — clear everything else so checkState()
+        // re-scans the filesystem for each model.
+        downloadStates = downloadStates.filter { _, state in
+            switch state {
+            case .downloading, .queued, .paused: return true
+            default: return false
+            }
+        }
+        // Re-check all registry models against the filesystem
         for model in ModelRegistry.knownModels {
             let _ = checkState(for: model)
         }
@@ -562,6 +575,10 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     /// Callback invoked after a community model download completes.
     /// The parameter is the filename of the downloaded model.
     var postDownloadCallback: ((String, URL) -> Void)?
+
+    /// Callback invoked after ANY model download completes (registry or community).
+    /// Used by ConversationViewModel to auto-refresh discoveredModels.
+    var onDownloadCompleted: ((String, URL) -> Void)?
 
     /// Download an arbitrary LiteRT model from HuggingFace using dynamic URL construction.
     ///
@@ -913,6 +930,9 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
                 self.fileToTaskId.removeValue(forKey: modelFile)
                 self.saveRecords()
                 self.processQueue()
+
+                // Fire general download-completed callback (refreshes discoveredModels)
+                self.onDownloadCompleted?(modelFile, destinationURL)
 
                 // Fire community model callback
                 if isCommunityModel {

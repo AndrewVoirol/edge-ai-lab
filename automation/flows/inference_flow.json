@@ -1,5 +1,6 @@
 {
   "name": "Chat & Inference Flow",
+  "description": "Single-turn chat inference: selects a model, types a prompt, generates a response, and verifies TTFT/Decode metrics appear.",
   "steps": [
     {
       "step": 1,

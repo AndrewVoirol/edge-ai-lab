@@ -30,25 +30,37 @@
     },
     {
       "step": 5,
+      "action": "tap",
+      "description": "Enable tool calling so MCP section renders.",
+      "target_element": "toggle_enableToolCalling"
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for MCP section to appear after enabling tool calling.",
+      "condition": "element_exists:button_addMCP",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 7,
       "action": "verify_ui",
       "description": "Verify the thinking mode toggle exists in AI Features.",
       "expected_elements": ["toggle_enableThinking"]
     },
     {
-      "step": 6,
-      "action": "scroll_to",
-      "description": "Scroll to MCP server section.",
-      "target_element": "button_addMCP",
-      "max_attempts": 4
-    },
-    {
-      "step": 7,
+      "step": 8,
       "action": "verify_ui",
       "description": "Verify the Add MCP Server button exists.",
       "expected_elements": ["button_addMCP"]
     },
     {
-      "step": 8,
+      "step": 9,
+      "action": "tap",
+      "description": "Clean up: disable tool calling.",
+      "target_element": "toggle_enableToolCalling"
+    },
+    {
+      "step": 10,
       "action": "tap",
       "description": "Dismiss settings.",
       "target_element": "button_doneSettings"

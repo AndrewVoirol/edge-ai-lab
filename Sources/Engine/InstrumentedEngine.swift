@@ -542,22 +542,26 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 // Capture device metrics at inference end
                 let endSnapshot = DeviceMetrics.captureSnapshot()
 
-                // Calculate per-token latency intervals
-                var tokenLatenciesMs: [Double] = []
+                // Calculate per-token latency intervals — separate TTFT from decode
+                let ttftMs: Double?
+                var decodeLatenciesMs: [Double] = []
                 if !tokenTimestamps.isEmpty {
-                    // First token latency: time from inference start to first token
-                    tokenLatenciesMs.append((tokenTimestamps[0] - inferenceStartTime) * 1000.0)
-                    // Subsequent tokens: inter-token intervals
+                    // First token latency (TTFT): time from inference start to first token
+                    ttftMs = (tokenTimestamps[0] - inferenceStartTime) * 1000.0
+                    // Subsequent tokens: inter-token intervals (pure decode)
                     for i in 1..<tokenTimestamps.count {
-                        tokenLatenciesMs.append((tokenTimestamps[i] - tokenTimestamps[i - 1]) * 1000.0)
+                        decodeLatenciesMs.append((tokenTimestamps[i] - tokenTimestamps[i - 1]) * 1000.0)
                     }
+                } else {
+                    ttftMs = nil
                 }
 
                 // Build metrics and capture benchmark — hop to MainActor for state updates only
                 let metrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
-                    tokenLatenciesMs: tokenLatenciesMs,
+                    ttftMs: ttftMs,
+                    decodeLatenciesMs: decodeLatenciesMs,
                     totalTokenCount: tokenTimestamps.count
                 )
                 let benchmarkEnabled = self?.flagsState.enableBenchmark ?? false
@@ -580,7 +584,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 let failureMetrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,
-                    tokenLatenciesMs: [],
+                    ttftMs: nil,
+                    decodeLatenciesMs: [],
                     totalTokenCount: 0
                 )
 

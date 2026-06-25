@@ -100,6 +100,18 @@ struct iOSChatTabView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chatTab_root")
+        .onAppear {
+            // Dismiss any stale keyboard state when entering the chat tab.
+            // Prevents keyboard auto-presenting during the empty→active view
+            // transition when isEngineReady changes (SwiftUI recreates InputAreaView,
+            // and on iOS the TextField can auto-focus during insertion).
+            NotificationCenter.default.post(name: .dismissKeyboardRequested, object: nil)
+        }
+        .onDisappear {
+            // Dismiss the keyboard when leaving the chat tab so it doesn't
+            // persist across tab switches (iOS keeps view state in TabView).
+            NotificationCenter.default.post(name: .dismissKeyboardRequested, object: nil)
+        }
     }
 
     // MARK: - Active Chat Content

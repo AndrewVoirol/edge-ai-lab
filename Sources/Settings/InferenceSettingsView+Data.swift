@@ -100,7 +100,7 @@ extension InferenceSettingsView {
                         Text(String(format: "%.0f MB", metrics.endSnapshot.availableMemoryMB))
                             .monospacedDigit()
                     }
-                    if !metrics.tokenLatenciesMs.isEmpty {
+                    if !metrics.decodeLatenciesMs.isEmpty {
                         LabeledContent("Median Latency") {
                             Text(String(format: "%.1f ms", metrics.medianTokenLatencyMs))
                                 .monospacedDigit()

@@ -46,7 +46,7 @@ final class MetricsStore {
             let availableMemoryAtEndMB: Double?
             let medianTokenLatencyMs: Double?
             let p95TokenLatencyMs: Double?
-            let tokenLatenciesMs: [Double]?
+            let decodeLatenciesMs: [Double]?
         }
     }
 
@@ -159,7 +159,7 @@ final class MetricsStore {
                 availableMemoryAtEndMB: inferenceMetrics?.endSnapshot.availableMemoryMB,
                 medianTokenLatencyMs: inferenceMetrics?.medianTokenLatencyMs,
                 p95TokenLatencyMs: inferenceMetrics?.p95TokenLatencyMs,
-                tokenLatenciesMs: inferenceMetrics?.tokenLatenciesMs
+                decodeLatenciesMs: inferenceMetrics?.decodeLatenciesMs
             ),
             flags: flags
         )

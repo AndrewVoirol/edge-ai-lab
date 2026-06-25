@@ -20,15 +20,12 @@
       },
       "skippedTests" : [
         "BatchEvalTests",
-        "ChatMessageTests",
-        "EvalScoringTests",
         "GalleryParityBenchmarkTests",
         "InferenceQualityTests",
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
-        "SmartFallbackIntegrationTests",
-        "ThinkingParserTests"
+        "SmartFallbackIntegrationTests"
       ]
     },
     {
@@ -39,15 +36,12 @@
       },
       "skippedTests" : [
         "BatchEvalTests",
-        "ChatMessageTests",
-        "EvalScoringTests",
         "GalleryParityBenchmarkTests",
         "InferenceQualityTests",
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
-        "SmartFallbackIntegrationTests",
-        "ThinkingParserTests"
+        "SmartFallbackIntegrationTests"
       ]
     }
   ],

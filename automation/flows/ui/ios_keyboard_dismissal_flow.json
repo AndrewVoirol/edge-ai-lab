@@ -1,0 +1,83 @@
+{
+  "name": "iOS Keyboard Dismissal",
+  "description": "Tests keyboard dismissal behavior on iOS: navigate to Chat tab → tap prompt field to trigger keyboard → navigate away to Models tab → navigate back to Chat tab → verify chat interface is still functional. Validates that keyboard dismissal during tab switching does not leave the chat in a broken state.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched with tab bar visible.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for chat interface to appear.",
+      "condition": "element_exists:chatTab_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify the chat interface rendered.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 5,
+      "action": "tap_if_exists",
+      "description": "Tap the prompt text field to trigger the keyboard (may not exist without a model loaded).",
+      "target_element": "textField_prompt",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 6,
+      "action": "tap",
+      "description": "Navigate away to the Models tab (dismisses keyboard implicitly).",
+      "target_element": "Models"
+    },
+    {
+      "step": 7,
+      "action": "wait",
+      "description": "Wait for Models tab to render.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify Models tab is active.",
+      "expected_elements": ["Models"]
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Navigate back to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 10,
+      "action": "wait",
+      "description": "Wait for chat interface to re-render after keyboard dismissal round-trip.",
+      "condition": "element_exists:chatTab_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 11,
+      "action": "verify_ui",
+      "description": "Verify the chat interface is still functional after keyboard dismissal and tab switching.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 12,
+      "action": "verify_ui",
+      "description": "Verify tab bar remains accessible.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}

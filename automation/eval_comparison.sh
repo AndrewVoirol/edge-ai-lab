@@ -63,21 +63,64 @@ if [[ -n "$IOS_FILE" && -f "$IOS_FILE" ]]; then
     IOS_RESULTS="$IOS_FILE"
     echo "📄 iOS results (from file): $IOS_RESULTS"
 else
-    # Try to pull from device eval log
-    if [[ -f "$METRICS_DIR/device_eval_output.log" ]]; then
-        # Extract the JSON block from the eval output log
-        IOS_EXTRACTED="$METRICS_DIR/device_eval_extracted.json"
-        sed -n '/\[AUTOMATION_EVAL_RESULTS_JSON\]/,/\[AUTOMATION_EVAL_RESULTS_END\]/p' \
-            "$METRICS_DIR/device_eval_output.log" | \
-            grep -v '\[AUTOMATION_EVAL_RESULTS' | \
-            tr -d '\r' > "$IOS_EXTRACTED"
+    # Try to pull fresh results from a connected device
+    PULL_SUCCESS=false
 
-        if [[ -s "$IOS_EXTRACTED" ]]; then
-            IOS_RESULTS="$IOS_EXTRACTED"
-            echo "📄 iOS results (from device log): $IOS_RESULTS"
+    # Auto-detect device if not provided via --device
+    if [[ -z "$DEVICE_ID" ]]; then
+        DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | grep "connected" | awk '{print $3}')
+    fi
+
+    if [[ -n "$DEVICE_ID" ]]; then
+        echo "📱 Attempting to pull fresh eval results from device $DEVICE_ID..."
+        PULL_DIR="$METRICS_DIR/device_eval_pull"
+        rm -rf "$PULL_DIR"
+        mkdir -p "$PULL_DIR"
+
+        if xcrun devicectl device copy from \
+            --device "$DEVICE_ID" \
+            --source Documents/eval_results/ \
+            --domain-type appDataContainer \
+            --domain-identifier com.andrewvoirol.EdgeAILab \
+            --destination "$PULL_DIR/" 2>/dev/null; then
+
+            # Look for index.json manifest in pulled data
+            INDEX_FILE=$(find "$PULL_DIR" -name "index.json" -type f 2>/dev/null | head -1)
+            if [[ -n "$INDEX_FILE" && -s "$INDEX_FILE" ]]; then
+                IOS_RESULTS="$INDEX_FILE"
+                PULL_SUCCESS=true
+                echo "📄 iOS results (fresh from device): $IOS_RESULTS"
+            else
+                echo "⚠️  Pulled data from device but no index.json manifest found"
+            fi
         else
-            echo "⚠️  Could not extract iOS results from device_eval_output.log"
-            rm -f "$IOS_EXTRACTED"
+            echo "⚠️  Failed to pull eval results from device (devicectl error)"
+        fi
+    fi
+
+    # Fall back to local device eval log if device pull didn't succeed
+    if [[ "$PULL_SUCCESS" == false ]]; then
+        # deploy_device.sh writes logs as device_console_YYYYMMDD_HHMMSS.log
+        # Find the most recent one.
+        LATEST_CONSOLE_LOG=$(find "$METRICS_DIR" -maxdepth 1 -name 'device_console_*.log' -type f 2>/dev/null | sort -r | head -1)
+        if [[ -n "$LATEST_CONSOLE_LOG" && -f "$LATEST_CONSOLE_LOG" ]]; then
+            # Extract the JSON block from the eval output log
+            IOS_EXTRACTED="$METRICS_DIR/device_eval_extracted.json"
+            sed -n '/\[AUTOMATION_EVAL_RESULTS_JSON\]/,/\[AUTOMATION_EVAL_RESULTS_END\]/p' \
+                "$LATEST_CONSOLE_LOG" | \
+                grep -v '\[AUTOMATION_EVAL_RESULTS' | \
+                tr -d '\r' > "$IOS_EXTRACTED"
+
+            if [[ -s "$IOS_EXTRACTED" ]]; then
+                IOS_RESULTS="$IOS_EXTRACTED"
+                echo "📄 iOS results (from local device log): $IOS_RESULTS"
+                echo "   Source log: $(basename "$LATEST_CONSOLE_LOG")"
+            else
+                echo "⚠️  Could not extract iOS results from $(basename "$LATEST_CONSOLE_LOG")"
+                rm -f "$IOS_EXTRACTED"
+            fi
+        else
+            echo "⚠️  No device_console_*.log files found in $METRICS_DIR"
         fi
     fi
 fi
@@ -103,30 +146,52 @@ echo "" >> "$REPORT_FILE"
 
 # If we have iOS results, parse them
 if [[ -n "$IOS_RESULTS" && -f "$IOS_RESULTS" ]]; then
-    # Extract iOS suite results using python3 for JSON parsing
+    # Extract iOS suite results using python3 for JSON parsing.
+    # Supports TWO formats:
+    #   1. Automation stdout dict: {"suites": [{"suite": ..., "pass_rate": ...}], "model": ..., "timestamp": ...}
+    #   2. Device index.json array: [{"suiteName": ..., "overallPassRate": ..., "startedAt": ..., ...}]
     IOS_DATA=$(python3 -c "
 import json, sys
 with open('$IOS_RESULTS') as f:
     data = json.load(f)
-suites = data.get('suites', [])
-for s in suites:
-    name = s.get('suite', '')
-    rate = s.get('pass_rate', 0)
-    print(f'{name}|{rate}')
+if isinstance(data, list):
+    # index.json format: array of EvalRunIndexEntry objects
+    for entry in data:
+        name = entry.get('suiteName', '')
+        rate = entry.get('overallPassRate', 0)
+        if name:
+            print(f'{name}|{rate}')
+else:
+    # Automation stdout format: dict with 'suites' key
+    suites = data.get('suites', [])
+    for s in suites:
+        name = s.get('suite', '')
+        rate = s.get('pass_rate', 0)
+        print(f'{name}|{rate}')
 " 2>/dev/null || echo "")
 
     IOS_MODEL=$(python3 -c "
 import json
 with open('$IOS_RESULTS') as f:
     data = json.load(f)
-print(data.get('model', 'unknown'))
+if isinstance(data, list):
+    # index.json: no single 'model' key; report the first entry's platform or 'device'
+    models = set(e.get('suiteName', '') for e in data)
+    print('device (%d suites)' % len(data) if data else 'unknown')
+else:
+    print(data.get('model', 'unknown'))
 " 2>/dev/null || echo "unknown")
 
     IOS_TIMESTAMP=$(python3 -c "
 import json
 with open('$IOS_RESULTS') as f:
     data = json.load(f)
-print(data.get('timestamp', 'unknown'))
+if isinstance(data, list):
+    # index.json: use the most recent startedAt
+    dates = [e.get('startedAt', '') for e in data if e.get('startedAt')]
+    print(max(dates) if dates else 'unknown')
+else:
+    print(data.get('timestamp', 'unknown'))
 " 2>/dev/null || echo "unknown")
 fi
 
@@ -154,14 +219,22 @@ with open('$MACOS_RESULTS') as f:
     data = json.load(f)
 # Get the most recent run
 runs = data if isinstance(data, list) else data.get('runs', [data])
-if runs:
-    latest = runs[-1] if isinstance(runs, list) else runs
-    suites = latest.get('suites', [])
-    for s in suites:
-        name = s.get('name', s.get('suite', ''))
-        rate = s.get('pass_rate')
-        if rate is not None and name:
-            print(f'{name}|{rate}')
+# Filter out synthetic/test entries
+test_models = {'skipped-test', 'model-a-append', 'model-b-append',
+               'test-model-create', 'nonfinite-test'}
+real_runs = [r for r in runs if r.get('model', '') not in test_models]
+if real_runs:
+    latest = real_runs[-1]
+elif runs:
+    latest = runs[-1]  # fallback to any run
+else:
+    latest = {}
+suites = latest.get('suites', [])
+for s in suites:
+    name = s.get('name', s.get('suite', ''))
+    rate = s.get('pass_rate')
+    if rate is not None and name:
+        print(f'{name}|{rate}')
 " 2>/dev/null || echo "")
 fi
 

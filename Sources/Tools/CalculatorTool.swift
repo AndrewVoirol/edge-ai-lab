@@ -50,8 +50,45 @@ struct CalculatorTool: Tool {
             )
             ToolExecutionTracker.shared.notify(event)
         }
-                let regex = try! NSRegularExpression(pattern: "(?<!\\.)\\b(\\d+)\\b(?!\\.)")
-        let doubleExpression = regex.stringByReplacingMatches(in: expression, range: NSRange(expression.startIndex..., in: expression), withTemplate: "$1.0")
+                // Sanitize expression: convert percentage notation to division
+        // NSExpression(format:) interprets % as a format specifier, causing an
+        // uncatchable NSInvalidArgumentException. Convert "15%" to "(15/100)".
+        var sanitized = expression
+        // Replace percentage patterns: "15%" → "(15/100)", "15.5%" → "(15.5/100)"
+        let pctRegex = try! NSRegularExpression(pattern: "([\\d.]+)\\s*%")
+        sanitized = pctRegex.stringByReplacingMatches(
+            in: sanitized,
+            range: NSRange(sanitized.startIndex..., in: sanitized),
+            withTemplate: "($1/100)"
+        )
+
+        // Reject expressions with text that NSExpression can't parse.
+        // The model sometimes generates natural language like "15% of 2026 == 1".
+        let unsafePatterns = ["==", "!=", "<", ">", " of ", " is ", " equals "]
+        for pattern in unsafePatterns {
+            if sanitized.contains(pattern) {
+                resultString = jsonString(from: [
+                    "error": "Expression contains unsupported operator: \(pattern.trimmingCharacters(in: .whitespaces))",
+                    "expression": expression
+                ])
+                return resultString
+            }
+        }
+
+        let regex = try! NSRegularExpression(pattern: "(?<!\\.)\\b(\\d+)\\b(?!\\.)")
+        let doubleExpression = regex.stringByReplacingMatches(in: sanitized, range: NSRange(sanitized.startIndex..., in: sanitized), withTemplate: "$1.0")
+
+        // Validate expression only contains characters safe for NSExpression.
+        // NSExpression(format:) throws an uncatchable ObjC exception for invalid input.
+        let allowedChars = CharacterSet(charactersIn: "0123456789.+-*/() ")
+        if doubleExpression.unicodeScalars.contains(where: { !allowedChars.contains($0) }) {
+            resultString = jsonString(from: [
+                "error": "Expression contains invalid characters",
+                "expression": expression
+            ])
+            return resultString
+        }
+
         let nsExpression = NSExpression(format: doubleExpression)
         guard let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber else {
             resultString = jsonString(from: [

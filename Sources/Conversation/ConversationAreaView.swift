@@ -47,6 +47,9 @@ struct ConversationAreaView: View {
                         .padding(.vertical, AppSpacing.sm)
                     }
                     .scrollContentBackground(.hidden)
+                    #if os(iOS)
+                    .scrollDismissesKeyboard(.interactively)
+                    #endif
                     .onChange(of: viewModel.conversation.messages.count) { _, _ in
                         withAnimation(AppAnimation.gentleSpring) {
                             proxy.scrollTo("conversationBottom", anchor: .bottom)

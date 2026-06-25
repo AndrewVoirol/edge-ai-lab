@@ -41,6 +41,10 @@ final class ConversationViewModel {
     /// User's current prompt text.
     var prompt = ""
 
+    /// When true, `didSet` handlers on sampler properties skip `reinitializeEngineIfNeeded()`.
+    /// Set during `handleModelSelection()` to prevent triple-init.
+    private var isSyncingSettings = false
+
     /// Multi-turn conversation state — replaces the old single `responseText`.
     var conversation = ConversationState()
 
@@ -92,17 +96,26 @@ final class ConversationViewModel {
 
     /// Top-K sampling parameter. Set to 1 for greedy (Gallery-matching) decoding.
     var topK: Int = 64 {
-        didSet { sessionController.topK = topK; Task { await reinitializeEngineIfNeeded() } }
+        didSet {
+            sessionController.topK = topK
+            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+        }
     }
 
     /// Top-P (nucleus) sampling parameter.
     var topP: Float = 0.95 {
-        didSet { sessionController.topP = topP; Task { await reinitializeEngineIfNeeded() } }
+        didSet {
+            sessionController.topP = topP
+            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+        }
     }
 
     /// Temperature for sampling. Higher = more random.
     var temperature: Float = 1.0 {
-        didSet { sessionController.temperature = temperature; Task { await reinitializeEngineIfNeeded() } }
+        didSet {
+            sessionController.temperature = temperature
+            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+        }
     }
 
     /// Seed for reproducible generation. 0 = non-deterministic (SDK default).
@@ -181,7 +194,13 @@ final class ConversationViewModel {
     var inferenceMetrics: InferenceMetrics? { engine.lastInferenceMetrics }
 
     /// Whether the engine is initialized and ready for inference.
-    var isEngineReady: Bool { engine.isReady }
+    ///
+    /// This is a tracked stored property (not a computed property) because the engine
+    /// is `@ObservationIgnored`. If we derived this from `engine.isReady`, SwiftUI would
+    /// never observe changes — views would show stale state (e.g., "No Model Loaded" after
+    /// a conversation reset even though the model is still loaded). The ViewModel explicitly
+    /// updates this via `onEngineReadyChanged` from ModelSessionController.
+    private(set) var isEngineReady: Bool = false
 
     // MARK: - MCP Servers Support
 
@@ -266,6 +285,10 @@ final class ConversationViewModel {
         controller.onStatusMessage = { [weak self] message in
             self?.statusMessage = message
         }
+        // Wire engine readiness callback so the tracked property stays in sync
+        controller.onEngineReadyChanged = { [weak self] ready in
+            self?.isEngineReady = ready
+        }
         // Sync sampler defaults back to the VM when model-specific configs are applied
         controller.onSamplerDefaultsApplied = { [weak self] topK, topP, temperature in
             self?.topK = topK
@@ -276,6 +299,13 @@ final class ConversationViewModel {
         controller.defaultExperimentalFlags = experimentalFlags
 
         self.mcpServers = MCPServerStorage.load()
+        // Auto-refresh discovered models when any download completes.
+        // Without this, a downloaded model stays in the "downloadable" sidebar section
+        // (which has no tap handler) and never moves to the "discovered" section
+        // until the app restarts and checkForLocalModels() runs.
+        self.downloadManager.onDownloadCompleted = { [weak self] _, _ in
+            self?.refreshDiscoveredModels()
+        }
         #if os(macOS)
         Task {
             await startEnabledMCPServers()
@@ -288,12 +318,22 @@ final class ConversationViewModel {
     /// Handle a model file selection from the file picker.
     func handleModelSelection(_ url: URL) async {
         await sessionController.handleModelSelection(url)
-        // Sync sampler config from model defaults that the controller may have applied
+        // Sync sampler config from model defaults that the controller may have applied.
+        // Use isSyncingSettings to suppress the didSet → reinitializeEngineIfNeeded() cascade.
+        // Without this guard, each property set fires a full engine shutdown + re-init,
+        // causing isEngineReady to flip false→true twice (the "triple-init" bug).
+        isSyncingSettings = true
         topK = sessionController.topK
         topP = sessionController.topP
         temperature = sessionController.temperature
+        isSyncingSettings = false
+        // Sync engine readiness — sessionController.onEngineReadyChanged fires during init,
+        // but also sync explicitly here for safety.
+        isEngineReady = engine.isReady
         // Start a new conversation when loading a new model
         conversation.clear()
+        // Refresh discovered models so the Models tab immediately reflects the active model
+        refreshDiscoveredModels()
     }
 
     /// Discover available models from local storage and Gallery.
@@ -681,6 +721,7 @@ final class ConversationViewModel {
     func shutdown() async {
         Self.logger.info("🛑 Shutdown initiated")
         await sessionController.shutdown()
+        isEngineReady = false
         benchmarkInfo = nil
         conversation.clear()
         

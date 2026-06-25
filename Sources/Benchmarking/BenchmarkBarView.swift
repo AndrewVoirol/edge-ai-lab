@@ -281,7 +281,7 @@ struct BenchmarkBarView: View {
             let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
 
             // Token latency statistics
-            if !metrics.tokenLatenciesMs.isEmpty {
+            if !metrics.decodeLatenciesMs.isEmpty {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
                     statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
                     statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))
@@ -325,7 +325,7 @@ struct BenchmarkBarView: View {
             }
             #else
             // Token latency statistics
-            if !metrics.tokenLatenciesMs.isEmpty {
+            if !metrics.decodeLatenciesMs.isEmpty {
                 HStack(spacing: AppSpacing.lg) {
                     statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
                     statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))

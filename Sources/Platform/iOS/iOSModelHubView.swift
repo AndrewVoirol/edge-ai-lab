@@ -174,6 +174,12 @@ struct iOSModelHubView: View {
                 iOSURLImportSheet()
             }
             .accessibilityIdentifier("iOSModelHub")
+            .onAppear {
+                // Refresh model state on every tab visit — not just pull-to-refresh —
+                // so the Models tab always shows current filesystem and engine state.
+                viewModel.refreshDiscoveredModels()
+                viewModel.downloadManager.refreshStates()
+            }
     }
 
     // MARK: - List

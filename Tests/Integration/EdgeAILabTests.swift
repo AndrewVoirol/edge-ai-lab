@@ -330,7 +330,7 @@ final class MetricsStoreTests: XCTestCase {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                tokenLatenciesMs: nil
+                decodeLatenciesMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -444,7 +444,7 @@ final class InferenceMetricsTests: XCTestCase {
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(InferenceMetrics.self, from: data)
 
-        XCTAssertEqual(decoded.tokenLatenciesMs.count, 5)
+        XCTAssertEqual(decoded.decodeLatenciesMs.count, 5)
         XCTAssertEqual(decoded.totalTokenCount, 5)
         XCTAssertEqual(decoded.startSnapshot.thermalLevel, .nominal)
         XCTAssertEqual(decoded.endSnapshot.thermalLevel, .fair)
@@ -475,7 +475,8 @@ final class InferenceMetricsTests: XCTestCase {
                 availableMemoryMB: endMemoryMB,
                 deviceModel: "TestDevice"
             ),
-            tokenLatenciesMs: latencies,
+            ttftMs: nil,
+            decodeLatenciesMs: latencies,
             totalTokenCount: tokenCount ?? latencies.count
         )
     }
@@ -521,7 +522,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
         // Verify InferenceMetrics is populated on the ViewModel
         XCTAssertNotNil(vm.inferenceMetrics, "InferenceMetrics should be populated after generate")
         XCTAssertEqual(vm.inferenceMetrics?.totalTokenCount, 5)
-        XCTAssertEqual(vm.inferenceMetrics?.tokenLatenciesMs.count, 5)
+        XCTAssertEqual(vm.inferenceMetrics?.decodeLatenciesMs.count, 5)
         XCTAssertEqual(vm.inferenceMetrics?.startSnapshot.thermalLevel, .nominal)
         XCTAssertEqual(vm.inferenceMetrics?.endSnapshot.thermalLevel, .fair)
     }
@@ -587,7 +588,8 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
                 availableMemoryMB: 3800.0,
                 deviceModel: "TestDevice"
             ),
-            tokenLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0],
+            ttftMs: nil,
+            decodeLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0],
             totalTokenCount: 5
         )
     }
@@ -626,8 +628,8 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
         XCTAssertEqual(metrics.availableMemoryAtEndMB ?? 0, 3800.0, accuracy: 0.01)
         XCTAssertNotNil(metrics.medianTokenLatencyMs)
         XCTAssertNotNil(metrics.p95TokenLatencyMs)
-        XCTAssertNotNil(metrics.tokenLatenciesMs)
-        XCTAssertEqual(metrics.tokenLatenciesMs?.count, 5)
+        XCTAssertNotNil(metrics.decodeLatenciesMs)
+        XCTAssertEqual(metrics.decodeLatenciesMs?.count, 5)
     }
 
     func testEntryWithoutInferenceMetricsBackwardCompatibility() throws {
@@ -645,7 +647,7 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
         XCTAssertNil(metrics.availableMemoryAtEndMB)
         XCTAssertNil(metrics.medianTokenLatencyMs)
         XCTAssertNil(metrics.p95TokenLatencyMs)
-        XCTAssertNil(metrics.tokenLatenciesMs)
+        XCTAssertNil(metrics.decodeLatenciesMs)
     }
 
     func testMixedEntriesRoundTrip() throws {
@@ -658,11 +660,11 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
 
         // First entry has InferenceMetrics data
         XCTAssertNotNil(loaded[0].metrics.thermalStateAtStart)
-        XCTAssertNotNil(loaded[0].metrics.tokenLatenciesMs)
+        XCTAssertNotNil(loaded[0].metrics.decodeLatenciesMs)
 
         // Second entry does not
         XCTAssertNil(loaded[1].metrics.thermalStateAtStart)
-        XCTAssertNil(loaded[1].metrics.tokenLatenciesMs)
+        XCTAssertNil(loaded[1].metrics.decodeLatenciesMs)
     }
 
     // MARK: - Helpers
@@ -686,7 +688,7 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 availableMemoryAtEndMB: 3800.0,
                 medianTokenLatencyMs: 12.5,
                 p95TokenLatencyMs: 25.0,
-                tokenLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0]
+                decodeLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0]
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -716,7 +718,7 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                tokenLatenciesMs: nil
+                decodeLatenciesMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,

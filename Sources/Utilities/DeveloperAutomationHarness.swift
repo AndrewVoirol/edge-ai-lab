@@ -116,7 +116,18 @@ struct DeveloperAutomationHarness {
     /// Marker file path written when automation completes. XCUITests
     /// check for this file instead of relying on accessibility elements
     /// or process exit (both unreliable under XCUITest).
-    nonisolated static let completionMarkerPath = "/tmp/automation_complete.txt"
+    nonisolated static var completionMarkerPath: String {
+        #if os(macOS)
+        // macOS: /tmp is globally accessible and shared between the app
+        // and XCUITest runner processes. NSTemporaryDirectory() returns
+        // per-process paths that differ between the two.
+        return "/tmp/automation_complete.txt"
+        #else
+        // iOS device: /tmp is not writable (sandbox restriction).
+        // NSTemporaryDirectory() resolves to the app's sandboxed temp dir.
+        return NSTemporaryDirectory() + "automation_complete.txt"
+        #endif
+    }
     
     /// Static completion code set by the harness when automation finishes.
     nonisolated(unsafe) static var completionCode: Int32? = nil
@@ -128,8 +139,10 @@ struct DeveloperAutomationHarness {
     /// Writes a marker file to disk and sets the static property.
     /// XCUITests poll for the marker file existence.
     ///
-    /// We do NOT call exit() because XCUITest detects process termination
-    /// and relaunches the app without the original launch arguments.
+    /// When launched via `devicectl --console` (no XCUITest), we call exit() so
+    /// the console session returns cleanly. Under XCUITest we do NOT call exit()
+    /// because XCUITest detects process termination and relaunches the app
+    /// without the original launch arguments.
     nonisolated static func signalComplete(_ code: Int32, message: String = "") {
         fflush(stdout)
         automationLog("[AUTOMATION] Signaling completion with code \(code): \(message)")
@@ -137,6 +150,29 @@ struct DeveloperAutomationHarness {
         // Write marker file with exit code and diagnostic message
         let content = "\(code)\n\(message)"
         try? content.write(toFile: completionMarkerPath, atomically: true, encoding: .utf8)
+
+        // Exit cleanly when NOT under XCUITest (e.g., devicectl --console launch).
+        // This allows `devicectl --console` to return naturally with the exit code.
+        //
+        // Detection: XCTestConfigurationFilePath is only set in the TEST RUNNER process,
+        // NOT in the app process launched by XCUITest. So we also check for
+        // -RunAutomationHarness in the launch args — XCUITest passes this to signal
+        // that the app should stay alive for marker-file-based communication.
+        let isUnderXCUITest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || CommandLine.arguments.contains("-RunAutomationHarness")
+        if !isUnderXCUITest {
+            fflush(stdout)
+            fflush(stderr)
+            // Brief delay to ensure stdout is flushed to the console pipe
+            Thread.sleep(forTimeInterval: 0.5)
+            // Use _exit() instead of exit() to avoid hanging on LiteRT C++ destructor
+            // cleanup. exit() runs atexit handlers and C++ static destructors, which
+            // try to join() LiteRT's callback_thread_pool. If any GPU callback thread
+            // is stuck (DEADLINE_EXCEEDED), exit() hangs indefinitely. _exit() is a
+            // POSIX immediate termination — safe because all results are already
+            // persisted to disk and stdout has been flushed.
+            _exit(code)
+        }
     }
     
     // MARK: - Entry Point
@@ -170,12 +206,19 @@ struct DeveloperAutomationHarness {
         
         // Handle flow-related commands
         if isListFlows {
-            let flows = AutomationFlowRunner.discoverFlows()
-            automationLog("[AUTOMATION] Available flows (\(flows.count)):")
-            for flow in flows {
-                automationLog("[AUTOMATION]   - \(flow)")
+            // Wrap in Task so signalComplete fires AFTER App.init() returns.
+            // The -ListFlows path previously ran synchronously during App.init(),
+            // calling signalComplete(0) → exit(0) before XCUITest could establish
+            // its accessibility session. This caused "does not have a process ID"
+            // errors because the app exited before XCUITest connected.
+            Task {
+                let flows = AutomationFlowRunner.discoverFlows()
+                automationLog("[AUTOMATION] Available flows (\(flows.count)):")
+                for flow in flows {
+                    automationLog("[AUTOMATION]   - \(flow)")
+                }
+                signalComplete(0)
             }
-            signalComplete(0)
             return
         }
         
@@ -235,7 +278,7 @@ struct DeveloperAutomationHarness {
                             thermalStateAtStart: "nominal", thermalStateAtEnd: "nominal",
                             availableMemoryAtStartMB: 4096.0, availableMemoryAtEndMB: 3800.0,
                             medianTokenLatencyMs: 23.5, p95TokenLatencyMs: 35.0,
-                            tokenLatenciesMs: [20.0, 23.0, 25.0]
+                            decodeLatenciesMs: [20.0, 23.0, 25.0]
                         ), flags: flags)
                     let data = try JSONEncoder().encode(entry)
                     let decoded = try JSONDecoder().decode(MetricsStore.Entry.self, from: data)
@@ -478,7 +521,11 @@ struct DeveloperAutomationHarness {
             return try SamplerConfig(topK: topK, topP: topP, temperature: temperature)
         } catch {
             automationLog("[AUTOMATION_FAILURE] Invalid SamplerConfig parameters. Falling back to greedy.")
-            return try! SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
+            // Hardcoded valid greedy parameters — if this throws, the SDK contract is broken.
+            guard let fallback = try? SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0) else {
+                fatalError("Hardcoded greedy SamplerConfig(topK: 1, topP: 1.0, temperature: 1.0) threw — SDK contract violation")
+            }
+            return fallback
         }
     }
     
@@ -1105,7 +1152,21 @@ struct DeveloperAutomationHarness {
         
         let exitMessage = isGated ? "Eval pipeline completed (GATED — no regressions)" : "Eval pipeline completed (informational — not gated)"
         automationLog("[AUTOMATION_SUCCESS] \(exitMessage)")
+        
+        // Signal completion FIRST, then attempt engine shutdown.
+        // signalComplete calls _exit() in non-XCUITest mode (e.g., devicectl --console),
+        // which terminates immediately — the engine.shutdown() below won't execute.
+        // This is intentional: LiteRT's callback_thread_pool can hang during shutdown
+        // (DEADLINE_EXCEEDED on stuck GPU tasks), and _exit() bypasses C++ destructors
+        // that would otherwise block indefinitely.
+        //
+        // Under XCUITest, signalComplete writes the marker file and returns, so the
+        // engine shutdown WILL execute — but XCUITest tests are short-lived and the
+        // tearDown terminates the app anyway.
         signalComplete(0, message: "Eval pipeline completed successfully")
+        
+        // Best-effort engine cleanup (only reached under XCUITest).
+        await viewModel.engine.shutdown()
         return
     }
     

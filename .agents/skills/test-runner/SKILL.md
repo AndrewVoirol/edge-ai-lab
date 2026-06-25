@@ -34,7 +34,7 @@ The project uses Tuist-managed test plans. Each scheme references `.xctestplan` 
 
 | Scheme | Test Plans | Targets Covered |
 |--------|-----------|-----------------|
-| `EdgeAILab_iOS` | `UnitTests.xctestplan` (default), `iOSUITests.xctestplan` | `EdgeAILab_iOSTests`, `EdgeAILab_iOSUITests` |
+| `EdgeAILab_iOS` | `UnitTests.xctestplan` (default), `iOSUITests.xctestplan`, `SimulatorTests.xctestplan`, `IntegrationTests.xctestplan`, `PerformanceTests.xctestplan` | `EdgeAILab_iOSTests`, `EdgeAILab_iOSUITests` |
 | `Edge AI Lab` (macOS) | `UnitTests.xctestplan` (default), `macOSUITests.xctestplan` | `EdgeAILab_macOSTests`, `EdgeAILab_macOSUITests` |
 
 **Critical rule**: A test target MUST be included in a `.xctestplan` referenced by the scheme. Otherwise `-only-testing:` will fail with *"isn't a member of the specified test plan or scheme."*
@@ -80,14 +80,14 @@ test_macos:
   extraArgs: ["-only-testing:EdgeAILab_macOSTests/SomeTestClass"]
 ```
 
-**⚠️ macOS UI tests require Cmd+N after launch.** The app restores an empty window state after `app.terminate()`. The `launchApp()` helper handles this.
+**⚠️ macOS UI tests require Cmd+N after launch.** The app restores an empty window state after `app.terminate()`. The `launchApp()` helper retries Cmd+N up to 3 times with increasing delays (2s, 3s, 4s) because macOS 26 Liquid Glass doesn't always honor the first attempt.
 
 ## Running iOS Simulator Tests
 
 ```
 session_set_defaults:
   scheme: EdgeAILab_iOS
-  simulatorName: iPhone 16 Pro
+  simulatorName: iPhone 16 Pro Max
 
 test_sim:
   extraArgs: ["-testPlan", "SimulatorTests"]
@@ -126,7 +126,8 @@ enabledWorkflows: ["simulator", "device", "debugging", "ui-automation"]
 |-------|---------|------------|
 | Liquid Glass XCUITest | Form internals not exposed on physical device | a11y flow verifies "Settings" tab only |
 | `performScrollTo` on iOS | `app.swipeUp()` hung on iOS 26 physical devices | **Fixed**: Now uses coordinate-based `press(forDuration:thenDragTo:)` like macOS. Avoids XCUITest idle-wait. |
-| `--console` hang | `devicectl --console` doesn't exit after automation | **Fixed**: `deploy_device.sh` now uses `log stream` with auto-exit on completion signal. Override timeout with `CONSOLE_TIMEOUT` env var. |
+| `--console` hang | `devicectl --console` doesn't exit after automation | **Partial fix**: `deploy_device.sh` uses `idevicesyslog` for log streaming, but it doesn't reliably capture logs on iOS 26. Completion detection may fail. Use `devicectl device copy from` to pull results from device instead. Override timeout with `CONSOLE_TIMEOUT` env var. |
+| idevicesyslog silent | `idevicesyslog -m "EdgeAILab"` produces zero output on iPhone 16 Pro Max / iOS 26 | Use `xcrun devicectl device copy from` to pull result files from the device's app container. Poll `devicectl device info files` for timestamp changes. |
 | Test resources missing | Tuist doesn't bundle resources to physical devices | XCTSkip guard when `Bundle(for:)` resource is nil |
 | "Bad CPU type" | Stale DerivedData causes misleading launch error | Use MCP `test_device` instead of raw xcodebuild |
 | MCP macOS UI automation | `test_macos` fails with "Timed out while enabling automation mode" | Set `derivedDataPath` in session defaults to the standard Xcode DerivedData path (e.g., `~/Library/Developer/Xcode/DerivedData/EdgeAILab-<hash>`). MCP's isolated DerivedData produces a runner binary at an unrecognized path for macOS automation authorization. |

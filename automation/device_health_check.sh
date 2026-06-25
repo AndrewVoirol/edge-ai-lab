@@ -17,7 +17,7 @@ set -uo pipefail
 if [[ -n "${1:-}" ]]; then
     DEVICE_ID="$1"
 else
-    DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | grep "connected" | awk '{print $3}')
+    DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | grep -E "available|connected" | grep -v "Watch\|iPad\|unavailable" | awk '{print $3}' | head -1)
     if [[ -z "$DEVICE_ID" ]]; then
         echo "❌ No connected device found."
         echo "   Connect an iOS device via USB and ensure it's unlocked."

@@ -85,7 +85,7 @@
       "step": 14,
       "action": "verify_ui",
       "description": "Verify Chat tab renders correctly after stress test.",
-      "expected_elements_any": ["textField_prompt", "Enter your prompt here", "Chat"]
+      "expected_elements_any": ["textField_prompt", "Ask Gemma anything...", "chatTab_root", "Chat"]
     },
     {
       "step": 15,

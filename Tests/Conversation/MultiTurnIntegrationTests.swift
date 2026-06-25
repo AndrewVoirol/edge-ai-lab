@@ -32,7 +32,9 @@ final class MultiTurnIntegrationTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        await engine.shutdown()
+        if let engine = engine {
+            await engine.shutdown()
+        }
         engine = nil
         try await super.tearDown()
     }

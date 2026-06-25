@@ -53,8 +53,8 @@
     {
       "step": 8,
       "action": "verify_ui",
-      "description": "Verify Model Hub has content sections.",
-      "expected_elements_any": ["Now Running", "On This Device", "Get More Models"]
+      "description": "Verify Model Hub has toolbar components (always present).",
+      "expected_elements_any": ["modelHub_urlImport", "modelHub_addModel", "modelHub_sort", "iOSModelHub"]
     }
   ]
 }

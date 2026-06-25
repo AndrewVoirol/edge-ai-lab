@@ -183,7 +183,7 @@ struct AccessibilityTreeInspector {
 
     /// Recursively collect accessible elements from an NSView hierarchy.
     private static func collectFromNSView(_ view: NSView, depth: Int, into elements: inout [AccessibleElement]) {
-        let identifier = view.accessibilityIdentifier() ?? ""
+        let identifier = view.accessibilityIdentifier()
         let label = view.accessibilityLabel() ?? ""
         let value = view.accessibilityValue() as? String
 

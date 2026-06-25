@@ -1,5 +1,6 @@
 {
   "name": "Model Setup & HF Token Configuration",
+  "description": "Initial app setup: verifies launch state, opens Settings, enters a HuggingFace token, and dismisses the sheet.",
   "steps": [
     {
       "step": 1,

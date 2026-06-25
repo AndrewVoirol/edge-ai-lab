@@ -77,8 +77,41 @@ baselines_file = os.environ.get("BASELINES_FILE", "metrics/baselines.json")
 threshold = float(os.environ.get("THRESHOLD", "10"))
 output_file = os.environ.get("OUTPUT_FILE", "regression_report.json")
 
+# Load results — supports both single-JSON and JSONL (JSON Lines) formats.
+# JSONL files contain one JSON object per line. Lines with an "event" key are
+# warmup/progress entries; the last non-event line is the actual benchmark data.
+# JSONL uses "configId" (e.g. "modelFile_gpu_greedy") instead of separate
+# "model" / "backend_used" keys.
 with open(results_file) as f:
-    results = json.load(f)
+    raw = f.read().strip()
+
+results = None
+try:
+    # Try single-JSON first (old format)
+    parsed = json.loads(raw)
+    if isinstance(parsed, dict):
+        results = parsed
+except json.JSONDecodeError:
+    pass
+
+if results is None:
+    # JSONL format: read line by line, skip warmup (lines with "event" key),
+    # keep the last data line as the benchmark result.
+    last_data = None
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+            if isinstance(obj, dict) and "event" not in obj:
+                last_data = obj
+        except json.JSONDecodeError:
+            continue
+    if last_data is None:
+        print(f"❌ Could not parse any data entries from JSONL: {results_file}", file=sys.stderr)
+        sys.exit(2)
+    results = last_data
 
 with open(baselines_file) as f:
     baselines_data = json.load(f)
@@ -86,9 +119,31 @@ with open(baselines_file) as f:
 baselines = baselines_data.get("baselines", [])
 rules = baselines_data.get("regression_rules", {})
 
-# Match the result to a baseline by model filename and backend
+# Match the result to a baseline by model filename and backend.
+# Old format has "model" and "backend_used" keys directly.
+# JSONL format has "configId" (e.g. "gemma-4-E2B-it.litertlm_gpu_greedy")
+# where the model is everything before the backend token and the backend
+# is the token after the model filename (gpu/cpu).
 result_model = results.get("model", "")
 result_backend = results.get("backend_used", "")
+
+if not result_model and "configId" in results:
+    # Extract model and backend from configId.
+    # configId format: "<modelFilename>_<backend>_<sampler>"
+    # e.g. "gemma-4-E2B-it.litertlm_gpu_greedy"
+    # Split from right since model filenames could contain underscores;
+    # the last two tokens are always sampler and backend.
+    config_id = results["configId"]
+    parts = config_id.rsplit("_", 2)
+    if len(parts) == 3:
+        result_model = parts[0]    # model filename
+        result_backend = parts[1]  # gpu, cpu, etc.
+    elif len(parts) == 2:
+        result_model = parts[0]
+        result_backend = parts[1]
+    else:
+        result_model = config_id
+        result_backend = ""
 
 matched_baseline = None
 for bl in baselines:
@@ -130,9 +185,22 @@ else:
     has_regression = False
     has_improvement = False
 
+    # Key mapping: baselines/rules use sdk_-prefixed names, but JSONL data from
+    # the device uses shorter names. Map baseline keys → JSONL keys for lookup.
+    KEY_MAP = {
+        "sdk_decode_tok_s": "decode_tok_s",
+        "sdk_prefill_tok_s": "prefill_tok_s",
+        "sdk_ttft_s": "ttft_s",
+        "wall_pure_decode_tok_s": "decode_tok_s",  # same metric, different name
+        "decode_median_latency_ms": "median_token_latency_ms",
+        "decode_p95_latency_ms": "",  # JSONL doesn't have p95; skip comparison
+        "model_load_time_s": "init_time_s",
+    }
+
     for metric_key, rule in rules.items():
         baseline_val = baseline_metrics.get(metric_key)
-        result_val = results.get(metric_key)
+        # Try the metric key directly, then fall back to the mapped JSONL key
+        result_val = results.get(metric_key) or results.get(KEY_MAP.get(metric_key, ""))
 
         if baseline_val is None or result_val is None:
             continue

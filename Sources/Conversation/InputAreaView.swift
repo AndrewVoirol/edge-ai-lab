@@ -134,11 +134,31 @@ struct InputAreaView: View {
                     .font(.body)
                     .lineLimit(1...8)
                     .focused($isPromptFocused)
+                    #if os(iOS)
+                    .submitLabel(.send)
+                    .onSubmit {
+                        submitPrompt()
+                    }
+                    // Backup send-on-return: TextField(axis: .vertical) with lineLimit(1...8)
+                    // may not fire .onSubmit when the return key is pressed — it inserts a
+                    // newline instead. Intercept the newline and trigger send if the prompt
+                    // had content before the newline was inserted.
+                    .onChange(of: viewModel.prompt) { oldValue, newValue in
+                        guard newValue.hasSuffix("\n") else { return }
+                        // Only intercept if there was real content before the newline
+                        let trimmed = oldValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        // Remove the newline and send
+                        viewModel.prompt = trimmed
+                        submitPrompt()
+                    }
+                    #else
                     .onSubmit {
                         // Intentionally empty: suppress default Return key submission
                         // so Enter inserts a newline. Send is triggered by Cmd+Enter
                         // (via .keyboardShortcut on the Send button) or by clicking Send.
                     }
+                    #endif
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.sm)
                     .background {
@@ -213,10 +233,20 @@ struct InputAreaView: View {
         )
         .shadow(color: AppColors.backgroundPrimary.opacity(0.5), radius: 8, y: -2)
         .onAppear {
+            #if os(macOS)
             isPromptFocused = true
+            #else
+            // Prevent keyboard from auto-presenting when InputAreaView is inserted
+            // into the view hierarchy (e.g., during empty→active state transition).
+            // The user should explicitly tap the text field to bring up the keyboard.
+            isPromptFocused = false
+            #endif
         }
         .onReceive(NotificationCenter.default.publisher(for: .focusPromptRequested)) { _ in
             isPromptFocused = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .dismissKeyboardRequested)) { _ in
+            isPromptFocused = false
         }
         .onReceive(NotificationCenter.default.publisher(for: .showPhotoPickerRequested)) { _ in
             showPhotoPicker = true
@@ -239,17 +269,31 @@ struct InputAreaView: View {
 
     // MARK: - Send Button
 
+    private var canSubmitPrompt: Bool {
+        viewModel.isGenerating || (
+            viewModel.isEngineReady &&
+            (!viewModel.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.hasMultimodalAttachment)
+        )
+    }
+
+    private func submitPrompt() {
+        if viewModel.isGenerating {
+            viewModel.stopGenerating()
+            return
+        }
+        guard viewModel.isEngineReady else {
+            viewModel.statusMessage = "Please select or download a model first."
+            return
+        }
+        guard !viewModel.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.hasMultimodalAttachment else {
+            return
+        }
+        Task { await viewModel.generateText() }
+    }
+
     private var sendButton: some View {
         Button {
-            if viewModel.isGenerating {
-                viewModel.stopGenerating()
-                return
-            }
-            guard viewModel.isEngineReady else {
-                viewModel.statusMessage = "Please select or download a model first."
-                return
-            }
-            Task { await viewModel.generateText() }
+            submitPrompt()
         } label: {
             Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
                 .font(.title2)
@@ -259,7 +303,7 @@ struct InputAreaView: View {
         }
         .buttonStyle(.plain)
         .frame(minWidth: 44, minHeight: 44) // HIG: 44pt minimum tap target
-        .disabled(!viewModel.isEngineReady)
+        .disabled(!canSubmitPrompt)
         .accessibilityLabel(viewModel.isGenerating ? "Stop generating" : "Send message")
         .accessibilityIdentifier("button_send")
         .accessibilityValue(sendButtonAccessibilityValue)

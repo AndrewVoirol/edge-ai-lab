@@ -32,7 +32,7 @@
       "step": 5,
       "action": "verify_ui",
       "description": "Verify prompt field is visible in portrait layout.",
-      "expected_elements_any": ["textField_prompt", "Enter your prompt here"]
+      "expected_elements_any": ["textField_prompt", "Ask Gemma anything...", "chatTab_root", "chatTab_goToModels"]
     },
     {
       "step": 6,

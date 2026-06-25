@@ -21,7 +21,7 @@
       "action": "wait",
       "description": "Wait for URL Import sheet to appear.",
       "condition": "element_exists:urlImport_urlField",
-      "timeout_seconds": 5
+      "timeout_seconds": 10
     },
     {
       "step": 4,

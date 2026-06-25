@@ -76,6 +76,8 @@ final class ModelSessionController {
     var onStatusMessage: (String) -> Void
     /// Callback when model-specific sampler defaults are applied (so the ViewModel can sync).
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
+    /// Callback when engine readiness state changes (so the ViewModel can update its tracked property).
+    var onEngineReadyChanged: ((Bool) -> Void)?
     /// Default experimental flags to use when none are explicitly passed.
     var defaultExperimentalFlags: ExperimentalFlagsState?
 
@@ -239,11 +241,13 @@ final class ModelSessionController {
             }
 
             Self.logger.info("✅ Engine initialized: backend=\(backendLabel, privacy: .public)")
+            onEngineReadyChanged?(true)
 
         } catch {
             backendResult = nil
             onStatusMessage("Failed to initialize: \(error.localizedDescription)")
             Self.logger.error("❌ Engine init failed: \(error.localizedDescription, privacy: .public)")
+            onEngineReadyChanged?(false)
         }
 
         timeoutTask.cancel()
@@ -284,6 +288,7 @@ final class ModelSessionController {
         activeModelMetadata = nil
         backendResult = nil
         await engine.shutdown()
+        onEngineReadyChanged?(false)
     }
 
     // MARK: - Private Helpers

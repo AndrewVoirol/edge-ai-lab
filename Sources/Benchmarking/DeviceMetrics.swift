@@ -93,20 +93,23 @@ struct InferenceMetrics: Codable, Sendable {
     /// Device state at the end of inference.
     let endSnapshot: DeviceMetricsSnapshot
 
-    /// Per-token decode latency intervals in milliseconds.
-    /// Each entry is the time between consecutive token arrivals.
-    /// First entry is the time from inference start to first token (TTFT).
-    let tokenLatenciesMs: [Double]
+    /// Time to first token (prefill latency) in milliseconds, or nil if no tokens were produced.
+    let ttftMs: Double?
 
-    /// Total number of tokens decoded.
+    /// Per-token decode latency intervals in milliseconds (excludes TTFT).
+    /// Each entry is the time between consecutive token arrivals, starting from the
+    /// second token onward. This isolates pure decode throughput from prefill latency.
+    let decodeLatenciesMs: [Double]
+
+    /// Total number of tokens decoded (includes the first token).
     let totalTokenCount: Int
 
-    // MARK: - Computed Statistics
+    // MARK: - Computed Statistics (decode-only, excludes TTFT)
 
-    /// Median per-token decode latency in milliseconds.
+    /// Median per-token decode latency in milliseconds (excludes TTFT).
     var medianTokenLatencyMs: Double {
-        guard !tokenLatenciesMs.isEmpty else { return 0 }
-        let sorted = tokenLatenciesMs.sorted()
+        guard !decodeLatenciesMs.isEmpty else { return 0 }
+        let sorted = decodeLatenciesMs.sorted()
         let mid = sorted.count / 2
         if sorted.count.isMultiple(of: 2) {
             return (sorted[mid - 1] + sorted[mid]) / 2.0
@@ -114,22 +117,22 @@ struct InferenceMetrics: Codable, Sendable {
         return sorted[mid]
     }
 
-    /// 95th percentile token latency in milliseconds.
+    /// 95th percentile token latency in milliseconds (excludes TTFT).
     var p95TokenLatencyMs: Double {
-        guard !tokenLatenciesMs.isEmpty else { return 0 }
-        let sorted = tokenLatenciesMs.sorted()
+        guard !decodeLatenciesMs.isEmpty else { return 0 }
+        let sorted = decodeLatenciesMs.sorted()
         let index = min(Int(Double(sorted.count) * 0.95), sorted.count - 1)
         return sorted[index]
     }
 
-    /// Minimum token latency in milliseconds.
+    /// Minimum decode token latency in milliseconds (excludes TTFT).
     var minTokenLatencyMs: Double {
-        tokenLatenciesMs.min() ?? 0
+        decodeLatenciesMs.min() ?? 0
     }
 
-    /// Maximum token latency in milliseconds.
+    /// Maximum decode token latency in milliseconds (excludes TTFT).
     var maxTokenLatencyMs: Double {
-        tokenLatenciesMs.max() ?? 0
+        decodeLatenciesMs.max() ?? 0
     }
 
     /// Memory delta: how much available memory changed during inference.

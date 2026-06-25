@@ -78,7 +78,7 @@ struct MetricsStoreSwiftTestingTests {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                tokenLatenciesMs: nil
+                decodeLatenciesMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: false,
@@ -112,7 +112,7 @@ struct MetricsStoreSwiftTestingTests {
                 availableMemoryAtEndMB: 1536.0,
                 medianTokenLatencyMs: 6.5,
                 p95TokenLatencyMs: 12.3,
-                tokenLatenciesMs: [5.0, 6.0, 6.5, 7.0, 12.3]
+                decodeLatenciesMs: [5.0, 6.0, 6.5, 7.0, 12.3]
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -227,7 +227,7 @@ struct MetricsStoreSwiftTestingTests {
         #expect(e.metrics.availableMemoryAtEndMB == 1536.0)
         #expect(e.metrics.medianTokenLatencyMs == 6.5)
         #expect(e.metrics.p95TokenLatencyMs == 12.3)
-        #expect(e.metrics.tokenLatenciesMs == [5.0, 6.0, 6.5, 7.0, 12.3])
+        #expect(e.metrics.decodeLatenciesMs == [5.0, 6.0, 6.5, 7.0, 12.3])
 
         // Flags round-trip
         #expect(e.flags.enableBenchmark == true)
@@ -678,7 +678,7 @@ struct MetricsStoreSwiftTestingTests {
         #expect(loaded[0].metrics.availableMemoryAtEndMB == nil)
         #expect(loaded[0].metrics.medianTokenLatencyMs == nil)
         #expect(loaded[0].metrics.p95TokenLatencyMs == nil)
-        #expect(loaded[0].metrics.tokenLatenciesMs == nil)
+        #expect(loaded[0].metrics.decodeLatenciesMs == nil)
     }
 
     @Test("Large batch of entries persists and queries correctly")

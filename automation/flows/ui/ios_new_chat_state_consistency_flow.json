@@ -1,0 +1,96 @@
+{
+  "name": "iOS New Chat State Consistency",
+  "description": "Tests state consistency after New Chat on iOS: navigate to Chat tab → verify initial state → tap New Chat button → verify chat tab shows a functional state (empty state or conversation area hint cards) → navigate to Models tab and back → verify state remains consistent. Validates that New Chat does not leave the UI in a broken or indeterminate state.",
+  "platform": "iOS",
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app launched with tab bar visible.",
+      "expected_elements": ["Models", "Chat"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Navigate to the Chat tab.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 3,
+      "action": "wait",
+      "description": "Wait for chat interface to appear.",
+      "condition": "element_exists:chatTab_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify chat tab shows a functional initial state.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 5,
+      "action": "tap_if_exists",
+      "description": "Tap the New Chat button if present (may not exist in empty state or without a model).",
+      "target_element": "chatTab_newChat",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 6,
+      "action": "wait",
+      "description": "Wait for UI to settle after New Chat action.",
+      "condition": "element_exists:chatTab_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify chat tab still shows a functional state after New Chat (not broken or blank).",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 8,
+      "action": "tap",
+      "description": "Navigate to Models tab to test round-trip consistency.",
+      "target_element": "Models"
+    },
+    {
+      "step": 9,
+      "action": "wait",
+      "description": "Wait for Models tab to render.",
+      "condition": "element_exists:Models",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 10,
+      "action": "verify_ui",
+      "description": "Verify Models tab is active.",
+      "expected_elements": ["Models"]
+    },
+    {
+      "step": 11,
+      "action": "tap",
+      "description": "Navigate back to Chat tab to verify persistence.",
+      "target_element": "Chat"
+    },
+    {
+      "step": 12,
+      "action": "wait",
+      "description": "Wait for chat interface to re-render.",
+      "condition": "element_exists:chatTab_root",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 13,
+      "action": "verify_ui",
+      "description": "Verify chat tab state is consistent after round-trip navigation post New Chat.",
+      "expected_elements": ["chatTab_root"]
+    },
+    {
+      "step": 14,
+      "action": "verify_ui",
+      "description": "Verify tab bar remains accessible.",
+      "expected_elements": ["Models", "Chat"]
+    }
+  ]
+}

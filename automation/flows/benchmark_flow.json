@@ -1,5 +1,6 @@
 {
   "name": "Performance Benchmarks & Metrics Capture",
+  "description": "Runs a warmup turn followed by a benchmark prompt, then verifies expanded performance metrics (TTFT, Decode, Prefill, Memory, P95).",
   "steps": [
     {
       "step": 1,

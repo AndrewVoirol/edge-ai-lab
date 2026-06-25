@@ -54,7 +54,8 @@ struct DeviceMetricsTests {
         endThermal: ThermalLevel = .nominal,
         startMemoryMB: Double = 4096.0,
         endMemoryMB: Double = 3584.0,
-        tokenLatenciesMs: [Double] = [10.0, 20.0, 30.0],
+        ttftMs: Double? = nil,
+        decodeLatenciesMs: [Double] = [10.0, 20.0, 30.0],
         totalTokenCount: Int = 3
     ) -> InferenceMetrics {
         let start = makeSnapshot(
@@ -68,7 +69,8 @@ struct DeviceMetricsTests {
         return InferenceMetrics(
             startSnapshot: start,
             endSnapshot: end,
-            tokenLatenciesMs: tokenLatenciesMs,
+            ttftMs: ttftMs,
+            decodeLatenciesMs: decodeLatenciesMs,
             totalTokenCount: totalTokenCount
         )
     }
@@ -222,7 +224,7 @@ struct DeviceMetricsTests {
             func oddCount() {
                 // [10, 20, 30, 40, 50] → sorted → median is index 2 → 30
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [50.0, 10.0, 30.0, 20.0, 40.0],
+                    decodeLatenciesMs: [50.0, 10.0, 30.0, 20.0, 40.0],
                     totalTokenCount: 5
                 )
                 #expect(metrics.medianTokenLatencyMs == 30.0)
@@ -232,7 +234,7 @@ struct DeviceMetricsTests {
             func evenCount() {
                 // [10, 20, 30, 40] → sorted → average of index 1,2 → (20+30)/2 = 25
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [40.0, 10.0, 30.0, 20.0],
+                    decodeLatenciesMs: [40.0, 10.0, 30.0, 20.0],
                     totalTokenCount: 4
                 )
                 #expect(metrics.medianTokenLatencyMs == 25.0)
@@ -241,7 +243,7 @@ struct DeviceMetricsTests {
             @Test("Returns 0 for empty latency array")
             func emptyArray() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [],
+                    decodeLatenciesMs: [],
                     totalTokenCount: 0
                 )
                 #expect(metrics.medianTokenLatencyMs == 0)
@@ -250,7 +252,7 @@ struct DeviceMetricsTests {
             @Test("Returns the single element for array with one element")
             func singleElement() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [42.5],
+                    decodeLatenciesMs: [42.5],
                     totalTokenCount: 1
                 )
                 #expect(metrics.medianTokenLatencyMs == 42.5)
@@ -269,7 +271,7 @@ struct DeviceMetricsTests {
                 // sorted[19] = 20.0
                 let latencies = (1...20).map { Double($0) }
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: latencies,
+                    decodeLatenciesMs: latencies,
                     totalTokenCount: 20
                 )
                 #expect(metrics.p95TokenLatencyMs == 20.0)
@@ -282,7 +284,7 @@ struct DeviceMetricsTests {
                 // sorted[95] = 96.0
                 let latencies = (1...100).map { Double($0) }
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: latencies,
+                    decodeLatenciesMs: latencies,
                     totalTokenCount: 100
                 )
                 #expect(metrics.p95TokenLatencyMs == 96.0)
@@ -291,7 +293,7 @@ struct DeviceMetricsTests {
             @Test("Returns 0 for empty array")
             func emptyArray() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [],
+                    decodeLatenciesMs: [],
                     totalTokenCount: 0
                 )
                 #expect(metrics.p95TokenLatencyMs == 0)
@@ -301,7 +303,7 @@ struct DeviceMetricsTests {
             func singleElement() {
                 // index = min(Int(1 * 0.95), 0) = min(0, 0) = 0
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [99.9],
+                    decodeLatenciesMs: [99.9],
                     totalTokenCount: 1
                 )
                 #expect(metrics.p95TokenLatencyMs == 99.9)
@@ -316,7 +318,7 @@ struct DeviceMetricsTests {
             @Test("Returns minimum of known data")
             func knownData() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [50.0, 5.0, 100.0, 25.0],
+                    decodeLatenciesMs: [50.0, 5.0, 100.0, 25.0],
                     totalTokenCount: 4
                 )
                 #expect(metrics.minTokenLatencyMs == 5.0)
@@ -325,7 +327,7 @@ struct DeviceMetricsTests {
             @Test("Returns 0 for empty array")
             func emptyArray() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [],
+                    decodeLatenciesMs: [],
                     totalTokenCount: 0
                 )
                 #expect(metrics.minTokenLatencyMs == 0)
@@ -338,7 +340,7 @@ struct DeviceMetricsTests {
             @Test("Returns maximum of known data")
             func knownData() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [50.0, 5.0, 100.0, 25.0],
+                    decodeLatenciesMs: [50.0, 5.0, 100.0, 25.0],
                     totalTokenCount: 4
                 )
                 #expect(metrics.maxTokenLatencyMs == 100.0)
@@ -347,7 +349,7 @@ struct DeviceMetricsTests {
             @Test("Returns 0 for empty array")
             func emptyArray() {
                 let metrics = makeMetrics(
-                    tokenLatenciesMs: [],
+                    decodeLatenciesMs: [],
                     totalTokenCount: 0
                 )
                 #expect(metrics.maxTokenLatencyMs == 0)
@@ -421,7 +423,7 @@ struct DeviceMetricsTests {
                 endThermal: .serious,
                 startMemoryMB: 4096.0,
                 endMemoryMB: 3072.0,
-                tokenLatenciesMs: [10.0, 20.0, 30.0, 40.0, 50.0],
+                decodeLatenciesMs: [10.0, 20.0, 30.0, 40.0, 50.0],
                 totalTokenCount: 5
             )
 
@@ -434,7 +436,7 @@ struct DeviceMetricsTests {
             let decoded = try decoder.decode(InferenceMetrics.self, from: data)
 
             // Stored properties
-            #expect(decoded.tokenLatenciesMs == original.tokenLatenciesMs)
+            #expect(decoded.decodeLatenciesMs == original.decodeLatenciesMs)
             #expect(decoded.totalTokenCount == original.totalTokenCount)
             #expect(decoded.startSnapshot.thermalLevel == original.startSnapshot.thermalLevel)
             #expect(decoded.endSnapshot.thermalLevel == original.endSnapshot.thermalLevel)

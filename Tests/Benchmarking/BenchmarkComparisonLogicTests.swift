@@ -50,7 +50,7 @@ private func makeEntry(
             availableMemoryAtEndMB: nil,
             medianTokenLatencyMs: nil,
             p95TokenLatencyMs: nil,
-            tokenLatenciesMs: nil
+            decodeLatenciesMs: nil
         ),
         flags: ExperimentalFlagsState(
             enableBenchmark: false,

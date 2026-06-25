@@ -73,8 +73,8 @@ struct BenchmarkRegressionCheckerAllSwiftTests {
         )
     }
 
-    @Test("Groups results by baseline ID")
-    func groupsByBaselineId() {
+    @Test("Groups results by baseline ID with exact expected count")
+    func groupsByBaselineId() throws {
         let results: [String: Double] = ["sdk_decode_tok_s": 95.0, "ttft_s": 0.55]
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
@@ -82,7 +82,12 @@ struct BenchmarkRegressionCheckerAllSwiftTests {
             baselines: baselines
         )
         // baseline-1 has both metrics, baseline-2 has only sdk_decode_tok_s
-        #expect(grouped.keys.count >= 1)
+        #expect(grouped.keys.count == 2)
+        let b1Checks = try #require(grouped["baseline-1"])
+        #expect(b1Checks.count == 2, "baseline-1 should match both sdk_decode_tok_s and ttft_s")
+        let b2Checks = try #require(grouped["baseline-2"])
+        #expect(b2Checks.count == 1, "baseline-2 should match only sdk_decode_tok_s")
+        #expect(b2Checks[0].metricKey == "sdk_decode_tok_s")
     }
 
     @Test("Returns empty when results don't match any baseline metrics")
@@ -97,7 +102,7 @@ struct BenchmarkRegressionCheckerAllSwiftTests {
     }
 
     @Test("Multiple baselines get separate entries")
-    func multipleBaselines() {
+    func multipleBaselines() throws {
         let results: [String: Double] = ["sdk_decode_tok_s": 80.0]
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
@@ -111,7 +116,7 @@ struct BenchmarkRegressionCheckerAllSwiftTests {
     }
 
     @Test("Regression detected for higherIsBetter when value drops >threshold")
-    func regressionDetected() {
+    func regressionDetected() throws {
         let results: [String: Double] = ["sdk_decode_tok_s": 80.0]  // 20% drop from 100
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
@@ -119,49 +124,138 @@ struct BenchmarkRegressionCheckerAllSwiftTests {
             baselines: baselines
         )
         // baseline-1: 80 vs 100 = -20% deviation, threshold is 10% → regression
-        let checks = grouped["baseline-1"]!
-        #expect(checks[0].isRegression == true)
-        #expect(checks[0].status == "regression")
+        let checks = try #require(grouped["baseline-1"])
+        let speedCheck = try #require(checks.first { $0.metricKey == "sdk_decode_tok_s" })
+        #expect(speedCheck.isRegression == true)
+        #expect(speedCheck.status == "regression")
+        #expect(speedCheck.severity == .critical)
     }
 
     @Test("Improvement detected for higherIsBetter when value increases")
-    func improvement() {
+    func improvement() throws {
         let results: [String: Double] = ["sdk_decode_tok_s": 120.0]  // 20% improvement
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
             results: results,
             baselines: baselines
         )
-        let checks = grouped["baseline-1"]!
-        let speedCheck = checks.first { $0.metricKey == "sdk_decode_tok_s" }!
+        let checks = try #require(grouped["baseline-1"])
+        let speedCheck = try #require(checks.first { $0.metricKey == "sdk_decode_tok_s" })
         #expect(speedCheck.isRegression == false)
         #expect(speedCheck.status == "improved")
     }
 
-    @Test("Stable when within threshold")
-    func stable() {
+    @Test("Stable when within threshold — includes status check")
+    func stable() throws {
         let results: [String: Double] = ["sdk_decode_tok_s": 95.0]  // 5% drop, threshold 10%
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
             results: results,
             baselines: baselines
         )
-        let checks = grouped["baseline-1"]!
-        let speedCheck = checks.first { $0.metricKey == "sdk_decode_tok_s" }!
+        let checks = try #require(grouped["baseline-1"])
+        let speedCheck = try #require(checks.first { $0.metricKey == "sdk_decode_tok_s" })
         #expect(speedCheck.isRegression == false)
+        #expect(speedCheck.status == "stable")
     }
 
     @Test("lowerIsBetter regression when value increases >threshold")
-    func lowerIsBetterRegression() {
+    func lowerIsBetterRegression() throws {
         let results: [String: Double] = ["ttft_s": 0.8]  // 60% increase from 0.5, threshold 20%
         let baselines = makeBaselines()
         let grouped = BenchmarkRegressionChecker.checkRegressionAll(
             results: results,
             baselines: baselines
         )
-        let checks = grouped["baseline-1"]!
-        let ttftCheck = checks.first { $0.metricKey == "ttft_s" }!
+        let checks = try #require(grouped["baseline-1"])
+        let ttftCheck = try #require(checks.first { $0.metricKey == "ttft_s" })
         #expect(ttftCheck.isRegression == true)
+        #expect(ttftCheck.status == "regression")
+        #expect(ttftCheck.severity == .warning)
+    }
+
+    @Test("lowerIsBetter improvement when value decreases")
+    func lowerIsBetterImprovement() throws {
+        let results: [String: Double] = ["ttft_s": 0.3]  // 40% decrease from 0.5 = improvement
+        let baselines = makeBaselines()
+        let grouped = BenchmarkRegressionChecker.checkRegressionAll(
+            results: results,
+            baselines: baselines
+        )
+        let checks = try #require(grouped["baseline-1"])
+        let ttftCheck = try #require(checks.first { $0.metricKey == "ttft_s" })
+        #expect(ttftCheck.isRegression == false)
+        #expect(ttftCheck.status == "improved")
+    }
+
+    @Test("Exactly at threshold is NOT a regression (strict greater-than)")
+    func exactlyAtThreshold() throws {
+        // sdk_decode_tok_s: baseline=100, threshold=10%
+        // 90.0 = exactly 10% drop → rawPct = -10.0, threshold = 10
+        // isRegression = rawPct < 0 && abs(rawPct) > threshold → abs(-10) > 10 is false
+        let results: [String: Double] = ["sdk_decode_tok_s": 90.0]
+        let baselines = makeBaselines()
+        let grouped = BenchmarkRegressionChecker.checkRegressionAll(
+            results: results,
+            baselines: baselines
+        )
+        let checks = try #require(grouped["baseline-1"])
+        let speedCheck = try #require(checks.first { $0.metricKey == "sdk_decode_tok_s" })
+        #expect(speedCheck.isRegression == false, "Exactly at threshold should NOT be flagged as regression")
+        #expect(speedCheck.status == "stable")
+    }
+
+    @Test("Zero baseline value is skipped to avoid division by zero")
+    func zeroBaselineSkipped() {
+        let zeroBaselines = BenchmarkBaselines(
+            meta: BaselineMeta(
+                version: 1, description: "Test", lastUpdated: "2026-01-01",
+                thresholdPct: 10, methodology: "test"
+            ),
+            baselines: [
+                BenchmarkBaselineEntry(
+                    id: "zero-baseline",
+                    model: "Model Z", variant: "standard", backend: "gpu",
+                    deviceFamily: "Mac", metrics: ["sdk_decode_tok_s": 0.0],
+                    source: "test", notes: "test"
+                ),
+            ],
+            regressionRules: [
+                "sdk_decode_tok_s": RegressionRule(
+                    direction: .higherIsBetter, thresholdPct: 10,
+                    severity: .critical, description: "Decode speed"
+                ),
+            ]
+        )
+        let results: [String: Double] = ["sdk_decode_tok_s": 50.0]
+        let grouped = BenchmarkRegressionChecker.checkRegressionAll(
+            results: results,
+            baselines: zeroBaselines
+        )
+        // Zero baseline should be skipped (guard baselineValue != 0)
+        #expect(grouped.isEmpty, "Zero baseline should produce no results")
+    }
+
+    @Test("Results sorted by severity then metric key")
+    func resultsSortedBySeverityThenKey() throws {
+        // Supply both metrics: sdk_decode_tok_s (critical) and ttft_s (warning)
+        // Both should regress to verify ordering
+        let results: [String: Double] = [
+            "sdk_decode_tok_s": 80.0,  // 20% drop → critical regression
+            "ttft_s": 0.8,             // 60% increase → warning regression
+        ]
+        let baselines = makeBaselines()
+        let grouped = BenchmarkRegressionChecker.checkRegressionAll(
+            results: results,
+            baselines: baselines
+        )
+        let checks = try #require(grouped["baseline-1"])
+        #expect(checks.count == 2)
+        // Critical should come first
+        #expect(checks[0].severity == .critical)
+        #expect(checks[0].metricKey == "sdk_decode_tok_s")
+        #expect(checks[1].severity == .warning)
+        #expect(checks[1].metricKey == "ttft_s")
     }
 
     @Test("RegressionCheckResult.status values")

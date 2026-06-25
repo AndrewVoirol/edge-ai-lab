@@ -26,7 +26,7 @@ import XCTest
 /// 2. Accessibility elements require SwiftUI view rendering, which doesn't
 ///    fire reliably under XCUITest's launch sandbox
 ///
-/// The harness writes `/tmp/automation_complete.txt` when it finishes.
+/// The harness writes a marker file to `NSTemporaryDirectory()` when it finishes.
 ///
 /// This suite is designed for CI — it runs fast (no model loading) and catches
 /// regressions in the automation harness argument parsing and flow dispatch.
@@ -36,6 +36,9 @@ final class AutomationHarnessXCTests: XCTestCase {
     private let automationTimeout: TimeInterval = 30
 
     /// Path to the marker file written by the automation harness on completion.
+    /// Uses /tmp because it's globally accessible on macOS — both the app
+    /// process and the XCUITest runner process can access it. The production
+    /// code uses the same /tmp path on macOS (see DeveloperAutomationHarness).
     private let markerPath = "/tmp/automation_complete.txt"
 
     override func setUpWithError() throws {
@@ -74,6 +77,25 @@ final class AutomationHarnessXCTests: XCTestCase {
 
         app.launchArguments = arguments
         app.launch()
+
+        // Wait for the app to reach foreground state. On macOS, after a prior
+        // test run terminates the app, macOS may restore "0 windows" state.
+        // Without this, XCUITest can't establish an accessibility session
+        // and app.launch() fails with "does not have a process ID."
+        let isRunning = app.wait(for: .runningForeground, timeout: 15.0)
+        if isRunning {
+            #if os(macOS)
+            // On macOS, force a new window via Cmd+N if none exists.
+            // XCUITest's terminate() causes macOS to save "0 windows" state.
+            // The next launch restores that empty state — Cmd+N creates a fresh window.
+            app.activate()
+            usleep(500_000) // Give the menu bar time to load
+            if app.windows.count == 0 {
+                app.typeKey("n", modifierFlags: .command)
+                usleep(1_000_000) // Wait for window to appear
+            }
+            #endif
+        }
 
         // Poll for the marker file — the harness writes it when automation
         // completes. We poll rather than using inotify because XCUITest

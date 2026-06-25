@@ -50,6 +50,7 @@ final class SmartFallbackIntegrationTests: XCTestCase {
 
         #if os(macOS) || targetEnvironment(simulator)
         let projectModels = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // Tests/Engine/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // project root
             .appendingPathComponent("models")

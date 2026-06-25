@@ -61,7 +61,7 @@ if [[ "$PLATFORM" == "macos" ]]; then
     TEST_TARGET="EdgeAILab_macOSTests"
 elif [[ "$PLATFORM" == "simulator" ]]; then
     SCHEME="EdgeAILab_iOS"
-    DESTINATION="platform=iOS Simulator,name=iPhone 17 Pro Max"
+    DESTINATION="platform=iOS Simulator,name=iPhone 16 Pro Max"
     TEST_TARGET="EdgeAILab_iOSTests"
 elif [[ "$PLATFORM" == "device" ]]; then
     SCHEME="EdgeAILab_iOS"
@@ -238,7 +238,7 @@ fi
 # ──────────────────────────────────────────────────────────
 COVERAGE_STATUS="skipped"
 COVERAGE_PCT="N/A"
-COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD_PCT:-25}"
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD_PCT:-30}"
 
 if [[ "$UNIT_STATUS" == "passed" && "$PLATFORM" == "macos" ]]; then
     echo "📊 Coverage Check (threshold: ${COVERAGE_THRESHOLD}%)"

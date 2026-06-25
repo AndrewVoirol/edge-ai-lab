@@ -50,6 +50,7 @@ final class PerformanceTests: XCTestCase {
 
         // 2. Convention: models/ directory relative to project root (macOS tests)
         let projectModels = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // Tests/Benchmarking/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // project root
             .appendingPathComponent("models")

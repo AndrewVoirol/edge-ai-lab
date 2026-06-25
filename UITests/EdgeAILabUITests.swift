@@ -76,15 +76,14 @@ final class EdgeAILabUITests: XCTestCase {
         sleep(2)
 
         // Step 3: Force a new window via Cmd+N if no window exists.
-        // On macOS, XCUITest terminate() causes macOS to save the window state
-        // as "0 windows." On the next launch, the WindowGroup restores that empty
-        // state and doesn't create a window. Cmd+N triggers the standard SwiftUI
-        // WindowGroup "New Window" action, which creates a fresh window.
+        // On macOS 26, the WindowGroup may not create a window on first launch
+        // under XCUITest, especially after terminate(). Retry Cmd+N up to 3
+        // times with increasing delays to handle Liquid Glass timing variance.
         #if os(macOS)
-        if app.windows.count == 0 {
-            print("[LAUNCH] No window found — sending Cmd+N to create one...")
+        for attempt in 1...3 where app.windows.count == 0 {
+            print("[LAUNCH] No window found (attempt \(attempt)/3) — sending Cmd+N...")
             app.typeKey("n", modifierFlags: .command)
-            sleep(3) // Wait for window to appear and SwiftUI to render
+            sleep(UInt32(1 + attempt)) // 2s, 3s, 4s — increasing delays
         }
         #endif
 
@@ -166,6 +165,30 @@ final class EdgeAILabUITests: XCTestCase {
     func testFlowCommunityBrowser() throws {
         let app = launchApp()
         let runner = FlowDrivenUITestRunner(app: app, flowName: "macos_community_browser_flow")
+        try runner.execute()
+    }
+
+    func testFlowEvalExecution() throws {
+        let app = launchApp()
+        let runner = FlowDrivenUITestRunner(app: app, flowName: "macos_eval_execution_flow")
+        try runner.execute()
+    }
+
+    func testFlowNavigationEfficiency() throws {
+        let app = launchApp()
+        let runner = FlowDrivenUITestRunner(app: app, flowName: "macos_navigation_efficiency_flow")
+        try runner.execute()
+    }
+
+    func testFlowSettingsPersistence() throws {
+        let app = launchApp()
+        let runner = FlowDrivenUITestRunner(app: app, flowName: "macos_settings_persistence_flow")
+        try runner.execute()
+    }
+
+    func testFlowToolCalling() throws {
+        let app = launchApp()
+        let runner = FlowDrivenUITestRunner(app: app, flowName: "macos_tool_calling_flow")
         try runner.execute()
     }
 }
