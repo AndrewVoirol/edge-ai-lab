@@ -48,6 +48,36 @@ Packages/
 .antigravity/
 .xcodebuildmcp/
 
+# --- Antigravity Local Skills ---
+# These skills are loaded by Antigravity agents locally but are not
+# part of the public repository. To publish a skill, remove its entry
+# here and commit.
+.agents/skills/litert-lm/
+.agents/skills/automation-harness/
+.agents/skills/gallery-parity/
+.agents/skills/device-recovery/
+.agents/skills/benchmark-comparison/
+.agents/skills/performance-testing/
+.agents/skills/xcode-mcp/
+.agents/skills/build-verification/
+.agents/skills/device-testing/
+.agents/skills/simulator-management/
+.agents/skills/ui-ux-testing/
+.agents/skills/macos-swiftui/
+.agents/skills/tuist-project/
+.agents/skills/tuist/
+.agents/skills/model-management/
+.agents/skills/code-safety/
+.agents/skills/device-automation/
+.agents/skills/ci-debugging/
+
+# --- Antigravity Local Hooks ---
+.agents/hooks.json
+.agents/hooks/
+
+# --- Antigravity Local Rules ---
+.agents/rules/
+
 # --- Profiling & Metrics ---
 # Machine-local benchmark data (traces, CI result dumps)
 metrics/
