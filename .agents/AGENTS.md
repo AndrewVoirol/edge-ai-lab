@@ -1,5 +1,12 @@
 # EdgeAILab Project Rules
 
+## Project Identity
+- **This project**: Edge AI Lab (`edge-ai-lab`) — open-source on-device Gemma inference for macOS/iOS.
+- **Predecessor**: `gemmaedgegallery` (Google AI Edge Gallery → renamed to this project).
+- **NOT a predecessor**: `edge-lab` — separate project with features to port in the future.
+- **Repo**: github.com/AndrewVoirol/edge-ai-lab (public).
+- Knowledge store entries from other projects (e.g., `gemma4_ios_inference`, `io2026_concierge`) contain overlapping domain knowledge but are **separate projects**, not ancestors.
+
 ## Build System
 - This is a **Tuist-managed** project. Use `EdgeAILab.xcworkspace` (NOT `.xcodeproj`).
 - macOS scheme: `"Edge AI Lab"` (with spaces). iOS scheme: `EdgeAILab_iOS`.
@@ -37,6 +44,7 @@
 - **Never declare "100% complete" without line-by-line verification** against the original plan text. Cross-reference every numbered item, every listed file, every specific deliverable. Use the `plan-compliance-audit` skill.
 - **Never use estimated/fabricated values as deliverables** without the word "ESTIMATED" in the value itself AND the surrounding context. Prefer leaving a placeholder like `"TBD — requires controlled run"` over a fake number.
 - **Subagent outputs must be spot-checked** against the original task requirements. Don't forward subagent completion claims without verifying at least: (a) the files exist, (b) they address the specific plan items, (c) they don't conflict with other work.
+- **Subagent file operations require directory-level verification.** When subagents copy directories, verify the complete tree (not just the primary file). Use `find <dir> -type f | wc -l` to confirm file counts match the source. Subagents commonly miss companion directories (e.g., `scripts/`, `examples/`) and file permissions.
 
 ## Strategic Recommendations
 - **Never project numeric outcomes without evidence.** If you haven't measured it, say "unknown — requires measurement" instead of estimating a range. Fabricated projections (e.g., "expected 50-80%") erode trust when reality doesn't match.

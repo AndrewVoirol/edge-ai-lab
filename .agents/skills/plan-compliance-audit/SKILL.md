@@ -46,6 +46,12 @@ Use these statuses:
 
 **Never use ✅ for items that are PARTIAL, CHANGED, or DEFERRED.**
 
+## Step 5: Deviation Documentation Check
+
+- For each task tracker item, compare the action described against the original plan item text.
+- If the merge target, file location, or approach differs from what was planned, a `> [!WARNING]` block MUST exist in the **implementation plan artifact** (not just the task tracker) explaining the change.
+- Informal notes like "(core rule)" or "(merged into X)" in the task tracker are insufficient — they must be reflected in the plan artifact.
+
 ## When to Use This Skill
 
 - Before writing a walkthrough artifact
