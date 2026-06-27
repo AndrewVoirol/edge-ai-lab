@@ -381,7 +381,7 @@ struct AutomationEventEdgeCaseTests {
 
 // MARK: - AutomationEventBus Tests
 
-@Suite("AutomationEventBus")
+@Suite("AutomationEventBus", .serialized)
 struct AutomationEventBusTests {
 
     @Test("Shared singleton exists and is the same instance")
@@ -433,19 +433,31 @@ struct AutomationEventBusTests {
         let (stream2, id2) = bus.subscribe()
 
         let event = AutomationEvent.navigateTab(NavigateTabPayload(label: "Home"))
+
+        // Collect events from both streams concurrently using Tasks.
+        // Each Task starts iterating (registering its demand) before we emit.
+        let task1 = Task<AutomationEvent?, Never> {
+            for await evt in stream1 { return evt }
+            return nil
+        }
+        let task2 = Task<AutomationEvent?, Never> {
+            for await evt in stream2 { return evt }
+            return nil
+        }
+
+        // Brief yield to let the for-await loops start waiting on their streams.
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
         bus.emit(event)
         bus.unsubscribe(id: id1)
         bus.unsubscribe(id: id2)
 
+        let evt1 = await task1.value
+        let evt2 = await task2.value
+
         var count = 0
-        for await evt in stream1 {
-            if case .navigateTab = evt { count += 1 }
-            break
-        }
-        for await evt in stream2 {
-            if case .navigateTab = evt { count += 1 }
-            break
-        }
+        if let e = evt1, case .navigateTab = e { count += 1 }
+        if let e = evt2, case .navigateTab = e { count += 1 }
 
         #expect(count == 2, "Both subscribers should receive the event")
     }

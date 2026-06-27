@@ -181,7 +181,7 @@ final class InferenceQualityTests: XCTestCase {
     /// Send the same prompt twice with greedy sampling and verify identical output.
     /// This validates that the sampler config is respected and output is reproducible.
     func testDeterministicOutputWithGreedySampling() async throws {
-        let modelPath = try findAnyModel()
+        let modelPath = try findModel(named: "gemma-4-E2B-it.litertlm")
 
         let engine = try await makeEngine(modelPath: modelPath)
         defer {
@@ -209,7 +209,7 @@ final class InferenceQualityTests: XCTestCase {
     /// Send "My name is Alice", then ask "What is my name?", and verify
     /// the model maintains conversational context across turns.
     func testConversationContextMaintained() async throws {
-        let modelPath = try findAnyModel()
+        let modelPath = try findModel(named: "gemma-4-E2B-it.litertlm")
 
         let engine = try await makeEngine(modelPath: modelPath)
         defer {
@@ -230,7 +230,7 @@ final class InferenceQualityTests: XCTestCase {
     /// Run inference with thinking mode enabled and verify the engine
     /// handles the `enableThinking: true` parameter without crashing.
     func testThinkingModeProducesOutput() async throws {
-        let modelPath = try findAnyModel()
+        let modelPath = try findModel(named: "gemma-4-E2B-it.litertlm")
 
         let engine = try await makeEngine(modelPath: modelPath)
         defer {

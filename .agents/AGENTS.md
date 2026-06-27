@@ -38,6 +38,7 @@
 - All perpetual animations MUST have `XCTestConfigurationFilePath` guard.
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
 - iOS Simulator destination: `iPhone 16 Pro Max` (ID: `CD9FBA60-9BA8-42DC-8D19-335ECEF4C915`).
+- **testmanagerd contention**: When running iOS Simulator UI tests followed by iOS Device UI tests in the same pipeline, the host Mac's `testmanagerd` must fully tear down the simulator session before the device session starts. Always run `xcrun simctl shutdown all && sleep 15` between simulator and device test steps. Without this, device tests fail with "Timed out while enabling automation mode."
 
 ## Plan Execution Discipline
 - **Never silently drop or rename a plan item.** If a planned deliverable can't be completed or needs to change, update the plan artifact with a `> [!WARNING]` block explaining what changed and why BEFORE marking it done.
@@ -58,3 +59,4 @@
 
 ## Verification Integrity
 - **Never write speculative failure diagnoses into AGENTS.md.** Phrases like "likely an iOS 27 issue" or "probably a compatibility problem" are opinions, not evidence. If you haven't verified the root cause, write "status unknown — not verified" instead. Rules in AGENTS.md are treated as facts by future sessions — speculation in rules compounds into persistent misinformation.
+- **Diagnose before planning, not after.** When asked to create a plan for investigation or verification, run diagnostic commands FIRST (check device connectivity, model presence, cache state, test plan contents) and present findings in the plan. A plan full of "if X is present..." and "we may need to..." signals that research was skipped. The user should see answers in the plan, not questions.

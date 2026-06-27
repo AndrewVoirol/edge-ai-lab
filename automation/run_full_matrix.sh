@@ -254,6 +254,17 @@ run_step 7 "iOS Sim UI Tests (2c, 13 tests)" true \
         -only-testing:EdgeAILab_iOSUITests \
         -quiet
 
+# Cooldown: Shut down the simulator and give testmanagerd time to tear down
+# its session before starting device tests. Without this, the device's
+# "enabling automation mode" request can time out (60s) due to session
+# contention with the simulator's testmanagerd session.
+# Evidence: Step 8 passes 26/26 when run in isolation after this cooldown.
+if [[ "$SKIP_DEVICE" != "true" ]]; then
+    echo "  ⏳ Shutting down simulator and waiting for testmanagerd cooldown..."
+    xcrun simctl shutdown all 2>/dev/null || true
+    sleep 15
+fi
+
 # Step 8 = Tier 2d: iOS Device UI Tests (Debug)
 if [[ "$SKIP_DEVICE" == "true" ]]; then
     skip_step 8 "iOS Device UI Tests (2d)" "no device"
@@ -333,8 +344,15 @@ fi # skip-benchmarks/device
 if [[ "$SKIP_BENCHMARKS" == "true" || "$SKIP_DEVICE" == "true" ]]; then
     skip_step 13 "Benchmark Regression Check (5a)" "no benchmark data"
 elif [[ -x "$SCRIPT_DIR/benchmark_compare.sh" ]]; then
-    run_step 13 "Benchmark Regression Check (5a)" false \
-        "$SCRIPT_DIR/benchmark_compare.sh" --results "$OUTPUT_DIR/benchmark-results.jsonl"
+    LATEST_RESULTS=$(ls -t "$OUTPUT_DIR"/device_pull_*/benchmark-results.jsonl 2>/dev/null | head -1)
+    if [[ -n "$LATEST_RESULTS" ]]; then
+        run_step 13 "Benchmark Regression Check (5a)" false \
+            "$SCRIPT_DIR/benchmark_compare.sh" \
+                --results "$LATEST_RESULTS" \
+                --baselines "$OUTPUT_DIR/baselines.json"
+    else
+        skip_step 13 "Benchmark Regression Check (5a)" "no benchmark results found in device_pull"
+    fi
 else
     skip_step 13 "Benchmark Regression Check (5a)" "script not found"
 fi

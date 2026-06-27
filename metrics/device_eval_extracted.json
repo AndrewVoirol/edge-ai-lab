@@ -3,7 +3,7 @@
   "suites" : [
     {
       "model" : "gemma-4-E2B-it.litertlm",
-      "pass_rate" : 0.90000000000000002,
+      "pass_rate" : 0.8666666666666667,
       "suite" : "Math Accuracy"
     },
     {
@@ -13,14 +13,14 @@
     },
     {
       "model" : "gemma-4-E2B-it.litertlm",
-      "pass_rate" : 0.875,
+      "pass_rate" : 0.83999999999999997,
       "suite" : "Reasoning"
     },
     {
       "model" : "gemma-4-E2B-it.litertlm",
-      "pass_rate" : 1,
+      "pass_rate" : 0.20000000000000001,
       "suite" : "Multimodal"
     }
   ],
-  "timestamp" : "2026-06-17T00:21:10Z"
+  "timestamp" : "2026-06-27T13:11:47Z"
 }
