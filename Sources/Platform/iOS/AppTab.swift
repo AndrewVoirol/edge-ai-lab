@@ -25,6 +25,7 @@ enum AppTab: String, Hashable, CaseIterable, Sendable {
     case models
     case chat
     case evaluations
+    case lab
     case settings
 }
 #endif

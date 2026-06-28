@@ -54,6 +54,10 @@ struct ContentView: View {
     @State private var selectedSection: SidebarSection?
     @State private var selectedModelId: String?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    #if os(macOS)
+    /// Whether the chat panel (right column) is collapsed.
+    @State private var isChatCollapsed = false
+    #endif
 
 
     var body: some View {
@@ -86,7 +90,34 @@ struct ContentView: View {
             )
         } detail: {
             // Right column: Chat area — the instrument
-            chatColumn
+            if isChatCollapsed {
+                // Collapsed: show a minimal expand button
+                VStack {
+                    Spacer()
+                    Button {
+                        withAnimation(AppAnimation.standard) {
+                            isChatCollapsed = false
+                        }
+                    } label: {
+                        VStack(spacing: AppSpacing.md) {
+                            Image(systemName: "sidebar.right")
+                                .font(.title)
+                                .foregroundStyle(AppColors.accentCyan)
+                            Text("Show Chat")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_expandChatPanel")
+                    .accessibilityLabel("Show chat panel")
+                    Spacer()
+                }
+                .frame(width: 80)
+                .background(AppColors.backgroundPrimary)
+            } else {
+                chatColumn
+            }
         }
         .navigationSplitViewStyle(.balanced)
         .foregroundStyle(AppColors.textPrimary)
@@ -121,6 +152,18 @@ struct ContentView: View {
                 }
                 .help("Load a custom model from disk")
                 .accessibilityIdentifier("button_loadModel")
+
+                Button {
+                    withAnimation(AppAnimation.standard) {
+                        isChatCollapsed.toggle()
+                    }
+                } label: {
+                    Image(systemName: isChatCollapsed ? "sidebar.right" : "sidebar.right.fill")
+                }
+                .help(isChatCollapsed ? "Show chat panel" : "Hide chat panel")
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+                .accessibilityIdentifier("button_toggleChatPanel")
+                .accessibilityLabel(isChatCollapsed ? "Show chat panel" : "Hide chat panel")
             }
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
@@ -200,7 +243,14 @@ struct ContentView: View {
             }
             .tag(AppTab.evaluations)
 
-            // Tab 4: Settings
+            // Tab 4: Lab (Benchmarks / Performance Dashboard)
+            iOSLabTabView()
+            .tabItem {
+                Label("Lab", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .tag(AppTab.lab)
+
+            // Tab 5: Settings
             NavigationStack {
                 InferenceSettingsView(viewModel: viewModel)
                     .navigationTitle("Settings")

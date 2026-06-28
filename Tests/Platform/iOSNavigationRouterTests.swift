@@ -33,10 +33,10 @@ import Testing
 @Suite("AppTab")
 struct AppTabTests {
 
-    @Test("has exactly 4 cases — models, chat, evaluations, settings")
+    @Test("has exactly 5 cases — models, chat, evaluations, lab, settings")
     func caseCount() {
         #if os(iOS)
-        #expect(AppTab.allCases.count == 4, "AppTab should have exactly 4 cases")
+        #expect(AppTab.allCases.count == 5, "AppTab should have exactly 5 cases")
         #else
         // AppTab is iOS-only — skip on macOS
         withKnownIssue("AppTab is only available on iOS") {
@@ -63,6 +63,7 @@ struct AppTabTests {
         #expect(AppTab.models.rawValue == "models")
         #expect(AppTab.chat.rawValue == "chat")
         #expect(AppTab.evaluations.rawValue == "evaluations")
+        #expect(AppTab.lab.rawValue == "lab")
         #expect(AppTab.settings.rawValue == "settings")
         #else
         // AppTab is iOS-only
