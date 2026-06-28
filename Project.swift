@@ -14,7 +14,7 @@ let project = Project(
     packages: [
         // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
         // Uses .branch("main") to bypass SPM unsafeFlags restriction on tagged releases.
-        // NOTE: .revision() doesn't work with this repo (SPM can't check out individual commits).
+        // NOTE: .revision() doesn't work with this repo (SPM can't checkout custom paths).
         // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).

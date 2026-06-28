@@ -1,0 +1,122 @@
+[
+  {
+    "completedAt" : "2026-06-21T19:09:20Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "2B190B12-5912-4890-B1E2-AC7A80AC98D6",
+    "modelCount" : 1,
+    "overallPassRate" : 0.88,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-21T19:08:56Z",
+    "suiteName" : "Multimodal"
+  },
+  {
+    "completedAt" : "2026-06-21T19:08:56Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "9E0800C9-7E2A-41B9-B054-3537F7D9BBBC",
+    "modelCount" : 1,
+    "overallPassRate" : 0.88,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-21T19:08:17Z",
+    "suiteName" : "Reasoning"
+  },
+  {
+    "completedAt" : "2026-06-21T19:08:17Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "6B954B02-FAE9-4748-BBB8-A84FAEB94CEF",
+    "modelCount" : 1,
+    "overallPassRate" : 1,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-21T19:07:44Z",
+    "suiteName" : "Tool Calling Reliability"
+  },
+  {
+    "completedAt" : "2026-06-21T19:07:44Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "4FF0E65C-E3DA-491C-8A52-AB0E6EEA239F",
+    "modelCount" : 1,
+    "overallPassRate" : 0.9333333333333333,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-21T19:07:18Z",
+    "suiteName" : "Math Accuracy"
+  },
+  {
+    "completedAt" : "2026-06-16T23:44:35Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "EA183753-D141-4C8C-9B42-BF453A56010F",
+    "modelCount" : 1,
+    "overallPassRate" : 1,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:44:33Z",
+    "suiteName" : "Multimodal"
+  },
+  {
+    "completedAt" : "2026-06-16T23:44:32Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "616E5547-CDBE-4764-B812-DAE71035290C",
+    "modelCount" : 1,
+    "overallPassRate" : 1,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:44:14Z",
+    "suiteName" : "Reasoning"
+  },
+  {
+    "completedAt" : "2026-06-16T23:44:14Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "626626E7-6E46-455B-802A-E913C4E96DE9",
+    "modelCount" : 1,
+    "overallPassRate" : 0.5,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:43:55Z",
+    "suiteName" : "Tool Calling Reliability"
+  },
+  {
+    "completedAt" : "2026-06-16T23:43:55Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "5AD79AF2-F87C-4846-A623-D48D6E1A77E9",
+    "modelCount" : 1,
+    "overallPassRate" : 0.9,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:43:45Z",
+    "suiteName" : "Math Accuracy"
+  },
+  {
+    "completedAt" : "2026-06-16T23:25:55Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "84F4DD48-524B-4F4E-BCBF-A5033EF2D54E",
+    "modelCount" : 1,
+    "overallPassRate" : 1,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:25:53Z",
+    "suiteName" : "Multimodal"
+  },
+  {
+    "completedAt" : "2026-06-16T23:25:53Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "6989ED64-65AF-4AC5-9DDB-8F4A35B009E1",
+    "modelCount" : 1,
+    "overallPassRate" : 1,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:25:33Z",
+    "suiteName" : "Reasoning"
+  },
+  {
+    "completedAt" : "2026-06-16T23:25:33Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "567B98F2-0E3C-4D23-9CBC-EFB79073AE2C",
+    "modelCount" : 1,
+    "overallPassRate" : 0.9,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T23:25:23Z",
+    "suiteName" : "Math Accuracy"
+  },
+  {
+    "completedAt" : "2026-06-16T20:58:06Z",
+    "deviceName" : "Andrew’s MacBook Pro",
+    "id" : "79A69B2C-FD9D-47BA-BD20-E24704CB33E9",
+    "modelCount" : 1,
+    "overallPassRate" : 0.9,
+    "platform" : "macOS",
+    "startedAt" : "2026-06-16T20:57:55Z",
+    "suiteName" : "Math Accuracy"
+  }
+]

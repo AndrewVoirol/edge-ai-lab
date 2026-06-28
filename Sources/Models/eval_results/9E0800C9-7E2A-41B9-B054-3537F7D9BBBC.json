@@ -1,0 +1,477 @@
+{
+  "completedAt" : "2026-06-21T19:08:56Z",
+  "deviceName" : "Andrew’s MacBook Pro",
+  "id" : "9E0800C9-7E2A-41B9-B054-3537F7D9BBBC",
+  "modelResults" : [
+    {
+      "avgDecodeSpeed" : 114.83496948184492,
+      "avgTTFT" : 0.046097246159999994,
+      "id" : "63F929E7-E7EE-499D-9CC0-A3CBAE3BD8CC",
+      "modelFile" : "gemma-4-E2B-it.litertlm",
+      "modelName" : "Gemma 4 E2B · Desktop GPU+CPU",
+      "p95Latency" : 8.836878172588833,
+      "passRate" : 0.88,
+      "peakMemoryDeltaMB" : 47.3125,
+      "promptResults" : [
+        {
+          "decodeSpeed" : 113.3283148827229,
+          "duration" : 2.592434048652649,
+          "id" : "2AE98A19-1D2E-42CF-AE66-02CC11FE5EF7",
+          "passed" : true,
+          "promptId" : "C519738C-09FF-43C3-A743-418B56396634",
+          "promptText" : "If all roses are flowers and some flowers fade quickly, can we conclude that some roses fade quickly?",
+          "response" : "**No, we cannot conclude that some roses fade quickly.**\n\nHere's why:\n\n* **Premise 1:** All roses are flowers. (Roses are a subset entirely within the set of flowers.)\n* **Premise 2:** Some flowers fade quickly. (There is an overlap between the set of flowers and the set of flowers that fade quickly.)\n\n**The logical gap:**\n\nThe fact that *some* flowers fade quickly doesn't guarantee that the specific group of flowers that are *roses* are included in that fading group.\n\n**Think of it with sets:**\n\n* **Set A (Roses):** Completely inside **Set B (Flowers)**.\n* **Set C (Flowers that fade quickly):** Overlaps with **Set B (Flowers)**.\n\nWe know that the intersection of (Roses) and (Flowers that fade quickly) *might* be non-empty, but the premises don't force it to be.\n\n**Counterexample:**\n\nImagine:\n* **Flowers:** Roses, Tulips, Daisies.\n* **Roses:** All are flowers.\n* **Flowers that fade quickly:** Only Daisies fade quickly.\n\nIn this scenario, all roses are flowers, and some flowers (daisies) fade quickly, but no roses fade quickly.\n\n**Conclusion:** The premises allow for the possibility that *no* roses fade quickly.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.05926492
+        },
+        {
+          "decodeSpeed" : 113.45376479858871,
+          "duration" : 3.4414730072021484,
+          "id" : "7CD875CA-A98F-43B7-BD61-CAFAD10F66A2",
+          "passed" : true,
+          "promptId" : "92CBEC21-8E7E-4B11-8CBD-26D1D44607C8",
+          "promptText" : "A bat and ball cost $1.10 total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+          "response" : "Here's how to solve this problem using a system of equations:\n\n**1. Define the variables:**\n\n* Let $B$ be the cost of the bat.\n* Let $L$ be the cost of the ball.\n\n**2. Set up the equations based on the given information:**\n\n* **Equation 1 (Total cost):** The bat and ball cost $1.10 total.\n   $$B + L = 1.10$$\n* **Equation 2 (Cost difference):** The bat costs $1.00 more than the ball.\n   $$B = L + 1.00$$\n\n**3. Solve the system of equations:**\n\nSince we know what $B$ equals from Equation 2, we can substitute $(L + 1.00)$ for $B$ in Equation 1:\n\n$$(L + 1.00) + L = 1.10$$\n\n**4. Simplify and solve for L (the cost of the ball):**\n\n$$2L + 1.00 = 1.10$$\n$$2L = 1.10 - 1.00$$\n$$2L = 0.10$$\n$$L = \\frac{0.10}{2}$$\n$$L = 0.05$$\n\n**Answer:**\n\nThe ball costs **$0.05** (or 5 cents).\n\n***\n\n**Check the answer:**\n\n* If the ball ($L$) costs $0.05, then the bat ($B$) costs $0.05 + 1.00 = \\$1.05$.\n* Total cost: $\\$1.05 + \\$0.05 = \\$1.10$. (This matches the problem statement.)",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.047405163
+        },
+        {
+          "decodeSpeed" : 113.34919426620118,
+          "duration" : 1.7145299911499023,
+          "id" : "FA713881-BA01-471D-89FA-6E07EC86390E",
+          "passed" : true,
+          "promptId" : "20562440-6C3A-472F-A9AB-DE96C8ED7C80",
+          "promptText" : "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets?",
+          "response" : "This is a classic riddle that tests your understanding of **rate and proportionality**.\n\nHere's the breakdown:\n\n1. **Analyze the initial rate:**\n   * 5 machines make 5 widgets in 5 minutes.\n   * This means that **1 machine makes 1 widget in 5 minutes** (or, more simply, the rate is constant).\n\n2. **Apply the new conditions:**\n   * You have 100 machines.\n   * You want to make 100 widgets.\n\n3. **Calculate the time:**\n   * Since each machine can make 1 widget in 5 minutes, if you have 100 machines working in parallel, they can all work on their own widget simultaneously.\n   * Time taken = 5 minutes.\n\n**Answer:** It would take **5 minutes** to make 100 widgets with 100 machines.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0465252945
+        },
+        {
+          "decodeSpeed" : 113.34381918502078,
+          "duration" : 1.1147489547729492,
+          "id" : "043CD052-E7F5-46AA-9CC3-D72585E9220A",
+          "passed" : true,
+          "promptId" : "2588C742-7896-4247-B103-1FA38AB6E646",
+          "promptText" : "Alice is taller than Bob. Charlie is shorter than Bob. David is taller than Alice. Who is the tallest?",
+          "response" : "Here's how to determine the tallest person based on the given information:\n\n1. **Alice is taller than Bob:** Alice > Bob\n2. **Charlie is shorter than Bob:** Bob > Charlie (or Charlie < Bob)\n3. **David is taller than Alice:** David > Alice\n\nNow, let's combine these inequalities:\n\n* From (3) and (1): David > Alice > Bob\n* From (2): Bob > Charlie\n\nCombining everything gives us the order: **David > Alice > Bob > Charlie**\n\nTherefore, **David** is the tallest.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.046403713
+        },
+        {
+          "decodeSpeed" : 113.45179027992006,
+          "duration" : 2.849141001701355,
+          "id" : "FD0EAB83-66B9-4E4D-94FC-4BB76D4ADF7B",
+          "passed" : true,
+          "promptId" : "173170CB-508A-4407-ACBC-ED0DF038C565",
+          "promptText" : "In a room of 23 people, what is the approximate probability that two share a birthday? Answer with just the percentage.",
+          "response" : "The problem asks for the approximate probability that two people in a room of 23 share a birthday. This is a classic birthday paradox problem.\n\nThe exact probability that at least two people share a birthday in a room of $n$ people is complex to calculate, but the probability that *no two* people share a birthday is given by:\n$$P(\\text{no shared birthday}) = \\frac{P(n, 365)}{n^{n-1}} \\approx e^{-n^2\/2 \\cdot (1\/365)}$$\nFor $n=23$:\n$$P(\\text{no shared birthday}) \\approx e^{-23^2 \/ (2 \\cdot 365)} = e^{-529 \/ 730} \\approx e^{-0.72465}$$\n$$e^{-0.72465} \\approx 0.4897$$\n\nThe probability that *at least two* people share a birthday is:\n$$P(\\text{shared birthday}) = 1 - P(\\text{no shared birthday}) \\approx 1 - 0.4897 = 0.5103$$\n\nConverting this to a percentage:\n$$0.5103 \\times 100\\% \\approx 51.03\\%$$\n\nRounding to the nearest whole number or a common approximation for this type of question, the probability is approximately 51%.\n\n51%",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.045548316500000005
+        },
+        {
+          "decodeSpeed" : 113.40816339023395,
+          "duration" : 3.1419090032577515,
+          "id" : "A62F63C4-948B-4321-A036-5E79A97919BE",
+          "passed" : true,
+          "promptId" : "CABA3AE9-9215-47DE-A991-9C231F974431",
+          "promptText" : "What comes next in this sequence: 2, 6, 12, 20, 30, ?",
+          "response" : "Here's how to find the next number in the sequence:\n\n**Method 1: Finding the differences**\n\n* $6 - 2 = 4$\n* $12 - 6 = 6$\n* $20 - 12 = 8$\n* $30 - 20 = 10$\n\nThe differences are increasing by 2 each time (4, 6, 8, 10). Therefore, the next difference should be $10 + 2 = 12$.\n\n* $30 + 12 = 42$\n\n**Method 2: Recognizing the pattern (Product of consecutive integers)**\n\nThe sequence can also be generated by the formula $n(n+1)$, where $n$ starts at 1:\n\n* $n=1$: $1(1+1) = 1 \\times 2 = 2$\n* $n=2$: $2(2+1) = 2 \\times 3 = 6$\n* $n=3$: $3(3+1) = 3 \\times 4 = 12$\n* $n=4$: $4(4+1) = 4 \\times 5 = 20$\n* $n=5$: $5(5+1) = 5 \\times 6 = 30$\n\nThe next term will be for $n=6$:\n\n* $n=6$: $6(6+1) = 6 \\times 7 = 42$\n\n**Answer:**\n\nThe next number in the sequence is **42**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04630570725
+        },
+        {
+          "decodeSpeed" : 113.4381482179898,
+          "duration" : 0.7168020009994507,
+          "id" : "DA564436-F23B-4B0F-9F09-5FAA23BD8665",
+          "passed" : true,
+          "promptId" : "3CD3E6DE-5045-4B92-B830-1F84F2CBE916",
+          "promptText" : "Explain why the sky appears blue in exactly three sentences.",
+          "response" : "The sky appears blue due to a phenomenon called Rayleigh scattering, where sunlight is scattered by the tiny molecules of air in our atmosphere. Shorter wavelengths of light, like blue and violet, are scattered much more effectively by these atmospheric particles than longer wavelengths, such as red and orange. This preferential scattering of blue light across the entire sky makes it the color we perceive when looking up.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0461783765
+        },
+        {
+          "decodeSpeed" : 113.50835035958588,
+          "duration" : 1.4375839233398438,
+          "id" : "E85A92AE-9172-4158-A80F-85C7BAF5CE2A",
+          "passed" : true,
+          "promptId" : "F2C452F3-3B85-415B-9D29-CEEE31ADAB49",
+          "promptText" : "Name three things that are true about the number zero.",
+          "response" : "Here are three true things about the number zero:\n\n1. **It is the additive identity:** Zero is the number that, when added to any number, leaves that number unchanged. (e.g., $5 + 0 = 5$)\n\n2. **It is the multiplicative identity:** Zero is the number that, when multiplied by any number, leaves that number unchanged. (e.g., $5 \\times 0 = 0$)\n\n3. **It is a placeholder in the number system (specifically in positional notation):** Zero is crucial for representing place value. It allows us to distinguish between numbers of different magnitudes (like the difference between 10 and 100) by occupying the \"empty\" spots in a number's structure.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04502392450000001
+        },
+        {
+          "decodeSpeed" : 113.25311963340836,
+          "duration" : 0.956434965133667,
+          "id" : "FA341502-B9A3-465C-A76D-076BF83B5392",
+          "passed" : true,
+          "promptId" : "5370BFE1-6B2D-454E-9534-EF362B83D66B",
+          "promptText" : "All mammals are warm-blooded. All dogs are mammals. Are all dogs warm-blooded?",
+          "response" : "**Yes, all dogs are warm-blooded.**\n\nHere's why, based on the rules of logic (specifically, deductive reasoning):\n\n1. **Premise 1:** All mammals are warm-blooded.\n2. **Premise 2:** All dogs are mammals.\n3. **Conclusion:** Therefore, all dogs are warm-blooded.\n\nThis is a valid form of deductive reasoning (a syllogism). If the premises are true, the conclusion *must* also be true.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04637677875
+        },
+        {
+          "decodeSpeed" : 113.57152707734491,
+          "duration" : 0.40697693824768066,
+          "id" : "6ACF29FE-6076-4792-8085-5DC5767C3C00",
+          "passed" : true,
+          "promptId" : "719AC7CA-533F-4354-8BFA-D7F9115A1607",
+          "promptText" : "Some birds can fly. Penguins are birds. Can penguins fly?",
+          "response" : "No, penguins **cannot** fly.\n\nWhile penguins are birds, they have evolved adaptations that allow them to swim and dive very effectively, but they lack the wings and feather structure necessary for sustained flight.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04540802375
+        },
+        {
+          "decodeSpeed" : 112.99383441723715,
+          "duration" : 0.9142130613327026,
+          "id" : "2894585B-AC99-4AFA-BD8B-F21CB2CE17E7",
+          "passed" : true,
+          "promptId" : "9930DD1A-3268-4983-B342-8746E27C4C55",
+          "promptText" : "If I'm facing north and turn 90 degrees to my right, then turn 180 degrees, which direction am I facing?",
+          "response" : "Here's how to track the turns:\n\n1. **Start:** You are facing **North**.\n\n2. **Turn 90 degrees to your right:** Turning 90 degrees right from North means you are now facing **East**.\n\n3. **Turn 180 degrees:** Turning 180 degrees from East means you will end up facing the exact opposite direction. The opposite of East is **West**.\n\n**Answer:** You are facing **West**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04633204025
+        },
+        {
+          "decodeSpeed" : 113.16213491568845,
+          "duration" : 3.519113063812256,
+          "id" : "710E7542-5E6E-4BA4-8F88-24C5F3615EF3",
+          "passed" : true,
+          "promptId" : "630BFA56-8970-4669-AC16-563AD0D8D835",
+          "promptText" : "A cube has 6 faces. If I paint 3 adjacent faces red, what is the maximum number of red faces visible from a single viewpoint?",
+          "response" : "Here's how to solve this problem:\n\n**Understanding the Setup**\n\n* **Cube:** Has 6 faces.\n* **Adjacent Faces:** Faces that share an edge.\n* **Painting:** 3 faces are painted red, and they are all adjacent to each other.\n\n**Visualizing the Arrangement**\n\nImagine the cube. If you pick one face to be the starting point, the three adjacent faces will form a \"corner\" or a \"strip\" around that face.\n\nLet the three red faces be $R_1, R_2, R_3$. Since they are adjacent to each other, they must meet at a common vertex (or form a chain around an edge).\n\n**Analyzing Visibility from a Single Viewpoint**\n\nA viewpoint is a single location in space looking at the cube. The number of visible faces depends entirely on which faces are oriented towards that viewpoint.\n\n1. **If the viewpoint is directly opposite one of the red faces:** You can see that face (1 red face). You might also see faces adjacent to it, but the three red faces are clustered.\n\n2. **If the viewpoint is positioned to see the corner where the three red faces meet:** You can see all three red faces simultaneously.\n\n3. **If the viewpoint is positioned to see the faces that are *not* adjacent to the red faces:** You might see 0 red faces.\n\n**The Maximum Visibility**\n\nTo maximize the number of visible red faces, the viewpoint must be positioned such that it can see the faces that form the largest contiguous group of the painted faces.\n\nSince the three red faces are mutually adjacent, they form a connected structure. If you look at the cube from a position that is \"inside\" the corner formed by these three faces, you can see all three of them.\n\n**Conclusion**\n\nThe maximum number of red faces visible from a single viewpoint is **3**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.045567878
+        },
+        {
+          "decodeSpeed" : 114.56000908905858,
+          "duration" : 4.263731002807617,
+          "id" : "7CF44950-D5E8-48A7-8F22-4687CB7F735F",
+          "passed" : true,
+          "promptId" : "1EE3E02B-0C28-40A6-8F6A-091DCE8E77C8",
+          "promptText" : "If I put ice cream in a hot oven for an hour, what will happen to it?",
+          "response" : "If you put ice cream in a hot oven for an hour, here is what will happen, step-by-step:\n\n### 1. Melting\n\nThe primary effect will be **melting**. Since the oven is hot, the heat energy will transfer from the oven to the ice cream, causing the frozen water molecules in the ice cream to gain enough energy to break free from their solid structure.\n\n* **Result:** The ice cream will turn into a liquid (a melted, possibly soupy, or creamy liquid).\n\n### 2. Changes in Texture and Composition\n\nAs it melts, the texture will change significantly:\n\n* **Loss of Structure:** The characteristic creamy, cold, and firm texture of ice cream will be lost. It will become a warm, soft, and potentially runny liquid.\n* **Flavor Alteration:** The intense, cold flavor profile of the ice cream will be diluted and altered by the heat. The flavor compounds might also change slightly due to the temperature increase.\n* **Separation (Potential):** Depending on the type of ice cream (especially if it contains dairy fat), the heat can cause the fat and water to separate, leading to a greasy or oily appearance.\n\n### 3. Potential for Burning and Chemical Reactions (If Left Too Long)\n\nIf the oven temperature is very high, or if the ice cream contains ingredients that are sensitive to high heat, you might see other reactions:\n\n* **Burning:** The sugar and dairy components will eventually caramelize and burn, producing a bitter, dark brown flavor.\n* **Chemical Changes:** Prolonged exposure to high heat can cause chemical degradation of the ingredients, leading to off-flavors.\n\n### Summary of the Process\n\n| Timeframe | Physical Change | Sensory Change |\n| :--- | :--- | :--- |\n| **Initial Phase** | Ice cream begins to soften and lose its solid form. | The coldness dissipates; the flavor starts to warm up. |\n| **Mid-Phase** | Significant melting occurs; the substance becomes a warm liquid. | The texture becomes runny and less defined. |\n| **Final Phase** | The substance is mostly liquid, potentially with some caramelized or burnt residue. | The flavor is heavily altered, likely bitter or burnt. |\n\n**In short: The ice cream will melt into a warm, liquid mess.**",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.046948049500000005
+        },
+        {
+          "decodeSpeed" : 116.96371035371592,
+          "duration" : 0.490791916847229,
+          "id" : "84F8247E-B0FC-4299-8AF8-B8923FE8A893",
+          "passed" : true,
+          "promptId" : "37C964C9-5AAC-411F-B5A6-7F77FA30007B",
+          "promptText" : "Can a person stand inside a basketball? Answer yes or no and explain.",
+          "response" : "No.\n\n**Explanation:** A basketball is a spherical object designed for playing the game of basketball. It is not designed to be a container for a person. Attempting to stand inside a basketball would be impossible due to the size and shape of the ball.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04564466025
+        },
+        {
+          "decodeSpeed" : 116.96034678742824,
+          "duration" : 0.5838299989700317,
+          "id" : "8741758F-3D0E-4796-A9B3-54A36DEBC0C5",
+          "passed" : true,
+          "promptId" : "C4FDE1A5-EF5B-42A4-9E3D-0D003F216266",
+          "promptText" : "A farmer has 17 sheep. All but 9 run away. How many sheep does the farmer have left?",
+          "response" : "The farmer has **17** sheep left.\n\nThe fact that \"all but 9 run away\" only tells us how many sheep are *still with the farmer* (which is 9). The question asks how many sheep the farmer *has left*, implying the total number of sheep he started with.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.044633906249999994
+        },
+        {
+          "decodeSpeed" : 116.34161118812527,
+          "duration" : 1.1539230346679688,
+          "id" : "8FA4AEAB-781A-49AE-9E92-956D7F888ACD",
+          "passed" : false,
+          "promptId" : "DAF117BE-853F-4B7A-8C10-1A30851D4794",
+          "promptText" : "How many times can you subtract 5 from 25?",
+          "response" : "This is a bit of a trick question!\n\nYou can subtract 5 from 25 **once** to get 20.\n\nIf you are asking how many times you can perform the subtraction operation, the answer is **once** (to get the result 20).\n\nIf you are asking how many times you can subtract 5 from 25 *until you reach zero or a negative number*, the answer is **five** (since $25 \\div 5 = 5$).\n\n**The most literal interpretation is:** You can perform the operation \"25 - 5\" only **one time**.",
+          "score" : {
+            "fail" : {
+              "reason" : "Response does not contain expected text: \"1\""
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04457537675
+        },
+        {
+          "decodeSpeed" : 116.54952594747164,
+          "duration" : 0.23407495021820068,
+          "id" : "F8074376-3338-4BF9-90B8-754039AA7302",
+          "passed" : false,
+          "promptId" : "8A464BB4-CEA7-4246-90EB-F077C0020DA5",
+          "promptText" : "If you have a bowl with six apples and you take away four, how many do you have?",
+          "response" : "You have **four** apples.\n\nThe question asks how many *you* have after taking some away.",
+          "score" : {
+            "fail" : {
+              "reason" : "Response does not contain expected text: \"4\""
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04477404325
+        },
+        {
+          "decodeSpeed" : 114.57116014756765,
+          "duration" : 0.12372899055480957,
+          "id" : "432F4BC6-6F96-41DC-A0AE-0EA2F5121F1B",
+          "passed" : true,
+          "promptId" : "07812E7D-9A93-4471-9C4D-B6C6705FE01B",
+          "promptText" : "In a race, you overtake the person in 2nd place. What position are you in now?",
+          "response" : "You are now in **2nd place**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0446292
+        },
+        {
+          "decodeSpeed" : 116.68303470347925,
+          "duration" : 0.7565790414810181,
+          "id" : "77DFF08B-9CFE-4DA9-A503-4C3E31A9AC2E",
+          "passed" : true,
+          "promptId" : "45C3698B-88C0-429F-8930-421C073A0FA8",
+          "promptText" : "Tom is older than Jane. Jane is older than Sam. Sam is older than Rita. Who is the youngest?",
+          "response" : "Here's how to determine the order:\n\n1. **Tom is older than Jane:** Tom > Jane\n2. **Jane is older than Sam:** Jane > Sam\n3. **Sam is older than Rita:** Sam > Rita\n\nCombining these inequalities, we get the order from oldest to youngest:\n\n* **Tom > Jane > Sam > Rita**\n\nTherefore, **Rita** is the youngest.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.044672226
+        },
+        {
+          "decodeSpeed" : 116.57180721068207,
+          "duration" : 2.4813950061798096,
+          "id" : "CF272C1D-F5F1-4116-8745-D832C2A2A8C8",
+          "passed" : false,
+          "promptId" : "DD06C3DB-C2E2-49CB-B547-2AD6D0DC87A5",
+          "promptText" : "If Monday is two days after the day before yesterday, what day is today?",
+          "response" : "Here's how to solve this riddle step-by-step:\n\n1. **Define the known relationship:** \"Monday is two days after the day before yesterday.\"\n\n2. **Work backward from Monday:**\n   * If Monday is Day X, then \"the day before yesterday\" is Day X - 2 days.\n   * \"Two days after the day before yesterday\" is (Day X - 2 days) + 2 days = Day X.\n   * This statement simply means: **Monday is the day before yesterday + 2 days.**\n\n3. **Determine the relationship between Monday and today:**\n   * If Monday is two days *after* yesterday, then yesterday was Monday - 2 days.\n   * If yesterday was Monday - 2 days, then **today is Monday + 1 day.**\n\n4. **Find today's day:**\n   * If Monday is today's reference point, then today is **Tuesday**.\n\n**Let's check the logic:**\n\n* **Assume Today is Tuesday.**\n* Yesterday was Monday.\n* The day before yesterday was Sunday.\n* Is Monday two days after Sunday? Yes (Sunday + 2 days = Monday).\n* Therefore, the premise (\"Monday is two days after the day before yesterday\") is true if today is Tuesday.\n\n**Answer:** Today is **Tuesday**.",
+          "score" : {
+            "fail" : {
+              "reason" : "Response does not contain expected text: \"Wednesday\""
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0445344035
+        },
+        {
+          "decodeSpeed" : 115.83794271813733,
+          "duration" : 0.14112699031829834,
+          "id" : "1397325C-F50D-4AC7-99D2-238317BE5BFA",
+          "passed" : true,
+          "promptId" : "E42FA504-77A0-4D12-A87C-9AE950EAC313",
+          "promptText" : "Hot is to cold as tall is to what?",
+          "response" : "Hot is to cold as tall is to **short**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04564175
+        },
+        {
+          "decodeSpeed" : 116.79391713321844,
+          "duration" : 0.7042349576950073,
+          "id" : "AAC08ACC-5B3B-4D47-A838-A7A61ECA77C4",
+          "passed" : true,
+          "promptId" : "CF52D51F-9952-49F6-940B-F1232467F712",
+          "promptText" : "Book is to reading as fork is to what?",
+          "response" : "Book is to reading as fork is to **eating** (or **cutting**).\n\nHere's the reasoning:\n\n* **Book is to reading:** A book is the *object* used for the *action* of reading.\n* **Fork is to eating:** A fork is the *object* used for the *action* of eating (or sometimes cutting food).",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0444530895
+        },
+        {
+          "decodeSpeed" : 116.25803152349609,
+          "duration" : 2.712324023246765,
+          "id" : "5C5A3495-7F84-42FA-BA32-F5446B690B12",
+          "passed" : true,
+          "promptId" : "9BC59AE1-FEC3-42A3-B7D3-E70BF524C426",
+          "promptText" : "There are three boxes: one has only apples, one has only oranges, and one has both. All boxes are mislabeled. You pick one fruit from the box labeled 'Both'. It's an apple. What does the 'Both' box actually contain?",
+          "response" : "Here's how to solve this logic puzzle:\n\n**1. Analyze the initial conditions:**\n\n* **Boxes:** Apples (A), Oranges (O), Both (A & O).\n* **Labels:** Each box has a label that is *incorrect*.\n* **Action:** You pick one fruit from the box labeled \"Both,\" and it is an **Apple (A)**.\n\n**2. Determine the contents of the \"Both\" box:**\n\n* Since the box labeled \"Both\" is incorrect, it cannot actually contain both apples and oranges.\n* We know the fruit picked from it is an **Apple**.\n* Therefore, the box labeled \"Both\" must actually contain **only Apples**.\n\n**3. Determine the contents of the other two boxes (using the mislabeling rule):**\n\n* **Box 1 (Labeled \"Apples\"):** This box must be mislabeled. It cannot contain only Apples (because we just figured out the \"Both\" box has Apples). It also cannot contain Both (because the \"Both\" box has Apples). Therefore, the box labeled \"Apples\" must contain **only Oranges**.\n* **Box 3 (Labeled \"Oranges\"):** This box must be the remaining option. It cannot contain only Oranges (because the \"Apples\" box has Oranges). Therefore, the box labeled \"Oranges\" must contain **Both Apples and Oranges**.\n\n**Answer:**\n\nThe 'Both' box actually contains **only apples**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.045251556250000005
+        },
+        {
+          "decodeSpeed" : 116.18103349957525,
+          "duration" : 0.9759939908981323,
+          "id" : "A6856731-5144-4096-969C-C3BC552873D7",
+          "passed" : true,
+          "promptId" : "97AFDE3A-E82E-48E2-B1B1-2AD276273D48",
+          "promptText" : "I speak without a mouth and hear without ears. I have no body but I come alive with the wind. What am I?",
+          "response" : "This is a classic riddle! The answer is an **echo**.\n\nHere's why:\n\n* **\"I speak without a mouth\"**: An echo repeats sounds but doesn't have a physical mouth.\n* **\"and hear without ears\"**: It \"hears\" sounds that have already been made.\n* **\"I have no body but I come alive with the wind\"**: Sound waves (which create echoes) travel through the air, and wind can carry or create the conditions for these sounds to be heard.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04582525675
+        },
+        {
+          "decodeSpeed" : 116.33994532022571,
+          "duration" : 0.9648109674453735,
+          "id" : "02E3A2C9-9599-4629-A1AB-311D0E8AE222",
+          "passed" : true,
+          "promptId" : "2104FC28-3D81-4BE4-A857-CB52A40FD0CD",
+          "promptText" : "What comes next: 1, 1, 2, 3, 5, 8, 13, ?",
+          "response" : "The next number in the sequence is **21**.\n\nThis is the famous **Fibonacci sequence**. In this sequence, each number is the sum of the two preceding ones:\n\n* $1 + 1 = 2$\n* $1 + 2 = 3$\n* $2 + 3 = 5$\n* $3 + 5 = 8$\n* $5 + 8 = 13$\n* $8 + 13 = \\mathbf{21}$",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0445075
+        }
+      ],
+      "thermalTransitions" : 0,
+      "totalDuration" : 38.41205298900604,
+      "totalTokensGenerated" : 4384
+    }
+  ],
+  "platform" : "macOS",
+  "startedAt" : "2026-06-21T19:08:17Z",
+  "suiteCategory" : "reasoning",
+  "suiteId" : "8F240F6F-4527-4C64-B123-BABE7FA50D23",
+  "suiteName" : "Reasoning"
+}

@@ -184,11 +184,7 @@ final class OneTapBenchmarkRunner {
                 ttftValues.append(benchmarkInfo.timeToFirstTokenInSecond)
                 prefillSpeeds.append(benchmarkInfo.lastPrefillTokensPerSecond)
 
-                Self.logger.info(
-                    "📊 Run \(runIndex) metrics — decode: \(benchmarkInfo.lastDecodeTokensPerSecond, format: .fixed(precision: 1)) tok/s, " +
-                    "TTFT: \(benchmarkInfo.timeToFirstTokenInSecond, format: .fixed(precision: 3))s, " +
-                    "prefill: \(benchmarkInfo.lastPrefillTokensPerSecond, format: .fixed(precision: 1)) tok/s"
-                )
+                Self.logger.info("📊 Run \(runIndex) — decode: \(benchmarkInfo.lastDecodeTokensPerSecond, format: .fixed(precision: 1)) tok/s, TTFT: \(benchmarkInfo.timeToFirstTokenInSecond, format: .fixed(precision: 3))s, prefill: \(benchmarkInfo.lastPrefillTokensPerSecond, format: .fixed(precision: 1)) tok/s")
 
                 // Persist each individual run to the metrics store
                 let entry = MetricsStore.createEntry(
@@ -216,11 +212,7 @@ final class OneTapBenchmarkRunner {
             }
 
             state = .completed(result: result)
-            Self.logger.info(
-                "🎉 Benchmark complete — median decode: \(result.medianDecodeTokensPerSecond, format: .fixed(precision: 1)) tok/s, " +
-                "median TTFT: \(result.medianTTFTSeconds, format: .fixed(precision: 3))s, " +
-                "median prefill: \(result.medianPrefillTokensPerSecond, format: .fixed(precision: 1)) tok/s"
-            )
+            Self.logger.info("🎉 Benchmark complete — median decode: \(result.medianDecodeTokensPerSecond, format: .fixed(precision: 1)) tok/s, TTFT: \(result.medianTTFTSeconds, format: .fixed(precision: 3))s, prefill: \(result.medianPrefillTokensPerSecond, format: .fixed(precision: 1)) tok/s")
 
         } catch {
             let message = error.localizedDescription

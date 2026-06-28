@@ -61,10 +61,10 @@ struct OneTapBenchmarkSection: View {
             .frame(maxWidth: .infinity)
             .padding(AppSpacing.md)
             .background(
-                RoundedRectangle(cornerRadius: AppCorners.card)
+                RoundedRectangle(cornerRadius: AppRadius.lg)
                     .fill(AppColors.accentCyan.opacity(0.15))
                     .overlay(
-                        RoundedRectangle(cornerRadius: AppCorners.card)
+                        RoundedRectangle(cornerRadius: AppRadius.lg)
                             .strokeBorder(AppColors.accentCyan.opacity(0.3), lineWidth: 1)
                     )
             )
