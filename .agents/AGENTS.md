@@ -19,6 +19,7 @@
 - All UI elements must have `.accessibilityIdentifier()` for test automation.
 - Lines marked `// design-system-exempt` use intentionally fixed values (e.g., fixed-size fonts for image-export cards). Do not migrate these to Dynamic Type tokens or `AppIconSize`.
 - **Extract testable logic from SwiftUI views** into `enum` namespaces with `static` methods (e.g., `EvalRunnerLogic`, `ModelDetailFormatters`). Pure functions, computed property logic, and formatting helpers should not live in `View` structs — they are untestable there. The `enum` pattern prevents accidental instantiation while keeping related logic grouped.
+- **Before defining new `Notification.Name` extensions**, search for existing notification names: `grep -rn "Notification.Name(" Sources/ --include="*.swift"`. Reuse existing names where semantically equivalent. All notification names are defined in `DesignSystem.swift` (cross-view communication) or `EdgeAILabApp.swift` (menu bar commands). New tool-specific notifications should be added to the appropriate central location, not in the tool file itself.
 
 ## Swift Concurrency
 - For `static let` properties with `Sendable` types (e.g., `String`, `Int`) on `@MainActor` types, use `nonisolated` (NOT `nonisolated(unsafe)`). The `unsafe` qualifier is only needed for mutable (`var`) or non-`Sendable` statics.
@@ -39,12 +40,14 @@
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
 - iOS Simulator destination: `iPhone 16 Pro Max` (ID: `CD9FBA60-9BA8-42DC-8D19-335ECEF4C915`).
 - **testmanagerd contention**: When running iOS Simulator UI tests followed by iOS Device UI tests in the same pipeline, the host Mac's `testmanagerd` must fully tear down the simulator session before the device session starts. Always run `xcrun simctl shutdown all && sleep 15` between simulator and device test steps. Without this, device tests fail with "Timed out while enabling automation mode."
+- **Before adding items to any registered collection** (`ToolRegistry.defaultTools`, `BuiltInEvalSuites.allBuiltIn`, `EvalCategory`, `NavigationRouter` cases, etc.), search for hardcoded count assertions in tests: `grep -rn "count ==" Tests/ --include="*.swift" | grep -i "<keyword>"`. Update every matching assertion before committing. This applies to both direct edits and subagent-delegated work.
+- **When testing multi-rule validation chains** (e.g., `CalculatorValidation.validateStructure`), use inputs that trigger ONLY the target rule. If a test input could be caught by an earlier rule, either (a) craft a more specific input, or (b) only assert `result != nil` without checking the error message. Validation rules fire in declaration order — `"+-*/"` triggers "trailing operator" before "no numbers".
 
 ## Plan Execution Discipline
 - **Never silently drop or rename a plan item.** If a planned deliverable can't be completed or needs to change, update the plan artifact with a `> [!WARNING]` block explaining what changed and why BEFORE marking it done.
 - **Never declare "100% complete" without line-by-line verification** against the original plan text. Cross-reference every numbered item, every listed file, every specific deliverable. Use the `plan-compliance-audit` skill.
 - **Never use estimated/fabricated values as deliverables** without the word "ESTIMATED" in the value itself AND the surrounding context. Prefer leaving a placeholder like `"TBD — requires controlled run"` over a fake number.
-- **Subagent outputs must be spot-checked** against the original task requirements. Don't forward subagent completion claims without verifying at least: (a) the files exist, (b) they address the specific plan items, (c) they don't conflict with other work.
+- **Subagent outputs must be build-and-test verified.** Don't forward subagent completion claims without: (a) confirming files exist via `git status`, (b) running `xcodebuild build` on both platforms, (c) running `xcodebuild test` with the full test plan, (d) grepping test output for `✘` and `Issue recorded`. Spot-checking source code alone is insufficient — tests catch validation ordering bugs and integration conflicts that code review misses.
 - **Subagent file operations require directory-level verification.** When subagents copy directories, verify the complete tree (not just the primary file). Use `find <dir> -type f | wc -l` to confirm file counts match the source. Subagents commonly miss companion directories (e.g., `scripts/`, `examples/`) and file permissions.
 
 ## Strategic Recommendations
