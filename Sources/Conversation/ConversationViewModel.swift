@@ -381,6 +381,10 @@ final class ConversationViewModel {
 
     // MARK: - Inference
 
+    /// Monotonically increasing generation counter. Tool callback Tasks check this
+    /// to avoid mutating conversation state after a generation has been superseded.
+    private var generationId: Int = 0
+
     /// Generate a response for the current prompt via streaming.
     /// Integrates thinking mode parsing and multi-turn chat state.
     func generateText() async {
@@ -389,15 +393,27 @@ final class ConversationViewModel {
         Self.logger.info("🚀 generateText: prompt=\(self.prompt.prefix(80), privacy: .public) attachments=\(self.hasMultimodalAttachment)")
 
         isGenerating = true
+        generationId += 1
+        let currentGenerationId = generationId
         benchmarkInfo = nil
         currentThinkingText = ""
         isThinking = false
         toolCallEvents = []
         thinkingParser.reset()
 
+        // Capture conversation identity at the START of generation so that
+        // user actions during streaming (loading a different conversation,
+        // creating a new one) don't corrupt the auto-save at the end.
+        let capturedConversationId = activeConversationId
+        let capturedIsViewingArchived = isViewingArchivedConversation
+
         ToolExecutionTracker.shared.registerCallback { [weak self] event in
             Task { @MainActor in
                 guard let self = self else { return }
+                // Check that this callback is still for the current generation.
+                // If the user started a new generation or switched conversations,
+                // this enqueued Task should not mutate state.
+                guard self.generationId == currentGenerationId else { return }
                 self.toolCallEvents.append(event)
                 self.conversation.updateLastAssistantMessage(
                     toolCalls: self.toolCallEvents
@@ -537,9 +553,12 @@ final class ConversationViewModel {
 
         isGenerating = false
 
-        // Auto-save after inference completes (only for non-archived, non-empty conversations)
-        if !isViewingArchivedConversation && conversation.count >= 2 {
-            saveCurrentConversation()
+        // Auto-save after inference completes.
+        // Use the CAPTURED conversation identity from the start of generation,
+        // not the current state — the user may have switched conversations mid-stream.
+        if !capturedIsViewingArchived && conversation.count >= 2 {
+            let saveId = capturedConversationId ?? activeConversationId ?? UUID()
+            saveConversationWithId(saveId)
         }
     }
 
@@ -607,6 +626,55 @@ final class ConversationViewModel {
         let now = Date()
 
         let id = activeConversationId ?? UUID()
+        let title: String
+        if let existingEntry = conversationStore.indexEntries.first(where: { $0.id == id }) {
+            title = existingEntry.title
+        } else {
+            title = SavedConversation.generateTitle(config: config, messages: conversation.messages)
+        }
+
+        let saved = SavedConversation(
+            id: id,
+            title: title,
+            config: config,
+            messages: conversation.messages,
+            summary: summary,
+            createdAt: conversationStore.indexEntries.first(where: { $0.id == id })?.createdAt ?? now,
+            lastModifiedAt: now,
+            forkedFrom: nil
+        )
+
+        do {
+            try conversationStore.save(saved)
+            activeConversationId = id
+            Self.logger.info("💾 Auto-saved conversation: \(title, privacy: .public)")
+        } catch {
+            Self.logger.error("❌ Failed to auto-save: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Save the current conversation with an explicit ID.
+    ///
+    /// Used by `generateText()` to auto-save with the conversation ID that was
+    /// captured at the *start* of generation, avoiding the race condition where
+    /// the user switches conversations mid-stream and `activeConversationId` changes.
+    private func saveConversationWithId(_ id: UUID) {
+        guard !conversation.isEmpty else { return }
+
+        let config = ExperimentConfig.capture(
+            modelMetadata: activeModelMetadata,
+            modelURL: activeModelURL,
+            backendResult: backendResult,
+            topK: topK,
+            topP: topP,
+            temperature: temperature,
+            seed: seed,
+            systemMessage: systemMessage,
+            flags: experimentalFlags
+        )
+        let summary = ExperimentSummary.compute(from: conversation.messages)
+        let now = Date()
+
         let title: String
         if let existingEntry = conversationStore.indexEntries.first(where: { $0.id == id }) {
             title = existingEntry.title

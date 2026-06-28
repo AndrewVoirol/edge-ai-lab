@@ -112,10 +112,19 @@ final class ConversationStore {
     }
 
     /// Load a full conversation from disk by ID.
+    ///
+    /// If the file exists but is corrupt (truncated JSON, incompatible schema),
+    /// the stale index entry is removed so the sidebar self-heals.
     func load(id: UUID) throws -> SavedConversation {
         let fileURL = fileURL(for: id)
 
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            // File is gone — clean up the index entry if present
+            if indexEntries.contains(where: { $0.id == id }) {
+                indexEntries.removeAll { $0.id == id }
+                persistIndex()
+                Self.logger.warning("🧹 Removed stale index entry for missing file: \(id)")
+            }
             throw ConversationStoreError.notFound(id)
         }
 
@@ -125,7 +134,16 @@ final class ConversationStore {
             Self.logger.info("📂 Loaded conversation: \(conversation.title, privacy: .public)")
             return conversation
         } catch {
-            Self.logger.error("❌ Failed to load conversation \(id): \(error.localizedDescription, privacy: .public)")
+            // File exists but is corrupt (truncated write, schema mismatch).
+            // Remove the stale index entry and quarantine the file so the
+            // sidebar doesn't repeatedly show a broken conversation.
+            Self.logger.error("❌ Corrupt conversation file \(id): \(error.localizedDescription, privacy: .public)")
+            indexEntries.removeAll { $0.id == id }
+            persistIndex()
+            // Rename corrupt file instead of deleting — preserves data for debugging
+            let corruptURL = fileURL.appendingPathExtension("corrupt")
+            try? FileManager.default.moveItem(at: fileURL, to: corruptURL)
+            Self.logger.warning("🧹 Quarantined corrupt file: \(corruptURL.lastPathComponent, privacy: .public)")
             throw ConversationStoreError.loadFailed(error)
         }
     }
@@ -295,6 +313,11 @@ final class ConversationStore {
     }
 
     /// Load index entries from the index file, or rebuild from conversation files.
+    ///
+    /// After loading the index, cross-checks the entry count against the actual
+    /// number of conversation JSON files on disk. If they differ (e.g., due to
+    /// a crash between file write and index update), triggers a rebuild to
+    /// restore consistency.
     private func loadIndex() {
         let fm = FileManager.default
 
@@ -304,12 +327,30 @@ final class ConversationStore {
            let entries = try? decoder.decode([ConversationIndexEntry].self, from: data) {
             indexEntries = entries
             sortIndex()
-            Self.logger.info("📋 Loaded index with \(entries.count) entries")
+
+            // Staleness check: compare index entry count against actual files on disk.
+            // If a crash occurred between a file write and index update, they'll differ.
+            let fileCount = conversationFileCount()
+            if fileCount != entries.count {
+                Self.logger.warning("⚠️ Index stale: \(entries.count) entries vs \(fileCount) files — rebuilding")
+                rebuildIndex()
+            } else {
+                Self.logger.info("📋 Loaded index with \(entries.count) entries")
+            }
             return
         }
 
         // Rebuild index from conversation files (slow path, first launch or corruption)
         rebuildIndex()
+    }
+
+    /// Count the number of conversation JSON files on disk (excluding index.json).
+    private func conversationFileCount() -> Int {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: storageDirectory, includingPropertiesForKeys: nil) else {
+            return 0
+        }
+        return files.filter { $0.pathExtension == "json" && $0.lastPathComponent != "index.json" }.count
     }
 
     /// Rebuild the index by scanning all conversation files.

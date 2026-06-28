@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **iOS Navigation Dead-Ends** — Eliminated navigation dead-ends in Chat, Eval, and Model Detail tabs on iOS.
 - **UI Clipping** — Fixed clipping in Chat and EvalComparison views.
 - **Compiler Warnings** — Resolved compiler errors and warnings across the codebase.
+- **CalculatorTool NSExpression Crash** — Added structural validation (`CalculatorValidation`) to prevent uncatchable ObjC exceptions from malformed model-generated math expressions (empty strings, unbalanced parens, consecutive operators).
+- **Auto-Save Race Condition** — Captured conversation identity at the start of inference so switching conversations mid-stream no longer corrupts saved data. Added generation token to prevent stale tool callbacks from mutating finalized state.
+- **Tool Call Events Silently Dropped** — Fixed `updateLastAssistantMessage()` to search backwards for the last assistant message instead of only checking the very last message, preventing tool result messages from blocking updates.
+- **ConversationStore Corrupt File Recovery** — Added index staleness detection (file count vs index count mismatch triggers rebuild) and corrupt file quarantine (renames to `.json.corrupt` instead of losing data).
 
 ### Changed
 

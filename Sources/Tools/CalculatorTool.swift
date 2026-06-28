@@ -90,6 +90,16 @@ struct CalculatorTool: Tool {
             return resultString
         }
 
+        // Structural validation: catch expressions that pass the character filter
+        // but would crash NSExpression with an uncatchable ObjC exception.
+        if let validationError = CalculatorValidation.validateStructure(doubleExpression) {
+            resultString = jsonString(from: [
+                "error": validationError,
+                "expression": expression
+            ])
+            return resultString
+        }
+
         let nsExpression = NSExpression(format: doubleExpression)
         guard let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber else {
             resultString = jsonString(from: [
@@ -129,5 +139,75 @@ struct CalculatorTool: Tool {
             "formatted_result": formatted
         ])
         return resultString
+    }
+}
+
+// MARK: - CalculatorValidation
+
+/// Validates that math expressions are structurally safe before passing to
+/// `NSExpression(format:)`, which throws uncatchable ObjC exceptions on
+/// malformed input. See code-safety skill § "NSExpression Safety".
+enum CalculatorValidation {
+    /// Validates that an expression is structurally safe for NSExpression.
+    /// Returns nil if valid, or an error description if invalid.
+    static func validateStructure(_ expression: String) -> String? {
+        let trimmed = expression.trimmingCharacters(in: .whitespaces)
+
+        // 1. Reject empty/whitespace-only
+        if trimmed.isEmpty {
+            return "Expression is empty"
+        }
+
+        // 2. Validate balanced parentheses
+        var depth = 0
+        for char in trimmed {
+            if char == "(" { depth += 1 }
+            else if char == ")" {
+                depth -= 1
+                if depth < 0 {
+                    return "Unbalanced parentheses: unexpected ')'"
+                }
+            }
+        }
+        if depth != 0 {
+            return "Unbalanced parentheses: missing ')'"
+        }
+
+        // 3. Reject leading * or / (leading - is valid for negation, + allowed for consistency)
+        if let first = trimmed.first, first == "*" || first == "/" {
+            return "Expression starts with invalid operator: \(first)"
+        }
+
+        // 4. Reject trailing operators
+        if let last = trimmed.last, "+-*/".contains(last) {
+            return "Expression ends with operator: \(last)"
+        }
+
+        // 5. Reject consecutive operators (allow - after another operator for negation, e.g. "3 * -2")
+        let operators = CharacterSet(charactersIn: "+-*/")
+        let chars = Array(trimmed.unicodeScalars)
+        var i = 0
+        while i < chars.count {
+            if operators.contains(chars[i]) {
+                var j = i + 1
+                // Skip whitespace between operators
+                while j < chars.count && chars[j] == " " { j += 1 }
+                if j < chars.count && operators.contains(chars[j]) {
+                    // Allow minus after another operator (e.g., "3 * -2")
+                    let secondOp = Character(UnicodeScalar(chars[j]))
+                    if secondOp != "-" {
+                        return "Consecutive operators: '\(Character(UnicodeScalar(chars[i])))\(secondOp)'"
+                    }
+                }
+            }
+            i += 1
+        }
+
+        // 6. Reject expressions with no digits at all (e.g., "+-*/", "()", "...")
+        if !trimmed.contains(where: { $0.isNumber }) {
+            return "Expression contains no numbers"
+        }
+
+        return nil
     }
 }

@@ -213,6 +213,12 @@ struct ConversationState: Codable {
     }
     
     /// Update the last assistant message (used during streaming).
+    ///
+    /// Searches backwards from the end of the messages array to find the
+    /// most recent `.assistant` message. This is necessary because tool result
+    /// messages (`.toolResult`) may be appended between assistant messages
+    /// during tool calling — if we only checked the very last message, updates
+    /// would be silently dropped when the last message is a tool result.
     mutating func updateLastAssistantMessage(
         content: String? = nil,
         thinkingContent: String? = nil,
@@ -220,8 +226,7 @@ struct ConversationState: Codable {
         isStreaming: Bool? = nil,
         benchmarkInfo: ChatMessage.BenchmarkSnapshot? = nil
     ) {
-        guard let lastIndex = messages.indices.last,
-              messages[lastIndex].role == .assistant else { return }
+        guard let lastIndex = messages.lastIndex(where: { $0.role == .assistant }) else { return }
         if let content = content {
             messages[lastIndex].content = content
         }
