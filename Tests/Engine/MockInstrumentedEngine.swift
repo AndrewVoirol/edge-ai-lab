@@ -133,6 +133,7 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
     private(set) var lastBenchmarkInfo: BenchmarkInfo?
     private(set) var lastInferenceMetrics: InferenceMetrics?
     private(set) var lastBackendResult: BackendResult?
+    private(set) var modelLoadDurationMs: Double?
     private(set) var flagsState = ExperimentalFlagsState(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,

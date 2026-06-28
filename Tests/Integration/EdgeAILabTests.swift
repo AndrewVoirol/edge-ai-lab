@@ -331,7 +331,11 @@ final class MetricsStoreTests: XCTestCase {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                decodeLatenciesMs: nil
+                decodeLatenciesMs: nil,
+                latencyHistogram: nil,
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: nil,
+                modelLoadDurationMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -689,7 +693,11 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 availableMemoryAtEndMB: 3800.0,
                 medianTokenLatencyMs: 12.5,
                 p95TokenLatencyMs: 25.0,
-                decodeLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0]
+                decodeLatenciesMs: [25.0, 12.5, 8.3, 9.1, 15.0],
+                latencyHistogram: nil,
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: nil,
+                modelLoadDurationMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -719,7 +727,11 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                decodeLatenciesMs: nil
+                decodeLatenciesMs: nil,
+                latencyHistogram: nil,
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: nil,
+                modelLoadDurationMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,

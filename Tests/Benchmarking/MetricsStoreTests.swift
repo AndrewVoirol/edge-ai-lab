@@ -79,7 +79,11 @@ struct MetricsStoreSwiftTestingTests {
                 availableMemoryAtEndMB: nil,
                 medianTokenLatencyMs: nil,
                 p95TokenLatencyMs: nil,
-                decodeLatenciesMs: nil
+                decodeLatenciesMs: nil,
+                latencyHistogram: nil,
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: nil,
+                modelLoadDurationMs: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: false,
@@ -113,7 +117,11 @@ struct MetricsStoreSwiftTestingTests {
                 availableMemoryAtEndMB: 1536.0,
                 medianTokenLatencyMs: 6.5,
                 p95TokenLatencyMs: 12.3,
-                decodeLatenciesMs: [5.0, 6.0, 6.5, 7.0, 12.3]
+                decodeLatenciesMs: [5.0, 6.0, 6.5, 7.0, 12.3],
+                latencyHistogram: ["0-10ms": 5, "10-20ms": 0, "20-50ms": 0, "50-100ms": 0, "100-200ms": 0, "200ms+": 0],
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: 0.5,
+                modelLoadDurationMs: 3200.0
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,

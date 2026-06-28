@@ -51,7 +51,11 @@ private func makeEntry(
             availableMemoryAtEndMB: nil,
             medianTokenLatencyMs: nil,
             p95TokenLatencyMs: nil,
-            decodeLatenciesMs: nil
+            decodeLatenciesMs: nil,
+            latencyHistogram: nil,
+            thermalTransitions: nil,
+            estimatedMemoryBandwidthGBps: nil,
+            modelLoadDurationMs: nil
         ),
         flags: ExperimentalFlagsState(
             enableBenchmark: false,

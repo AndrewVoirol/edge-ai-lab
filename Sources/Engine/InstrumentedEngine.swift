@@ -38,6 +38,9 @@ protocol InstrumentedEngineProtocol: AnyObject {
     /// The result of the last backend initialization attempt.
     var lastBackendResult: BackendResult? { get }
 
+    /// Wall-clock time for model loading in milliseconds, or nil if not yet loaded.
+    var modelLoadDurationMs: Double? { get }
+
     /// Initialize the engine with a model file.
     /// - Parameters:
     ///   - modelPath: Filesystem path to the .litertlm model file.
@@ -300,6 +303,12 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
     /// and the native session won't be deleted until that reference is released.
     private var activeInferenceTask: Task<Void, Never>?
 
+    /// Wall-clock duration of the last model load (Engine.init + initialize) in milliseconds.
+    private(set) var modelLoadDurationMs: Double?
+
+    /// Thermal state monitor for tracking thermal transitions during inference.
+    private let thermalMonitor = ThermalMonitor()
+
     var isReady: Bool { conversation != nil }
 
     // MARK: - Initialization
@@ -351,8 +360,12 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 cacheDir: cacheDir
             )
 
+            // Time the model load (Engine creation + initialization)
+            let loadStart = CFAbsoluteTimeGetCurrent()
             let newEngine = Engine(engineConfig: config)
             try await newEngine.initialize()
+            let loadEnd = CFAbsoluteTimeGetCurrent()
+            self.modelLoadDurationMs = (loadEnd - loadStart) * 1000.0
 
             self.engine = newEngine
 
@@ -475,6 +488,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
             // Capture device metrics at inference start
             let startSnapshot = DeviceMetrics.captureSnapshot()
+            self?.thermalMonitor.startMonitoring()
             var tokenTimestamps: [CFAbsoluteTime] = []
             let inferenceStartTime = CFAbsoluteTimeGetCurrent()
             var isFirstToken = true
@@ -542,6 +556,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
                 // Capture device metrics at inference end
                 let endSnapshot = DeviceMetrics.captureSnapshot()
+                self?.thermalMonitor.stopMonitoring()
+                let thermalTransitions = self?.thermalMonitor.transitions ?? []
 
                 // Calculate per-token latency intervals — separate TTFT from decode
                 let ttftMs: Double?
@@ -575,13 +591,14 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     self?.lastBenchmarkInfo = benchmarkInfo
                 }
 
-                Self.logger.info("✅ \(label) complete: \(tokenTimestamps.count) tokens")
+                Self.logger.info("✅ \(label) complete: \(tokenTimestamps.count) tokens, \(thermalTransitions.count) thermal transitions")
                 os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
                             "%{public}s completed (%{public}d tokens)", label, tokenTimestamps.count)
                 continuation.finish()
             } catch {
                 // Still capture metrics on failure for debugging
                 let endSnapshot = DeviceMetrics.captureSnapshot()
+                self?.thermalMonitor.stopMonitoring()
                 let failureMetrics = InferenceMetrics(
                     startSnapshot: startSnapshot,
                     endSnapshot: endSnapshot,

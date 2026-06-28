@@ -74,7 +74,11 @@ class BenchmarkValidationRunner: ObservableObject {
                     availableMemoryAtEndMB: 3800.0,
                     medianTokenLatencyMs: 23.5,
                     p95TokenLatencyMs: 35.0,
-                    decodeLatenciesMs: [20.0, 23.0, 25.0]
+                    decodeLatenciesMs: [20.0, 23.0, 25.0],
+                    latencyHistogram: nil,
+                    thermalTransitions: nil,
+                    estimatedMemoryBandwidthGBps: nil,
+                    modelLoadDurationMs: nil
                 ),
                 flags: flags
             )

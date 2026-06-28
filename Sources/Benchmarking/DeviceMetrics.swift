@@ -146,6 +146,102 @@ struct InferenceMetrics: Codable, Sendable {
     var thermalStateChanged: Bool {
         startSnapshot.thermalLevel != endSnapshot.thermalLevel
     }
+
+    // MARK: - Latency Histogram (Tier 1: Always-On)
+
+    /// Histogram of decode token latencies bucketed by duration.
+    /// Computed from the existing `decodeLatenciesMs` array — zero collection overhead.
+    /// Buckets: 0-10ms, 10-20ms, 20-50ms, 50-100ms, 100-200ms, 200ms+
+    var latencyHistogram: [String: Int] {
+        InstrumentationLogic.computeLatencyHistogram(from: decodeLatenciesMs)
+    }
+
+    // MARK: - Memory Bandwidth Estimation (Tier 2: Benchmark-Only)
+
+    /// Estimated memory bandwidth in GB/s during inference.
+    /// Formula: abs(memoryDelta in bytes) / (inference duration in seconds) / 1e9
+    /// Returns nil if duration is zero or negative (invalid measurement).
+    var estimatedMemoryBandwidthGBps: Double? {
+        InstrumentationLogic.computeMemoryBandwidth(
+            startMemoryMB: startSnapshot.availableMemoryMB,
+            endMemoryMB: endSnapshot.availableMemoryMB,
+            startTimestamp: startSnapshot.timestamp,
+            endTimestamp: endSnapshot.timestamp
+        )
+    }
+}
+
+// MARK: - Thermal Transition
+
+/// Records a single thermal state transition observed during inference.
+struct ThermalTransition: Codable, Sendable {
+    /// The thermal level before the transition.
+    let from: ThermalLevel
+    /// The thermal level after the transition.
+    let to: ThermalLevel
+    /// When the transition occurred.
+    let timestamp: Date
+}
+
+// MARK: - Instrumentation Logic
+
+/// Pure-function logic for instrumentation computations.
+/// Extracted into an enum namespace for testability (no instance state).
+enum InstrumentationLogic {
+
+    /// Bucket definitions for the latency histogram.
+    static let histogramBuckets: [(label: String, range: ClosedRange<Double>)] = [
+        ("0-10ms", 0...10),
+        ("10-20ms", 10...20),
+        ("20-50ms", 20...50),
+        ("50-100ms", 50...100),
+        ("100-200ms", 100...200),
+    ]
+
+    /// Compute a latency histogram from an array of decode latencies in milliseconds.
+    /// Each latency is placed into exactly one bucket. The upper bound of each bucket
+    /// is exclusive (except "200ms+" which captures everything >= 200).
+    static func computeLatencyHistogram(from latencies: [Double]) -> [String: Int] {
+        var histogram: [String: Int] = [
+            "0-10ms": 0,
+            "10-20ms": 0,
+            "20-50ms": 0,
+            "50-100ms": 0,
+            "100-200ms": 0,
+            "200ms+": 0,
+        ]
+        for latency in latencies {
+            switch latency {
+            case ..<10:
+                histogram["0-10ms", default: 0] += 1
+            case 10..<20:
+                histogram["10-20ms", default: 0] += 1
+            case 20..<50:
+                histogram["20-50ms", default: 0] += 1
+            case 50..<100:
+                histogram["50-100ms", default: 0] += 1
+            case 100..<200:
+                histogram["100-200ms", default: 0] += 1
+            default:
+                histogram["200ms+", default: 0] += 1
+            }
+        }
+        return histogram
+    }
+
+    /// Estimate memory bandwidth in GB/s from start/end memory and timestamps.
+    /// Returns nil if duration is zero or negative.
+    static func computeMemoryBandwidth(
+        startMemoryMB: Double,
+        endMemoryMB: Double,
+        startTimestamp: Date,
+        endTimestamp: Date
+    ) -> Double? {
+        let durationSeconds = endTimestamp.timeIntervalSince(startTimestamp)
+        guard durationSeconds > 0 else { return nil }
+        let memoryDeltaBytes = abs(endMemoryMB - startMemoryMB) * 1_048_576.0
+        return memoryDeltaBytes / durationSeconds / 1_000_000_000.0
+    }
 }
 
 // MARK: - DeviceMetrics Utility

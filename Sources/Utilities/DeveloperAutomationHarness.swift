@@ -279,7 +279,11 @@ struct DeveloperAutomationHarness {
                             thermalStateAtStart: "nominal", thermalStateAtEnd: "nominal",
                             availableMemoryAtStartMB: 4096.0, availableMemoryAtEndMB: 3800.0,
                             medianTokenLatencyMs: 23.5, p95TokenLatencyMs: 35.0,
-                            decodeLatenciesMs: [20.0, 23.0, 25.0]
+                            decodeLatenciesMs: [20.0, 23.0, 25.0],
+                            latencyHistogram: nil,
+                            thermalTransitions: nil,
+                            estimatedMemoryBandwidthGBps: nil,
+                            modelLoadDurationMs: nil
                         ), flags: flags)
                     let data = try JSONEncoder().encode(entry)
                     let decoded = try JSONDecoder().decode(MetricsStore.Entry.self, from: data)

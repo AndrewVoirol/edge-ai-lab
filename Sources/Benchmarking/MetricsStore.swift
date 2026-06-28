@@ -48,7 +48,21 @@ final class MetricsStore {
             let medianTokenLatencyMs: Double?
             let p95TokenLatencyMs: Double?
             let decodeLatenciesMs: [Double]?
+
+            // Enhanced instrumentation fields (optional for backward compatibility)
+            let latencyHistogram: [String: Int]?
+            let thermalTransitions: [ThermalTransitionRecord]?
+            let estimatedMemoryBandwidthGBps: Double?
+            let modelLoadDurationMs: Double?
         }
+    }
+
+    /// Lightweight Codable record for thermal transitions in the metrics store.
+    /// Uses String raw values for thermal levels instead of importing the full ThermalTransition struct.
+    struct ThermalTransitionRecord: Codable {
+        let from: String
+        let to: String
+        let timestamp: String
     }
 
     // MARK: - Storage
@@ -160,7 +174,11 @@ final class MetricsStore {
                 availableMemoryAtEndMB: inferenceMetrics?.endSnapshot.availableMemoryMB,
                 medianTokenLatencyMs: inferenceMetrics?.medianTokenLatencyMs,
                 p95TokenLatencyMs: inferenceMetrics?.p95TokenLatencyMs,
-                decodeLatenciesMs: inferenceMetrics?.decodeLatenciesMs
+                decodeLatenciesMs: inferenceMetrics?.decodeLatenciesMs,
+                latencyHistogram: inferenceMetrics?.latencyHistogram,
+                thermalTransitions: nil,  // Populated separately by caller with ThermalMonitor data
+                estimatedMemoryBandwidthGBps: inferenceMetrics?.estimatedMemoryBandwidthGBps,
+                modelLoadDurationMs: nil  // Populated separately by caller with engine data
             ),
             flags: flags
         )
