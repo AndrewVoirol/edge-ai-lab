@@ -43,6 +43,8 @@ let project = Project(
                 "LSSupportsOpeningDocumentsInPlace": true,
                 // Support opening .litertlm files directly from other apps
                 "UISupportsDocumentBrowser": true,
+                // Location permission for the get_location tool
+                "NSLocationWhenInUseUsageDescription": "Edge AI Lab uses your location to provide context-aware responses when you ask location-related questions.",
             ]),
             sources: ["Sources/**"],
             resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**"],
@@ -77,6 +79,8 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
                 "CFBundleName": "Edge AI Lab",
+                // Location permission for the get_location tool
+                "NSLocationUsageDescription": "Edge AI Lab uses your location to provide context-aware responses when you ask location-related questions.",
             ]),
             sources: ["Sources/**"],
             resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**"],

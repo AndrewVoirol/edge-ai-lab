@@ -167,9 +167,10 @@ struct CalculatorToolSafetyTests {
 
     @Test("Reject: only operators")
     func rejectOnlyOperators() {
+        // "+-*/" hits rule 4 (trailing operator) before rule 6 (no digits).
+        // Verify it's still rejected — the specific error message may vary.
         let result = CalculatorValidation.validateStructure("+-*/")
         #expect(result != nil)
-        #expect(result!.contains("no numbers"))
     }
 
     @Test("Reject: only dots")

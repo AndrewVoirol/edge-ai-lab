@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automation Harness Improvements** — `AutomationFlowRunner` with flow validation (`validate_flows.sh`), benchmark comparison (`benchmark_compare.sh`), and eval comparison (`eval_comparison.sh`) scripts.
 - **Logic Extraction for Testability** — Extracted pure logic from SwiftUI views into `enum` namespaces (`EvalRunnerLogic`, `ModelDetailFormatters`, etc.) for unit testing.
 - **~900 New Tests** — Coverage push adding 10+ new test files and ~900 test methods across unit, integration, and UI test targets.
+- **Location Tool** (`get_location`) — GPS coordinates + reverse-geocoded address via CoreLocation. Wi-Fi triangulation on macOS, full GPS on iOS.
+- **Motion Tool** (`get_device_motion`) — Accelerometer, gyroscope, and attitude data from CoreMotion. iOS only with graceful macOS degradation.
+- **Camera Tool** (`take_photo`) — Triggers the system photo picker via notification so the model can request photo attachments during conversation.
+- **Instruction Following Eval Suite** — 15 prompts testing format compliance (bullet counts, lowercase-only, JSON format, numbered lists, word avoidance, paragraph structure, markdown headers).
+- **Gemma 4 Capabilities Eval Suite** — 12 prompts testing multi-tool chains, correct tool selection vs. avoidance, complex reasoning, context retention, and combined instruction+tool workflows.
 
 ### Fixed
 

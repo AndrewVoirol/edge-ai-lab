@@ -126,16 +126,21 @@ enum ToolRegistry {
     /// All built-in tools for on-device function calling.
     ///
     /// Every tool in this list is:
-    /// - **Side-effect-free**: No network calls, no file writes, no state mutations
     /// - **Offline-capable**: Works without any internet connection
     /// - **Safe**: No arbitrary code execution, sandboxed to read-only operations
+    ///
+    /// Most tools are side-effect-free. Exceptions:
+    /// - `CameraTool` posts a notification to trigger the photo picker UI.
     static let defaultTools: [Tool] = [
         CalculatorTool(),
         DateTimeTool(),
         DeviceInfoTool(),
         UnitConverterTool(),
         TextAnalyzerTool(),
-        SystemHealthTool()
+        SystemHealthTool(),
+        LocationTool(),
+        MotionTool(),
+        CameraTool(),
     ]
 
     /// Creates a `ToolManager` pre-configured with all built-in tools.

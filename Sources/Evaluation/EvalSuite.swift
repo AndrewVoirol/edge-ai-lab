@@ -94,6 +94,8 @@ enum EvalCategory: String, Codable, Sendable, CaseIterable {
     case toolCalling
     case reasoning
     case multimodal
+    case instructionFollowing
+    case codeGeneration
     case general
     case custom
 
@@ -103,9 +105,11 @@ enum EvalCategory: String, Codable, Sendable, CaseIterable {
         case .math:         return "Math"
         case .toolCalling:  return "Tool Calling"
         case .reasoning:    return "Reasoning"
-        case .multimodal:   return "Multimodal"
-        case .general:      return "General"
-        case .custom:       return "Custom"
+        case .multimodal:           return "Multimodal"
+        case .instructionFollowing: return "Instruction Following"
+        case .codeGeneration:       return "Code Generation"
+        case .general:              return "General"
+        case .custom:               return "Custom"
         }
     }
 
@@ -115,9 +119,11 @@ enum EvalCategory: String, Codable, Sendable, CaseIterable {
         case .math:         return "function"
         case .toolCalling:  return "wrench.and.screwdriver"
         case .reasoning:    return "brain"
-        case .multimodal:   return "photo.on.rectangle"
-        case .general:      return "text.bubble"
-        case .custom:       return "slider.horizontal.3"
+        case .multimodal:           return "photo.on.rectangle"
+        case .instructionFollowing: return "checklist"
+        case .codeGeneration:       return "chevron.left.forwardslash.chevron.right"
+        case .general:              return "text.bubble"
+        case .custom:               return "slider.horizontal.3"
         }
     }
 }
