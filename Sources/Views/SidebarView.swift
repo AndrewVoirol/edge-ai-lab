@@ -82,6 +82,9 @@ struct SidebarView: View {
     @State private var downloadableModelToDelete: ModelMetadata?
     @State private var showDownloadableDeleteConfirmation = false
 
+    /// Conversation bulk delete confirmation.
+    @State private var showClearAllConfirmation = false
+
     var body: some View {
         List(selection: $selectedSection) {
             // MARK: Active Model (non-selectable header)
@@ -264,6 +267,45 @@ struct SidebarView: View {
                         Text("\(viewModel.conversationStore.indexEntries.count)")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.textTertiary)
+
+                        Menu {
+                            Button(role: .destructive) {
+                                showClearAllConfirmation = true
+                            } label: {
+                                Label("Clear All", systemImage: "trash")
+                            }
+                            .accessibilityIdentifier("sidebar_clearAllConversations")
+
+                            Divider()
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 7)
+                            } label: {
+                                Label("Older than 7 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("sidebar_deleteOlderThan7")
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 30)
+                            } label: {
+                                Label("Older than 30 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("sidebar_deleteOlderThan30")
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 90)
+                            } label: {
+                                Label("Older than 90 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("sidebar_deleteOlderThan90")
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.caption)
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+                        .accessibilityIdentifier("menu_conversationManagement")
                     }
                 }
             }
@@ -309,6 +351,17 @@ struct SidebarView: View {
             if let metadata = downloadableModelToDelete {
                 Text("\"\(metadata.name)\" will be permanently removed from disk. This cannot be undone.")
             }
+        }
+        .alert(
+            "Delete All Conversations?",
+            isPresented: $showClearAllConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete All", role: .destructive) {
+                viewModel.deleteAllConversations()
+            }
+        } message: {
+            Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
         }
     }
 

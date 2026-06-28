@@ -716,6 +716,57 @@ final class ConversationViewModel {
         }
     }
 
+    /// Delete all saved conversations.
+    func deleteAllConversations() {
+        // Clear active conversation state if it will be deleted
+        clearActiveConversationIfNeeded()
+        do {
+            let count = try conversationStore.deleteAll()
+            Self.logger.info("🗑️ Deleted all \(count) conversations")
+        } catch {
+            Self.logger.error("❌ Failed to delete all conversations: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Delete multiple conversations by their IDs.
+    func deleteSelectedConversations(ids: Set<UUID>) {
+        if let activeId = activeConversationId, ids.contains(activeId) {
+            clearActiveConversationIfNeeded()
+        }
+        do {
+            let count = try conversationStore.deleteMultiple(ids: ids)
+            Self.logger.info("🗑️ Deleted \(count) selected conversations")
+        } catch {
+            Self.logger.error("❌ Failed to delete selected conversations: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Delete conversations older than a given number of days.
+    func deleteConversationsOlderThan(days: Int) {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        // Check if active conversation is in the deletion set
+        if let activeId = activeConversationId,
+           let activeEntry = conversationStore.indexEntries.first(where: { $0.id == activeId }),
+           activeEntry.lastModifiedAt < cutoff {
+            clearActiveConversationIfNeeded()
+        }
+        do {
+            let count = try conversationStore.deleteOlderThan(cutoff)
+            Self.logger.info("🗑️ Deleted \(count) conversations older than \(days) days")
+        } catch {
+            Self.logger.error("❌ Failed to delete old conversations: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Helper: Clears the active conversation state when the active conversation is being deleted.
+    private func clearActiveConversationIfNeeded() {
+        activeConversationId = nil
+        if isViewingArchivedConversation {
+            conversation.clear()
+            isViewingArchivedConversation = false
+        }
+    }
+
     // MARK: - Cleanup
 
     /// Shut down the engine and release resources.
