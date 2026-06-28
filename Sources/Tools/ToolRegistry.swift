@@ -131,6 +131,7 @@ enum ToolRegistry {
     ///
     /// Most tools are side-effect-free. Exceptions:
     /// - `CameraTool` posts a notification to trigger the photo picker UI.
+    /// - `ShortcutsTool` is experimental — configures Siri Shortcut metadata.
     static let defaultTools: [Tool] = [
         CalculatorTool(),
         DateTimeTool(),
@@ -141,6 +142,10 @@ enum ToolRegistry {
         LocationTool(),
         MotionTool(),
         CameraTool(),
+        FileSearchTool(),
+        SensorsTool(),
+        WiFiTool(),
+        ShortcutsTool(),
     ]
 
     /// Creates a `ToolManager` pre-configured with all built-in tools.

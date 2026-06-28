@@ -227,8 +227,8 @@ final class ToolCallingTests: XCTestCase {
 
     func testDefaultToolsCount() {
         XCTAssertEqual(
-            ToolRegistry.defaultTools.count, 6,
-            "Default tools should contain exactly 6 tools"
+            ToolRegistry.defaultTools.count, 13,
+            "Default tools should contain exactly 13 tools"
         )
     }
 

@@ -31,9 +31,9 @@ import Testing
 
     // MARK: - ToolRegistry.defaultTools
 
-    @Test("defaultTools contains exactly 9 tools")
+    @Test("defaultTools contains exactly 13 tools")
     func defaultToolsCount() {
-        #expect(ToolRegistry.defaultTools.count == 9)
+        #expect(ToolRegistry.defaultTools.count == 13)
     }
 
     // MARK: - ToolRegistry.createToolManager()
