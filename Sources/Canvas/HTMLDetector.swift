@@ -53,7 +53,8 @@ enum HTMLDetector {
 
         let firstLine = lines[0].trimmingCharacters(in: .whitespaces)
 
-        // Check for ``` or ~~~ fencing
+        // Determine fence character and count actual fence length
+        // CommonMark: opening fence is 3+ backticks or 3+ tildes
         let fenceChar: Character
         if firstLine.hasPrefix("```") {
             fenceChar = "`"
@@ -63,18 +64,25 @@ enum HTMLDetector {
             return nil
         }
 
+        // Count actual fence length (3, 4, 5, ...)
+        let fenceLength = firstLine.prefix(while: { $0 == fenceChar }).count
+
         // Extract language from the opening fence
-        let fencePrefix = String(repeating: String(fenceChar), count: 3)
-        let langTag = firstLine.dropFirst(fencePrefix.count)
+        let fencePrefix = String(repeating: String(fenceChar), count: fenceLength)
+        let langTag = firstLine.dropFirst(fenceLength)
             .trimmingCharacters(in: .whitespaces)
             .lowercased()
 
         guard htmlLanguages.contains(langTag) else { return nil }
 
-        // Find the closing fence
-        let closingFence = fencePrefix
-        guard let lastFenceIndex = lines.lastIndex(where: {
-            $0.trimmingCharacters(in: .whitespaces).hasPrefix(closingFence)
+        // Find the closing fence — must be at least as long as the opening fence
+        // and contain ONLY fence chars (plus optional whitespace)
+        guard let lastFenceIndex = lines.lastIndex(where: { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix(fencePrefix) else { return false }
+            // Ensure the rest is only fence chars or whitespace (no language tag)
+            let afterFence = trimmed.dropFirst(fenceLength)
+            return afterFence.allSatisfy { $0 == fenceChar || $0.isWhitespace }
         }), lastFenceIndex > 0 else {
             return nil
         }

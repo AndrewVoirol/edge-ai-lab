@@ -182,4 +182,84 @@ struct CanvasContentTests {
             #expect(result.contains("<svg"))
         }
     }
+
+    // MARK: - Dark Forest Theme Verification
+
+    @Suite("Dark Forest Theme Coverage")
+    struct DarkForestThemeCSSTests {
+        @Test("Stylesheet includes Dark Forest background (#0D1117)")
+        func darkForestBackground() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("#0D1117"),
+                    "Dark Forest background color #0D1117 must be in the stylesheet")
+        }
+
+        @Test("Stylesheet includes Dark Forest text (#C9D1D9)")
+        func darkForestText() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("#C9D1D9"),
+                    "Dark Forest text color #C9D1D9 must be in the stylesheet")
+        }
+
+        @Test("Stylesheet includes link color (#58A6FF)")
+        func darkForestLinkColor() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("#58A6FF"),
+                    "Link color #58A6FF must be in the stylesheet for visibility on dark background")
+        }
+
+        @Test("Stylesheet includes visited link color (#8B949E)")
+        func darkForestVisitedLinkColor() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("#8B949E"),
+                    "Visited link color #8B949E must be in the stylesheet")
+        }
+
+        @Test("Stylesheet sets dark color-scheme")
+        func darkColorScheme() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("color-scheme: dark"),
+                    "CSS must declare color-scheme: dark for native dark mode compatibility")
+        }
+
+        @Test("Stylesheet targets body selector")
+        func targetsBodySelector() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("body {") || css.contains("body{"),
+                    "CSS must target the body element for background and text color")
+        }
+
+        @Test("Stylesheet has a unique ID for deduplication")
+        func hasUniqueStyleId() {
+            let css = CanvasDarkModeCSS.darkModeStylesheet
+            #expect(css.contains("id=\"canvas-dark-mode\""),
+                    "Style tag must have id=\"canvas-dark-mode\" for deduplication")
+        }
+
+        @Test("Injected full document contains all Dark Forest colors")
+        func fullDocumentContainsAllColors() {
+            let html = """
+            <!DOCTYPE html>
+            <html>
+            <head><title>Theme Test</title></head>
+            <body><h1>Hello</h1></body>
+            </html>
+            """
+            let result = CanvasDarkModeCSS.inject(into: html)
+            // All Dark Forest theme colors must be present after injection
+            #expect(result.contains("#0D1117"), "Background color missing in injected document")
+            #expect(result.contains("#C9D1D9"), "Text color missing in injected document")
+            #expect(result.contains("#58A6FF"), "Link color missing in injected document")
+            #expect(result.contains("#8B949E"), "Visited link color missing in injected document")
+            #expect(result.contains("color-scheme: dark"), "Dark color scheme missing in injected document")
+        }
+
+        @Test("Injected raw HTML fragment still gets Dark Forest theme")
+        func rawFragmentGetsTheme() {
+            let fragment = "<div><p>Just a fragment</p></div>"
+            let result = CanvasDarkModeCSS.inject(into: fragment)
+            #expect(result.contains("#0D1117"), "Fragment must receive Dark Forest background")
+            #expect(result.contains("#C9D1D9"), "Fragment must receive Dark Forest text color")
+        }
+    }
 }

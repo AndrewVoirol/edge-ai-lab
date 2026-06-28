@@ -232,4 +232,190 @@ struct HTMLDetectorTests {
             #expect(HTMLDetector.containsHTMLDocument("  \n  <!DOCTYPE html>\n  <html>\n  </html>  ") == true)
         }
     }
+
+    // MARK: - Edge Cases: Nested & Extended Fencing
+
+    @Suite("Edge Cases: Fencing")
+    struct FencingEdgeCaseTests {
+        @Test("Nested code fences — inner ``` inside outer ```html")
+        func nestedCodeFences() {
+            // Model output may include nested fences when explaining code
+            let block = """
+            ```html
+            <div>
+            <pre>```
+            some code
+            ```</pre>
+            </div>
+            ```
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            // Should extract content — inner ``` is treated as part of the HTML
+            #expect(result != nil)
+            #expect(result!.contains("<div>"))
+        }
+
+        @Test("Extra backticks (````) — four-backtick fence with html tag")
+        func extraBackticks() {
+            // Some markdown renderers use 4+ backticks for nested code
+            let block = """
+            ````html
+            <p>Four backticks</p>
+            ````
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            // Our detector uses hasPrefix("```") so ```` also matches
+            #expect(result != nil)
+            #expect(result!.contains("<p>Four backticks</p>"))
+        }
+
+        @Test("Five backticks — also handled by hasPrefix")
+        func fiveBackticks() {
+            let block = """
+            `````html
+            <h2>Five</h2>
+            `````
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            #expect(result != nil)
+            #expect(result!.contains("<h2>Five</h2>"))
+        }
+
+        @Test("Mixed fence types — opens with ``` but closes with ~~~")
+        func mixedFenceTypes() {
+            let block = """
+            ```html
+            <div>Mixed</div>
+            ~~~
+            """
+            // lastIndex(where: hasPrefix("```")) won't find "~~~",
+            // so this should return nil — no matching close fence
+            let result = HTMLDetector.extractHTML(from: block)
+            #expect(result == nil)
+        }
+
+        @Test("Indented fence lines")
+        func indentedFenceLines() {
+            let block = """
+              ```html
+              <p>Indented</p>
+              ```
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            // trimmingCharacters handles leading whitespace on fence lines
+            #expect(result != nil)
+        }
+    }
+
+    // MARK: - Edge Cases: Security & XSS
+
+    @Suite("Edge Cases: Security")
+    struct SecurityEdgeCaseTests {
+        @Test("XSS script tag — detected as HTML and extractable")
+        func xssScriptTag() {
+            // <script> content IS valid HTML — Canvas should render it
+            // (network is blocked by WKContentRuleList, not by detection)
+            let block = """
+            ```html
+            <html><body><script>alert(1)</script></body></html>
+            ```
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            #expect(result != nil)
+            #expect(result!.contains("<script>alert(1)</script>"))
+        }
+
+        @Test("XSS with event handler — detected as HTML")
+        func xssEventHandler() {
+            let block = """
+            ```html
+            <img src=x onerror="alert('xss')">
+            ```
+            """
+            let result = HTMLDetector.extractHTML(from: block)
+            #expect(result != nil)
+            #expect(result!.contains("onerror"))
+        }
+
+        @Test("Script language tag is NOT HTML-renderable")
+        func scriptLanguageNotRenderable() {
+            // Language "javascript" or "js" blocks should not show Canvas button
+            #expect(HTMLDetector.isHTMLCodeBlock(language: "javascript") == false)
+            #expect(HTMLDetector.isHTMLCodeBlock(language: "js") == false)
+        }
+
+        @Test("containsHTMLDocument detects script-laden document")
+        func detectsDocumentWithScript() {
+            let xss = """
+            <!DOCTYPE html>
+            <html>
+            <body><script>document.cookie</script></body>
+            </html>
+            """
+            // Still a valid HTML document — detection should return true
+            #expect(HTMLDetector.containsHTMLDocument(xss) == true)
+        }
+    }
+
+    // MARK: - Edge Cases: Large & Empty Content
+
+    @Suite("Edge Cases: Large & Empty Content")
+    struct LargeContentEdgeCaseTests {
+        @Test("Very large HTML (100KB+) — no crash")
+        func largeHtmlNoCrash() {
+            // Generate 100KB+ of HTML content
+            let repeatedDiv = "<div><p>Row of content with enough text to pad the file.</p></div>\n"
+            let count = (100_000 / repeatedDiv.utf8.count) + 1
+            let largeBody = String(repeating: repeatedDiv, count: count)
+            let largeHTML = "<html><head></head><body>\(largeBody)</body></html>"
+
+            // Verify it's actually > 100KB
+            #expect(largeHTML.utf8.count > 100_000)
+
+            // Detection should still work
+            #expect(HTMLDetector.containsHTMLDocument(largeHTML) == true)
+        }
+
+        @Test("Large HTML in fenced block — extractable without crash")
+        func largeHtmlFencedBlock() {
+            let repeatedP = "<p>Test paragraph content.</p>\n"
+            let count = (100_000 / repeatedP.utf8.count) + 1
+            let largeBody = String(repeating: repeatedP, count: count)
+            let block = "```html\n\(largeBody)```"
+
+            let result = HTMLDetector.extractHTML(from: block)
+            #expect(result != nil)
+            #expect(result!.utf8.count > 100_000)
+        }
+
+        @Test("Empty HTML body — fenced block with only whitespace between fences")
+        func emptyHtmlBody() {
+            // Use explicit construction to avoid multiline string indentation issues
+            let block = "```html\n\n```"
+            let result = HTMLDetector.extractHTML(from: block)
+            // An empty line between fences is non-empty content (the newline itself)
+            // But the joined content is "" which IS empty → returns nil
+            // This is correct: truly empty code blocks have no renderable content
+            #expect(result == nil)
+        }
+
+        @Test("HTML with only a single space as body")
+        func singleSpaceBody() {
+            let block = "```html\n \n```"
+            let result = HTMLDetector.extractHTML(from: block)
+            // A single space is technically non-empty content
+            #expect(result != nil)
+        }
+
+        @Test("containsHTMLDocument with very long non-HTML text")
+        func longNonHtmlText() {
+            let longText = String(repeating: "This is not HTML at all. ", count: 5000)
+            #expect(HTMLDetector.containsHTMLDocument(longText) == false)
+        }
+
+        @Test("containsHTMLDocument with empty body tags")
+        func emptyBodyTags() {
+            #expect(HTMLDetector.containsHTMLDocument("<html></html>") == true)
+        }
+    }
 }

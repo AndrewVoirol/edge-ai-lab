@@ -137,4 +137,105 @@ struct LongContextEvalTests {
             "Long context suite should be text-only, no image or audio data"
         )
     }
+
+    // MARK: - Stress Tests: Word Count Validation
+
+    @Test("Every passage contains 500+ words")
+    func everyPassageHas500PlusWords() {
+        let suite = BuiltInEvalSuites.longContext
+        for (index, prompt) in suite.prompts.enumerated() {
+            // Extract the passage (everything before "Question:")
+            let parts = prompt.prompt.components(separatedBy: "Question:")
+            let passage = parts.first ?? prompt.prompt
+
+            // Count words by splitting on whitespace
+            let words = passage.components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+            #expect(
+                words.count >= 500,
+                "Passage \(index + 1) should have 500+ words, got \(words.count)"
+            )
+        }
+    }
+
+    // MARK: - Stress Tests: Uniqueness
+
+    @Test("No two passages are identical")
+    func allPassagesAreUnique() {
+        let suite = BuiltInEvalSuites.longContext
+        var seenPassages = Set<String>()
+
+        for (index, prompt) in suite.prompts.enumerated() {
+            // Normalize: extract passage before "Question:" and trim
+            let parts = prompt.prompt.components(separatedBy: "Question:")
+            let passage = (parts.first ?? prompt.prompt)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let inserted = seenPassages.insert(passage).inserted
+            #expect(
+                inserted,
+                "Passage \(index + 1) is a duplicate of a previous passage"
+            )
+        }
+        #expect(
+            seenPassages.count == suite.prompts.count,
+            "All \(suite.prompts.count) passages should be unique"
+        )
+    }
+
+    @Test("No two questions are identical")
+    func allQuestionsAreUnique() {
+        let suite = BuiltInEvalSuites.longContext
+        var seenQuestions = Set<String>()
+
+        for (index, prompt) in suite.prompts.enumerated() {
+            let parts = prompt.prompt.components(separatedBy: "Question:")
+            guard parts.count >= 2 else {
+                Issue.record("Prompt \(index + 1) missing 'Question:' marker")
+                continue
+            }
+            let question = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            let inserted = seenQuestions.insert(question).inserted
+            #expect(
+                inserted,
+                "Question \(index + 1) is a duplicate of a previous question"
+            )
+        }
+    }
+
+    // MARK: - Stress Tests: Answer-in-Passage Verification
+
+    @Test("Expected answers are present in their corresponding passages")
+    func expectedAnswersAreInPassage() {
+        let suite = BuiltInEvalSuites.longContext
+        for (index, prompt) in suite.prompts.enumerated() {
+            // Extract the passage (before "Question:")
+            let parts = prompt.prompt.components(separatedBy: "Question:")
+            let passage = parts.first ?? prompt.prompt
+
+            // Extract expected answer texts from the behavior
+            let expectedTexts: [String]
+            switch prompt.expectedBehavior {
+            case .containsText(let text):
+                expectedTexts = [text]
+            case .containsAll(let texts):
+                expectedTexts = texts
+            case .containsAny(let texts):
+                expectedTexts = texts
+            default:
+                // Other behavior types don't have extractable answer strings
+                continue
+            }
+
+            // Verify each expected answer string appears in the passage.
+            // This ensures we're testing retrieval, not hallucination.
+            for expected in expectedTexts {
+                let msg = "Passage \(index + 1) should contain expected answer '\(expected)' — if the answer isn't in the passage, the prompt tests hallucination rather than retrieval"
+                #expect(
+                    passage.contains(expected),
+                    Comment(rawValue: msg)
+                )
+            }
+        }
+    }
 }
+

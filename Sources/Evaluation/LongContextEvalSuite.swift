@@ -35,6 +35,8 @@ extension BuiltInEvalSuites {
 
                 Recent research has focused on improving photosynthetic efficiency to address global food security challenges. Scientists are exploring genetic modifications to RuBisCO to increase its efficiency, as well as engineering C4 photosynthesis pathways into C3 plants like rice and wheat. Some researchers are also investigating artificial photosynthesis systems that could produce clean fuels directly from sunlight and water.
 
+                The ecological significance of photosynthesis extends far beyond individual organisms. Photosynthetic organisms form the base of nearly every food chain on Earth, converting inorganic carbon into the organic matter that sustains herbivores, carnivores, and decomposers alike. On a planetary scale, photosynthesis is the primary mechanism by which carbon dioxide is removed from the atmosphere, playing a central role in the global carbon cycle and climate regulation. The oxygen produced as a byproduct of photosynthesis over billions of years transformed Earth's atmosphere from an anoxic environment to one capable of supporting complex aerobic life forms.
+
                 Question: What enzyme plays a critical role in the Calvin cycle, and what does it catalyze?
                 """,
                 expectedBehavior: .containsText("RuBisCO"),

@@ -1,0 +1,156 @@
+{
+  "name": "macOS Canvas Side Panel",
+  "description": "Tests the Canvas side panel: trigger 'Open in Canvas' from an HTML code block, verify the panel appears with WebView and header controls, resize via drag handle, toggle with ⌘⇧K, copy HTML to pasteboard, and close. Requires a model to be loaded so it can produce HTML output.",
+  "platform": "macOS",
+  "prerequisites": ["model_loaded"],
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify app is ready with chat prompt field.",
+      "expected_elements": ["textField_prompt"]
+    },
+    {
+      "step": 2,
+      "action": "tap",
+      "description": "Focus the prompt text field.",
+      "target_element": "textField_prompt"
+    },
+    {
+      "step": 3,
+      "action": "type_text",
+      "description": "Type a prompt that asks the model to generate HTML code.",
+      "target_element": "textField_prompt",
+      "value": "Write a short HTML page with a title 'Canvas Test' and a blue paragraph. Put it in an html code block."
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Send the message.",
+      "target_element": "button_send"
+    },
+    {
+      "step": 5,
+      "action": "wait",
+      "description": "Wait for the model to produce HTML output with the Open in Canvas button.",
+      "condition": "element_exists:button_openInCanvas",
+      "timeout_seconds": 60
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify the 'Open in Canvas' button is visible on the HTML code block.",
+      "expected_elements": ["button_openInCanvas"]
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Click 'Open in Canvas' to open the Canvas panel.",
+      "target_element": "button_openInCanvas"
+    },
+    {
+      "step": 8,
+      "action": "wait",
+      "description": "Wait for the Canvas panel to appear.",
+      "condition": "element_exists:canvasPanel",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 9,
+      "action": "verify_ui",
+      "description": "Verify the Canvas panel is visible with WebView and controls.",
+      "expected_elements": ["canvasPanel", "canvasWebView", "button_copyCanvasHTML", "button_closeCanvas"]
+    },
+    {
+      "step": 10,
+      "action": "verify_ui",
+      "description": "Verify the resize drag handle is present.",
+      "expected_elements": ["canvasResizeHandle"]
+    },
+    {
+      "step": 11,
+      "action": "drag",
+      "description": "Drag the resize handle to widen the Canvas panel.",
+      "target_element": "canvasResizeHandle",
+      "offset_x": -100,
+      "offset_y": 0
+    },
+    {
+      "step": 12,
+      "action": "verify_ui",
+      "description": "Verify the Canvas panel is still visible after resize.",
+      "expected_elements": ["canvasPanel", "canvasWebView"]
+    },
+    {
+      "step": 13,
+      "action": "tap",
+      "description": "Click 'Copy HTML' to copy content to pasteboard.",
+      "target_element": "button_copyCanvasHTML"
+    },
+    {
+      "step": 14,
+      "action": "wait",
+      "description": "Wait for 'Copied' feedback indicator to appear.",
+      "condition": "timeout",
+      "timeout_seconds": 1
+    },
+    {
+      "step": 15,
+      "action": "verify_pasteboard",
+      "description": "Verify the system pasteboard contains HTML content.",
+      "contains": "<"
+    },
+    {
+      "step": 16,
+      "action": "tap",
+      "description": "Close the Canvas panel.",
+      "target_element": "button_closeCanvas"
+    },
+    {
+      "step": 17,
+      "action": "wait",
+      "description": "Wait for the Canvas panel to disappear.",
+      "condition": "element_not_exists:canvasPanel",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 18,
+      "action": "verify_ui",
+      "description": "Verify the Canvas panel is no longer visible.",
+      "expected_not_elements": ["canvasPanel"]
+    },
+    {
+      "step": 19,
+      "action": "tap",
+      "description": "Re-open Canvas by clicking 'Open in Canvas' again.",
+      "target_element": "button_openInCanvas"
+    },
+    {
+      "step": 20,
+      "action": "wait",
+      "description": "Wait for the Canvas panel to reappear.",
+      "condition": "element_exists:canvasPanel",
+      "timeout_seconds": 5
+    },
+    {
+      "step": 21,
+      "action": "keyboard_shortcut",
+      "description": "Press ⌘⇧K to toggle the Canvas panel off.",
+      "key": "k",
+      "modifiers": ["command", "shift"]
+    },
+    {
+      "step": 22,
+      "action": "wait",
+      "description": "Wait for the Canvas panel to disappear after ⌘⇧K.",
+      "condition": "element_not_exists:canvasPanel",
+      "timeout_seconds": 3
+    },
+    {
+      "step": 23,
+      "action": "verify_ui",
+      "description": "Verify the Canvas panel is closed after ⌘⇧K toggle.",
+      "expected_not_elements": ["canvasPanel"]
+    }
+  ]
+}
