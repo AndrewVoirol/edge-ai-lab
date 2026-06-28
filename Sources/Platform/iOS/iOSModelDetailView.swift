@@ -104,6 +104,11 @@ struct iOSModelDetailView: View {
                     benchmarkSection(info: info)
                 }
 
+                // One-Tap Benchmark Runner
+                if isActiveModel {
+                    OneTapBenchmarkSection(viewModel: viewModel)
+                }
+
                 // Danger Zone
                 if case .downloaded = downloadState {
                     dangerZoneSection
