@@ -1,0 +1,135 @@
+{
+  "completedAt" : "2026-06-16T23:44:35Z",
+  "deviceName" : "Andrew’s MacBook Pro",
+  "id" : "EA183753-D141-4C8C-9B42-BF453A56010F",
+  "modelResults" : [
+    {
+      "avgDecodeSpeed" : 112.8579142869274,
+      "avgTTFT" : 0.046899354375,
+      "id" : "64163031-51CE-4408-94CA-67DD608D9257",
+      "modelFile" : "gemma-4-E2B-it.litertlm",
+      "modelName" : "Gemma 4 E2B · Desktop GPU+CPU",
+      "p95Latency" : 9.397846153846153,
+      "passRate" : 1,
+      "peakMemoryDeltaMB" : 15.390625,
+      "promptResults" : [
+        {
+          "decodeSpeed" : 106.40736011524736,
+          "duration" : 0.2937510013580322,
+          "id" : "F02C747D-54CC-4E96-B814-10857D92C451",
+          "passed" : true,
+          "promptId" : "1C338935-F6AB-495C-B6BE-74A002026F73",
+          "promptText" : "Describe what you see in this image in detail.",
+          "response" : "Please provide the image you are referring to. I Robot will need an image to be able to describe it for you. 😊",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.058032846
+        },
+        {
+          "decodeSpeed" : 114.48439620081412,
+          "duration" : 0.27202296257019043,
+          "id" : "49B7C0F9-3AAE-4913-B98E-010B053AC68E",
+          "passed" : true,
+          "promptId" : "35BECD6E-39D1-46E8-A381-205B81F77038",
+          "promptText" : "What colors are dominant in this image?",
+          "response" : "Please provide the image you are referring to. I need an image in order to tell you what colors are dominant in it. 😊",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04430681475
+        },
+        {
+          "decodeSpeed" : 114.13093100404785,
+          "duration" : 0.2999269962310791,
+          "id" : "2E028345-3093-47D1-B6F4-665B647FED34",
+          "passed" : true,
+          "promptId" : "F690AAEE-42CA-4059-8AE7-EA893B480902",
+          "promptText" : "Is there any text visible in this image? If so, what does it say?",
+          "response" : "Please provide the image you are referring to. I need an image in order to tell you if there is any text visible and what it says.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0451788665
+        },
+        {
+          "decodeSpeed" : 114.29961986158685,
+          "duration" : 0.30768001079559326,
+          "id" : "D34B8942-A5A3-404E-BEA2-3A6D841454C2",
+          "passed" : true,
+          "promptId" : "CA9CF0ED-6280-4496-8064-7713AC6E460C",
+          "promptText" : "What is being said in this audio clip?",
+          "response" : "Please provide the audio clip you are referring to. I need an audio file or a link to it in order to tell you what is being said.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04459293525
+        },
+        {
+          "decodeSpeed" : 113.40979348442444,
+          "duration" : 0.30954504013061523,
+          "id" : "1DF946C3-F278-4E16-972E-B26990B21A65",
+          "passed" : true,
+          "promptId" : "DEEC8418-A7E1-4AC3-8516-C776126B2C3A",
+          "promptText" : "Describe the sounds you hear in this audio.",
+          "response" : "Please provide the audio you are referring to. I need an audio file or a description of the audio for me to tell you what sounds I hear.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.044435580499999995
+        },
+        {
+          "decodeSpeed" : 114.41538505544379,
+          "duration" : 0.24651598930358887,
+          "id" : "166AE428-10F5-41C1-B272-0844FDA93719",
+          "passed" : true,
+          "promptId" : "A1327B8F-E812-4911-9571-96416B519596",
+          "promptText" : "What language is being spoken in this audio?",
+          "response" : "Please provide the audio you are referring to. I need an audio input to tell you what language is being spoken.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.044849083250000005
+        }
+      ],
+      "thermalTransitions" : 0,
+      "totalDuration" : 1.733765959739685,
+      "totalTokensGenerated" : 194
+    }
+  ],
+  "platform" : "macOS",
+  "startedAt" : "2026-06-16T23:44:33Z",
+  "suiteCategory" : "multimodal",
+  "suiteId" : "FBD0AFB3-F3E0-4717-ADFF-E241F458443F",
+  "suiteName" : "Multimodal"
+}

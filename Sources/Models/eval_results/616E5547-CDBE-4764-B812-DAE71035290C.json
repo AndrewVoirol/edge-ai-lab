@@ -1,0 +1,171 @@
+{
+  "completedAt" : "2026-06-16T23:44:32Z",
+  "deviceName" : "Andrew’s MacBook Pro",
+  "id" : "616E5547-CDBE-4764-B812-DAE71035290C",
+  "modelResults" : [
+    {
+      "avgDecodeSpeed" : 111.65394304966529,
+      "avgTTFT" : 0.049740836718749994,
+      "id" : "E5559157-9C17-478E-8B9C-FB03928344B3",
+      "modelFile" : "gemma-4-E2B-it.litertlm",
+      "modelName" : "Gemma 4 E2B · Desktop GPU+CPU",
+      "p95Latency" : 9.122350694444444,
+      "passRate" : 1,
+      "peakMemoryDeltaMB" : 43.28125,
+      "promptResults" : [
+        {
+          "decodeSpeed" : 109.6208678547082,
+          "duration" : 2.680320978164673,
+          "id" : "3A9C0093-B9B2-4CAD-963E-6CE5992BBADE",
+          "passed" : true,
+          "promptId" : "57C6C8D0-0DC1-417F-BDC6-FB6CF2540631",
+          "promptText" : "If all roses are flowers and some flowers fade quickly, can we conclude that some roses fade quickly?",
+          "response" : "**No, we cannot conclude that some roses fade quickly.**\n\nHere's why:\n\n* **Premise 1:** All roses are flowers. (Roses are a subset entirely within the set of flowers.)\n* **Premise 2:** Some flowers fade quickly. (There is an overlap between the set of flowers and the set of flowers that fade quickly.)\n\n**The logical gap:**\n\nThe fact that *some* flowers fade quickly doesn't guarantee that the specific group of flowers that are *roses* are included in that fading group.\n\n**Think of it with sets:**\n\n* **Set A (Roses):** Completely inside **Set B (Flowers)**.\n* **Set C (Flowers that fade quickly):** Overlaps with **Set B (Flowers)**.\n\nWe know that the intersection of (Roses) and (Flowers that fade quickly) *might* be non-empty, but the premises don't force it to be.\n\n**Counterexample:**\n\nImagine:\n* **Flowers:** Roses, Tulips, Daisies.\n* **Roses:** All are flowers.\n* **Flowers that fade quickly:** Only Daisies fade quickly.\n\nIn this scenario, all roses are flowers, and some flowers (daisies) fade quickly, but no roses fade quickly.\n\n**Conclusion:** The premises allow for the possibility that *no* roses fade quickly.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0613253505
+        },
+        {
+          "decodeSpeed" : 112.04289907808432,
+          "duration" : 3.4827059507369995,
+          "id" : "A0C89E19-2539-487A-B9B8-EE6C994365AD",
+          "passed" : true,
+          "promptId" : "AC9E6D9F-9D73-455F-9433-40B03D7C0332",
+          "promptText" : "A bat and ball cost $1.10 total. The bat costs $1.00 more than the ball. How much does the ball cost?",
+          "response" : "Here's how to solve this problem using a system of equations:\n\n**1. Define the variables:**\n\n* Let $B$ be the cost of the bat.\n* Let $L$ be the cost of the ball.\n\n**2. Set up the equations based on the given information:**\n\n* **Equation 1 (Total cost):** The bat and ball cost $1.10 total.\n   $$B + L = 1.10$$\n* **Equation 2 (Cost difference):** The bat costs $1.00 more than the ball.\n   $$B = L + 1.00$$\n\n**3. Solve the system of equations:**\n\nSince we know what $B$ equals from Equation 2, we can substitute $(L + 1.00)$ for $B$ in Equation 1:\n\n$$(L + 1.00) + L = 1.10$$\n\n**4. Simplify and solve for L (the cost of the ball):**\n\n$$2L + 1.00 = 1.10$$\n$$2L = 1.10 - 1.00$$\n$$2L = 0.10$$\n$$L = \\frac{0.10}{2}$$\n$$L = 0.05$$\n\n**Answer:**\n\nThe ball costs **$0.05** (or 5 cents).\n\n***\n\n**Check the answer:**\n\n* If the ball ($L$) costs $0.05, then the bat ($B$) costs $0.05 + 1.00 = \\$1.05$.\n* Total cost: $\\$1.05 + \\$0.05 = \\$1.10$. (This matches the problem statement.)",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04585315275
+        },
+        {
+          "decodeSpeed" : 110.63544340356549,
+          "duration" : 1.7580170631408691,
+          "id" : "681E6162-9E26-4998-B1A7-FBE4B99A20DB",
+          "passed" : true,
+          "promptId" : "9BCC3E40-E721-458E-B9D6-F34087DBF0B9",
+          "promptText" : "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets?",
+          "response" : "This is a classic riddle that tests your understanding of **rate and proportionality**.\n\nHere's the breakdown:\n\n1. **Analyze the initial rate:**\n   * 5 machines make 5 widgets in 5 minutes.\n   * This means that **1 machine makes 1 widget in 5 minutes** (or, more simply, the rate is constant).\n\n2. **Apply the new conditions:**\n   * You have 100 machines.\n   * You want to make 100 widgets.\n\n3. **Calculate the time:**\n   * Since each machine can make 1 widget in 5 minutes, if you have 100 machines working in parallel, they can all work on their own widget simultaneously.\n   * Time taken = 5 minutes.\n\n**Answer:** It would take **5 minutes** to make 100 widgets with 100 machines.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0489936945
+        },
+        {
+          "decodeSpeed" : 112.645677637617,
+          "duration" : 1.1299530267715454,
+          "id" : "25C9B8B6-E14C-48FB-8E57-6F080B402559",
+          "passed" : true,
+          "promptId" : "DD0AAC96-2604-472E-95D0-5C18D5063310",
+          "promptText" : "Alice is taller than Bob. Charlie is shorter than Bob. David is taller than Alice. Who is the tallest?",
+          "response" : "Here's how to determine the tallest person based on the given information:\n\n1. **Alice is taller than Bob:** Alice > Bob\n2. **Charlie is shorter than Bob:** Bob > Charlie (or Charlie < Bob)\n3. **David is taller than Alice:** David > Alice\n\nNow, let's combine these inequalities:\n\n* From (3) and (1): David > Alice > Bob\n* From (2): Bob > Charlie\n\nCombining everything gives us the order: **David > Alice > Bob > Charlie**\n\nTherefore, **David** is the tallest.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.055101393250000005
+        },
+        {
+          "decodeSpeed" : 112.85839172900118,
+          "duration" : 2.8683969974517822,
+          "id" : "90C1BBF4-AEA8-49A4-ACFB-E8BE8BDF6443",
+          "passed" : true,
+          "promptId" : "179AAE3D-EF8A-4214-8D11-F1E576F7AB54",
+          "promptText" : "In a room of 23 people, what is the approximate probability that two share a birthday? Answer with just the percentage.",
+          "response" : "The problem asks for the approximate probability that two people in a room of 23 share a birthday. This is a classic birthday paradox problem.\n\nThe exact probability that at least two people share a birthday in a room of $n$ people is complex to calculate, but the probability that *no two* people share a birthday is given by:\n$$P(\\text{no shared birthday}) = \\frac{P(n, 365)}{n^{n-1}} \\approx e^{-n^2\/2 \\cdot (1\/365)}$$\nFor $n=23$:\n$$P(\\text{no shared birthday}) \\approx e^{-23^2 \/ (2 \\cdot 365)} = e^{-529 \/ 730} \\approx e^{-0.72465}$$\n$$e^{-0.72465} \\approx 0.4897$$\n\nThe probability that *at least two* people share a birthday is:\n$$P(\\text{shared birthday}) = 1 - P(\\text{no shared birthday}) \\approx 1 - 0.4897 = 0.5103$$\n\nConverting this to a percentage:\n$$0.5103 \\times 100\\% \\approx 51.03\\%$$\n\nRounding to the nearest whole number or a common approximation for this type of question, the probability is approximately 51%.\n\n51%",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.049987661249999996
+        },
+        {
+          "decodeSpeed" : 113.48406725607454,
+          "duration" : 3.139383912086487,
+          "id" : "FA5F5CF4-D0C6-41F0-9885-453C1BE58832",
+          "passed" : true,
+          "promptId" : "2634A36D-DA10-449B-AFFC-D1E7C8ECABAE",
+          "promptText" : "What comes next in this sequence: 2, 6, 12, 20, 30, ?",
+          "response" : "Here's how to find the next number in the sequence:\n\n**Method 1: Finding the differences**\n\n* $6 - 2 = 4$\n* $12 - 6 = 6$\n* $20 - 12 = 8$\n* $30 - 20 = 10$\n\nThe differences are increasing by 2 each time (4, 6, 8, 10). Therefore, the next difference should be $10 + 2 = 12$.\n\n* $30 + 12 = 42$\n\n**Method 2: Recognizing the pattern (Product of consecutive integers)**\n\nThe sequence can also be generated by the formula $n(n+1)$, where $n$ starts at 1:\n\n* $n=1$: $1(1+1) = 1 \\times 2 = 2$\n* $n=2$: $2(2+1) = 2 \\times 3 = 6$\n* $n=3$: $3(3+1) = 3 \\times 4 = 12$\n* $n=4$: $4(4+1) = 4 \\times 5 = 20$\n* $n=5$: $5(5+1) = 5 \\times 6 = 30$\n\nThe next term will be for $n=6$:\n\n* $n=6$: $6(6+1) = 6 \\times 7 = 42$\n\n**Answer:**\n\nThe next number in the sequence is **42**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0457338095
+        },
+        {
+          "decodeSpeed" : 110.11152724688291,
+          "duration" : 0.7374190092086792,
+          "id" : "B530477A-6D35-4526-ACDF-8A408785E10C",
+          "passed" : true,
+          "promptId" : "4750B3F6-5297-4C8D-81F6-36558F7E6722",
+          "promptText" : "Explain why the sky appears blue in exactly three sentences.",
+          "response" : "The sky appears blue due to a phenomenon called Rayleigh scattering, where sunlight is scattered by the tiny molecules of air in our atmosphere. Shorter wavelengths of light, like blue and violet, are scattered much more effectively by these atmospheric particles than longer wavelengths, such as red and orange. This preferential scattering of blue light across the entire sky makes it the color we perceive when looking up.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.046560701249999996
+        },
+        {
+          "decodeSpeed" : 111.8326701913886,
+          "duration" : 1.4578160047531128,
+          "id" : "F023E9DC-B312-400C-B577-A75C932B8029",
+          "passed" : true,
+          "promptId" : "0E4C9347-776F-4DE1-ACB9-E6A83A78B4CA",
+          "promptText" : "Name three things that are true about the number zero.",
+          "response" : "Here are three true things about the number zero:\n\n1. **It is the additive identity:** Zero is the number that, when added to any number, leaves that number unchanged. (e.g., $5 + 0 = 5$)\n\n2. **It is the multiplicative identity:** Zero is the number that, when multiplied by any number, leaves that number unchanged. (e.g., $5 \\times 0 = 0$)\n\n3. **It is a placeholder in the number system (specifically in positional notation):** Zero is crucial for representing place value. It allows us to distinguish between numbers of different magnitudes (like the difference between 10 and 100) by occupying the \"empty\" spots in a number's structure.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04437093075
+        }
+      ],
+      "thermalTransitions" : 0,
+      "totalDuration" : 17.26041305065155,
+      "totalTokensGenerated" : 1927
+    }
+  ],
+  "platform" : "macOS",
+  "startedAt" : "2026-06-16T23:44:14Z",
+  "suiteCategory" : "reasoning",
+  "suiteId" : "752E35A8-D689-415E-B5A9-584F57D03CD3",
+  "suiteName" : "Reasoning"
+}

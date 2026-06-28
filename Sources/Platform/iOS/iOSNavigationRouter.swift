@@ -71,6 +71,11 @@ final class iOSNavigationRouter {
         selectedTab = .evaluations
     }
 
+    /// Switch to the Lab (benchmarks/performance) tab.
+    func navigateToLab() {
+        selectedTab = .lab
+    }
+
     /// Switch to the Settings tab.
     func navigateToSettings() {
         selectedTab = .settings

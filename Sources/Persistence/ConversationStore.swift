@@ -148,6 +148,97 @@ final class ConversationStore {
         persistIndex()
     }
 
+    // MARK: - Bulk Delete Operations
+
+    /// Delete all conversations from disk and clear the index.
+    ///
+    /// Continues deleting remaining conversations if individual deletions fail.
+    /// - Returns: The number of conversations that were successfully deleted.
+    /// - Throws: `ConversationStoreError.deleteFailed` if any deletion fails,
+    ///   after attempting all deletions.
+    @discardableResult
+    func deleteAll() throws -> Int {
+        let entriesToDelete = indexEntries
+        var deletedCount = 0
+        var lastError: Error?
+
+        for entry in entriesToDelete {
+            let fileURL = fileURL(for: entry.id)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                do {
+                    try FileManager.default.removeItem(at: fileURL)
+                    deletedCount += 1
+                } catch {
+                    Self.logger.error("❌ Failed to delete conversation \(entry.id): \(error.localizedDescription, privacy: .public)")
+                    lastError = error
+                }
+            } else {
+                // File already gone — still counts as "deleted" for index cleanup
+                deletedCount += 1
+            }
+        }
+
+        indexEntries.removeAll()
+        persistIndex()
+        Self.logger.info("🗑️ Bulk deleted \(deletedCount) conversations")
+
+        if let error = lastError {
+            throw ConversationStoreError.deleteFailed(error)
+        }
+        return deletedCount
+    }
+
+    /// Delete multiple conversations by their IDs.
+    ///
+    /// Continues deleting remaining conversations if individual deletions fail.
+    /// - Parameter ids: Set of conversation UUIDs to delete.
+    /// - Returns: The number of conversations that were successfully deleted.
+    /// - Throws: `ConversationStoreError.deleteFailed` if any deletion fails,
+    ///   after attempting all deletions.
+    @discardableResult
+    func deleteMultiple(ids: Set<UUID>) throws -> Int {
+        var deletedCount = 0
+        var lastError: Error?
+
+        for id in ids {
+            let fileURL = fileURL(for: id)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                do {
+                    try FileManager.default.removeItem(at: fileURL)
+                    deletedCount += 1
+                } catch {
+                    Self.logger.error("❌ Failed to delete conversation \(id): \(error.localizedDescription, privacy: .public)")
+                    lastError = error
+                }
+            } else {
+                deletedCount += 1
+            }
+        }
+
+        indexEntries.removeAll { ids.contains($0.id) }
+        persistIndex()
+        Self.logger.info("🗑️ Bulk deleted \(deletedCount) of \(ids.count) conversations")
+
+        if let error = lastError {
+            throw ConversationStoreError.deleteFailed(error)
+        }
+        return deletedCount
+    }
+
+    /// Delete all conversations older than the given date.
+    ///
+    /// Uses `lastModifiedAt` from the index to determine age.
+    /// - Parameter date: Conversations with `lastModifiedAt` before this date are deleted.
+    /// - Returns: The number of conversations that were successfully deleted.
+    /// - Throws: `ConversationStoreError.deleteFailed` if any deletion fails,
+    ///   after attempting all deletions.
+    @discardableResult
+    func deleteOlderThan(_ date: Date) throws -> Int {
+        let oldIds = Set(indexEntries.filter { $0.lastModifiedAt < date }.map(\.id))
+        guard !oldIds.isEmpty else { return 0 }
+        return try deleteMultiple(ids: oldIds)
+    }
+
     /// Rename a conversation's title.
     func rename(id: UUID, newTitle: String) throws {
         var conversation = try load(id: id)

@@ -164,6 +164,11 @@ private struct ModelDetailPanel: View {
                     BenchmarkSummaryCard(benchmarkInfo: benchmarkInfo)
                 }
 
+                // MARK: One-Tap Benchmark
+                if isActiveModel {
+                    OneTapBenchmarkSection(viewModel: viewModel)
+                }
+
                 Spacer(minLength: AppSpacing.xl)
             }
             .padding(AppSpacing.lg)

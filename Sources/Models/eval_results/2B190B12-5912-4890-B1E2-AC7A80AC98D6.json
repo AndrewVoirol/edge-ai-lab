@@ -1,0 +1,477 @@
+{
+  "completedAt" : "2026-06-21T19:09:20Z",
+  "deviceName" : "Andrew’s MacBook Pro",
+  "id" : "2B190B12-5912-4890-B1E2-AC7A80AC98D6",
+  "modelResults" : [
+    {
+      "avgDecodeSpeed" : 115.24291642483493,
+      "avgTTFT" : 0.21030937930000004,
+      "id" : "D8350457-EE31-4739-90B3-0C577AB7C94E",
+      "modelFile" : "gemma-4-E2B-it.litertlm",
+      "modelName" : "Gemma 4 E2B · Desktop GPU+CPU",
+      "p95Latency" : 8.933166666666667,
+      "passRate" : 0.88,
+      "peakMemoryDeltaMB" : 84.59375,
+      "promptResults" : [
+        {
+          "decodeSpeed" : 107.96910120630932,
+          "duration" : 0.6864739656448364,
+          "id" : "0A216D13-9CF6-4786-848D-CDC7FB7F0719",
+          "passed" : true,
+          "promptId" : "4C80C19C-CE26-44F5-9EB3-A80F3FDC2867",
+          "promptText" : "What fruit is in this image?",
+          "response" : "The fruit in the image is an **apple**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.246372909
+        },
+        {
+          "decodeSpeed" : 116.18593270017868,
+          "duration" : 1.0945680141448975,
+          "id" : "3BD685E1-67A1-47F7-B164-115B6AE9E035",
+          "passed" : true,
+          "promptId" : "3C96BC51-F6A9-4D12-B147-2C707569AB00",
+          "promptText" : "What type of sign is this?",
+          "response" : "This is a **regulatory sign** or a **traffic sign**.\n\nMore specifically, it is a **prohibitory sign** indicating a mandatory action that must be obeyed (in this case, to stop).\n\nThe shape (a red octagon) and the word \"STOP\" are internationally recognized standards for traffic control signs.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23412489375
+        },
+        {
+          "decodeSpeed" : 111.9423869848318,
+          "duration" : 0.6307879686355591,
+          "id" : "9F92AEDB-352F-47D3-89AB-9B19C08ECECA",
+          "passed" : true,
+          "promptId" : "9D7CA199-22E3-4E21-89A0-48224532F710",
+          "promptText" : "What vehicle is in this image?",
+          "response" : "The vehicle in the image is a **school bus**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.2323411665
+        },
+        {
+          "decodeSpeed" : 115.9017153453871,
+          "duration" : 0.7840129137039185,
+          "id" : "F82C99B8-AF74-435E-A9FB-3C3BA3CAED12",
+          "passed" : true,
+          "promptId" : "07EFE464-05D3-4CE1-8CC9-A8C357026C2A",
+          "promptText" : "What objects are shown in this image?",
+          "response" : "The objects shown in the image are **two white dice** resting on a **green felt surface**, which appears to be a **pool table**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23130799999999999
+        },
+        {
+          "decodeSpeed" : 115.48121986661918,
+          "duration" : 0.6264249086380005,
+          "id" : "E13FD5FD-96CA-4526-AC93-89DBD695EC53",
+          "passed" : true,
+          "promptId" : "F1F1E8E2-D017-481A-B052-68C6E0DF1618",
+          "promptText" : "What flower is in this image?",
+          "response" : "The flower in the image is a **sunflower**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23183841649999998
+        },
+        {
+          "decodeSpeed" : 116.10325089102494,
+          "duration" : 0.8962889909744263,
+          "id" : "41DC1AF2-966E-4080-8528-D573DFB274BA",
+          "passed" : true,
+          "promptId" : "9165A300-F4B7-477B-A042-79D4E020C3B6",
+          "promptText" : "What is leaning against the wall?",
+          "response" : "The image shows a **bicycle** leaning against a white brick or painted wall.\n\nSpecifically, it appears to be a **vintage or classic-style road bike** with a red frame and brown leather saddle.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23212402324999998
+        },
+        {
+          "decodeSpeed" : 116.030659395412,
+          "duration" : 0.8154929876327515,
+          "id" : "155539E6-B9A3-4A8E-8DE1-9D1D32D60D7C",
+          "passed" : true,
+          "promptId" : "88FF94EE-7514-48F0-8900-3FA57EE8E1A3",
+          "promptText" : "What is in the cup?",
+          "response" : "Based on the image, the cup contains **coffee**.\n\nIt appears to be a dark, brewed beverage, likely black coffee, served in a blue ceramic mug.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23146341175
+        },
+        {
+          "decodeSpeed" : 116.3597265456225,
+          "duration" : 1.630303978919983,
+          "id" : "C70D112A-8CF7-460F-957F-89B69B221CFC",
+          "passed" : true,
+          "promptId" : "5486EC8E-FDDB-4AE4-B7A4-084A4C1DB0FA",
+          "promptText" : "What breed of dog is this?",
+          "response" : "Based on the image, this dog appears to be a **Golden Retriever**.\n\nKey features that suggest this breed include:\n\n* **Coat Color and Texture:** The rich, golden-to-light-tan coloring and the slightly wavy, medium-length coat are characteristic of Golden Retrievers.\n* **Head Shape:** The broad head and gentle expression are typical of the breed.\n* **Build:** The overall sturdy, well-balanced build is consistent with a Golden Retriever.\n\nWhile it's difficult to be 100% certain without more context or a pedigree, the visual evidence strongly points to a Golden Retriever.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23159803875
+        },
+        {
+          "decodeSpeed" : 115.422551467965,
+          "duration" : 0.6255459785461426,
+          "id" : "DE7D4FFF-E6B9-46DF-B18D-76BF9DFC97F8",
+          "passed" : true,
+          "promptId" : "18FF0CE7-8B1C-4D22-A48A-3D6B80C3A0CB",
+          "promptText" : "How many cats are in this image?",
+          "response" : "There are **3** cats in the image.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.234167818
+        },
+        {
+          "decodeSpeed" : 115.46132045764669,
+          "duration" : 0.6170220375061035,
+          "id" : "00386448-1FFC-4905-B159-E0A7B1574220",
+          "passed" : true,
+          "promptId" : "0AD0B41F-AD01-49D6-AF1B-9605FACB9CCB",
+          "promptText" : "How many pencils are there?",
+          "response" : "There are **5** pencils in the image.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23175490899999998
+        },
+        {
+          "decodeSpeed" : 115.56017796267406,
+          "duration" : 0.6276699304580688,
+          "id" : "294DA199-2CBC-476F-9E2D-5BA96EB7E7E8",
+          "passed" : true,
+          "promptId" : "65720DE6-6CE8-499D-A731-D8E30B5AD551",
+          "promptText" : "How many dice are shown?",
+          "response" : "There are **2** dice shown in the image.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.2316215
+        },
+        {
+          "decodeSpeed" : 115.67857880603182,
+          "duration" : 0.6413979530334473,
+          "id" : "299CB1F6-5D4C-4BFF-9F7A-588C95BBDE6B",
+          "passed" : true,
+          "promptId" : "0D40F86F-AD3F-43C5-9525-7BD4C7123A7B",
+          "promptText" : "What text is shown in this image?",
+          "response" : "The text shown in the image is:\n\n**Hello World**",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23209864275000003
+        },
+        {
+          "decodeSpeed" : 115.60789106433579,
+          "duration" : 0.6411980390548706,
+          "id" : "E4DB12D1-440E-45C4-9398-E20158C61F5F",
+          "passed" : true,
+          "promptId" : "E58904A3-75D8-4787-846D-AA8D2559AD81",
+          "promptText" : "Read all the text visible in this image.",
+          "response" : "The text visible in the image is:\n\n**Hello World**",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.2317039285
+        },
+        {
+          "decodeSpeed" : 115.28753947568873,
+          "duration" : 1.00409996509552,
+          "id" : "17DBD43C-8553-40F4-A430-ACA31BCE0153",
+          "passed" : true,
+          "promptId" : "4F1CF3B4-5F8F-4635-B6C0-550A193D9214",
+          "promptText" : "What type of chart is shown?",
+          "response" : "The chart shown is a **Bar Chart** (specifically, a vertical bar chart).\n\nIt is used to compare different categories (in this case, the quarters Q1, Q2, Q3, and Q4) based on a numerical value (Revenue in dollars).",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23191996425
+        },
+        {
+          "decodeSpeed" : 114.91479068270877,
+          "duration" : 0.6076151132583618,
+          "id" : "3E3FE321-4D30-4E7B-A37A-778B411C401B",
+          "passed" : true,
+          "promptId" : "9F201AFA-1B7E-4226-8C13-686A8EA5DC8C",
+          "promptText" : "What color is the fruit in this image?",
+          "response" : "The fruit in the image is **red**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23205309999999998
+        },
+        {
+          "decodeSpeed" : 114.83693155718879,
+          "duration" : 0.5961169004440308,
+          "id" : "10142311-2EAF-4839-8881-D8F233332D23",
+          "passed" : true,
+          "promptId" : "DD1F3FDE-9673-4C52-8367-49626361BAA7",
+          "promptText" : "What color is the bicycle?",
+          "response" : "The bicycle is primarily **red**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.232125
+        },
+        {
+          "decodeSpeed" : 114.86896732798373,
+          "duration" : 0.5862040519714355,
+          "id" : "5FB06120-2734-49F7-88FD-41A8BB682BBE",
+          "passed" : true,
+          "promptId" : "7B1CBD94-D1CF-48A4-8286-0E92F9A3BFCF",
+          "promptText" : "What color is the cup?",
+          "response" : "The cup is **blue**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23171357125
+        },
+        {
+          "decodeSpeed" : 114.57378551787352,
+          "duration" : 0.5880059003829956,
+          "id" : "399B8688-43F7-44F5-AFB3-0CB15F7AA124",
+          "passed" : true,
+          "promptId" : "5238DD46-9885-44DC-9B32-A4D07555DF2B",
+          "promptText" : "What color is the bus?",
+          "response" : "The bus is **yellow**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23168699999999998
+        },
+        {
+          "decodeSpeed" : 116.06365931404454,
+          "duration" : 3.6454139947891235,
+          "id" : "6C9851D9-6CF4-444B-9E3F-C9A71AF3041B",
+          "passed" : true,
+          "promptId" : "94F155B9-5D7E-4E82-A6D0-C6C7E747F8F9",
+          "promptText" : "Describe what you see in this image in detail.",
+          "response" : "This is a photograph of a medium to large-sized dog, likely a Golden Retriever, sitting attentively in the center of the frame.\n\nHere is a detailed description:\n\n**Subject (The Dog):**\n*   **Breed\/Appearance:** The dog has the characteristic golden-colored, medium-length, wavy or slightly tousled fur typical of a Golden Retriever.\n*   **Color:** The coat is a warm, rich golden or light tawny color.\n*   **Expression:** The dog is looking directly at the camera with a calm, intelligent, and gentle expression. Its eyes are dark and engaged.\n*   **Posture:** The dog is sitting upright and squarely on the wooden surface. Its posture is very attentive and composed.\n*   **Features:** It has floppy ears that hang down the sides of its head. A dark collar is visible around its neck.\n\n**Setting and Background:**\n*   **Foreground\/Surface:** The dog is sitting on a rustic wooden surface, which appears to be made of planks with visible grain, knots, and a weathered, warm brown tone.\n*   **Background:** The background is a plain, light-colored wall, likely a pale cream, beige, or off-white. The lighting is soft and diffused, creating a warm, slightly muted atmosphere. The background is simple and uncluttered, ensuring that the dog is the clear focal point of the image.\n\n**Lighting and Mood:**\n*   The lighting is soft and even, highlighting the texture of the dog's fur and giving the image a warm, inviting, and serene mood.\n\n**Overall Impression:**\nThe photograph is a portrait of a beautiful, well-groomed dog, emphasizing its friendly and gentle nature against a simple, rustic backdrop.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23156496125
+        },
+        {
+          "decodeSpeed" : 115.74579188147632,
+          "duration" : 1.0576809644699097,
+          "id" : "9911519D-467C-42BD-9A3A-6CECE7F6A1F4",
+          "passed" : true,
+          "promptId" : "7C2652DE-1B9E-48B0-A256-DBDC6D085338",
+          "promptText" : "Is this photo taken indoors or outdoors?",
+          "response" : "Based on the image, the photo was taken **outdoors**.\n\nThe key indicators are:\n* **The background is a clear, bright blue sky**, which is characteristic of an outdoor setting.\n* The lighting suggests natural sunlight.\n* The sunflower is clearly growing in an open environment.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23346262275
+        },
+        {
+          "decodeSpeed" : 116.08365410236995,
+          "duration" : 1.6604210138320923,
+          "id" : "BB752AAA-22E3-4F35-BBF5-85A74066211F",
+          "passed" : true,
+          "promptId" : "F102F754-F5CD-4AED-BE11-CB0FCEDC16A2",
+          "promptText" : "What is in this image and what color is it?",
+          "response" : "Based on the image, here is what I can tell you:\n\n*   **What is in the image:** The image features a single, large **yellow sunflower** growing on a green stem against a clear blue sky.\n*   **Color:** The dominant colors are:\n    *   **Yellow:** The petals of the sunflower are a vibrant, bright yellow.\n    *   **Brown\/Tan:** The center (disk) of the sunflower is a mix of brown and tan.\n    *   **Green:** The stem and leaves are green.\n    *   **Blue:** The background sky is a clear, bright blue.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23177247725
+        },
+        {
+          "decodeSpeed" : 116.36000214159513,
+          "duration" : 1.9303079843521118,
+          "id" : "AD4359E7-6847-4427-B315-ED6EED59043A",
+          "passed" : true,
+          "promptId" : "573522DB-5401-47EC-A5FC-9560CBAA8C34",
+          "promptText" : "Describe the items in this image. How many are there?",
+          "response" : "Based on the image, here is a description of the items:\n\n**Items:**\nThe image displays a set of **five colored pencils** standing upright on a white surface. They appear to be standard wooden-cased pencils with colored sharpened tips.\n\nThe pencils are:\n1.  **Red** (on the far left)\n2.  **Blue** (second from the left)\n3.  **Green** (center)\n4.  **Yellow** (second from the right)\n5.  **Purple\/Violet** (on the far right)\n\nThey all seem to be branded with the name \"STAEDTLER\" and the model \"EGO SOFT 157\".\n\n**Quantity:**\nThere are **5** pencils in total.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.23372301825
+        },
+        {
+          "decodeSpeed" : 116.24375189833546,
+          "duration" : 0.3045309782028198,
+          "id" : "9C6A63CF-8F56-42B0-9CB7-382BF25D76EC",
+          "passed" : false,
+          "promptId" : "14634220-1D5A-4516-A6C8-69EDE2B1796B",
+          "promptText" : "What is being said in this audio clip?",
+          "response" : "Please provide the audio clip you are referring to. I need an audio file or a link to it in order to tell you what is being said.",
+          "score" : {
+            "manualReviewNeeded" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.04593061275
+        },
+        {
+          "decodeSpeed" : 116.31179063877684,
+          "duration" : 0.30312395095825195,
+          "id" : "048D7782-D20B-4E19-9366-36BF4DE0977F",
+          "passed" : false,
+          "promptId" : "64D9781A-973A-4C3E-83C3-3432A9B81BF4",
+          "promptText" : "Describe the sounds you hear in this audio.",
+          "response" : "Please provide the audio you are referring to. I need an audio file or a description of the audio for me to tell you what sounds I hear.",
+          "score" : {
+            "manualReviewNeeded" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0445965805
+        },
+        {
+          "decodeSpeed" : 116.0777333887927,
+          "duration" : 0.24333393573760986,
+          "id" : "6981807F-E291-44CF-9BB8-DCE5FF7B3EC3",
+          "passed" : false,
+          "promptId" : "94FF9895-16C2-431D-A804-585F203A40B3",
+          "promptText" : "What language is being spoken in this audio?",
+          "response" : "Please provide the audio you are referring to. I need an audio input to tell you what language is being spoken.",
+          "score" : {
+            "manualReviewNeeded" : {
+
+            }
+          },
+          "toolCallEvents" : [
+
+          ],
+          "ttft" : 0.0446679165
+        }
+      ],
+      "thermalTransitions" : 0,
+      "totalDuration" : 22.86370098590851,
+      "totalTokensGenerated" : 2628
+    }
+  ],
+  "platform" : "macOS",
+  "startedAt" : "2026-06-21T19:08:56Z",
+  "suiteCategory" : "multimodal",
+  "suiteId" : "F24F152C-FB75-4EF5-BCE0-ECC9C8FBEA42",
+  "suiteName" : "Multimodal"
+}

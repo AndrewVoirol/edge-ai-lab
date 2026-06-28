@@ -29,6 +29,9 @@ struct PerformanceDashboardView: View {
     @State private var selectedModel: String?
     @State private var availableModels: [String] = []
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     @State private var isLoading = true
     @State private var loadError: String?
 
@@ -207,12 +210,7 @@ struct PerformanceDashboardView: View {
     // MARK: - Summary Stats
 
     private var summaryStatsGrid: some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: AppSpacing.md) {
+        LazyVGrid(columns: statsGridColumns, spacing: AppSpacing.md) {
             statCard(
                 label: "Avg Decode",
                 value: String(format: "%.1f", averageDecodeSpeed),
@@ -238,6 +236,16 @@ struct PerformanceDashboardView: View {
                 color: AppColors.accentGold
             )
         }
+    }
+
+    /// Adaptive grid columns: 2 on compact iPhone, 4 on iPad/macOS.
+    private var statsGridColumns: [GridItem] {
+        #if os(iOS)
+        let columnCount = horizontalSizeClass == .compact ? 2 : 4
+        #else
+        let columnCount = 4
+        #endif
+        return Array(repeating: GridItem(.flexible()), count: columnCount)
     }
 
     private func statCard(label: String, value: String, unit: String, color: Color) -> some View {

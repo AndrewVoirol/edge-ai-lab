@@ -1,0 +1,288 @@
+{
+  "completedAt" : "2026-06-16T20:58:06Z",
+  "deviceName" : "Andrew’s MacBook Pro",
+  "id" : "79A69B2C-FD9D-47BA-BD20-E24704CB33E9",
+  "modelResults" : [
+    {
+      "avgDecodeSpeed" : 113.93144021306914,
+      "avgTTFT" : 0.28334267287500003,
+      "id" : "CB07097E-178D-425C-B592-CAD621A1D300",
+      "modelFile" : "gemma-4-E2B-it.litertlm",
+      "modelName" : "Gemma 4 E2B · Desktop GPU+CPU",
+      "p95Latency" : 9.143777777777778,
+      "passRate" : 0.9,
+      "peakMemoryDeltaMB" : 108.828125,
+      "promptResults" : [
+        {
+          "decodeSpeed" : 115.00584108613938,
+          "duration" : 1.3104289770126343,
+          "id" : "3D0832A4-2B48-40BC-861A-01C57A5E4F94",
+          "passed" : true,
+          "promptId" : "7C26089D-291D-4456-BE3A-5858EBB1A761",
+          "promptText" : "What is 247 * 38?",
+          "response" : "The result of 247 * 38 is 9386.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"247 * 38\"\n}",
+              "durationMs" : 0.2149343490600586,
+              "id" : "15CEB43E-6141-406B-8459-2D57A5A4947D",
+              "result" : "{\n  \"expression\" : \"247 * 38\",\n  \"formatted_result\" : \"9386\",\n  \"result\" : 9386\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:57:58Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.69823510525
+        },
+        {
+          "decodeSpeed" : 111.1845074199308,
+          "duration" : 0.7209709882736206,
+          "id" : "8AEDE2C0-84B4-4EE9-811E-D9A7183FFD0D",
+          "passed" : true,
+          "promptId" : "29D23DAA-C7BB-41FC-B5E0-F92B8B7F5F61",
+          "promptText" : "Convert 72 degrees Fahrenheit to Celsius",
+          "response" : "72 degrees Fahrenheit is equal to **22.22 degrees Celsius**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"fromUnit\" : \"fahrenheit\",\n  \"toUnit\" : \"celsius\",\n  \"value\" : 72\n}",
+              "durationMs" : 0.0699758529663086,
+              "id" : "C7C9ACE7-6D55-4DD3-BE9C-B4CD430DD674",
+              "result" : "{\n  \"converted_unit\" : \"celsius\",\n  \"converted_value\" : 22.222222222224616,\n  \"formatted_result\" : \"22.2222 celsius\",\n  \"original_unit\" : \"fahrenheit\",\n  \"original_value\" : 72\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:57:58Z",
+              "toolName" : "convert_units"
+            }
+          ],
+          "ttft" : 0.2496543125
+        },
+        {
+          "decodeSpeed" : 116.10837887822719,
+          "duration" : 0.5656639337539673,
+          "id" : "1D1BDB25-7A30-4E98-9E2E-39096E377FFF",
+          "passed" : true,
+          "promptId" : "63CF1D54-45DC-48BF-B29D-DA95B2AE18EA",
+          "promptText" : "What is 15% of 340?",
+          "response" : "15% of 340 is 51.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"0.15 * 340\"\n}",
+              "durationMs" : 0.11801719665527344,
+              "id" : "561DC73D-3BF3-4F6C-9717-EE0476D3E368",
+              "result" : "{\n  \"expression\" : \"0.15 * 340\",\n  \"formatted_result\" : \"51\",\n  \"result\" : 51\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:57:59Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.23451271425
+        },
+        {
+          "decodeSpeed" : 114.58972784939635,
+          "duration" : 0.5545300245285034,
+          "id" : "3520F89E-9227-47E1-89D7-C7066AD9DDEB",
+          "passed" : true,
+          "promptId" : "FEA90EF7-1E98-4718-8A83-44F427721238",
+          "promptText" : "Calculate the square root of 144",
+          "response" : "The square root of 144 is 12.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"sqrt(144)\"\n}",
+              "durationMs" : 0.12195110321044922,
+              "id" : "851F6892-362B-4404-A601-10C50BFB7058",
+              "result" : "{\n  \"expression\" : \"sqrt(144)\",\n  \"formatted_result\" : \"12\",\n  \"result\" : 12\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:00Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.23929538875
+        },
+        {
+          "decodeSpeed" : 111.74510940544617,
+          "duration" : 0.702165961265564,
+          "id" : "E6EE8D86-A7CC-4A69-B373-0B4D4EE7D2A5",
+          "passed" : true,
+          "promptId" : "0406F3C4-290C-423A-8742-DC0D5E0BED84",
+          "promptText" : "How many kilometers is 26.2 miles?",
+          "response" : "26.2 miles is approximately **42.16 kilometers**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"fromUnit\" : \"miles\",\n  \"toUnit\" : \"kilometers\",\n  \"value\" : 26.199999999999999\n}",
+              "durationMs" : 0.05996227264404297,
+              "id" : "C238E330-E6CB-4C2A-9470-DB20044CC36A",
+              "result" : "{\n  \"converted_unit\" : \"kilometers\",\n  \"converted_value\" : 42.1648128,\n  \"formatted_result\" : \"42.1648 kilometers\",\n  \"original_unit\" : \"miles\",\n  \"original_value\" : 26.199999999999999\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:00Z",
+              "toolName" : "convert_units"
+            }
+          ],
+          "ttft" : 0.23423703024999998
+        },
+        {
+          "decodeSpeed" : 116.00342966661623,
+          "duration" : 0.6905560493469238,
+          "id" : "5E00A24D-B120-4A4C-B23C-7E6788F64AA8",
+          "passed" : true,
+          "promptId" : "51811AAA-C318-4C6F-9894-ADAC715FDCD3",
+          "promptText" : "What is (125 + 375) \/ 10?",
+          "response" : "The result of (125 + 375) \/ 10 is 50.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"(125 + 375) \\\/ 10\"\n}",
+              "durationMs" : 0.11992454528808594,
+              "id" : "EFA0B7D9-D9C5-42D8-BD9F-C8ABA145DCBB",
+              "result" : "{\n  \"expression\" : \"(125 + 375) \\\/ 10\",\n  \"formatted_result\" : \"50\",\n  \"result\" : 50\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:01Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.232767269
+        },
+        {
+          "decodeSpeed" : 115.97732643268242,
+          "duration" : 0.674232006072998,
+          "id" : "2D4A2756-7C5D-43DB-AE19-66212DD90764",
+          "passed" : true,
+          "promptId" : "D9A149AF-80E4-4B7C-AA37-2177AF251334",
+          "promptText" : "Convert 2.5 kilograms to pounds",
+          "response" : "2.5 kilograms is equal to approximately **5.51 pounds**.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"fromUnit\" : \"kg\",\n  \"toUnit\" : \"lbs\",\n  \"value\" : 2.5\n}",
+              "durationMs" : 0.05900859832763672,
+              "id" : "06A8C38C-2B91-4503-B7DC-F6D2EAC4794D",
+              "result" : "{\n  \"converted_unit\" : \"lbs\",\n  \"converted_value\" : 5.5115610504594441,\n  \"formatted_result\" : \"5.51156 lbs\",\n  \"original_unit\" : \"kg\",\n  \"original_value\" : 2.5\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:02Z",
+              "toolName" : "convert_units"
+            }
+          ],
+          "ttft" : 0.23903593525
+        },
+        {
+          "decodeSpeed" : 109.36398765402095,
+          "duration" : 0.5258070230484009,
+          "id" : "BABB4B17-4D9C-4BBB-8E13-72F1BCF85CE6",
+          "passed" : true,
+          "promptId" : "8D1288DF-703A-47A6-B194-D93C2AA9B8A9",
+          "promptText" : "If I have 3 dozen eggs and use 17, how many are left?",
+          "response" : "You have 19 eggs left.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"3 * 12 - 17\"\n}",
+              "durationMs" : 0.12099742889404297,
+              "id" : "E79E0BD7-E6EF-4D79-B93C-343BA5C3ADBF",
+              "result" : "{\n  \"expression\" : \"3 * 12 - 17\",\n  \"formatted_result\" : \"19\",\n  \"result\" : 19\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:02Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.23271695225
+        },
+        {
+          "decodeSpeed" : 116.2529353866185,
+          "duration" : 0.5704399347305298,
+          "id" : "F3B3B9B6-65D1-4A19-BC2A-F950CA8A6E7D",
+          "passed" : true,
+          "promptId" : "CBEA9E9F-A268-41C7-B3A0-421FF4184D33",
+          "promptText" : "What is 1024 divided by 16?",
+          "response" : "1024 divided by 16 is 64.",
+          "score" : {
+            "pass" : {
+
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"expression\" : \"1024 \\\/ 16\"\n}",
+              "durationMs" : 0.10597705841064453,
+              "id" : "0CDDD41B-1A5D-42CD-A783-C7F8F843D8D5",
+              "result" : "{\n  \"expression\" : \"1024 \\\/ 16\",\n  \"formatted_result\" : \"64\",\n  \"result\" : 64\n}",
+              "succeeded" : true,
+              "timestamp" : "2026-06-16T20:58:03Z",
+              "toolName" : "calculate"
+            }
+          ],
+          "ttft" : 0.23923005
+        },
+        {
+          "decodeSpeed" : 113.08315835161356,
+          "duration" : 2.752376079559326,
+          "id" : "097A60FD-91FC-4B08-AA71-E6CE447BB97B",
+          "passed" : false,
+          "promptId" : "87FC4DC9-FEB2-499A-A19F-E67B9B7BAAD3",
+          "promptText" : "Convert 100 meters per second to miles per hour",
+          "response" : "I am sorry, but I do not have a direct conversion tool for \"meters per second\" to \"miles per hour\".\n\nHowever, I can perform the conversion in two steps:\n\n1.  **Convert meters per second ($\\text{m\/s}$) to miles per hour ($\\text{mph}$)**.\n2.  **Convert meters per second ($\\text{m\/s}$) to kilometers per hour ($\\text{km\/h}$)**, and then convert $\\text{km\/h}$ to $\\text{mph}$.\n\nIf you can provide the value in a different unit, or if you'd like me to perform a conversion that uses a more standard unit like **kilometers per hour ($\\text{km\/h}$)**, I can certainly try that.\n\n**For reference, here is the conversion factor:**\n$1 \\text{ meter\/second} \\approx 2.237385 \\text{ miles per hour}$\n\nUsing this factor:\n$100 \\text{ m\/s} \\times 2.237385 \\approx 223.74 \\text{ mph}$",
+          "score" : {
+            "fail" : {
+              "reason" : "Expected tool 'convert_units' but called: convert_units"
+            }
+          },
+          "toolCallEvents" : [
+            {
+              "arguments" : "{\n  \"fromUnit\" : \"meters per second\",\n  \"toUnit\" : \"miles per hour\",\n  \"value\" : 100\n}",
+              "durationMs" : 0.02300739288330078,
+              "id" : "70E8AE4B-4F12-4ED5-992E-A3D9FE3F3E76",
+              "result" : "{\n  \"error\" : \"Unknown unit. Supported units: celsius, fahrenheit, kelvin, meters, kilometers, miles, feet, inches, yards, kg, lbs, oz, grams, bytes, kb, mb, gb, tb\",\n  \"from_unit\" : \"meters per second\",\n  \"to_unit\" : \"miles per hour\"\n}",
+              "succeeded" : false,
+              "timestamp" : "2026-06-16T20:58:03Z",
+              "toolName" : "convert_units"
+            }
+          ],
+          "ttft" : 0.23374197125
+        }
+      ],
+      "thermalTransitions" : 0,
+      "toolCallAccuracy" : 0.9,
+      "totalDuration" : 9.077853918075562,
+      "totalTokensGenerated" : 1028
+    }
+  ],
+  "platform" : "macOS",
+  "startedAt" : "2026-06-16T20:57:55Z",
+  "suiteCategory" : "math",
+  "suiteId" : "77497096-2957-4DE2-8AAA-22C22F597DB9",
+  "suiteName" : "Math Accuracy"
+}

@@ -46,6 +46,7 @@ struct iOSConversationPickerSheet: View {
     @State private var deleteTarget: ConversationIndexEntry?
     @State private var exportData: Data?
     @State private var showShareSheet = false
+    @State private var showClearAllConfirmation = false
 
     // MARK: - Body
 
@@ -80,6 +81,45 @@ struct iOSConversationPickerSheet: View {
                     }
                     .accessibilityIdentifier("conversationPicker_newChat")
                 }
+                if !viewModel.conversationStore.indexEntries.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button(role: .destructive) {
+                                showClearAllConfirmation = true
+                            } label: {
+                                Label("Clear All", systemImage: "trash")
+                            }
+                            .accessibilityIdentifier("conversationPicker_clearAll")
+
+                            Divider()
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 7)
+                            } label: {
+                                Label("Older than 7 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("conversationPicker_deleteOlderThan7")
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 30)
+                            } label: {
+                                Label("Older than 30 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("conversationPicker_deleteOlderThan30")
+
+                            Button {
+                                viewModel.deleteConversationsOlderThan(days: 90)
+                            } label: {
+                                Label("Older than 90 days", systemImage: "clock.badge.xmark")
+                            }
+                            .accessibilityIdentifier("conversationPicker_deleteOlderThan90")
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .accessibilityIdentifier("menu_iOSConversationManagement")
+                    }
+                }
             }
         }
         .alert("Rename Conversation", isPresented: $showRenameAlert) {
@@ -107,6 +147,17 @@ struct iOSConversationPickerSheet: View {
             if let data = exportData {
                 ShareSheet(activityItems: [data])
             }
+        }
+        .alert(
+            "Delete All Conversations?",
+            isPresented: $showClearAllConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete All", role: .destructive) {
+                viewModel.deleteAllConversations()
+            }
+        } message: {
+            Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
         }
     }
 
