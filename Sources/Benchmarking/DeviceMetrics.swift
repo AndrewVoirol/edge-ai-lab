@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import Foundation
+import Metal
 
 // MARK: - Thermal State
 
@@ -81,6 +82,24 @@ struct DeviceMetricsSnapshot: Codable, Sendable {
 
     /// Device model identifier (e.g., "iPhone17,2" for iPhone 16 Pro Max).
     let deviceModel: String
+
+    /// GPU memory currently allocated by Metal in megabytes, or nil if Metal is unavailable.
+    /// Captured from `MTLDevice.currentAllocatedSize` — a lightweight read with no GPU overhead.
+    let gpuAllocatedMemoryMB: Double?
+
+    init(
+        timestamp: Date,
+        thermalLevel: ThermalLevel,
+        availableMemoryMB: Double,
+        deviceModel: String,
+        gpuAllocatedMemoryMB: Double? = nil
+    ) {
+        self.timestamp = timestamp
+        self.thermalLevel = thermalLevel
+        self.availableMemoryMB = availableMemoryMB
+        self.deviceModel = deviceModel
+        self.gpuAllocatedMemoryMB = gpuAllocatedMemoryMB
+    }
 }
 
 // MARK: - Inference Metrics
@@ -249,19 +268,32 @@ enum InstrumentationLogic {
 /// Utility for capturing real-time device state.
 enum DeviceMetrics {
 
+    /// Lazily cached default Metal device for GPU memory queries.
+    /// `MTLCreateSystemDefaultDevice()` is expensive to call repeatedly.
+    nonisolated static let metalDevice: MTLDevice? = MTLCreateSystemDefaultDevice()
+
     /// Capture a snapshot of current device metrics.
     static func captureSnapshot() -> DeviceMetricsSnapshot {
         DeviceMetricsSnapshot(
             timestamp: Date(),
             thermalLevel: currentThermalLevel,
             availableMemoryMB: availableMemoryMB,
-            deviceModel: deviceModel
+            deviceModel: deviceModel,
+            gpuAllocatedMemoryMB: gpuAllocatedMemoryMB
         )
     }
 
     /// Current thermal state of the device.
     static var currentThermalLevel: ThermalLevel {
         ThermalLevel(from: ProcessInfo.processInfo.thermalState)
+    }
+
+    /// GPU memory currently allocated by Metal in megabytes, or nil if Metal is unavailable.
+    /// Reads `MTLDevice.currentAllocatedSize` — a lightweight O(1) property read with
+    /// no GPU command submission, no synchronization, and no overhead. Safe for always-on capture.
+    static var gpuAllocatedMemoryMB: Double? {
+        guard let device = metalDevice else { return nil }
+        return Double(device.currentAllocatedSize) / 1_048_576.0
     }
 
     /// Available memory in megabytes.

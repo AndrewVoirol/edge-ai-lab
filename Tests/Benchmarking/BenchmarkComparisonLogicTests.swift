@@ -55,7 +55,9 @@ private func makeEntry(
             latencyHistogram: nil,
             thermalTransitions: nil,
             estimatedMemoryBandwidthGBps: nil,
-            modelLoadDurationMs: nil
+            modelLoadDurationMs: nil,
+            gpuAllocatedMemoryAtStartMB: nil,
+            gpuAllocatedMemoryAtEndMB: nil
         ),
         flags: ExperimentalFlagsState(
             enableBenchmark: false,

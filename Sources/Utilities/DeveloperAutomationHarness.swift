@@ -283,7 +283,9 @@ struct DeveloperAutomationHarness {
                             latencyHistogram: nil,
                             thermalTransitions: nil,
                             estimatedMemoryBandwidthGBps: nil,
-                            modelLoadDurationMs: nil
+                            modelLoadDurationMs: nil,
+                            gpuAllocatedMemoryAtStartMB: nil,
+                            gpuAllocatedMemoryAtEndMB: nil
                         ), flags: flags)
                     let data = try JSONEncoder().encode(entry)
                     let decoded = try JSONDecoder().decode(MetricsStore.Entry.self, from: data)

@@ -335,7 +335,9 @@ final class MetricsStoreTests: XCTestCase {
                 latencyHistogram: nil,
                 thermalTransitions: nil,
                 estimatedMemoryBandwidthGBps: nil,
-                modelLoadDurationMs: nil
+                modelLoadDurationMs: nil,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -697,7 +699,9 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 latencyHistogram: nil,
                 thermalTransitions: nil,
                 estimatedMemoryBandwidthGBps: nil,
-                modelLoadDurationMs: nil
+                modelLoadDurationMs: nil,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,
@@ -731,7 +735,9 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 latencyHistogram: nil,
                 thermalTransitions: nil,
                 estimatedMemoryBandwidthGBps: nil,
-                modelLoadDurationMs: nil
+                modelLoadDurationMs: nil,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,

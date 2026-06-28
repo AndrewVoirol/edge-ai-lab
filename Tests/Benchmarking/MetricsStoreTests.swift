@@ -83,7 +83,9 @@ struct MetricsStoreSwiftTestingTests {
                 latencyHistogram: nil,
                 thermalTransitions: nil,
                 estimatedMemoryBandwidthGBps: nil,
-                modelLoadDurationMs: nil
+                modelLoadDurationMs: nil,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: false,
@@ -121,7 +123,9 @@ struct MetricsStoreSwiftTestingTests {
                 latencyHistogram: ["0-10ms": 5, "10-20ms": 0, "20-50ms": 0, "50-100ms": 0, "100-200ms": 0, "200ms+": 0],
                 thermalTransitions: nil,
                 estimatedMemoryBandwidthGBps: 0.5,
-                modelLoadDurationMs: 3200.0
+                modelLoadDurationMs: 3200.0,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
             ),
             flags: ExperimentalFlagsState(
                 enableBenchmark: true,

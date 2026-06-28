@@ -480,6 +480,8 @@ struct InstrumentationTests {
             #expect(entry.metrics.thermalTransitions == nil)
             #expect(entry.metrics.estimatedMemoryBandwidthGBps == nil)
             #expect(entry.metrics.modelLoadDurationMs == nil)
+            #expect(entry.metrics.gpuAllocatedMemoryAtStartMB == nil)
+            #expect(entry.metrics.gpuAllocatedMemoryAtEndMB == nil)
         }
 
         @Test("Full JSON with all new instrumentation fields decodes and round-trips")
@@ -507,7 +509,9 @@ struct InstrumentationTests {
                     "latencyHistogram": {"0-10ms": 3, "10-20ms": 0, "20-50ms": 0, "50-100ms": 0, "100-200ms": 0, "200ms+": 0},
                     "thermalTransitions": [{"from": "nominal", "to": "fair", "timestamp": "2026-06-19T12:00:01.000Z"}],
                     "estimatedMemoryBandwidthGBps": 0.107,
-                    "modelLoadDurationMs": 2500.0
+                    "modelLoadDurationMs": 2500.0,
+                    "gpuAllocatedMemoryAtStartMB": 128.5,
+                    "gpuAllocatedMemoryAtEndMB": 384.0
                 },
                 "flags": {
                     "enableBenchmark": true,
@@ -530,6 +534,8 @@ struct InstrumentationTests {
             #expect(entry.metrics.thermalTransitions?[0].to == "fair")
             #expect(entry.metrics.estimatedMemoryBandwidthGBps == 0.107)
             #expect(entry.metrics.modelLoadDurationMs == 2500.0)
+            #expect(entry.metrics.gpuAllocatedMemoryAtStartMB == 128.5)
+            #expect(entry.metrics.gpuAllocatedMemoryAtEndMB == 384.0)
 
             // Verify round-trip: encode and decode again
             let encoder = JSONEncoder()
@@ -538,6 +544,8 @@ struct InstrumentationTests {
             #expect(reDecoded[0].metrics.latencyHistogram == entry.metrics.latencyHistogram)
             #expect(reDecoded[0].metrics.estimatedMemoryBandwidthGBps == entry.metrics.estimatedMemoryBandwidthGBps)
             #expect(reDecoded[0].metrics.modelLoadDurationMs == entry.metrics.modelLoadDurationMs)
+            #expect(reDecoded[0].metrics.gpuAllocatedMemoryAtStartMB == 128.5)
+            #expect(reDecoded[0].metrics.gpuAllocatedMemoryAtEndMB == 384.0)
         }
 
         @Test("MetricsStore file persistence with new fields round-trips correctly")
@@ -575,7 +583,9 @@ struct InstrumentationTests {
                         MetricsStore.ThermalTransitionRecord(from: "nominal", to: "fair", timestamp: "2026-06-19T12:00:01.000Z")
                     ],
                     estimatedMemoryBandwidthGBps: 0.107,
-                    modelLoadDurationMs: 2500.0
+                    modelLoadDurationMs: 2500.0,
+                    gpuAllocatedMemoryAtStartMB: 128.5,
+                    gpuAllocatedMemoryAtEndMB: 384.0
                 ),
                 flags: ExperimentalFlagsState(
                     enableBenchmark: true,
@@ -633,6 +643,101 @@ struct InstrumentationTests {
             let histogram = InstrumentationLogic.computeLatencyHistogram(from: latencies)
             let total = histogram.values.reduce(0, +)
             #expect(total == latencies.count)
+        }
+    }
+
+    // MARK: - GPU Metrics Tests
+
+    @Suite("GPU Metrics")
+    struct GPUMetricsTests {
+
+        @Test("DeviceMetrics.gpuAllocatedMemoryMB returns non-negative value on Metal-capable device")
+        func gpuAllocatedMemoryIsNonNegative() {
+            // On macOS test runners (Apple Silicon), Metal is always available.
+            // On CI without GPU, this gracefully returns nil.
+            if let gpuMemory = DeviceMetrics.gpuAllocatedMemoryMB {
+                #expect(gpuMemory >= 0)
+            }
+        }
+
+        @Test("DeviceMetrics.metalDevice is non-nil on Apple Silicon")
+        func metalDeviceExists() {
+            // Apple Silicon always has Metal — this test validates the lazy caching works
+            #if arch(arm64)
+            #expect(DeviceMetrics.metalDevice != nil)
+            #endif
+        }
+
+        @Test("captureSnapshot includes gpuAllocatedMemoryMB")
+        func snapshotIncludesGPU() {
+            let snapshot = DeviceMetrics.captureSnapshot()
+            // On Metal-capable hardware, this should be populated
+            if DeviceMetrics.metalDevice != nil {
+                #expect(snapshot.gpuAllocatedMemoryMB != nil)
+                #expect(snapshot.gpuAllocatedMemoryMB! >= 0)
+            }
+        }
+
+        @Test("DeviceMetricsSnapshot init with gpuAllocatedMemoryMB preserves value")
+        func snapshotPreservesGPUMemory() {
+            let snapshot = DeviceMetricsSnapshot(
+                timestamp: Date(),
+                thermalLevel: .nominal,
+                availableMemoryMB: 4096.0,
+                deviceModel: "TestDevice1,1",
+                gpuAllocatedMemoryMB: 256.5
+            )
+            #expect(snapshot.gpuAllocatedMemoryMB == 256.5)
+        }
+
+        @Test("DeviceMetricsSnapshot init without gpuAllocatedMemoryMB defaults to nil")
+        func snapshotDefaultsToNil() {
+            let snapshot = DeviceMetricsSnapshot(
+                timestamp: Date(),
+                thermalLevel: .nominal,
+                availableMemoryMB: 4096.0,
+                deviceModel: "TestDevice1,1"
+            )
+            #expect(snapshot.gpuAllocatedMemoryMB == nil)
+        }
+
+        @Test("DeviceMetricsSnapshot Codable round-trip preserves gpuAllocatedMemoryMB")
+        func codableRoundTripPreservesGPU() throws {
+            let original = DeviceMetricsSnapshot(
+                timestamp: Date(timeIntervalSinceReferenceDate: 750_000_000),
+                thermalLevel: .fair,
+                availableMemoryMB: 2048.0,
+                deviceModel: "TestDevice1,1",
+                gpuAllocatedMemoryMB: 512.75
+            )
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(original)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let decoded = try decoder.decode(DeviceMetricsSnapshot.self, from: data)
+            #expect(decoded.gpuAllocatedMemoryMB == 512.75)
+            #expect(decoded.thermalLevel == .fair)
+            #expect(decoded.availableMemoryMB == 2048.0)
+        }
+
+        @Test("DeviceMetricsSnapshot JSON without gpuAllocatedMemoryMB decodes with nil")
+        func jsonBackwardCompatibility() throws {
+            // Old-format JSON without the gpuAllocatedMemoryMB field
+            let json = """
+            {
+                "timestamp": "2026-01-01T00:00:00Z",
+                "thermalLevel": "nominal",
+                "availableMemoryMB": 4096.0,
+                "deviceModel": "TestDevice1,1"
+            }
+            """
+            let data = try #require(json.data(using: .utf8))
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let snapshot = try decoder.decode(DeviceMetricsSnapshot.self, from: data)
+            #expect(snapshot.gpuAllocatedMemoryMB == nil)
+            #expect(snapshot.availableMemoryMB == 4096.0)
         }
     }
 }

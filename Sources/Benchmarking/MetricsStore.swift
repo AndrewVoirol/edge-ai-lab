@@ -54,6 +54,8 @@ final class MetricsStore {
             let thermalTransitions: [ThermalTransitionRecord]?
             let estimatedMemoryBandwidthGBps: Double?
             let modelLoadDurationMs: Double?
+            let gpuAllocatedMemoryAtStartMB: Double?
+            let gpuAllocatedMemoryAtEndMB: Double?
         }
     }
 
@@ -178,7 +180,9 @@ final class MetricsStore {
                 latencyHistogram: inferenceMetrics?.latencyHistogram,
                 thermalTransitions: nil,  // Populated separately by caller with ThermalMonitor data
                 estimatedMemoryBandwidthGBps: inferenceMetrics?.estimatedMemoryBandwidthGBps,
-                modelLoadDurationMs: nil  // Populated separately by caller with engine data
+                modelLoadDurationMs: nil,  // Populated separately by caller with engine data
+                gpuAllocatedMemoryAtStartMB: inferenceMetrics?.startSnapshot.gpuAllocatedMemoryMB,
+                gpuAllocatedMemoryAtEndMB: inferenceMetrics?.endSnapshot.gpuAllocatedMemoryMB
             ),
             flags: flags
         )

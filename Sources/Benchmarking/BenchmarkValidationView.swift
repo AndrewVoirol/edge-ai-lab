@@ -78,7 +78,9 @@ class BenchmarkValidationRunner: ObservableObject {
                     latencyHistogram: nil,
                     thermalTransitions: nil,
                     estimatedMemoryBandwidthGBps: nil,
-                    modelLoadDurationMs: nil
+                    modelLoadDurationMs: nil,
+                    gpuAllocatedMemoryAtStartMB: nil,
+                    gpuAllocatedMemoryAtEndMB: nil
                 ),
                 flags: flags
             )
