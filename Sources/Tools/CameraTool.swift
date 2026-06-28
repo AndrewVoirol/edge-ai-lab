@@ -16,22 +16,14 @@
 import Foundation
 import LiteRTLM
 
-// MARK: - Photo Picker Notification
-
-extension Notification.Name {
-    /// Posted by `CameraTool` when the model requests a photo attachment.
-    /// The view layer should observe this notification and present the photo picker.
-    static let photoPickerRequested = Notification.Name("com.andrewvoirol.EdgeAILab.photoPickerRequested")
-}
-
 // MARK: - CameraTool
 
 /// Signals that the user wants to attach a photo to the conversation.
 ///
 /// Because `Tool.run()` executes outside the UI layer, this tool cannot directly
-/// present a photo picker. Instead it posts a `Notification.Name.photoPickerRequested`
-/// notification that the view layer can observe and respond to by presenting the
-/// system photo picker or camera interface.
+/// present a photo picker. Instead it posts a `Notification.Name.showPhotoPickerRequested`
+/// notification (defined in `DesignSystem.swift`) that the view layer observes and
+/// responds to by presenting the system photo picker or camera interface.
 struct CameraTool: Tool {
     static let name = "take_photo"
     static let description = "Trigger the photo picker so the user can select or take a photo to attach to the conversation"
@@ -56,7 +48,7 @@ struct CameraTool: Tool {
 
         // Post notification for the UI layer to present the photo picker
         await MainActor.run {
-            NotificationCenter.default.post(name: .photoPickerRequested, object: nil)
+            NotificationCenter.default.post(name: .showPhotoPickerRequested, object: nil)
         }
 
         resultString = jsonString(from: [

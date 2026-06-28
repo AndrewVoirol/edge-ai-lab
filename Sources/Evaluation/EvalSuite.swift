@@ -225,6 +225,13 @@ enum ExpectedBehavior: Codable, Sendable {
     /// Response must match the given regular expression pattern.
     case matchesRegex(String)
 
+    /// Response must contain code in the specified language with all required elements.
+    ///
+    /// Checks that the response contains code-like content (optionally within a fenced
+    /// code block tagged with `language`) and that each string in `requiredElements`
+    /// appears in the response (case-sensitive for code keywords).
+    case codeContains(language: String, requiredElements: [String])
+
     /// Custom description for manual review — cannot be auto-scored.
     case custom(description: String)
 
@@ -251,6 +258,9 @@ enum ExpectedBehavior: Codable, Sendable {
             return "Non-empty response"
         case .matchesRegex(let pattern):
             return "Matches regex: /\(pattern)/"
+        case .codeContains(language: let lang, requiredElements: let elements):
+            let joined = elements.map { "\"\($0)\"" }.joined(separator: ", ")
+            return "Code (\(lang)) contains: [\(joined)]"
         case .custom(description: let desc):
             return "Manual: \(desc)"
         }

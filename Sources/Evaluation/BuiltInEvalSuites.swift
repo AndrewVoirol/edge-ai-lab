@@ -17,8 +17,8 @@ import Foundation
 
 // MARK: - Built-In Eval Suites
 
-/// Ships 6 default evaluation suites covering math, tool calling, reasoning, multimodal,
-/// instruction following, and Gemma 4 capabilities.
+/// Ships 8 default evaluation suites covering math, tool calling, reasoning, multimodal,
+/// instruction following, Gemma 4 capabilities, code generation, and long context.
 ///
 /// These suites are designed to exercise the on-device tools registered in `ToolRegistry`
 /// and validate model inference quality across different capability dimensions.
@@ -32,6 +32,8 @@ enum BuiltInEvalSuites {
         multimodal,
         instructionFollowing,
         gemma4Specific,
+        codeGeneration,
+        longContext,
     ]
 
     // MARK: - Math Accuracy

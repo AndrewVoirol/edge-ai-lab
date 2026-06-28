@@ -97,6 +97,7 @@ struct EvalSuiteEditorView: View {
         case toolCallWithArgs(String, String, String)
         case toolCallChain([String])
         case matchesRegex(String)
+        case codeContains(String, [String])
         case custom(String)
 
         init(from behavior: ExpectedBehavior) {
@@ -117,6 +118,8 @@ struct EvalSuiteEditorView: View {
                 self = .toolCallChain(chain)
             case .matchesRegex(let pattern):
                 self = .matchesRegex(pattern)
+            case .codeContains(language: let lang, requiredElements: let elements):
+                self = .codeContains(lang, elements)
             case .custom(description: let desc):
                 self = .custom(desc)
             }
@@ -140,6 +143,8 @@ struct EvalSuiteEditorView: View {
                 return .toolCallChain(chain)
             case .matchesRegex(let pattern):
                 return .matchesRegex(pattern)
+            case .codeContains(let lang, let elements):
+                return .codeContains(language: lang, requiredElements: elements)
             case .custom(let desc):
                 return .custom(description: desc)
             }
@@ -155,6 +160,7 @@ struct EvalSuiteEditorView: View {
             case .toolCallWithArgs: return "Tool call (args)"
             case .toolCallChain: return "Tool chain"
             case .matchesRegex: return "Regex match"
+            case .codeContains: return "Code contains"
             case .custom: return "Custom (manual)"
             }
         }

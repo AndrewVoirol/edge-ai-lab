@@ -121,6 +121,36 @@ struct EvalScorer {
                 return .error("Invalid regex pattern: \(error.localizedDescription)")
             }
 
+        case .codeContains(language: let language, requiredElements: let elements):
+            let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                return .fail(reason: "Response is empty — expected \(language) code")
+            }
+
+            // Check for language presence: fenced code block with language tag,
+            // or the language name appearing in the response text.
+            let lowerResponse = response.lowercased()
+            let lowerLang = language.lowercased()
+            let hasFencedBlock = lowerResponse.contains("```\(lowerLang)")
+            let mentionsLanguage = lowerResponse.contains(lowerLang)
+
+            if !hasFencedBlock && !mentionsLanguage {
+                // Still allow if all required elements are present (model might
+                // emit code without a fence or language mention)
+                let allPresent = elements.allSatisfy { response.contains($0) }
+                if !allPresent {
+                    return .fail(reason: "Response does not appear to contain \(language) code (no ```\(lowerLang) fence or language mention)")
+                }
+            }
+
+            // Check each required element (case-sensitive for code keywords)
+            let missing = elements.filter { !response.contains($0) }
+            if missing.isEmpty {
+                return .pass
+            }
+            let missingJoined = missing.joined(separator: ", ")
+            return .fail(reason: "Code missing required elements: [\(missingJoined)]")
+
         case .custom(description: let desc):
             logger.info("⚠️ Manual review needed: \(desc, privacy: .public)")
             return .manualReviewNeeded

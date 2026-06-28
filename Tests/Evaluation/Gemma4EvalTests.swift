@@ -35,7 +35,7 @@ struct Gemma4EvalTests {
 
     @Test("All tool names reference tools in ToolRegistry")
     func toolNamesAreValid() {
-        let registeredToolNames = Set(ToolRegistry.defaultTools.map(\.name))
+        let registeredToolNames = Set(ToolRegistry.defaultTools.map { type(of: $0).name })
         let suite = BuiltInEvalSuites.gemma4Specific
 
         for prompt in suite.prompts {

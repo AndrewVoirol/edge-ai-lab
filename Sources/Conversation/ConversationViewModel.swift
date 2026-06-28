@@ -203,6 +203,12 @@ final class ConversationViewModel {
     /// updates this via `onEngineReadyChanged` from ModelSessionController.
     private(set) var isEngineReady: Bool = false
 
+    // MARK: - Canvas Panel State
+
+    /// The HTML content currently displayed in the Canvas side panel.
+    /// Set by CodeBlockView's "Open in Canvas" button, cleared by the panel's close button.
+    var activeCanvasContent: CanvasContent?
+
     // MARK: - MCP Servers Support
 
     var mcpServers: [MCPServerConfig] = []

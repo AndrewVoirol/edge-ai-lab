@@ -65,6 +65,7 @@ enum EvalSuiteEditorLogic {
         case (.toolCallWithArgs, .toolCallWithArgs): return true
         case (.toolCallChain, .toolCallChain): return true
         case (.matchesRegex, .matchesRegex): return true
+        case (.codeContains, .codeContains): return true
         case (.custom, .custom): return true
         default: return false
         }

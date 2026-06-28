@@ -178,7 +178,7 @@ struct iOSNavigationRouterTests {
 
     @Test("every tab is reachable from the router",
           arguments: [
-            "models", "chat", "evaluations", "settings"
+            "models", "chat", "evaluations", "lab", "settings"
           ])
     func allTabsReachable(tabRawValue: String) {
         #if os(iOS)

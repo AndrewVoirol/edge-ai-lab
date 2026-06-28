@@ -186,6 +186,9 @@ struct SimpleMapView: View {
 struct CodeBlockView: View {
     let code: String
     let language: String?
+    /// Optional message ID for Canvas content sourcing.
+    var sourceMessageId: UUID?
+    @Environment(ConversationViewModel.self) private var viewModel
     @State private var copied = false
 
     private var codeLines: [String] {
@@ -206,6 +209,30 @@ struct CodeBlockView: View {
                         .clipShape(Capsule())
                 }
                 Spacer()
+
+                // "Open in Canvas" button — only for HTML-renderable code blocks
+                if HTMLDetector.isHTMLCodeBlock(language: language) {
+                    Button {
+                        let content = CanvasContent(
+                            htmlContent: code,
+                            language: language,
+                            sourceMessageId: sourceMessageId ?? UUID()
+                        )
+                        viewModel.activeCanvasContent = content
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "paintbrush.pointed")
+                                .font(AppIconSize.xxs)
+                            Text("Open in Canvas")
+                                .font(AppTypography.caption)
+                        }
+                        .foregroundStyle(AppColors.accentCyan)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("button_openInCanvas")
+                    .accessibilityLabel("Open HTML in Canvas panel")
+                }
+
                 Button {
                     #if os(macOS)
                     NSPasteboard.general.clearContents()

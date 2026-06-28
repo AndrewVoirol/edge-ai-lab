@@ -29,7 +29,7 @@ final class BuiltInEvalSuitesTests: XCTestCase {
     // MARK: - Suite Count & Built-In Flag
 
     func testAllBuiltInCount() {
-        XCTAssertEqual(BuiltInEvalSuites.allBuiltIn.count, 6)
+        XCTAssertEqual(BuiltInEvalSuites.allBuiltIn.count, 8)
     }
 
     func testAllSuitesAreBuiltIn() {

@@ -712,4 +712,7 @@ extension Notification.Name {
 
     /// Posted when the keyboard should be dismissed (e.g., on tab switch away from Chat).
     static let dismissKeyboardRequested = Notification.Name("com.andrewvoirol.EdgeAILab.dismissKeyboardRequested")
+
+    /// Posted when the user toggles the Canvas panel (⌘⇧K).
+    static let toggleCanvasRequested = Notification.Name("com.andrewvoirol.EdgeAILab.toggleCanvasRequested")
 }

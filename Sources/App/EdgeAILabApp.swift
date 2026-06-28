@@ -140,6 +140,13 @@ struct EdgeAILabApp: App {
                     NotificationCenter.default.post(name: .importModelRequested, object: nil)
                 }
                 .keyboardShortcut("i", modifiers: .command)
+
+                Divider()
+
+                Button("Toggle Canvas Panel") {
+                    NotificationCenter.default.post(name: .toggleCanvasRequested, object: nil)
+                }
+                .keyboardShortcut("k", modifiers: [.command, .shift])
             }
             
             CommandGroup(before: .windowSize) {
@@ -163,6 +170,8 @@ struct EdgeAILabApp: App {
                     Button("⌘E  Run Evaluations") {}
                         .disabled(true)
                     Button("⌘I  Import from URL") {}
+                        .disabled(true)
+                    Button("⌘⇧K  Toggle Canvas") {}
                         .disabled(true)
                     Button("⌘R  Refresh Models") {}
                         .disabled(true)

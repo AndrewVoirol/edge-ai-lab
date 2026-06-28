@@ -89,7 +89,7 @@ struct ContentView: View {
                 selectedModelId: $selectedModelId
             )
         } detail: {
-            // Right column: Chat area — the instrument
+            // Right column: Chat area + optional Canvas panel
             if isChatCollapsed {
                 // Collapsed: show a minimal expand button
                 VStack {
@@ -116,7 +116,16 @@ struct ContentView: View {
                 .frame(width: 80)
                 .background(AppColors.backgroundPrimary)
             } else {
-                chatColumn
+                HStack(spacing: 0) {
+                    chatColumn
+                    // Canvas side panel — trailing, only visible when content is active
+                    if viewModel.activeCanvasContent != nil {
+                        Rectangle()
+                            .fill(AppColors.border)
+                            .frame(width: 0.5)
+                        CanvasPanelView()
+                    }
+                }
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -199,6 +208,13 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .importModelRequested)) { _ in
             viewModel.showURLImportSheet = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleCanvasRequested)) { _ in
+            withAnimation(AppAnimation.standard) {
+                if viewModel.activeCanvasContent != nil {
+                    viewModel.activeCanvasContent = nil
+                }
+            }
+        }
         )
     }
     #endif
@@ -264,6 +280,18 @@ struct ContentView: View {
         .foregroundStyle(AppColors.textPrimary)
         .preferredColorScheme(.dark)
         .tint(AppColors.accentCyan)
+        .sheet(item: Binding(
+            get: { viewModel.activeCanvasContent },
+            set: { viewModel.activeCanvasContent = $0 }
+        )) { _ in
+            NavigationStack {
+                CanvasPanelView()
+                    .navigationTitle("Canvas")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium, .large])
+            .preferredColorScheme(.dark)
+        }
         )
     }
     #endif
