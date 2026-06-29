@@ -20,6 +20,12 @@
       "action": "verify_ui",
       "description": "Verify send button is present (it may be disabled without model loaded).",
       "expected_elements": ["button_send"]
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify agent mode toggle button exists in the action bar.",
+      "expected_elements": ["button_agentModeToggle"]
     }
   ]
 }
