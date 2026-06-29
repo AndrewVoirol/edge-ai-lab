@@ -54,7 +54,8 @@ let project = Project(
             entitlements: .file(path: "EdgeAILab_iOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
-                .package(product: "MarkdownUI")
+                .package(product: "MarkdownUI"),
+                .sdk(name: "CloudKit", type: .framework)
             ]
         ),
         .target(
@@ -87,7 +88,8 @@ let project = Project(
             entitlements: .file(path: "EdgeAILab_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
-                .package(product: "MarkdownUI")
+                .package(product: "MarkdownUI"),
+                .sdk(name: "CloudKit", type: .framework)
             ],
             settings: .settings(
                 base: [

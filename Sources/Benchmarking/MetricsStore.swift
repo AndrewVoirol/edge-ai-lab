@@ -25,12 +25,58 @@ final class MetricsStore {
 
     /// A single benchmark measurement entry.
     struct Entry: Codable {
+        /// Unique identifier for deduplication during CloudKit sync.
+        /// Auto-generated for new entries; preserved across encode/decode.
+        let id: String
         let timestamp: String
         let model: String
         let platform: String
         let device: String
         let metrics: Metrics
         let flags: ExperimentalFlagsState
+
+        /// Device information from CloudKit sync (nil for locally-created entries
+        /// that haven't been synced yet).
+        let syncDeviceInfo: DeviceInfo?
+
+        /// Memberwise initializer with defaults for backward-compatible call sites.
+        init(
+            id: String = UUID().uuidString,
+            timestamp: String,
+            model: String,
+            platform: String,
+            device: String,
+            metrics: Metrics,
+            flags: ExperimentalFlagsState,
+            syncDeviceInfo: DeviceInfo? = nil
+        ) {
+            self.id = id
+            self.timestamp = timestamp
+            self.model = model
+            self.platform = platform
+            self.device = device
+            self.metrics = metrics
+            self.flags = flags
+            self.syncDeviceInfo = syncDeviceInfo
+        }
+
+        /// Custom decoder for backward compatibility: old JSON without `id` or
+        /// `syncDeviceInfo` fields will auto-generate an id and default to nil.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+            self.timestamp = try container.decode(String.self, forKey: .timestamp)
+            self.model = try container.decode(String.self, forKey: .model)
+            self.platform = try container.decode(String.self, forKey: .platform)
+            self.device = try container.decode(String.self, forKey: .device)
+            self.metrics = try container.decode(Metrics.self, forKey: .metrics)
+            self.flags = try container.decode(ExperimentalFlagsState.self, forKey: .flags)
+            self.syncDeviceInfo = try container.decodeIfPresent(DeviceInfo.self, forKey: .syncDeviceInfo)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case id, timestamp, model, platform, device, metrics, flags, syncDeviceInfo
+        }
 
         struct Metrics: Codable {
             let initTimeSeconds: Double
@@ -73,6 +119,10 @@ final class MetricsStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
+    /// Optional CloudKit sync manager. When set, local saves are automatically
+    /// pushed to CloudKit for cross-device availability.
+    var syncManager: CloudKitSyncManager?
+
     /// Initialize with a custom file URL (useful for testing).
     /// Defaults to `metrics/history.json` relative to the app's documents directory.
     init(fileURL: URL? = nil) {
@@ -112,6 +162,7 @@ final class MetricsStore {
     // MARK: - Write
 
     /// Append a new benchmark entry to the metrics store.
+    /// After local save, pushes to CloudKit if a sync manager is configured.
     func append(entry: Entry) throws {
         var entries = (try? loadEntries()) ?? []
         entries.append(entry)
@@ -122,6 +173,13 @@ final class MetricsStore {
 
         let data = try encoder.encode(entries)
         try data.write(to: fileURL, options: .atomic)
+
+        // Push to CloudKit asynchronously (fire-and-forget)
+        if let syncManager {
+            Task {
+                try? await syncManager.pushEntry(entry)
+            }
+        }
     }
 
     /// Create an entry from BenchmarkInfo, optional InferenceMetrics, and current state.
@@ -222,6 +280,49 @@ final class MetricsStore {
     func uniqueModels() throws -> [String] {
         let entries = try loadEntries()
         return Array(Set(entries.map(\.model))).sorted()
+    }
+
+    // MARK: - CloudKit Sync Integration
+
+    /// Merge remote entries from CloudKit into the local store.
+    ///
+    /// Deduplicates by entry UUID — remote entries with IDs already present
+    /// locally are skipped. New remote entries are appended and persisted.
+    func mergeRemoteEntries(_ remote: [Entry]) throws {
+        var local = (try? loadEntries()) ?? []
+        let existingIDs = Set(local.map(\.id))
+
+        var newEntries: [Entry] = []
+        for entry in remote {
+            if !existingIDs.contains(entry.id) {
+                newEntries.append(entry)
+            }
+        }
+
+        guard !newEntries.isEmpty else { return }
+
+        local.append(contentsOf: newEntries)
+
+        // Ensure directory exists
+        let directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let data = try encoder.encode(local)
+        try data.write(to: fileURL, options: .atomic)
+    }
+
+    /// All entries grouped by device name for cross-device comparison.
+    ///
+    /// Uses the `device` field from the entry (which captures the hardware identifier
+    /// or host name at benchmark time). Entries from this device and synced entries
+    /// from other devices are all included.
+    var allDeviceEntries: [String: [Entry]] {
+        let entries = (try? loadEntries()) ?? []
+        return Dictionary(grouping: entries) { entry in
+            // Prefer syncDeviceInfo.deviceName for synced entries,
+            // fall back to the entry's device field for local entries
+            entry.syncDeviceInfo?.deviceName ?? entry.device
+        }
     }
 
     // MARK: - JSONL Streaming
