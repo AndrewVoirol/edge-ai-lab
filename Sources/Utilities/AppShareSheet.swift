@@ -47,4 +47,28 @@ struct AppShareSheet: UIViewControllerRepresentable {
         context: Context
     ) {}
 }
+
+// MARK: - Benchmark Share Sheet (iOS)
+
+/// Convenience initializer for sharing benchmark card image + caption on iOS.
+extension AppShareSheet {
+
+    /// Create a share sheet pre-loaded with the benchmark card image and caption.
+    /// - Parameters:
+    ///   - cardData: The benchmark card data to render and share.
+    ///   - size: The card size to render at (default: Twitter card).
+    /// - Returns: An `AppShareSheet` ready to present, or nil if rendering fails.
+    @MainActor
+    static func benchmarkShareSheet(
+        cardData: BenchmarkCardData,
+        size: CardSize = .twitterCard
+    ) -> AppShareSheet? {
+        guard let image = BenchmarkCardExporter.renderImage(data: cardData, size: size) else {
+            return nil
+        }
+
+        let caption = BenchmarkCardLogic.generateShareCaption(from: cardData)
+        return AppShareSheet(activityItems: [image, caption])
+    }
+}
 #endif

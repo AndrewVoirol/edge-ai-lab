@@ -13,11 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Charts
 import LiteRTLM
 import SwiftUI
 
 // MARK: - Benchmark Card Data
-//
+
 // MARK: Design System Exemption Policy
 // This file renders image-export benchmark cards via ImageRenderer.
 // Labels, badges, and section headers use AppTypography tokens.
@@ -44,6 +45,9 @@ struct BenchmarkCardData: Sendable {
     let thermalState: ThermalLevel
     let tokenCount: Int
     let timestamp: Date
+
+    /// Optional sparkline history for trend display.
+    var sparklineHistory: [Double] = []
 
     /// Performance tier derived from decode speed.
     var tier: PerformanceTier {
@@ -95,154 +99,250 @@ struct BenchmarkCardData: Sendable {
     }
 }
 
+// MARK: - Premium Card Colors
+
+/// Dark/sleek tech aesthetic colors for the benchmark card.
+/// These are card-specific — not part of the main design system.
+private enum CardColors {
+    // design-system-exempt: fixed colors for image export card
+    static let backgroundDark = Color(red: 0.039, green: 0.039, blue: 0.059)       // #0A0A0F
+    static let backgroundGradient = Color(red: 0.078, green: 0.078, blue: 0.157)   // #141428
+    static let neonBlue = Color(red: 0.0, green: 0.831, blue: 1.0)                 // #00D4FF
+    static let neonGreen = Color(red: 0.0, green: 1.0, blue: 0.580)                // #00FF94
+    static let cardBorder = Color(red: 0.102, green: 0.102, blue: 0.180)           // #1a1a2e
+    static let textPrimary = Color(red: 0.95, green: 0.95, blue: 0.97)
+    static let textSecondary = Color(red: 0.65, green: 0.65, blue: 0.72)
+    static let textTertiary = Color(red: 0.45, green: 0.45, blue: 0.52)
+    static let dividerGradientStart = Color(red: 0.0, green: 0.831, blue: 1.0).opacity(0.3)
+    static let dividerGradientEnd = Color(red: 0.0, green: 1.0, blue: 0.580).opacity(0.3)
+}
+
 // MARK: - Benchmark Card View
 
-/// A beautiful, branded benchmark result card designed for sharing.
-/// Renders at 1200×630 (Open Graph standard) for optimal display when
-/// pasted into X, Discord, Slack, Reddit, etc.
+/// A premium, dark/sleek benchmark result card designed for sharing.
+/// Renders at configurable sizes for optimal display when pasted into
+/// X, Discord, Slack, Reddit, Instagram, etc.
 ///
-/// Design: Dark Forest theme with glass morphism, tier-colored hero metric,
-/// and subtle branding. No watermarks — just clean, premium design.
+/// Design: Dark tech aesthetic with neon accents, glow effects,
+/// and SF Mono hero metrics.
 struct BenchmarkCardView: View {
     let data: BenchmarkCardData
+    var cardSize: CardSize
 
-    /// Card dimensions — Open Graph standard for social media embeds.
-    static let cardWidth: CGFloat = 1200
-    static let cardHeight: CGFloat = 630
+    /// Default to Twitter card for backward compatibility.
+    init(data: BenchmarkCardData, cardSize: CardSize = .twitterCard) {
+        self.data = data
+        self.cardSize = cardSize
+    }
 
     var body: some View {
         ZStack {
-            // Background — deep forest with radial gradient
+            // Background — deep dark with subtle gradient
             cardBackground
 
             // Content layout
             VStack(spacing: 0) {
-                // Header — branding + model info
+                // Header — device name + model info
                 cardHeader
-                    .padding(.horizontal, 48)
-                    .padding(.top, 40)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, topPadding)
+
+                // Gradient divider
+                gradientDivider
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, sectionSpacing)
 
                 Spacer()
 
-                // Hero metric — decode speed (the number everyone cares about)
-                heroMetric
-                    .padding(.horizontal, 48)
+                // Hero metrics — 3 columns
+                heroMetrics
+                    .padding(.horizontal, horizontalPadding)
+
+                // Sparkline (if data available)
+                if !data.sparklineHistory.isEmpty {
+                    sparklineView
+                        .padding(.horizontal, horizontalPadding)
+                        .padding(.top, sectionSpacing)
+                }
 
                 Spacer()
 
-                // Secondary metrics grid
-                metricsGrid
-                    .padding(.horizontal, 48)
+                // Secondary metrics bar
+                secondaryMetrics
+                    .padding(.horizontal, horizontalPadding)
 
                 Spacer()
 
-                // Footer — device info + attribution
+                // Footer — branding + QR/graphic
                 cardFooter
-                    .padding(.horizontal, 48)
-                    .padding(.bottom, 36)
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.bottom, bottomPadding)
             }
         }
-        .frame(width: Self.cardWidth, height: Self.cardHeight)
+        .frame(width: cardSize.width, height: cardSize.height)
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+
+    // MARK: - Adaptive Sizing
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var horizontalPadding: CGFloat {
+        cardSize == .instagramSquare ? 56 : 48
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var topPadding: CGFloat {
+        cardSize == .instagramSquare ? 56 : 40
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var bottomPadding: CGFloat {
+        cardSize == .instagramSquare ? 48 : 36
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var sectionSpacing: CGFloat {
+        cardSize == .instagramSquare ? 20 : 12
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var heroFontSize: CGFloat {
+        switch cardSize {
+        case .twitterCard:     return 96
+        case .instagramSquare: return 108
+        case .default:         return 48
+        }
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var heroUnitSize: CGFloat {
+        switch cardSize {
+        case .twitterCard:     return 28
+        case .instagramSquare: return 32
+        case .default:         return 16
+        }
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var secondaryMetricSize: CGFloat {
+        switch cardSize {
+        case .twitterCard:     return 36
+        case .instagramSquare: return 42
+        case .default:         return 20
+        }
+    }
+
+    // design-system-exempt: image export requires fixed point sizes
+    private var labelSize: CGFloat {
+        switch cardSize {
+        case .twitterCard:     return 13
+        case .instagramSquare: return 15
+        case .default:         return 10
+        }
     }
 
     // MARK: - Background
 
     private var cardBackground: some View {
         ZStack {
-            // Base
-            Color(red: 0.04, green: 0.05, blue: 0.04)
-
-            // Radial gradient — forest depth
-            RadialGradient(
-                colors: [
-                    AppColors.accentTeal.opacity(0.15),
-                    Color.clear
-                ],
-                center: .topLeading,
-                startRadius: 100,
-                endRadius: 600
+            // Base dark gradient
+            LinearGradient(
+                colors: [CardColors.backgroundDark, CardColors.backgroundGradient],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
 
-            // Secondary glow — warm ambient
+            // Neon blue glow — top right
             RadialGradient(
                 colors: [
-                    data.tier.color.opacity(0.08),
+                    CardColors.neonBlue.opacity(0.12),
                     Color.clear
                 ],
-                center: .center,
+                center: .topTrailing,
                 startRadius: 50,
                 endRadius: 400
             )
 
-            // Subtle noise texture overlay
+            // Neon green glow — bottom left (subtle)
+            RadialGradient(
+                colors: [
+                    CardColors.neonGreen.opacity(0.06),
+                    Color.clear
+                ],
+                center: .bottomLeading,
+                startRadius: 30,
+                endRadius: 350
+            )
+
+            // 1px border
             RoundedRectangle(cornerRadius: 24)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.02),
-                            Color.white.opacity(0.06)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+                .stroke(CardColors.cardBorder, lineWidth: 1)
         }
+    }
+
+    // MARK: - Gradient Divider
+
+    private var gradientDivider: some View {
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.clear,
+                        CardColors.dividerGradientStart,
+                        CardColors.dividerGradientEnd,
+                        Color.clear
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(height: 1)
     }
 
     // MARK: - Header
 
     private var cardHeader: some View {
         HStack(alignment: .top) {
-            // Logo + app name
+            // Device icon + name
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 12) {
-                    // App icon placeholder — stylized terminal prompt
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(AppColors.accentTeal.opacity(0.2))
-                            .frame(width: 40, height: 40)
-                        Text("⚡")
-                            .font(AppIconSize.xl)
-                    }
+                HStack(spacing: 10) {
+                    Image(systemName: "cpu")
+                        .font(.system(size: labelSize + 6, weight: .medium)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(CardColors.neonBlue)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Edge AI Lab")
-                            .font(AppTypography.sectionTitle)
-                            .foregroundStyle(AppColors.textPrimary)
-                        Text("Benchmark Result")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textTertiary)
-                    }
+                    Text(data.deviceName)
+                        .font(.system(size: labelSize + 7, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(CardColors.textPrimary)
                 }
+
+                // Model info
+                Text(data.modelName)
+                    .font(.system(size: labelSize + 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                    .foregroundStyle(CardColors.textSecondary)
             }
 
             Spacer()
 
-            // Model info pill
+            // Architecture + backend badges
             VStack(alignment: .trailing, spacing: 6) {
-                Text(data.modelName)
-                    .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.textPrimary)
-
                 HStack(spacing: 8) {
                     Text(data.modelArchitecture)
-                        .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentTeal)
+                        .font(.system(size: labelSize, weight: .medium, design: .rounded)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(CardColors.neonBlue)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(AppColors.accentTeal.opacity(0.12))
+                        .background(CardColors.neonBlue.opacity(0.12))
                         .clipShape(Capsule())
 
                     Text(data.backendLabel)
-                        .font(AppTypography.badge)
-                        .foregroundStyle(data.backendLabel.contains("GPU") ? AppColors.success : AppColors.warning)
+                        .font(.system(size: labelSize, weight: .medium, design: .rounded)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(
+                            data.backendLabel.contains("GPU") ? CardColors.neonGreen : CardColors.textSecondary
+                        )
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
-                            (data.backendLabel.contains("GPU") ? AppColors.success : AppColors.warning)
+                            (data.backendLabel.contains("GPU") ? CardColors.neonGreen : CardColors.textSecondary)
                                 .opacity(0.12)
                         )
                         .clipShape(Capsule())
@@ -251,143 +351,251 @@ struct BenchmarkCardView: View {
         }
     }
 
-    // MARK: - Hero Metric
+    // MARK: - Hero Metrics (3 Columns)
 
-    private var heroMetric: some View {
-        VStack(spacing: 8) {
-            // Decode speed — the big number
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(String(format: "%.1f", data.decodeSpeed))
-                    .font(.system(size: 96, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(data.tier.color)
-                    .shadow(color: data.tier.color.opacity(0.3), radius: 20, x: 0, y: 0)
-
-                Text("tok/s")
-                    .font(.system(size: 28, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(data.tier.color.opacity(0.7))
-            }
-
-            // Tier badge
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(data.tier.color)
-                    .frame(width: 8, height: 8)
-
-                Text(data.tier.label.uppercased())
-                    .font(AppTypography.badge)
-                    .foregroundStyle(data.tier.color)
-                    .tracking(2)
-
-                Text("·")
-                    .foregroundStyle(AppColors.textTertiary)
-
-                Text("Decode Speed")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
-            }
-        }
-    }
-
-    // MARK: - Metrics Grid
-
-    private var metricsGrid: some View {
+    private var heroMetrics: some View {
         HStack(spacing: 0) {
-            metricCell(
+            // Decode Speed — primary hero (neon blue)
+            heroMetricColumn(
+                value: BenchmarkCardLogic.formatDecodeSpeed(data.decodeSpeed),
+                unit: "tok/s",
+                label: "DECODE",
+                color: CardColors.neonBlue,
+                isHero: true
+            )
+
+            // Vertical divider
+            heroColumnDivider
+
+            // TTFT — secondary (neon green)
+            heroMetricColumn(
+                value: BenchmarkCardLogic.formatTTFT(data.ttft),
+                unit: "",
                 label: "TTFT",
-                value: String(format: "%.3fs", data.ttft),
-                icon: "bolt.fill"
+                color: CardColors.neonGreen,
+                isHero: false
             )
 
-            metricDivider
+            // Vertical divider
+            heroColumnDivider
 
-            metricCell(
-                label: "Prefill",
-                value: String(format: "%.1f tok/s", data.prefillSpeed),
-                icon: "arrow.right.circle.fill"
-            )
-
-            metricDivider
-
-            metricCell(
-                label: "P95 Latency",
-                value: String(format: "%.1f ms", data.p95LatencyMs),
-                icon: "chart.bar.fill"
-            )
-
-            metricDivider
-
-            metricCell(
-                label: "Memory Δ",
-                value: String(format: "%+.0f MB", data.memoryDeltaMB),
-                icon: "memorychip.fill"
-            )
-
-            metricDivider
-
-            metricCell(
-                label: "Thermal",
-                value: data.thermalState.label,
-                icon: data.thermalState.symbolName
+            // Memory — secondary (neon green)
+            heroMetricColumn(
+                value: BenchmarkCardLogic.formatMemory(abs(data.memoryDeltaMB)),
+                unit: "",
+                label: "MEMORY",
+                color: CardColors.neonGreen,
+                isHero: false
             )
         }
-        .padding(.vertical, 20)
-        .padding(.horizontal, 24)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.03))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
-                )
-        )
     }
 
-    private func metricCell(label: String, value: String, icon: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(AppIconSize.sm)
-                .foregroundStyle(AppColors.textTertiary)
+    private func heroMetricColumn(
+        value: String,
+        unit: String,
+        label: String,
+        color: Color,
+        isHero: Bool
+    ) -> some View {
+        VStack(spacing: 4) {
+            if isHero {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(.system(size: heroFontSize, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(color)
+                        .shadow(color: color.opacity(0.4), radius: 20, x: 0, y: 0)
 
-            Text(value)
-                .font(AppTypography.metricLarge)
-                .foregroundStyle(AppColors.textPrimary)
+                    Text(unit)
+                        .font(.system(size: heroUnitSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(color.opacity(0.6))
+                }
+            } else {
+                Text(value)
+                    .font(.system(size: secondaryMetricSize, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
+                    .foregroundStyle(color)
+                    .shadow(color: color.opacity(0.25), radius: 12, x: 0, y: 0)
+            }
 
             Text(label)
-                .font(AppTypography.caption)
-                .foregroundStyle(AppColors.textTertiary)
+                .font(.system(size: labelSize, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                .foregroundStyle(CardColors.textTertiary)
+                .tracking(2)
         }
         .frame(maxWidth: .infinity)
     }
 
-    private var metricDivider: some View {
+    private var heroColumnDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.06))
-            .frame(width: 0.5, height: 50)
+            .fill(
+                LinearGradient(
+                    colors: [Color.clear, CardColors.cardBorder, Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(width: 1, height: heroFontSize * 0.8)
+    }
+
+    // MARK: - Sparkline
+
+    private var sparklineView: some View {
+        VStack(spacing: 4) {
+            Chart {
+                ForEach(Array(data.sparklineHistory.enumerated()), id: \.offset) { index, speed in
+                    LineMark(
+                        x: .value("Run", index),
+                        y: .value("Speed", speed)
+                    )
+                    .foregroundStyle(CardColors.neonBlue.opacity(0.8))
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+
+                    AreaMark(
+                        x: .value("Run", index),
+                        y: .value("Speed", speed)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [CardColors.neonBlue.opacity(0.2), Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .frame(height: cardSize == .instagramSquare ? 60 : 40)
+
+            Text("PERFORMANCE TREND · LAST \(data.sparklineHistory.count) RUNS")
+                .font(.system(size: labelSize - 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                .foregroundStyle(CardColors.textTertiary)
+                .tracking(1)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.02))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(CardColors.cardBorder.opacity(0.5), lineWidth: 0.5)
+                )
+        )
+    }
+
+    // MARK: - Secondary Metrics
+
+    private var secondaryMetrics: some View {
+        HStack(spacing: 0) {
+            secondaryMetricCell(
+                label: "PREFILL",
+                value: String(format: "%.1f tok/s", data.prefillSpeed),
+                icon: "arrow.right.circle.fill"
+            )
+
+            secondaryDivider
+
+            secondaryMetricCell(
+                label: "P95 LATENCY",
+                value: String(format: "%.1f ms", data.p95LatencyMs),
+                icon: "chart.bar.fill"
+            )
+
+            secondaryDivider
+
+            secondaryMetricCell(
+                label: "THERMAL",
+                value: data.thermalState.label,
+                icon: data.thermalState.symbolName
+            )
+
+            secondaryDivider
+
+            secondaryMetricCell(
+                label: "TOKENS",
+                value: "\(data.tokenCount)",
+                icon: "text.word.spacing"
+            )
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white.opacity(0.03))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(CardColors.cardBorder.opacity(0.5), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private func secondaryMetricCell(label: String, value: String, icon: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: labelSize, weight: .medium)) // design-system-exempt: image export requires fixed point sizes
+                .foregroundStyle(CardColors.textTertiary)
+
+            Text(value)
+                .font(.system(size: labelSize + 2, weight: .semibold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
+                .foregroundStyle(CardColors.textPrimary)
+
+            Text(label)
+                .font(.system(size: labelSize - 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                .foregroundStyle(CardColors.textTertiary)
+                .tracking(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var secondaryDivider: some View {
+        Rectangle()
+            .fill(CardColors.cardBorder.opacity(0.5))
+            .frame(width: 0.5, height: 40)
     }
 
     // MARK: - Footer
 
     private var cardFooter: some View {
         HStack {
-            // Device info
-            HStack(spacing: 16) {
-                deviceInfoPill(icon: "desktopcomputer", text: data.deviceName)
-                deviceInfoPill(icon: "cpu", text: data.chipName)
-                deviceInfoPill(icon: "memorychip", text: "\(data.ramGB) GB RAM")
-                deviceInfoPill(icon: "gearshape", text: data.osVersion)
+            // Device info pills
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 12) {
+                    deviceInfoPill(icon: "cpu", text: data.chipName)
+                    deviceInfoPill(icon: "memorychip", text: "\(data.ramGB) GB RAM")
+                    deviceInfoPill(icon: "gearshape", text: data.osVersion)
+                }
+
+                // Tier badge
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(data.tier.color)
+                        .frame(width: 6, height: 6)
+                    Text(data.tier.label.uppercased())
+                        .font(.system(size: labelSize - 1, weight: .bold, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(data.tier.color)
+                        .tracking(2)
+                }
             }
 
             Spacer()
 
-            // Attribution — repo URL + timestamp
-            VStack(alignment: .trailing, spacing: 4) {
+            // Branding + QR or mini chart
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text("⚡")
+                        .font(.system(size: labelSize + 4)) // design-system-exempt: image export requires fixed point sizes
+                    Text("Edge AI Lab")
+                        .font(.system(size: labelSize + 2, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                        .foregroundStyle(CardColors.textPrimary)
+                }
+
                 Text("github.com/AndrewVoirol/edge-ai-lab")
-                    .font(AppTypography.metric)
-                    .foregroundStyle(AppColors.accentTeal)
+                    .font(.system(size: labelSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
+                    .foregroundStyle(CardColors.neonBlue.opacity(0.7))
 
                 Text(data.timestamp, format: .dateTime.year().month(.abbreviated).day().hour().minute())
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
+                    .font(.system(size: labelSize - 1, weight: .regular, design: .default)) // design-system-exempt: image export requires fixed point sizes
+                    .foregroundStyle(CardColors.textTertiary)
             }
         }
     }
@@ -395,11 +603,11 @@ struct BenchmarkCardView: View {
     private func deviceInfoPill(icon: String, text: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(AppIconSize.xxs)
+                .font(.system(size: labelSize - 2, weight: .medium)) // design-system-exempt: image export requires fixed point sizes
             Text(text)
-                .font(AppTypography.caption)
+                .font(.system(size: labelSize - 1, weight: .regular, design: .default)) // design-system-exempt: image export requires fixed point sizes
         }
-        .foregroundStyle(AppColors.textSecondary)
+        .foregroundStyle(CardColors.textSecondary)
     }
 }
 
@@ -462,12 +670,12 @@ struct BenchmarkCardTransferable: Transferable {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("Benchmark Card — Excellent") {
+#Preview("Benchmark Card — Premium Dark") {
     BenchmarkCardView(data: BenchmarkCardData(
         modelName: "Gemma 4 E2B · Desktop GPU+CPU",
         modelArchitecture: "MoE Edge (2B effective)",
         backendLabel: "GPU (Metal)",
-        deviceName: "MacBook Pro",
+        deviceName: "MacBook Pro M4 Max",
         chipName: "arm64e",
         osVersion: "macOS 26.0",
         ramGB: 36,
@@ -479,8 +687,33 @@ struct BenchmarkCardTransferable: Transferable {
         memoryDeltaMB: -245,
         thermalState: .nominal,
         tokenCount: 1162,
-        timestamp: Date()
+        timestamp: Date(),
+        sparklineHistory: [85.2, 92.1, 98.4, 95.7, 100.7]
     ))
+    .padding()
+    .background(Color.black)
+}
+
+#Preview("Benchmark Card — Instagram Square") {
+    BenchmarkCardView(data: BenchmarkCardData(
+        modelName: "Gemma 4 1B · Text Only",
+        modelArchitecture: "Dense 1B",
+        backendLabel: "CPU (XNNPACK)",
+        deviceName: "iPhone 16 Pro Max",
+        chipName: "iPhone17,2",
+        osVersion: "iOS 19.0",
+        ramGB: 8,
+        decodeSpeed: 42.3,
+        prefillSpeed: 128.7,
+        ttft: 0.089,
+        p95LatencyMs: 32.1,
+        medianLatencyMs: 23.4,
+        memoryDeltaMB: -512,
+        thermalState: .fair,
+        tokenCount: 512,
+        timestamp: Date(),
+        sparklineHistory: [38.1, 40.2, 41.5, 39.8, 42.3]
+    ), cardSize: .instagramSquare)
     .padding()
     .background(Color.black)
 }
