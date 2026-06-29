@@ -141,12 +141,48 @@ struct iOSChatTabView: View {
                 .fill(AppColors.border)
                 .frame(height: 0.5)
 
+            // Agent status banner (visible when agent mode is active)
+            if viewModel.isAgentMode,
+               viewModel.agentHarness.isRunning
+                || viewModel.agentHarness.status != .idle {
+                AgentStatusView(harness: viewModel.agentHarness)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.xs)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.agentHarness.isRunning)
+            }
+
             // Input area with multimodal attachments
             InputAreaView()
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
         }
         .accessibilityElement(children: .contain)
+        // Agent approval sheet — presented when harness awaits user decision
+        .sheet(isPresented: Binding<Bool>(
+            get: {
+                if case .waitingForApproval = viewModel.agentHarness.status { return true }
+                return false
+            },
+            set: { newValue in
+                if !newValue {
+                    viewModel.agentHarness.denyAction()
+                }
+            }
+        )) {
+            if case .waitingForApproval(let tool, let args) = viewModel.agentHarness.status {
+                AgentApprovalView(
+                    toolName: tool,
+                    arguments: args,
+                    onApprove: { viewModel.agentHarness.approveAction() },
+                    onDeny: { viewModel.agentHarness.denyAction() },
+                    autoApproveAll: Binding(
+                        get: { viewModel.agentHarness.autoApproveAll },
+                        set: { viewModel.agentHarness.autoApproveAll = $0 }
+                    )
+                )
+            }
+        }
     }
 
     // MARK: - Empty State

@@ -198,6 +198,32 @@ struct InputAreaView: View {
                     .accessibilityIdentifier("button_newChat")
                 }
 
+                // Agent mode toggle
+                Button {
+                    viewModel.isAgentMode.toggle()
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: viewModel.isAgentMode ? "cpu.fill" : "cpu")
+                            .symbolEffect(
+                                .pulse,
+                                options: shouldAnimate ? .repeating : .default,
+                                isActive: viewModel.agentHarness.isRunning
+                            )
+                        Text(viewModel.isAgentMode ? "Agent On" : "Agent")
+                            .font(AppTypography.caption)
+                    }
+                    .foregroundStyle(
+                        viewModel.isAgentMode ? AppColors.accentCyan : AppColors.textTertiary
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isGenerating)
+                .help(viewModel.isAgentMode
+                    ? "Disable agent mode — single-turn inference"
+                    : "Enable agent mode — multi-step autonomous reasoning")
+                .accessibilityIdentifier("button_agentModeToggle")
+                .accessibilityLabel(viewModel.isAgentMode ? "Agent mode enabled" : "Agent mode disabled")
+
                 // Thinking mode indicator
                 if viewModel.isThinking {
                     HStack(spacing: AppSpacing.xs) {
@@ -449,6 +475,11 @@ struct InputAreaView: View {
 
             Spacer()
         }
+    }
+
+    /// Guard for perpetual animations — disable in test environment.
+    private var shouldAnimate: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
     }
 }
 

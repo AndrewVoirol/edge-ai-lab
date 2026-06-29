@@ -330,6 +330,22 @@ struct ContentView: View {
                     .fill(AppColors.border)
                     .frame(height: 0.5)
 
+                // Agent status banner (visible when agent mode is active)
+                if viewModel.isAgentMode,
+                   viewModel.agentHarness.isRunning
+                    || viewModel.agentHarness.status != .idle {
+                    AgentStatusView(harness: viewModel.agentHarness)
+                        #if os(iOS)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.xs)
+                        #else
+                        .padding(.horizontal, AppSpacing.lg)
+                        .padding(.vertical, AppSpacing.sm)
+                        #endif
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.3), value: viewModel.agentHarness.isRunning)
+                }
+
                 // Input area with multimodal attachments
                 InputAreaView()
                     #if os(iOS)
@@ -348,6 +364,31 @@ struct ContentView: View {
                 #endif
             }
             .accessibilityElement(children: .contain)
+            // Agent approval sheet — presented when harness awaits user decision
+            .sheet(isPresented: Binding<Bool>(
+                get: {
+                    if case .waitingForApproval = viewModel.agentHarness.status { return true }
+                    return false
+                },
+                set: { newValue in
+                    if !newValue {
+                        viewModel.agentHarness.denyAction()
+                    }
+                }
+            )) {
+                if case .waitingForApproval(let tool, let args) = viewModel.agentHarness.status {
+                    AgentApprovalView(
+                        toolName: tool,
+                        arguments: args,
+                        onApprove: { viewModel.agentHarness.approveAction() },
+                        onDeny: { viewModel.agentHarness.denyAction() },
+                        autoApproveAll: Binding(
+                            get: { viewModel.agentHarness.autoApproveAll },
+                            set: { viewModel.agentHarness.autoApproveAll = $0 }
+                        )
+                    )
+                }
+            }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("chatColumn_root")
