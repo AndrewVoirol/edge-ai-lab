@@ -317,7 +317,13 @@ struct MetricsStoreSyncTests {
         let (store, tempDir) = makeTempStore()
         defer { cleanup(tempDir) }
 
-        let manager = CloudKitSyncManager()
+        let testDevice = DeviceInfo(
+            deviceName: "Test Mac",
+            deviceModel: "arm64",
+            osVersion: "macOS 26.0",
+            appVersion: "1.0.0"
+        )
+        let manager = CloudKitSyncManager(testingDeviceInfo: testDevice)
         store.syncManager = manager
 
         #expect(store.syncManager != nil)

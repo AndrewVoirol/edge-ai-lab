@@ -57,6 +57,20 @@ struct ExperimentalFlagsState: Codable, Equatable, Sendable {
         self.enableAgentSkills = enableAgentSkills
     }
 
+    /// Custom decoder with defaults for fields added after initial release.
+    /// Ensures backward compatibility with existing history.json files that
+    /// predate enableThinking, enableToolCalling, and enableAgentSkills.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        enableBenchmark = try container.decode(Bool.self, forKey: .enableBenchmark)
+        enableSpeculativeDecoding = try container.decodeIfPresent(Bool.self, forKey: .enableSpeculativeDecoding)
+        enableConversationConstrainedDecoding = try container.decode(Bool.self, forKey: .enableConversationConstrainedDecoding)
+        visualTokenBudget = try container.decodeIfPresent(Int32.self, forKey: .visualTokenBudget)
+        enableThinking = try container.decodeIfPresent(Bool.self, forKey: .enableThinking) ?? true
+        enableToolCalling = try container.decodeIfPresent(Bool.self, forKey: .enableToolCalling) ?? false
+        enableAgentSkills = try container.decodeIfPresent(Bool.self, forKey: .enableAgentSkills) ?? false
+    }
+
     /// Captures the current state from the global ExperimentalFlags statics.
     static func captureCurrentState() -> ExperimentalFlagsState {
         ExperimentalFlagsState(

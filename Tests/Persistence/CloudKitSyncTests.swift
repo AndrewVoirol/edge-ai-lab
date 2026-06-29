@@ -271,10 +271,38 @@ struct CloudKitSyncTests {
 
     @Test("CloudKitSyncManager initializes with idle status")
     func testSyncManagerInitialState() {
-        let manager = CloudKitSyncManager()
+        // Use the testing init to avoid CKContainer entitlement crashes.
+        // Real CKContainer integration is validated by manual iCloud sign-in testing.
+        let testDevice = DeviceInfo(
+            deviceName: "Test Mac",
+            deviceModel: "arm64",
+            osVersion: "macOS 26.0",
+            appVersion: "1.0.0"
+        )
+        let manager = CloudKitSyncManager(testingDeviceInfo: testDevice)
         #expect(manager.syncStatus == .idle)
         #expect(manager.lastSyncDate == nil)
         #expect(manager.pendingCount == 0)
+        #expect(!manager.isCloudKitAvailable)  // Testing init has no container
+        #expect(!manager.isSyncEnabled)
+    }
+
+    @Test("CloudKitSyncManager testing init disables sync safely")
+    func testSyncManagerTestingInitSafe() async throws {
+        let testDevice = DeviceInfo(
+            deviceName: "Test Mac",
+            deviceModel: "arm64",
+            osVersion: "macOS 26.0",
+            appVersion: "1.0.0"
+        )
+        let manager = CloudKitSyncManager(testingDeviceInfo: testDevice)
+
+        // All operations should safely no-op without CloudKit
+        let fetched = try await manager.fetchAllEntries()
+        #expect(fetched.isEmpty)
+        try await manager.subscribeToChanges()
+        try await manager.flushPendingQueue()
+        #expect(manager.syncStatus == .idle)
     }
 
     // MARK: - Entry ID Generation Tests

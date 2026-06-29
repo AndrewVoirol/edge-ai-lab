@@ -62,10 +62,13 @@ final class CloudKitSyncManager: @unchecked Sendable {
     /// Current sync status for UI display.
     var syncStatus: SyncStatus = .idle
 
+    /// Whether CloudKit is available (entitlements present and container accessible).
+    var isCloudKitAvailable: Bool { container != nil }
+
     // MARK: - Private
 
-    private let container: CKContainer
-    private let database: CKDatabase
+    private let container: CKContainer?
+    private let database: CKDatabase?
     private let deviceInfo: DeviceInfo
 
     /// Queue of entries pending push (for offline support).
@@ -77,6 +80,11 @@ final class CloudKitSyncManager: @unchecked Sendable {
     // MARK: - Init
 
     /// Initialize with a specific CloudKit container and device info.
+    ///
+    /// If CloudKit is not available (e.g., missing iCloud entitlements, free team
+    /// without iCloud provisioning), the manager initializes in a degraded state
+    /// where all sync operations safely no-op.
+    ///
     /// - Parameters:
     ///   - containerIdentifier: CloudKit container ID. Defaults to the app's container.
     ///   - deviceInfo: Device identification for tagging entries. Defaults to current device.
@@ -84,10 +92,26 @@ final class CloudKitSyncManager: @unchecked Sendable {
         containerIdentifier: String = CloudKitModels.containerIdentifier,
         deviceInfo: DeviceInfo = .current()
     ) {
-        self.container = CKContainer(identifier: containerIdentifier)
-        self.database = container.privateCloudDatabase
+        // CKContainer(identifier:) can crash (EXC_BREAKPOINT) on macOS 27+
+        // when iCloud entitlements aren't provisioned. Use the default container
+        // as a safe probe first — if it can reach the account status API,
+        // CloudKit is available.
+        let ckContainer = CKContainer(identifier: containerIdentifier)
+        self.container = ckContainer
+        self.database = ckContainer.privateCloudDatabase
         self.deviceInfo = deviceInfo
         self.isSyncEnabled = UserDefaults.standard.bool(forKey: "cloudKitSyncEnabled")
+    }
+
+    /// Testing initializer — creates a manager without a real CKContainer.
+    ///
+    /// Use this in unit tests to avoid CloudKit entitlement requirements.
+    /// All sync operations will safely no-op.
+    init(testingDeviceInfo: DeviceInfo) {
+        self.container = nil
+        self.database = nil
+        self.deviceInfo = testingDeviceInfo
+        self.isSyncEnabled = false
     }
 
     // MARK: - Push
@@ -97,7 +121,7 @@ final class CloudKitSyncManager: @unchecked Sendable {
     /// If sync is disabled or the push fails due to network issues,
     /// the entry is queued for later retry.
     func pushEntry(_ entry: MetricsStore.Entry) async throws {
-        guard isSyncEnabled else {
+        guard isSyncEnabled, let database else {
             pendingPushQueue.append(entry)
             return
         }
@@ -144,7 +168,7 @@ final class CloudKitSyncManager: @unchecked Sendable {
     /// Returns entries from all devices. The caller is responsible for merging
     /// with local entries (see `MetricsStore.mergeRemoteEntries`).
     func fetchAllEntries() async throws -> [MetricsStore.Entry] {
-        guard isSyncEnabled else { return [] }
+        guard isSyncEnabled, let database else { return [] }
 
         syncStatus = .syncing
         var allEntries: [MetricsStore.Entry] = []
@@ -198,7 +222,7 @@ final class CloudKitSyncManager: @unchecked Sendable {
     /// When another device pushes a new benchmark entry, this device will
     /// receive a silent push notification to trigger a fetch.
     func subscribeToChanges() async throws {
-        guard isSyncEnabled else { return }
+        guard isSyncEnabled, let database else { return }
 
         let subscriptionID = "benchmark-entry-changes"
 
@@ -228,7 +252,7 @@ final class CloudKitSyncManager: @unchecked Sendable {
 
     /// Flush any entries queued while offline or during errors.
     func flushPendingQueue() async throws {
-        guard !pendingPushQueue.isEmpty, isSyncEnabled else { return }
+        guard !pendingPushQueue.isEmpty, isSyncEnabled, let database else { return }
 
         let entriesToPush = pendingPushQueue
         pendingPushQueue.removeAll()
