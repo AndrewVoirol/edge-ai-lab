@@ -171,6 +171,32 @@ final class ConversationViewModel {
     /// Tool call events from the current/last inference (for observability).
     var toolCallEvents: [ToolCallEvent] = []
 
+    // MARK: - Agent Mode
+
+    /// When true, the next prompt submission runs through the agentic ReAct loop
+    /// instead of a single inference turn.
+    var isAgentMode = false
+
+    /// The stateful harness that drives multi-step autonomous reasoning.
+    let agentHarness = AgentHarness()
+
+    /// Tool names from `ToolRegistry.defaultTools`, used in the agent system prompt.
+    nonisolated static let availableToolNames: [String] = [
+        CalculatorTool.name,
+        DateTimeTool.name,
+        DeviceInfoTool.name,
+        UnitConverterTool.name,
+        TextAnalyzerTool.name,
+        SystemHealthTool.name,
+        LocationTool.name,
+        MotionTool.name,
+        CameraTool.name,
+        FileSearchTool.name,
+        SensorsTool.name,
+        WiFiTool.name,
+        ShortcutsTool.name,
+    ]
+
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
@@ -392,10 +418,16 @@ final class ConversationViewModel {
     private var generationId: Int = 0
 
     /// Generate a response for the current prompt via streaming.
-    /// Integrates thinking mode parsing and multi-turn chat state.
+    /// Routes through the agentic ReAct loop when `isAgentMode` is true.
     func generateText() async {
         guard engine.isReady else { return }
         guard !isGenerating else { return }
+
+        // Route to agent mode if enabled
+        if isAgentMode {
+            await generateTextInAgentMode()
+            return
+        }
         Self.logger.info("🚀 generateText: prompt=\(self.prompt.prefix(80), privacy: .public) attachments=\(self.hasMultimodalAttachment)")
 
         isGenerating = true
@@ -566,6 +598,92 @@ final class ConversationViewModel {
             let saveId = capturedConversationId ?? activeConversationId ?? UUID()
             saveConversationWithId(saveId)
         }
+    }
+
+    // MARK: - Agent Mode Inference
+
+    /// Run the agentic ReAct loop using the current prompt.
+    ///
+    /// Instead of a single inference turn, the agent reasons step-by-step, calling
+    /// tools and examining results until it reaches a conclusion or hits the iteration
+    /// limit. The UI stays updated via the `agentHarness` observable.
+    private func generateTextInAgentMode() async {
+        Self.logger.info("🤖 generateTextInAgentMode: prompt=\(self.prompt.prefix(80), privacy: .public)")
+
+        isGenerating = true
+
+        let currentPrompt = prompt
+        prompt = ""
+
+        // Append user message to conversation
+        let userMessage = ChatMessage.user(currentPrompt)
+        conversation.append(userMessage)
+
+        // Create placeholder assistant message for the agent's running output
+        conversation.append(.assistant())
+
+        await agentHarness.run(
+            initialPrompt: currentPrompt,
+            availableToolNames: Self.availableToolNames,
+            generateResponse: { [weak self] agentPrompt in
+                guard let self = self else {
+                    throw NSError(domain: "EdgeAILab", code: -1, userInfo: [
+                        NSLocalizedDescriptionKey: "ViewModel deallocated during agent loop"
+                    ])
+                }
+
+                // Collect tool events during this inference turn
+                var turnToolEvents: [ToolCallEvent] = []
+                ToolExecutionTracker.shared.registerCallback { event in
+                    turnToolEvents.append(event)
+                }
+                defer {
+                    ToolExecutionTracker.shared.clearCallback()
+                }
+
+                // Run a single inference turn
+                var accumulatedResponse = ""
+                let stream = self.engine.sendMessageStream(
+                    agentPrompt,
+                    enableThinking: self.experimentalFlags.enableThinking
+                )
+                for try await chunk in stream {
+                    let cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
+                        .replacingOccurrences(of: "<think>", with: "")
+                        .replacingOccurrences(of: "<|think|>", with: "")
+                        .replacingOccurrences(of: "</think>", with: "")
+                    accumulatedResponse += cleaned
+
+                    // Update the streaming assistant message with agent progress
+                    self.conversation.updateLastAssistantMessage(
+                        content: accumulatedResponse,
+                        toolCalls: turnToolEvents.isEmpty ? nil : turnToolEvents
+                    )
+                }
+
+                // Append tool events to the main list for observability
+                self.toolCallEvents.append(contentsOf: turnToolEvents)
+
+                return (response: accumulatedResponse, toolEvents: turnToolEvents)
+            }
+        )
+
+        // Finalize the assistant message
+        if case .completed(let summary) = agentHarness.status {
+            conversation.updateLastAssistantMessage(
+                content: summary,
+                toolCalls: toolCallEvents.isEmpty ? nil : toolCallEvents,
+                isStreaming: false
+            )
+        } else if case .forceStopped(let summary) = agentHarness.status {
+            conversation.updateLastAssistantMessage(
+                content: summary,
+                toolCalls: toolCallEvents.isEmpty ? nil : toolCallEvents,
+                isStreaming: false
+            )
+        }
+
+        isGenerating = false
     }
 
     /// Stop an active text generation.
