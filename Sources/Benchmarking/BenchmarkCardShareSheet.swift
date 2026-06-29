@@ -19,14 +19,18 @@ import SwiftUI
 
 /// A modal sheet presenting a live preview of the benchmark card
 /// with actions to copy, save, or share it.
+/// Supports multiple card sizes for different social media platforms.
 struct BenchmarkCardShareSheet: View {
     let cardData: BenchmarkCardData
+    var metricsEntry: MetricsStore.Entry?
 
     @Environment(\.dismiss) private var dismiss
     @State private var renderedImage: PlatformImage?
     @State private var isCopied = false
     @State private var isSaved = false
     @State private var saveError: String?
+    @State private var selectedSize: CardSize = .twitterCard
+    @State private var showShareActions = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,6 +47,7 @@ struct BenchmarkCardShareSheet: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(AppColors.accentTeal)
+                .accessibilityIdentifier("shareSheetDoneButton")
             }
             .padding(.horizontal, AppSpacing.xl)
             .padding(.vertical, AppSpacing.lg)
@@ -51,16 +56,27 @@ struct BenchmarkCardShareSheet: View {
 
             ScrollView {
                 VStack(spacing: AppSpacing.xl) {
+                    // Card size picker
+                    Picker("Card Size", selection: $selectedSize) {
+                        ForEach(CardSize.allCases, id: \.self) { size in
+                            Text(size.label).tag(size)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.top, AppSpacing.lg)
+                    .accessibilityIdentifier("shareSheetSizePicker")
+
                     // Card preview (scaled to fit)
-                    BenchmarkCardView(data: cardData)
+                    BenchmarkCardView(data: cardData, cardSize: selectedSize)
                         .scaleEffect(cardScale)
                         .frame(
-                            width: BenchmarkCardView.cardWidth * cardScale,
-                            height: BenchmarkCardView.cardHeight * cardScale
+                            width: selectedSize.width * cardScale,
+                            height: selectedSize.height * cardScale
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
-                        .padding(.top, AppSpacing.xl)
+                        .padding(.top, AppSpacing.md)
 
                     // Action buttons
                     HStack(spacing: AppSpacing.lg) {
@@ -73,6 +89,7 @@ struct BenchmarkCardShareSheet: View {
                         ) {
                             copyToClipboard()
                         }
+                        .accessibilityIdentifier("shareSheetCopyButton")
 
                         // Save to Downloads
                         actionButton(
@@ -82,10 +99,11 @@ struct BenchmarkCardShareSheet: View {
                         ) {
                             saveToDisk()
                         }
+                        .accessibilityIdentifier("shareSheetSaveButton")
                         #endif
 
                         // Share via system share sheet
-                        if let pngData = BenchmarkCardRenderer.renderPNG(data: cardData) {
+                        if let pngData = BenchmarkCardExporter.renderPNG(data: cardData, size: selectedSize) {
                             ShareLink(
                                 item: BenchmarkCardTransferable(imageData: pngData),
                                 preview: SharePreview(
@@ -100,7 +118,18 @@ struct BenchmarkCardShareSheet: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("shareSheetShareButton")
                         }
+
+                        // Copy Markdown
+                        actionButton(
+                            icon: "doc.text",
+                            label: "Markdown",
+                            color: AppColors.accentGold
+                        ) {
+                            copyMarkdown()
+                        }
+                        .accessibilityIdentifier("shareSheetMarkdownButton")
                     }
                     .padding(.horizontal, AppSpacing.xl)
 
@@ -128,18 +157,21 @@ struct BenchmarkCardShareSheet: View {
         .background(AppColors.backgroundPrimary)
         .frame(minWidth: 600, idealWidth: 700, minHeight: 500, idealHeight: 600)
         .onAppear {
-            renderedImage = BenchmarkCardRenderer.renderImage(data: cardData)
+            renderedImage = BenchmarkCardExporter.renderImage(data: cardData, size: selectedSize)
+        }
+        .onChange(of: selectedSize) {
+            renderedImage = BenchmarkCardExporter.renderImage(data: cardData, size: selectedSize)
         }
     }
 
     // MARK: - Scale Factor
 
-    /// Scale the 1200×630 card to fit the sheet width.
+    /// Scale the card to fit the sheet width.
     private var cardScale: CGFloat {
         #if os(macOS)
-        return 0.5
+        return min(600 / selectedSize.width, 400 / selectedSize.height)
         #else
-        return 0.28
+        return min(350 / selectedSize.width, 350 / selectedSize.height)
         #endif
     }
 
@@ -147,7 +179,7 @@ struct BenchmarkCardShareSheet: View {
 
     #if os(macOS)
     private func copyToClipboard() {
-        guard let image = renderedImage else { return }
+        guard let image = BenchmarkCardExporter.renderImage(data: cardData, size: selectedSize) else { return }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.writeObjects([image])
@@ -166,7 +198,7 @@ struct BenchmarkCardShareSheet: View {
     }
 
     private func saveToDisk() {
-        guard let pngData = BenchmarkCardRenderer.renderPNG(data: cardData) else {
+        guard let pngData = BenchmarkCardExporter.renderPNG(data: cardData, size: selectedSize) else {
             saveError = "Failed to render image"
             return
         }
@@ -199,16 +231,46 @@ struct BenchmarkCardShareSheet: View {
     }
     #endif
 
+    private func copyMarkdown() {
+        let markdown: String
+        if let entry = metricsEntry {
+            markdown = MarkdownExporter.generateGitHubTemplate(entry: entry)
+        } else {
+            markdown = BenchmarkCardLogic.generateShareCaption(from: cardData)
+        }
+
+        #if os(macOS)
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(markdown, forType: .string)
+        #else
+        UIPasteboard.general.string = markdown
+        #endif
+
+        withAnimation(AppAnimation.standard) {
+            isCopied = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                withAnimation(AppAnimation.standard) {
+                    isCopied = false
+                }
+            }
+        }
+    }
+
     /// Generate a descriptive filename for the benchmark card.
     private var benchmarkFilename: String {
         let modelClean = cardData.modelName
             .replacingOccurrences(of: " · ", with: "-")
             .replacingOccurrences(of: " ", with: "_")
         let speed = String(format: "%.0f", cardData.decodeSpeed)
+        let sizeLabel = selectedSize.rawValue
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmm"
         let dateStr = formatter.string(from: cardData.timestamp)
-        return "EdgeAILab_\(modelClean)_\(speed)toks_\(dateStr).png"
+        return "EdgeAILab_\(modelClean)_\(speed)toks_\(sizeLabel)_\(dateStr).png"
     }
 
     // MARK: - Button Helpers
