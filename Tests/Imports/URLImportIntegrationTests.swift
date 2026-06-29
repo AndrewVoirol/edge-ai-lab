@@ -30,7 +30,7 @@ import Foundation
 /// inference and catalog persistence. Network-dependent tests (API fetch, download)
 /// are separated so they can be excluded from CI.
 ///
-/// Test model: `litert-community/DeepSeek-R1-Distill-Qwen-1.5B` — a real HuggingFace
+/// Test model: `litert-community/gemma-3-1B-it-litert-lm` — a real HuggingFace
 /// repo with `.litertlm` files that is NOT in `ModelRegistry.knownModels`.
 final class URLImportIntegrationTests: XCTestCase {
 
@@ -225,7 +225,7 @@ final class URLImportIntegrationTests: XCTestCase {
     @MainActor
     func testFullPipelineToReadyToDownload() async throws {
         // Use a model NOT in the known registry
-        let testURL = "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B"
+        let testURL = "https://huggingface.co/litert-community/gemma-3-1B-it-litert-lm"
 
         await manager.importFromURL(testURL)
 
@@ -258,7 +258,7 @@ final class URLImportIntegrationTests: XCTestCase {
     /// Verify confirmDownload transitions to .downloading state.
     @MainActor
     func testConfirmDownloadTransitionsToDownloading() async throws {
-        let testURL = "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B"
+        let testURL = "https://huggingface.co/litert-community/gemma-3-1B-it-litert-lm"
 
         await manager.importFromURL(testURL)
 

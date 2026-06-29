@@ -19,7 +19,8 @@
         "name": "EdgeAILab_iOSTests"
       },
       "skippedTests": [
-        "InferenceQualityTests"
+        "InferenceQualityTests",
+        "URLImportIntegrationTests"
       ]
     }
   ],

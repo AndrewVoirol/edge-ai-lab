@@ -25,7 +25,8 @@
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
-        "SmartFallbackIntegrationTests"
+        "SmartFallbackIntegrationTests",
+        "URLImportIntegrationTests"
       ]
     },
     {
@@ -41,7 +42,8 @@
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
-        "SmartFallbackIntegrationTests"
+        "SmartFallbackIntegrationTests",
+        "URLImportIntegrationTests"
       ]
     }
   ],
