@@ -63,3 +63,38 @@
 ## Verification Integrity
 - **Never write speculative failure diagnoses into AGENTS.md.** Phrases like "likely an iOS 27 issue" or "probably a compatibility problem" are opinions, not evidence. If you haven't verified the root cause, write "status unknown — not verified" instead. Rules in AGENTS.md are treated as facts by future sessions — speculation in rules compounds into persistent misinformation.
 - **Diagnose before planning, not after.** When asked to create a plan for investigation or verification, run diagnostic commands FIRST (check device connectivity, model presence, cache state, test plan contents) and present findings in the plan. A plan full of "if X is present..." and "we may need to..." signals that research was skipped. The user should see answers in the plan, not questions.
+
+## Multi-Agent Git Coordination
+- **Never use `git add -A` when parallel agents share a workspace.** Use `git add <specific files>` to prevent capturing another agent's uncommitted work. List the exact files in the commit command.
+- **Parallel agents MUST use separate feature branches.** Each agent works on its own branch (e.g., `wave3/stats-and-share`, `wave3/cross-device-sync`). The user merges branches after independent verification.
+- **After `git checkout` to a different branch, ALWAYS run `tuist generate` before building** — the `.xcodeproj` is gitignored and may reference files from the previous branch, causing phantom "file not found" build errors.
+- **Never run two `xcodebuild` processes simultaneously on the same DerivedData.** Concurrent builds/tests cause `database is locked` errors. Serialize all build and test runs, or use separate `-derivedDataPath` arguments.
+- **If branching is impossible, serialize commits.** Agent A must commit and push before Agent B runs `git add`. Include a `git pull --rebase` before each agent's commit.
+
+## Pre-Flight Build Check
+- **Before starting feature work, verify the tree builds clean on both platforms.** Run `xcodebuild build` for macOS and iOS. If the build is broken, commit fixes separately with message prefix `fix: pre-existing —` before beginning feature work. Do not mix pre-existing fixes with feature commits.
+
+## Apple Framework API Verification
+- **Before using any system framework API (CloudKit, Core ML, MapKit, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
+- **Known non-existent APIs agents have invented:** `CKRecordValueProtocol` (doesn't exist — use `CKRecordValueProtocol` is not a thing, cast to `NSString`/`NSNumber` instead), `CKQueryResultCursor` (doesn't exist — the correct type is `CKQueryOperation.Cursor`), `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`).
+
+## Apple Developer Team Limitations
+- **This project uses a FREE personal Apple Developer team** (Team ID: `Y7J7WUK693`, holder: Andrew Voirol).
+- **Free personal teams CANNOT provision:** iCloud/CloudKit, Push Notifications, App Groups, Associated Domains, In-App Purchase, TestFlight, App Store distribution.
+- Any feature requiring these capabilities must either: (a) gracefully degrade without entitlements (code compiles but no-ops at runtime), or (b) use an alternative that works on free teams (e.g., MultipeerConnectivity instead of CloudKit, local notifications instead of push).
+- **Always check Apple's capability matrix before designing features that require entitlements.** Do not add entitlement keys to `.entitlements` files without first verifying the dev team can provision them.
+
+## Test JSON Fixtures
+- **Never hardcode JSON strings for model deserialization tests.** Use the struct's actual `JSONEncoder` to produce baseline JSON, then decode it. This prevents breakage when concurrent agents add required fields to shared models.
+- **If testing backward compatibility with old formats**, implement `init(from decoder:)` using `decodeIfPresent` with defaults — do NOT rely on auto-synthesized `Codable` when the model may evolve across parallel agent sessions.
+- **Before writing test fixtures, grep for ALL `Codable` properties** of the target struct to ensure fixture completeness: `grep -A5 "var.*:" Sources/<file>.swift`.
+
+## Swift Testing
+- **`import Testing` does NOT bring in Foundation.** Test files using `JSONSerialization`, `Date`, `URL`, `Data`, or any Foundation type must add `import Foundation` explicitly. This differs from XCTest, which implicitly imports Foundation.
+- **Avoid optional chaining inside `#expect()`.** The Swift compiler crashes on `#expect(foo?["key"] as? String == "bar")`. Extract to a local variable first: `let val = foo?["key"] as? String; #expect(val == "bar")`.
+- **`xcodebuild test` may report `TEST FAILED` even when all tests pass** if any test uses Swift Testing's `withKnownIssue`. The exit code is non-zero due to the known issue marker. Verify actual failures with `grep -c "✘"` on the output — if the count is 0, all tests passed.
+
+## Tuist — File and Branch Registration
+- **Always run `tuist generate` after creating new `.swift` source or test files.** Tuist scans the filesystem to build the Xcode project; new files are invisible to the build until project regeneration.
+- **Always run `tuist generate` after switching git branches.** The `.xcodeproj` is gitignored and not branch-aware — it retains the file list from the previous branch.
+- **Always run `tuist generate` after modifying `Project.swift`** or any `.entitlements` file.
