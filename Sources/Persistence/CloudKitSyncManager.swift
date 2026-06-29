@@ -245,7 +245,7 @@ final class CloudKitSyncManager: @unchecked Sendable {
         notificationInfo.shouldSendContentAvailable = true  // Silent push
         subscription.notificationInfo = notificationInfo
 
-        try await database.save(subscription)
+        _ = try await database.save(subscription)
     }
 
     // MARK: - Pending Queue

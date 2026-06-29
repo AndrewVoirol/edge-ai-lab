@@ -16,6 +16,7 @@
 import CoreLocation
 import Foundation
 import LiteRTLM
+import MapKit
 
 // MARK: - LocationDelegate
 
@@ -127,13 +128,27 @@ struct LocationTool: Tool {
             "postal_code": NSNull()
         ]
 
-        if let placemarks = try? await CLGeocoder().reverseGeocodeLocation(location),
-           let placemark = placemarks.first {
-            addressDict["street"] = placemark.thoroughfare as Any? ?? NSNull()
-            addressDict["city"] = placemark.locality as Any? ?? NSNull()
-            addressDict["state"] = placemark.administrativeArea as Any? ?? NSNull()
-            addressDict["country"] = placemark.country as Any? ?? NSNull()
-            addressDict["postal_code"] = placemark.postalCode as Any? ?? NSNull()
+        if #available(macOS 26.0, iOS 26.0, *) {
+            if let request = MKReverseGeocodingRequest(location: location) {
+                if let mapItems = try? await request.mapItems,
+                   let item = mapItems.first {
+                    let placemark = item.placemark
+                    addressDict["street"] = placemark.thoroughfare as Any? ?? NSNull()
+                    addressDict["city"] = placemark.locality as Any? ?? NSNull()
+                    addressDict["state"] = placemark.administrativeArea as Any? ?? NSNull()
+                    addressDict["country"] = placemark.country as Any? ?? NSNull()
+                    addressDict["postal_code"] = placemark.postalCode as Any? ?? NSNull()
+                }
+            }
+        } else {
+            if let placemarks = try? await CLGeocoder().reverseGeocodeLocation(location),
+               let placemark = placemarks.first {
+                addressDict["street"] = placemark.thoroughfare as Any? ?? NSNull()
+                addressDict["city"] = placemark.locality as Any? ?? NSNull()
+                addressDict["state"] = placemark.administrativeArea as Any? ?? NSNull()
+                addressDict["country"] = placemark.country as Any? ?? NSNull()
+                addressDict["postal_code"] = placemark.postalCode as Any? ?? NSNull()
+            }
         }
 
         let source: String
