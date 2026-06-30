@@ -29,7 +29,8 @@ import Foundation
 ///
 /// These tests verify:
 /// - LiteRT-LM creates a `LiteRTEngineAdapter`
-/// - Unsupported runtimes (MLX, GGUF) throw `runtimeNotYetAvailable`
+/// - MLX creates an `MLXEngineAdapter`
+/// - Unsupported runtimes (GGUF) throw `runtimeNotYetAvailable`
 /// - Unknown format throws `unsupportedFormat`
 /// - HFModelFormat convenience routing matches RuntimeType routing
 @Suite("EngineFactory")
@@ -54,11 +55,24 @@ struct EngineFactoryTests {
             #expect(engine.modelInfo == nil)
         }
 
-        @Test("mlx throws runtimeNotYetAvailable")
-        func mlxThrows() {
-            #expect(throws: EngineError.runtimeNotYetAvailable(.mlx)) {
-                try EngineFactory.createEngine(for: .mlx as RuntimeType)
-            }
+        @Test("mlx creates MLXEngineAdapter")
+        func mlxCreatesAdapter() throws {
+            let engine = try EngineFactory.createEngine(for: .mlx as RuntimeType)
+            #expect(engine is MLXEngineAdapter)
+            #expect(engine.runtimeType == .mlx)
+        }
+
+        @Test("mlx engine starts not loaded")
+        func mlxStartsNotLoaded() throws {
+            let engine = try EngineFactory.createEngine(for: .mlx as RuntimeType)
+            #expect(engine.isLoaded == false)
+            #expect(engine.modelInfo == nil)
+        }
+
+        @Test("mlx engine has correct runtime type")
+        func mlxHasCorrectRuntime() throws {
+            let engine = try EngineFactory.createEngine(for: .mlx as RuntimeType)
+            #expect(engine.runtimeType == .mlx)
         }
 
         @Test("gguf throws runtimeNotYetAvailable")
@@ -77,7 +91,7 @@ struct EngineFactoryTests {
                         try EngineFactory.createEngine(for: runtimeType)
                     }
                 case .mlx:
-                    #expect(throws: EngineError.self) {
+                    #expect(throws: Never.self) {
                         try EngineFactory.createEngine(for: runtimeType)
                     }
                 case .gguf:
@@ -101,11 +115,11 @@ struct EngineFactoryTests {
             #expect(engine.runtimeType == .litertlm)
         }
 
-        @Test("mlx format throws runtimeNotYetAvailable")
-        func mlxFormat() {
-            #expect(throws: EngineError.runtimeNotYetAvailable(.mlx)) {
-                try EngineFactory.createEngine(for: .mlx as HFModelFormat)
-            }
+        @Test("mlx format creates MLXEngineAdapter")
+        func mlxFormat() throws {
+            let engine = try EngineFactory.createEngine(for: .mlx as HFModelFormat)
+            #expect(engine is MLXEngineAdapter)
+            #expect(engine.runtimeType == .mlx)
         }
 
         @Test("unknown format throws unsupportedFormat")
@@ -126,6 +140,13 @@ struct EngineFactoryTests {
             let engine1 = try EngineFactory.createEngine(for: .litertlm as RuntimeType)
             let engine2 = try EngineFactory.createEngine(for: .litertlm as RuntimeType)
             // They should be different instances
+            #expect(engine1 !== engine2)
+        }
+
+        @Test("each MLX call creates a fresh instance")
+        func freshMLXInstance() throws {
+            let engine1 = try EngineFactory.createEngine(for: .mlx as RuntimeType)
+            let engine2 = try EngineFactory.createEngine(for: .mlx as RuntimeType)
             #expect(engine1 !== engine2)
         }
     }

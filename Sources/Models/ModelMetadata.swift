@@ -87,9 +87,9 @@ enum RuntimeType: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Whether this runtime is currently supported for inference in v2.0.
+    /// Whether this runtime is currently supported for inference.
     var isSupported: Bool {
-        self == .litertlm  // v2.0: only LiteRT-LM is runnable
+        self == .litertlm || self == .mlx
     }
 }
 

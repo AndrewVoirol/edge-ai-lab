@@ -44,6 +44,8 @@ struct InferenceEngineProtocolTests {
             #expect(config.temperature == 0.7)
             #expect(config.topP == 0.9)
             #expect(config.topK == 40)
+            #expect(config.repetitionPenalty == nil)
+            #expect(config.seed == nil)
             #expect(config.diffusionSteps == nil)
             #expect(config.diffusionSchedule == nil)
         }
@@ -55,6 +57,8 @@ struct InferenceEngineProtocolTests {
                 temperature: 1.2,
                 topP: 0.95,
                 topK: 50,
+                repetitionPenalty: 1.1,
+                seed: 42,
                 diffusionSteps: 32,
                 diffusionSchedule: "cosine"
             )
@@ -62,6 +66,8 @@ struct InferenceEngineProtocolTests {
             #expect(config.temperature == 1.2)
             #expect(config.topP == 0.95)
             #expect(config.topK == 50)
+            #expect(config.repetitionPenalty == 1.1)
+            #expect(config.seed == 42)
             #expect(config.diffusionSteps == 32)
             #expect(config.diffusionSchedule == "cosine")
         }
@@ -73,6 +79,8 @@ struct InferenceEngineProtocolTests {
             #expect(config.temperature == 0.7)
             #expect(config.topP == 0.9)
             #expect(config.topK == 40)
+            #expect(config.repetitionPenalty == nil)
+            #expect(config.seed == nil)
             #expect(config.diffusionSteps == nil)
             #expect(config.diffusionSchedule == nil)
         }
@@ -285,6 +293,159 @@ struct InferenceEngineProtocolTests {
             let a = EngineError.runtimeNotYetAvailable(.mlx)
             let b = EngineError.unsupportedFormat("MLX")
             #expect(a != b)
+        }
+    }
+
+    // MARK: - GenerationEvent
+
+    @Suite("GenerationEvent")
+    struct GenerationEventTests {
+
+        @Test("text event contains token")
+        func textEvent() {
+            let event = GenerationEvent.text("Hello")
+            if case .text(let token) = event {
+                #expect(token == "Hello")
+            } else {
+                Issue.record("Expected .text event")
+            }
+        }
+
+        @Test("toolCall event contains call info")
+        func toolCallEvent() {
+            let call = AppToolCall(id: "1", toolName: "calculator", arguments: ["expr": "2+2"])
+            let event = GenerationEvent.toolCall(call)
+            if case .toolCall(let c) = event {
+                #expect(c.toolName == "calculator")
+                #expect(c.arguments["expr"] == "2+2")
+            } else {
+                Issue.record("Expected .toolCall event")
+            }
+        }
+
+        @Test("metrics event contains performance data")
+        func metricsEvent() {
+            let metrics = EnginePerformanceMetrics(
+                tokensPerSecond: 42.0,
+                promptTokensPerSecond: nil,
+                timeToFirstToken: 0.5,
+                peakMemoryBytes: nil,
+                tokenCount: 100,
+                runtimeType: .mlx
+            )
+            let event = GenerationEvent.metrics(metrics)
+            if case .metrics(let m) = event {
+                #expect(m.tokensPerSecond == 42.0)
+                #expect(m.tokenCount == 100)
+            } else {
+                Issue.record("Expected .metrics event")
+            }
+        }
+
+        @Test("done event matches")
+        func doneEvent() {
+            let event = GenerationEvent.done
+            if case .done = event {
+                // Success
+            } else {
+                Issue.record("Expected .done event")
+            }
+        }
+    }
+
+    // MARK: - AppToolCall
+
+    @Suite("AppToolCall")
+    struct AppToolCallTests {
+
+        @Test("construction preserves all fields")
+        func construction() {
+            let call = AppToolCall(
+                id: "call-123",
+                toolName: "unit_converter",
+                arguments: ["value": "100", "from": "celsius", "to": "fahrenheit"]
+            )
+            #expect(call.id == "call-123")
+            #expect(call.toolName == "unit_converter")
+            #expect(call.arguments.count == 3)
+            #expect(call.arguments["value"] == "100")
+        }
+
+        @Test("AppToolCall is Equatable")
+        func equatable() {
+            let a = AppToolCall(id: "1", toolName: "calc", arguments: ["x": "1"])
+            let b = AppToolCall(id: "1", toolName: "calc", arguments: ["x": "1"])
+            #expect(a == b)
+        }
+
+        @Test("AppToolCall is Codable")
+        func codable() throws {
+            let original = AppToolCall(id: "1", toolName: "calc", arguments: ["expr": "2+2"])
+            let data = try JSONEncoder().encode(original)
+            let decoded = try JSONDecoder().decode(AppToolCall.self, from: data)
+            #expect(decoded == original)
+        }
+    }
+
+    // MARK: - EnginePerformanceMetrics
+
+    @Suite("EnginePerformanceMetrics")
+    struct EnginePerformanceMetricsTests {
+
+        @Test("construction with all fields")
+        func fullConstruction() {
+            let metrics = EnginePerformanceMetrics(
+                tokensPerSecond: 35.5,
+                promptTokensPerSecond: 120.0,
+                timeToFirstToken: 0.3,
+                peakMemoryBytes: 3_000_000_000,
+                tokenCount: 256,
+                runtimeType: .mlx
+            )
+            #expect(metrics.tokensPerSecond == 35.5)
+            #expect(metrics.promptTokensPerSecond == 120.0)
+            #expect(metrics.timeToFirstToken == 0.3)
+            #expect(metrics.peakMemoryBytes == 3_000_000_000)
+            #expect(metrics.tokenCount == 256)
+            #expect(metrics.runtimeType == .mlx)
+        }
+
+        @Test("construction with nil optionals")
+        func nilOptionals() {
+            let metrics = EnginePerformanceMetrics(
+                tokensPerSecond: 20.0,
+                promptTokensPerSecond: nil,
+                timeToFirstToken: nil,
+                peakMemoryBytes: nil,
+                tokenCount: nil,
+                runtimeType: .litertlm
+            )
+            #expect(metrics.promptTokensPerSecond == nil)
+            #expect(metrics.timeToFirstToken == nil)
+            #expect(metrics.peakMemoryBytes == nil)
+            #expect(metrics.tokenCount == nil)
+        }
+
+        @Test("metrics is Equatable")
+        func equatable() {
+            let a = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, runtimeType: .mlx)
+            let b = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, runtimeType: .mlx)
+            #expect(a == b)
+        }
+
+        @Test("metrics is Codable")
+        func codable() throws {
+            let original = EnginePerformanceMetrics(
+                tokensPerSecond: 42.0,
+                promptTokensPerSecond: 100.0,
+                timeToFirstToken: 0.5,
+                peakMemoryBytes: 1024,
+                tokenCount: 50,
+                runtimeType: .mlx
+            )
+            let data = try JSONEncoder().encode(original)
+            let decoded = try JSONDecoder().decode(EnginePerformanceMetrics.self, from: data)
+            #expect(decoded == original)
         }
     }
 }

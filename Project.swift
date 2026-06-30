@@ -17,6 +17,11 @@ let project = Project(
         // NOTE: .revision() doesn't work with this repo (SPM can't checkout custom paths).
         // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
+        // mlx-swift-lm: MLX inference (Apple Silicon Metal GPU) for macOS/iOS.
+        // Tracks main branch (consistent with LiteRT-LM strategy).
+        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .branch("main")),
+        // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
+        .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
         .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
     ],
@@ -33,7 +38,7 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.andrewvoirol.EdgeAILab",
-            deploymentTargets: .iOS("26.5"),
+            deploymentTargets: .iOS("27.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
                 "UILaunchScreen": [:],
@@ -54,6 +59,11 @@ let project = Project(
             entitlements: .file(path: "EdgeAILab_iOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
+                .package(product: "MLXLLM"),
+                .package(product: "MLXLMCommon"),
+                .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
+                .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
+                .package(product: "Hub"),             // HuggingFace Hub download client
                 .package(product: "MarkdownUI"),
                 .sdk(name: "CloudKit", type: .framework)
             ]
@@ -63,7 +73,7 @@ let project = Project(
             destinations: .iOS,
             product: .unitTests,
             bundleId: "com.andrewvoirol.EdgeAILab.Tests",
-            deploymentTargets: .iOS("26.5"),
+            deploymentTargets: .iOS("27.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
             resources: ["Tests/Resources/**"],
@@ -76,7 +86,7 @@ let project = Project(
             destinations: .macOS,
             product: .app,
             bundleId: "com.andrewvoirol.EdgeAILab.mac",
-            deploymentTargets: .macOS("26.0"),
+            deploymentTargets: .macOS("27.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
                 "CFBundleName": "Edge AI Lab",
@@ -88,6 +98,11 @@ let project = Project(
             entitlements: .file(path: "EdgeAILab_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),
+                .package(product: "MLXLLM"),
+                .package(product: "MLXLMCommon"),
+                .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
+                .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
+                .package(product: "Hub"),             // HuggingFace Hub download client
                 .package(product: "MarkdownUI"),
                 .sdk(name: "CloudKit", type: .framework)
             ],
@@ -103,7 +118,7 @@ let project = Project(
             destinations: .macOS,
             product: .unitTests,
             bundleId: "com.andrewvoirol.EdgeAILab.mac.Tests",
-            deploymentTargets: .macOS("26.0"),
+            deploymentTargets: .macOS("27.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
             resources: ["Tests/Resources/**"],
@@ -121,7 +136,7 @@ let project = Project(
             destinations: .macOS,
             product: .uiTests,
             bundleId: "com.andrewvoirol.EdgeAILab.mac.UITests",
-            deploymentTargets: .macOS("26.0"),
+            deploymentTargets: .macOS("27.0"),
             infoPlist: .default,
             sources: ["UITests/**"],
             resources: ["automation/flows/**/*.json"],
@@ -139,7 +154,7 @@ let project = Project(
             destinations: .iOS,
             product: .uiTests,
             bundleId: "com.andrewvoirol.EdgeAILab.UITests",
-            deploymentTargets: .iOS("26.5"),
+            deploymentTargets: .iOS("27.0"),
             infoPlist: .default,
             sources: ["iOSUITests/**"],
             resources: ["automation/flows/**/*.json"],
@@ -157,7 +172,7 @@ let project = Project(
             destinations: .macOS,
             product: .commandLineTool,
             bundleId: "com.andrewvoirol.EdgeAILab.RawBenchmark",
-            deploymentTargets: .macOS("26.0"),
+            deploymentTargets: .macOS("27.0"),
             infoPlist: .default,
             sources: ["RawBenchmark/**"],
             dependencies: [

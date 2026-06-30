@@ -50,6 +50,9 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     /// The sampler config applied to the current conversation.
     private var activeSamplerConfig: SamplerConfig?
 
+    /// Cached performance metrics from the last generation.
+    private(set) var lastPerformanceMetrics: EnginePerformanceMetrics?
+
     // MARK: - Init
 
     /// Creates an adapter wrapping a new `InstrumentedEngine`.
@@ -68,6 +71,8 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     var isLoaded: Bool { engine.isReady }
 
     var runtimeType: RuntimeType { .litertlm }
+
+    var supportsToolCalling: Bool { true }
 
     func loadModel(config: ModelLoadConfig) async throws {
         // Build a sampler config if we have one cached from a prior generate call.
@@ -108,7 +113,7 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     func generateStream(
         prompt: String,
         config: GenerationConfig
-    ) -> AsyncThrowingStream<String, Error> {
+    ) -> AsyncThrowingStream<GenerationEvent, Error> {
         guard engine.isReady else {
             return AsyncThrowingStream { continuation in
                 continuation.finish(throwing: EngineError.notReady(
@@ -117,15 +122,60 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
             }
         }
 
+        // Wrap the existing String stream into GenerationEvent stream.
         // Note: LiteRT-LM binds sampling parameters to the conversation at creation time,
         // not per-turn. If the caller needs different parameters, they would need to
-        // call loadModel() again with a new config. For now, we use whatever was set
-        // at conversation creation.
-        return engine.sendMessageStream(prompt)
+        // call loadModel() again with a new config.
+        let textStream = engine.sendMessageStream(prompt)
+
+        return AsyncThrowingStream { continuation in
+            Task { [weak self] in
+                do {
+                    for try await chunk in textStream {
+                        continuation.yield(.text(chunk))
+                    }
+
+                    // After the stream completes, extract benchmark metrics if available.
+                    if let benchmarkInfo = self?.engine.lastBenchmarkInfo {
+                        let metrics = EnginePerformanceMetrics(
+                            tokensPerSecond: benchmarkInfo.lastDecodeTokensPerSecond,
+                            promptTokensPerSecond: nil,
+                            timeToFirstToken: benchmarkInfo.timeToFirstTokenInSecond,
+                            peakMemoryBytes: nil,
+                            tokenCount: benchmarkInfo.lastDecodeTokenCount,
+                            runtimeType: .litertlm
+                        )
+                        self?.lastPerformanceMetrics = metrics
+                        continuation.yield(.metrics(metrics))
+                    }
+
+                    continuation.yield(.done)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
     }
 
     // generateBatch uses the default implementation from InferenceEngine extension
-    // (collects stream into a single string).
+    // (collects .text events into a single string).
+
+    // MARK: - Lifecycle
+
+    func shutdown() {
+        // InstrumentedEngine.shutdown() is async, but InferenceEngine.shutdown() is sync.
+        // Fire-and-forget the async cleanup. The engine manages its own ordering internally.
+        Task { await engine.shutdown() }
+    }
+
+    func resetConversation() async throws {
+        try await engine.resetConversation()
+    }
+
+    func cancelGeneration() {
+        engine.cancelGeneration()
+    }
 }
 
 // MARK: - GenerationConfig → SamplerConfig Mapping
@@ -136,7 +186,8 @@ extension LiteRTEngineAdapter {
     ///
     /// This is a one-way mapping since `SamplerConfig` is a LiteRT-LM SDK type.
     /// Only the parameters that LiteRT-LM supports are mapped; diffusion-specific
-    /// parameters (`diffusionSteps`, `diffusionSchedule`) are silently ignored.
+    /// parameters (`diffusionSteps`, `diffusionSchedule`) and MLX-specific
+    /// parameters (`repetitionPenalty`) are silently ignored.
     static func makeSamplerConfig(from config: GenerationConfig) throws -> SamplerConfig {
         try SamplerConfig(
             topK: config.topK,

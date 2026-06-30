@@ -15,6 +15,56 @@
 
 import Foundation
 
+// MARK: - GenerationEvent
+
+/// Events emitted during generation — unified across all runtimes.
+///
+/// Consumers iterate over `AsyncThrowingStream<GenerationEvent, Error>` and switch
+/// on each case. This replaces the old `AsyncThrowingStream<String, Error>` to
+/// support tool calling and per-generation metrics alongside text streaming.
+enum GenerationEvent: Sendable {
+    /// A text token or chunk.
+    case text(String)
+    /// A tool call detected in the model output.
+    case toolCall(AppToolCall)
+    /// Performance metrics for the completed generation.
+    case metrics(EnginePerformanceMetrics)
+    /// Generation completed normally.
+    case done
+}
+
+// MARK: - AppToolCall
+
+/// App-local tool call representation (runtime-agnostic).
+///
+/// Both LiteRT-LM and MLX emit tool calls in different formats; their respective
+/// adapters convert to this common type before yielding `.toolCall` events.
+struct AppToolCall: Sendable, Codable, Equatable {
+    let id: String
+    let toolName: String
+    let arguments: [String: String]
+}
+
+// MARK: - EnginePerformanceMetrics
+
+/// Runtime-agnostic performance metrics for a completed generation.
+///
+/// Populated from `BenchmarkInfo` (LiteRT-LM) or `GenerateCompletionInfo` (MLX).
+struct EnginePerformanceMetrics: Sendable, Equatable, Codable {
+    /// Tokens generated per second (decode speed).
+    let tokensPerSecond: Double
+    /// Prompt tokens processed per second (prefill speed). MLX provides this natively.
+    let promptTokensPerSecond: Double?
+    /// Time to first token in seconds.
+    let timeToFirstToken: Double?
+    /// Peak memory usage in bytes during generation.
+    let peakMemoryBytes: UInt64?
+    /// Number of tokens generated.
+    let tokenCount: Int?
+    /// The runtime that produced these metrics.
+    let runtimeType: RuntimeType
+}
+
 // MARK: - InferenceEngine Protocol
 
 /// A runtime-agnostic protocol for on-device model inference.
@@ -32,45 +82,59 @@ import Foundation
 ///
 /// ## Generation Modes
 ///
-/// - **Streaming (`generateStream`):** Yields tokens one at a time as they are generated.
-///   Used by autoregressive models (e.g., Gemma via LiteRT-LM). Callers iterate
-///   with `for try await token in stream { ... }`.
+/// - **Streaming (`generateStream`):** Yields `GenerationEvent` values as they occur.
+///   Text tokens arrive as `.text(String)`, tool calls as `.toolCall(AppToolCall)`,
+///   and performance metrics as `.metrics(EnginePerformanceMetrics)`.
 ///
 /// - **Batch (`generateBatch`):** Returns the complete response as a single string.
 ///   Used by diffusion models (e.g., DiffusionGemma) that produce all tokens in parallel
 ///   across multiple refinement steps. Also useful for autoregressive models when streaming
-///   is not needed (the default implementation collects stream output).
+///   is not needed (the default implementation collects `.text` events).
 ///
 /// ## Conformance
 ///
 /// - `LiteRTEngineAdapter` wraps `InstrumentedEngine` for LiteRT-LM models.
-/// - Future: `MLXEngine`, `GGUFEngine` for additional runtimes.
+/// - `MLXEngineAdapter` wraps `mlx-swift-lm` for MLX models.
+/// - Future: `GGUFEngine` for additional runtimes.
 protocol InferenceEngine: AnyObject, Sendable {
 
-    /// Load a model from a filesystem path.
+    // MARK: - Loading
+
+    /// Load a model from a filesystem path or HuggingFace identifier.
     ///
     /// - Parameter config: Configuration specifying the model path and load options.
     /// - Throws: If the model file is missing, corrupt, or incompatible with this runtime.
     func loadModel(config: ModelLoadConfig) async throws
 
+    /// Whether a model is currently loaded and ready for inference.
+    var isLoaded: Bool { get }
+
+    /// Information about the currently loaded model, or nil if no model is loaded.
+    var modelInfo: InferenceModelInfo? { get }
+
+    /// The runtime backend this engine uses.
+    var runtimeType: RuntimeType { get }
+
+    // MARK: - Generation
+
     /// Generate a streaming response for the given prompt.
     ///
-    /// Each element in the returned stream is a text chunk (typically one or a few tokens).
-    /// The stream completes when generation finishes or is cancelled.
+    /// Each element in the returned stream is a `GenerationEvent`.
+    /// The stream completes with `.done` when generation finishes normally.
     ///
     /// - Parameters:
     ///   - prompt: The input text prompt.
     ///   - config: Generation parameters (temperature, maxTokens, etc.).
-    /// - Returns: An `AsyncThrowingStream` of text chunks.
+    /// - Returns: An `AsyncThrowingStream` of `GenerationEvent` values.
     func generateStream(
         prompt: String,
         config: GenerationConfig
-    ) -> AsyncThrowingStream<String, Error>
+    ) -> AsyncThrowingStream<GenerationEvent, Error>
 
     /// Generate a complete response for the given prompt.
     ///
-    /// For autoregressive engines, the default implementation collects all chunks from
-    /// `generateStream`. For diffusion engines, this is the native generation mode.
+    /// For autoregressive engines, the default implementation collects all `.text` chunks
+    /// from `generateStream`. For diffusion engines, this is the native generation mode.
     ///
     /// - Parameters:
     ///   - prompt: The input text prompt.
@@ -81,32 +145,61 @@ protocol InferenceEngine: AnyObject, Sendable {
         config: GenerationConfig
     ) async throws -> String
 
-    /// Whether a model is currently loaded and ready for inference.
-    var isLoaded: Bool { get }
+    // MARK: - Lifecycle
 
-    /// Information about the currently loaded model, or nil if no model is loaded.
-    var modelInfo: InferenceModelInfo? { get }
+    /// Release all model resources (weights, KV cache, Metal buffers).
+    func shutdown()
 
-    /// The runtime backend this engine uses.
-    var runtimeType: RuntimeType { get }
+    /// Reset conversation state (clear KV cache and history) without unloading the model.
+    func resetConversation() async throws
+
+    /// Cancel any in-progress generation.
+    func cancelGeneration()
+
+    // MARK: - Metrics
+
+    /// Performance metrics from the most recent generation, if available.
+    var lastPerformanceMetrics: EnginePerformanceMetrics? { get }
+
+    // MARK: - Capabilities
+
+    /// Whether this engine supports vision/image input.
+    var supportsVision: Bool { get }
+
+    /// Whether this engine supports tool calling (function calling).
+    var supportsToolCalling: Bool { get }
 }
 
 // MARK: - Default Implementations
 
 extension InferenceEngine {
 
-    /// Default `generateBatch` collects all chunks from `generateStream` into a single string.
+    /// Default `generateBatch` collects all `.text` chunks from `generateStream` into a single string.
     /// Diffusion engines should override this with their native batch generation.
     func generateBatch(
         prompt: String,
         config: GenerationConfig
     ) async throws -> String {
         var result = ""
-        for try await chunk in generateStream(prompt: prompt, config: config) {
-            result += chunk
+        for try await event in generateStream(prompt: prompt, config: config) {
+            if case .text(let chunk) = event {
+                result += chunk
+            }
         }
         return result
     }
+
+    /// Default: no vision support.
+    var supportsVision: Bool { false }
+
+    /// Default: no tool calling support.
+    var supportsToolCalling: Bool { false }
+
+    /// Default: no-op cancellation.
+    func cancelGeneration() { }
+
+    /// Default: no metrics available.
+    var lastPerformanceMetrics: EnginePerformanceMetrics? { nil }
 }
 
 // MARK: - GenerationConfig
@@ -127,7 +220,16 @@ struct GenerationConfig: Sendable, Equatable {
     var topP: Double
 
     /// Top-K sampling: only consider the K most probable tokens.
+    /// Used by LiteRT-LM; ignored by MLX (which uses topP-only sampling).
     var topK: Int
+
+    /// Repetition penalty multiplier. MLX only; ignored by LiteRT-LM.
+    /// Values > 1.0 penalize repeated tokens (e.g., 1.1 is a mild penalty).
+    var repetitionPenalty: Double?
+
+    /// Random seed for reproducible generation.
+    /// LiteRT-LM uses this natively; MLX uses `MLXRandom.seed()`.
+    var seed: UInt64?
 
     // MARK: - Diffusion-Specific (Optional)
 
@@ -144,6 +246,8 @@ struct GenerationConfig: Sendable, Equatable {
         temperature: 0.7,
         topP: 0.9,
         topK: 40,
+        repetitionPenalty: nil,
+        seed: nil,
         diffusionSteps: nil,
         diffusionSchedule: nil
     )
@@ -153,6 +257,8 @@ struct GenerationConfig: Sendable, Equatable {
         temperature: Double = 0.7,
         topP: Double = 0.9,
         topK: Int = 40,
+        repetitionPenalty: Double? = nil,
+        seed: UInt64? = nil,
         diffusionSteps: Int? = nil,
         diffusionSchedule: String? = nil
     ) {
@@ -160,6 +266,8 @@ struct GenerationConfig: Sendable, Equatable {
         self.temperature = temperature
         self.topP = topP
         self.topK = topK
+        self.repetitionPenalty = repetitionPenalty
+        self.seed = seed
         self.diffusionSteps = diffusionSteps
         self.diffusionSchedule = diffusionSchedule
     }
@@ -170,7 +278,7 @@ struct GenerationConfig: Sendable, Equatable {
 /// Configuration for loading a model into an inference engine.
 struct ModelLoadConfig: Sendable, Equatable {
 
-    /// Filesystem path to the model file or directory.
+    /// Filesystem path to the model file, directory, or HuggingFace model ID.
     let modelPath: String
 
     /// Whether to prefer GPU acceleration if available.

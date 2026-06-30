@@ -22,7 +22,7 @@ import Foundation
 /// ## Current Support
 ///
 /// - `.litertlm` → `LiteRTEngineAdapter` (wraps the existing `InstrumentedEngine`)
-/// - `.mlx` → throws `runtimeNotYetAvailable` (recognized but not implemented)
+/// - `.mlx` → `MLXEngineAdapter` (wraps mlx-swift-lm, Metal GPU inference)
 /// - `.gguf` → throws `runtimeNotYetAvailable` (recognized but not implemented)
 ///
 /// ## Usage
@@ -30,8 +30,8 @@ import Foundation
 /// ```swift
 /// let engine = try EngineFactory.createEngine(for: .litertlm)
 /// try await engine.loadModel(config: .init(modelPath: path))
-/// for try await token in engine.generateStream(prompt: "Hello", config: .default) {
-///     print(token, terminator: "")
+/// for try await event in engine.generateStream(prompt: "Hello", config: .default) {
+///     if case .text(let token) = event { print(token, terminator: "") }
 /// }
 /// ```
 ///
@@ -53,7 +53,7 @@ enum EngineFactory {
         case .litertlm:
             return LiteRTEngineAdapter()
         case .mlx:
-            throw EngineError.runtimeNotYetAvailable(.mlx)
+            return MLXEngineAdapter()
         case .gguf:
             throw EngineError.runtimeNotYetAvailable(.gguf)
         }
