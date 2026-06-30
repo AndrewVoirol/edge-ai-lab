@@ -39,10 +39,15 @@ enum GenerationEvent: Sendable {
 ///
 /// Both LiteRT-LM and MLX emit tool calls in different formats; their respective
 /// adapters convert to this common type before yielding `.toolCall` events.
+///
+/// Arguments are `[String: AnyCodable]` to preserve type fidelity — integers,
+/// booleans, nested objects, and arrays survive round-tripping instead of being
+/// flattened to strings. Use the typed accessors (`stringValue`, `intValue`, etc.)
+/// for convenient extraction.
 struct AppToolCall: Sendable, Codable, Equatable {
     let id: String
     let toolName: String
-    let arguments: [String: String]
+    let arguments: [String: AnyCodable]
 }
 
 // MARK: - EnginePerformanceMetrics

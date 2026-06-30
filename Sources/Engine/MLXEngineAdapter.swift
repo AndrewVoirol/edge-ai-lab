@@ -315,12 +315,12 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                         case .toolCall(let toolCall):
                             // Convert MLXLMCommon.ToolCall → AppToolCall for consumers.
-                            // Note: arguments are [String: JSONValue]; convert to strings
-                            // for AppToolCall's [String: String] contract.
+                            // Arguments are [String: JSONValue]; wrap in AnyCodable
+                            // to preserve type fidelity (integers, booleans, nested objects).
                             let args = toolCall.function.arguments.reduce(
-                                into: [String: String]()
+                                into: [String: AnyCodable]()
                             ) { result, pair in
-                                result[pair.key] = "\(pair.value)"
+                                result[pair.key] = AnyCodable(pair.value.anyValue)
                             }
                             let appToolCall = AppToolCall(
                                 id: toolCall.id ?? UUID().uuidString,

@@ -313,11 +313,11 @@ struct InferenceEngineProtocolTests {
 
         @Test("toolCall event contains call info")
         func toolCallEvent() {
-            let call = AppToolCall(id: "1", toolName: "calculator", arguments: ["expr": "2+2"])
+            let call = AppToolCall(id: "1", toolName: "calculator", arguments: ["expr": AnyCodable("2+2")])
             let event = GenerationEvent.toolCall(call)
             if case .toolCall(let c) = event {
                 #expect(c.toolName == "calculator")
-                #expect(c.arguments["expr"] == "2+2")
+                #expect(c.arguments["expr"]?.stringValue == "2+2")
             } else {
                 Issue.record("Expected .toolCall event")
             }
@@ -365,27 +365,43 @@ struct InferenceEngineProtocolTests {
             let call = AppToolCall(
                 id: "call-123",
                 toolName: "unit_converter",
-                arguments: ["value": "100", "from": "celsius", "to": "fahrenheit"]
+                arguments: ["value": AnyCodable("100"), "from": AnyCodable("celsius"), "to": AnyCodable("fahrenheit")]
             )
             #expect(call.id == "call-123")
             #expect(call.toolName == "unit_converter")
             #expect(call.arguments.count == 3)
-            #expect(call.arguments["value"] == "100")
+            #expect(call.arguments["value"]?.stringValue == "100")
         }
 
         @Test("AppToolCall is Equatable")
         func equatable() {
-            let a = AppToolCall(id: "1", toolName: "calc", arguments: ["x": "1"])
-            let b = AppToolCall(id: "1", toolName: "calc", arguments: ["x": "1"])
+            let a = AppToolCall(id: "1", toolName: "calc", arguments: ["x": AnyCodable("1")])
+            let b = AppToolCall(id: "1", toolName: "calc", arguments: ["x": AnyCodable("1")])
             #expect(a == b)
         }
 
         @Test("AppToolCall is Codable")
         func codable() throws {
-            let original = AppToolCall(id: "1", toolName: "calc", arguments: ["expr": "2+2"])
+            let original = AppToolCall(id: "1", toolName: "calc", arguments: ["expr": AnyCodable("2+2")])
             let data = try JSONEncoder().encode(original)
             let decoded = try JSONDecoder().decode(AppToolCall.self, from: data)
             #expect(decoded == original)
+        }
+
+        @Test("AnyCodable preserves type fidelity in arguments")
+        func typeFidelity() {
+            let call = AppToolCall(
+                id: "2",
+                toolName: "search",
+                arguments: [
+                    "query": AnyCodable("weather"),
+                    "limit": AnyCodable(5),
+                    "verbose": AnyCodable(true)
+                ]
+            )
+            #expect(call.arguments["query"]?.stringValue == "weather")
+            #expect(call.arguments["limit"]?.intValue == 5)
+            #expect(call.arguments["verbose"]?.boolValue == true)
         }
     }
 
