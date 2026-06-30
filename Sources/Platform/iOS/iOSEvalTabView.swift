@@ -329,10 +329,9 @@ struct iOSEvalTabView: View {
 
         guard !modelEntries.isEmpty else { return }
 
-        // Create the runner — EvalRunner still uses InstrumentedEngineProtocol
-        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else { return }
+        // Create the runner — uses InferenceEngine directly
         let runner = EvalRunner(
-            engine: liteRTAdapter.wrappedEngine,
+            engine: viewModel.engine,
             store: evalStore,
             exportPersistence: EvalResultPersistence()
         )

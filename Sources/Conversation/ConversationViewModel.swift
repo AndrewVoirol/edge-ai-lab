@@ -19,7 +19,7 @@ import Observation
 import os
 
 /// ViewModel managing the inference engine lifecycle, conversation state,
-/// and benchmark data. Consumes InstrumentedEngineProtocol for testability.
+/// and benchmark data. Consumes InferenceEngine for testability.
 @Observable
 @MainActor
 final class ConversationViewModel {

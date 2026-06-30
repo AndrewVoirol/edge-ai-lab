@@ -331,6 +331,8 @@ struct InferenceEngineProtocolTests {
                 timeToFirstToken: 0.5,
                 peakMemoryBytes: nil,
                 tokenCount: 100,
+                memoryDeltaMB: nil,
+                thermalStateChanged: nil,
                 runtimeType: .mlx
             )
             let event = GenerationEvent.metrics(metrics)
@@ -400,6 +402,8 @@ struct InferenceEngineProtocolTests {
                 timeToFirstToken: 0.3,
                 peakMemoryBytes: 3_000_000_000,
                 tokenCount: 256,
+                memoryDeltaMB: nil,
+                thermalStateChanged: nil,
                 runtimeType: .mlx
             )
             #expect(metrics.tokensPerSecond == 35.5)
@@ -418,6 +422,8 @@ struct InferenceEngineProtocolTests {
                 timeToFirstToken: nil,
                 peakMemoryBytes: nil,
                 tokenCount: nil,
+                memoryDeltaMB: nil,
+                thermalStateChanged: nil,
                 runtimeType: .litertlm
             )
             #expect(metrics.promptTokensPerSecond == nil)
@@ -428,8 +434,8 @@ struct InferenceEngineProtocolTests {
 
         @Test("metrics is Equatable")
         func equatable() {
-            let a = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, runtimeType: .mlx)
-            let b = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, runtimeType: .mlx)
+            let a = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, memoryDeltaMB: nil, thermalStateChanged: nil, runtimeType: .mlx)
+            let b = EnginePerformanceMetrics(tokensPerSecond: 10, promptTokensPerSecond: nil, timeToFirstToken: nil, peakMemoryBytes: nil, tokenCount: nil, memoryDeltaMB: nil, thermalStateChanged: nil, runtimeType: .mlx)
             #expect(a == b)
         }
 
@@ -441,6 +447,8 @@ struct InferenceEngineProtocolTests {
                 timeToFirstToken: 0.5,
                 peakMemoryBytes: 1024,
                 tokenCount: 50,
+                memoryDeltaMB: nil,
+                thermalStateChanged: nil,
                 runtimeType: .mlx
             )
             let data = try JSONEncoder().encode(original)

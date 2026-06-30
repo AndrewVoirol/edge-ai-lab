@@ -139,7 +139,7 @@ final class EvalRunner {
     // MARK: - Dependencies
 
     /// The inference engine used to run models.
-    private let engine: InstrumentedEngineProtocol
+    private let engine: any InferenceEngine
 
     /// Store for persisting completed runs.
     private let store: EvalStore
@@ -157,11 +157,11 @@ final class EvalRunner {
 
     /// Initialize the eval runner with an engine, store, and optional export persistence.
     /// - Parameters:
-    ///   - engine: The instrumented engine to use for inference.
+    ///   - engine: The inference engine to use for inference.
     ///   - store: The eval store for persisting results.
     ///   - exportPersistence: Optional portable export persistence for timestamped JSON exports.
     init(
-        engine: InstrumentedEngineProtocol,
+        engine: any InferenceEngine,
         store: EvalStore,
         exportPersistence: EvalResultPersistence? = nil
     ) {
@@ -256,7 +256,7 @@ final class EvalRunner {
 
         // Shut down the engine after eval so it's not left initialized with the last model.
         // The user will need to re-select their model, but the engine won't be in an unexpected state.
-        await engine.shutdown()
+        engine.shutdown()
 
         // Finalize the run
         state = .scoring
@@ -329,7 +329,7 @@ final class EvalRunner {
         let metadata = modelEntry.metadata
 
         // Shut down any existing engine session
-        await engine.shutdown()
+        engine.shutdown()
 
         // Initialize the engine with this model
         // Configure flags for eval: enable benchmarks, enable tool calling for tool suites
@@ -337,19 +337,22 @@ final class EvalRunner {
         evalFlags.enableBenchmark = true
         evalFlags.enableToolCalling = suite.category == .toolCalling || suite.category == .math
 
-        let tools: [Tool]? = evalFlags.enableToolCalling ? ToolRegistry.defaultTools : nil
+        // Build tools as AppTool for the generic InferenceEngine path
+        let tools: [any AppTool]? = evalFlags.enableToolCalling
+            ? ToolRegistry.defaultTools.compactMap { $0 as? (any AppTool) }
+            : nil
 
-        _ = try await engine.initializeWithFallback(
+        let loadConfig = ModelLoadConfig(
             modelPath: modelEntry.modelPath,
             preferGPU: metadata.platformSupport.currentPlatform.supportsGPU,
             cacheDir: cacheDir,
-            flags: evalFlags,
-            samplerConfig: nil,
             systemMessage: nil,
             tools: tools,
             supportsVision: metadata.supportsImage,
-            supportsAudio: metadata.supportsAudio
+            supportsAudio: metadata.supportsAudio,
+            experimentalFlags: evalFlags
         )
+        try await engine.loadModel(config: loadConfig)
 
         Self.logger.info("✅ Engine initialized for eval: \(metadata.name, privacy: .public)")
 
@@ -403,13 +406,15 @@ final class EvalRunner {
             }
 
 
-            // Track resource metrics
-            if let metrics = engine.lastInferenceMetrics {
-                let delta = abs(metrics.memoryDeltaMB)
-                if delta > peakMemoryDelta {
-                    peakMemoryDelta = delta
+            // Track resource metrics from engine performance data
+            if let metrics = engine.lastPerformanceMetrics {
+                if let delta = metrics.memoryDeltaMB {
+                    let absDelta = abs(delta)
+                    if absDelta > peakMemoryDelta {
+                        peakMemoryDelta = absDelta
+                    }
                 }
-                if metrics.thermalStateChanged {
+                if metrics.thermalStateChanged == true {
                     thermalTransitions += 1
                 }
             }
@@ -520,20 +525,15 @@ final class EvalRunner {
                 // Inference task
                 group.addTask { [engine] in
                     var fullResponse = ""
-                    let stream: AsyncThrowingStream<String, Error>
+                    let stream = engine.generateStream(
+                        prompt: prompt.prompt,
+                        config: .default
+                    )
 
-                    if prompt.isMultimodal {
-                        stream = engine.sendMessageStream(
-                            prompt.prompt,
-                            imageData: prompt.imageData,
-                            audioData: prompt.audioData
-                        )
-                    } else {
-                        stream = engine.sendMessageStream(prompt.prompt)
-                    }
-
-                    for try await chunk in stream {
-                        fullResponse += chunk
+                    for try await event in stream {
+                        if case .text(let chunk) = event {
+                            fullResponse += chunk
+                        }
                     }
                     return fullResponse
                 }
@@ -576,9 +576,9 @@ final class EvalRunner {
 
         let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
 
-        // Capture benchmark metrics from the engine
-        let decodeSpeed = engine.lastBenchmarkInfo?.lastDecodeTokensPerSecond
-        let ttft = engine.lastBenchmarkInfo?.timeToFirstTokenInSecond
+        // Capture performance metrics from the engine
+        let decodeSpeed = engine.lastPerformanceMetrics?.tokensPerSecond
+        let ttft = engine.lastPerformanceMetrics?.timeToFirstToken
 
         // Score the response
         let evalScore = EvalScorer.score(

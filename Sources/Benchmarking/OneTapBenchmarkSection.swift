@@ -228,11 +228,11 @@ struct OneTapBenchmarkSection: View {
     // MARK: - Actions
 
     private func startBenchmark() {
-        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else { return }
         let newRunner = OneTapBenchmarkRunner(
-            engine: liteRTAdapter.wrappedEngine,
+            engine: viewModel.engine,
             metricsStore: MetricsStore(),
-            modelName: viewModel.activeModelMetadata?.name ?? "Unknown"
+            modelName: viewModel.activeModelMetadata?.name ?? "Unknown",
+            experimentalFlags: viewModel.experimentalFlags
         )
         runner = newRunner
         Task {

@@ -696,10 +696,9 @@ struct EvalRunnerView: View {
 
         guard !modelEntries.isEmpty else { return }
 
-        // Create the runner — EvalRunner still uses InstrumentedEngineProtocol
-        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else { return }
+        // Create the runner — uses InferenceEngine directly
         let runner = EvalRunner(
-            engine: liteRTAdapter.wrappedEngine,
+            engine: viewModel.engine,
             store: evalStore,
             exportPersistence: EvalResultPersistence()
         )
@@ -756,12 +755,8 @@ struct EvalRunnerView: View {
 
         isBatchRunning = true
 
-        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
-            isBatchRunning = false
-            return
-        }
         let orchestrator = BatchEvalOrchestrator(
-            engine: liteRTAdapter.wrappedEngine,
+            engine: viewModel.engine,
             store: evalStore
         )
         batchOrchestrator = orchestrator

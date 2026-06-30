@@ -235,10 +235,10 @@ final class ModelSessionController {
             } else {
                 // Generic InferenceEngine path (MLX, future runtimes)
                 let genConfig = GenerationConfig(
+                    temperature: Double(temperature),
+                    topP: Double(topP),
                     topK: Int(topK),
-                    topP: Float(topP),
-                    temperature: Float(temperature),
-                    seed: seed
+                    seed: seed > 0 ? UInt64(seed) : nil
                 )
                 let loadConfig = ModelLoadConfig(
                     modelPath: modelPath,

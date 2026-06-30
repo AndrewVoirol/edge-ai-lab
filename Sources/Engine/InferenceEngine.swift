@@ -61,6 +61,10 @@ struct EnginePerformanceMetrics: Sendable, Equatable, Codable {
     let peakMemoryBytes: UInt64?
     /// Number of tokens generated.
     let tokenCount: Int?
+    /// Memory delta in MB during inference (footprint change).
+    let memoryDeltaMB: Double?
+    /// Whether the thermal state changed during inference.
+    let thermalStateChanged: Bool?
     /// The runtime that produced these metrics.
     let runtimeType: RuntimeType
 }
@@ -156,6 +160,10 @@ protocol InferenceEngine: AnyObject, Sendable {
     /// Cancel any in-progress generation.
     func cancelGeneration()
 
+    /// Warm up the engine with a short throwaway prompt.
+    /// Used before benchmarking to prime caches and counters.
+    func warmup() async throws
+
     // MARK: - Metrics
 
     /// Performance metrics from the most recent generation, if available.
@@ -197,6 +205,11 @@ extension InferenceEngine {
 
     /// Default: no-op cancellation.
     func cancelGeneration() { }
+
+    /// Default warmup: send a short throwaway prompt to prime caches and counters.
+    func warmup() async throws {
+        _ = try await generateBatch(prompt: "Hi", config: .default)
+    }
 
     /// Default: no metrics available.
     var lastPerformanceMetrics: EnginePerformanceMetrics? { nil }

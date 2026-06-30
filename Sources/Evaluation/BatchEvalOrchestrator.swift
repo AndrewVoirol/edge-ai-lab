@@ -162,11 +162,11 @@ final class BatchEvalOrchestrator {
 
     // MARK: - Dependencies
 
-    private let engine: InstrumentedEngineProtocol
+    private let engine: any InferenceEngine
     private let store: EvalStore
     private var isCancelled = false
 
-    init(engine: InstrumentedEngineProtocol, store: EvalStore) {
+    init(engine: any InferenceEngine, store: EvalStore) {
         self.engine = engine
         self.store = store
     }

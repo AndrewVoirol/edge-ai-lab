@@ -232,6 +232,8 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                             timeToFirstToken: firstTokenTime,
                             peakMemoryBytes: nil,
                             tokenCount: tokenCount,
+                            memoryDeltaMB: nil,
+                            thermalStateChanged: nil,
                             runtimeType: .mlx
                         )
                         self.lastPerformanceMetrics = metrics

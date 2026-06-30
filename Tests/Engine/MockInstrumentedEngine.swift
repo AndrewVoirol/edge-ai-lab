@@ -384,11 +384,11 @@ extension MockInstrumentedEngine: InferenceEngine {
             visualTokenBudget: nil
         )
         // Bridge GenerationConfig → SamplerConfig for test assertions
-        let samplerConfig: SamplerConfig? = config.generationConfig.map { gen in
-            SamplerConfig(
-                topK: Int32(gen.topK ?? 40),
-                topP: gen.topP ?? 0.95,
-                temperature: gen.temperature ?? 1.0
+        let samplerConfig: SamplerConfig? = try config.generationConfig.map { gen in
+            try SamplerConfig(
+                topK: gen.topK,
+                topP: Float(gen.topP),
+                temperature: Float(gen.temperature)
             )
         }
         try await initialize(
@@ -421,6 +421,8 @@ extension MockInstrumentedEngine: InferenceEngine {
                             timeToFirstToken: info.timeToFirstTokenInSecond,
                             peakMemoryBytes: nil,
                             tokenCount: info.lastDecodeTokenCount,
+                            memoryDeltaMB: nil,
+                            thermalStateChanged: nil,
                             runtimeType: .litertlm
                         )
                         continuation.yield(.metrics(metrics))
@@ -451,6 +453,8 @@ extension MockInstrumentedEngine: InferenceEngine {
             timeToFirstToken: info.timeToFirstTokenInSecond,
             peakMemoryBytes: nil,
             tokenCount: info.lastDecodeTokenCount,
+            memoryDeltaMB: nil,
+            thermalStateChanged: nil,
             runtimeType: .litertlm
         )
     }

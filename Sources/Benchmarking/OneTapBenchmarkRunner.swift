@@ -115,9 +115,11 @@ final class OneTapBenchmarkRunner {
 
     // MARK: - Dependencies
 
-    private let engine: InstrumentedEngineProtocol
+    private let engine: any InferenceEngine
     private let metricsStore: MetricsStore
     private let modelName: String
+    /// LiteRT-specific flags, passed separately since not all runtimes have them.
+    private let experimentalFlags: ExperimentalFlagsState?
 
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.andrewvoirol.EdgeAILab",
@@ -128,13 +130,20 @@ final class OneTapBenchmarkRunner {
 
     /// Create a one-tap benchmark runner.
     /// - Parameters:
-    ///   - engine: The instrumented engine to run inferences on. Must already be initialized.
+    ///   - engine: The inference engine to run inferences on. Must already be loaded.
     ///   - metricsStore: The store to persist benchmark results to.
     ///   - modelName: The model name for metrics store entries.
-    init(engine: InstrumentedEngineProtocol, metricsStore: MetricsStore, modelName: String) {
+    ///   - experimentalFlags: Optional LiteRT flags for metrics persistence.
+    init(
+        engine: any InferenceEngine,
+        metricsStore: MetricsStore,
+        modelName: String,
+        experimentalFlags: ExperimentalFlagsState? = nil
+    ) {
         self.engine = engine
         self.metricsStore = metricsStore
         self.modelName = modelName
+        self.experimentalFlags = experimentalFlags
     }
 
     // MARK: - Run
@@ -144,7 +153,7 @@ final class OneTapBenchmarkRunner {
     /// Updates `state` throughout for UI observation.
     /// Safe to call from SwiftUI button actions.
     func run() async {
-        guard engine.isReady else {
+        guard engine.isLoaded else {
             state = .failed(error: "Engine is not ready. Please load a model first.")
             Self.logger.error("❌ Benchmark aborted: engine not ready")
             return
@@ -168,36 +177,48 @@ final class OneTapBenchmarkRunner {
                 Self.logger.info("🏃 Starting benchmark run \(runIndex)/\(totalRuns)")
 
                 // Consume the full response stream
-                for try await _ in engine.sendMessageStream(BenchmarkLogic.standardPrompt) {
-                    // Discard response tokens — we only need the benchmark metrics
+                for try await _ in engine.generateStream(
+                    prompt: BenchmarkLogic.standardPrompt,
+                    config: .default
+                ) {
+                    // Discard response tokens — we only need the performance metrics
                 }
 
-                // Collect benchmark info from the engine
-                guard let benchmarkInfo = engine.lastBenchmarkInfo else {
-                    let message = "Run \(runIndex): engine.lastBenchmarkInfo was nil after inference"
+                // Collect performance metrics from the engine
+                guard let metrics = engine.lastPerformanceMetrics else {
+                    let message = "Run \(runIndex): engine.lastPerformanceMetrics was nil after inference"
                     Self.logger.error("❌ \(message)")
                     state = .failed(error: message)
                     return
                 }
 
-                decodeSpeeds.append(benchmarkInfo.lastDecodeTokensPerSecond)
-                ttftValues.append(benchmarkInfo.timeToFirstTokenInSecond)
-                prefillSpeeds.append(benchmarkInfo.lastPrefillTokensPerSecond)
+                decodeSpeeds.append(metrics.tokensPerSecond)
+                ttftValues.append(metrics.timeToFirstToken ?? 0)
+                prefillSpeeds.append(metrics.promptTokensPerSecond ?? 0)
 
-                Self.logger.info("📊 Run \(runIndex) — decode: \(benchmarkInfo.lastDecodeTokensPerSecond, format: .fixed(precision: 1)) tok/s, TTFT: \(benchmarkInfo.timeToFirstTokenInSecond, format: .fixed(precision: 3))s, prefill: \(benchmarkInfo.lastPrefillTokensPerSecond, format: .fixed(precision: 1)) tok/s")
+                Self.logger.info("📊 Run \(runIndex) — decode: \(metrics.tokensPerSecond, format: .fixed(precision: 1)) tok/s, TTFT: \(metrics.timeToFirstToken ?? 0, format: .fixed(precision: 3))s, prefill: \(metrics.promptTokensPerSecond ?? 0, format: .fixed(precision: 1)) tok/s")
 
                 // Persist each individual run to the metrics store
-                let entry = MetricsStore.createEntry(
-                    from: benchmarkInfo,
-                    modelName: modelName,
-                    flags: engine.flagsState,
-                    inferenceMetrics: engine.lastInferenceMetrics
-                )
-                do {
-                    try metricsStore.append(entry: entry)
-                } catch {
-                    // Non-fatal: log and continue
-                    Self.logger.error("⚠️ MetricsStore persistence failed for run \(runIndex): \(error.localizedDescription, privacy: .public)")
+                // Use LiteRT-specific path when available for full metrics, otherwise use generic path
+                if let liteRTAdapter = engine as? LiteRTEngineAdapter,
+                   let benchmarkInfo = liteRTAdapter.wrappedEngine.lastBenchmarkInfo {
+                    let flags = experimentalFlags ?? liteRTAdapter.wrappedEngine.flagsState
+                    let entry = MetricsStore.createEntry(
+                        from: benchmarkInfo,
+                        modelName: modelName,
+                        flags: flags,
+                        inferenceMetrics: liteRTAdapter.wrappedEngine.lastInferenceMetrics
+                    )
+                    do {
+                        try metricsStore.append(entry: entry)
+                    } catch {
+                        Self.logger.error("⚠️ MetricsStore persistence failed for run \(runIndex): \(error.localizedDescription, privacy: .public)")
+                    }
+                } else {
+                    // Generic runtime (MLX, etc.) — MetricsStore currently requires LiteRT-specific
+                    // BenchmarkInfo. Metrics persistence for non-LiteRT engines will be added when
+                    // MetricsStore gains an EnginePerformanceMetrics-based createEntry overload.
+                    Self.logger.info("ℹ️ Run \(runIndex): metrics persistence skipped (non-LiteRT engine)")
                 }
             }
 

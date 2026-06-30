@@ -162,10 +162,12 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
                     if let benchmarkInfo = self?.engine.lastBenchmarkInfo {
                         let metrics = EnginePerformanceMetrics(
                             tokensPerSecond: benchmarkInfo.lastDecodeTokensPerSecond,
-                            promptTokensPerSecond: nil,
+                            promptTokensPerSecond: benchmarkInfo.lastPrefillTokensPerSecond,
                             timeToFirstToken: benchmarkInfo.timeToFirstTokenInSecond,
                             peakMemoryBytes: nil,
                             tokenCount: benchmarkInfo.lastDecodeTokenCount,
+                            memoryDeltaMB: self?.engine.lastInferenceMetrics?.memoryDeltaMB,
+                            thermalStateChanged: self?.engine.lastInferenceMetrics?.thermalStateChanged,
                             runtimeType: .litertlm
                         )
                         self?.lastPerformanceMetrics = metrics
@@ -198,6 +200,10 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     func cancelGeneration() {
         engine.cancelGeneration()
+    }
+
+    func warmup() async throws {
+        try await engine.warmup()
     }
 }
 

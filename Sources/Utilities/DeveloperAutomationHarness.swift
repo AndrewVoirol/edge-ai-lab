@@ -1036,7 +1036,7 @@ struct DeveloperAutomationHarness {
             signalComplete(1, message: "No LiteRT engine")
             return
         }
-        let evalRunner = EvalRunner(engine: liteRTAdapter.wrappedEngine, store: evalStore)
+        let evalRunner = EvalRunner(engine: liteRTAdapter, store: evalStore)
         
         let targetURL = docs.appendingPathComponent(targetModel.modelFile)
         let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
