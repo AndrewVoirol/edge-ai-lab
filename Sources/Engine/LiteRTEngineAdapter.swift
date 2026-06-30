@@ -95,16 +95,15 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
         let cacheDir = config.cacheDir ?? NSTemporaryDirectory()
 
         // Bridge AppTool → LiteRTLM.Tool if tools are provided.
-        // During Phase 2 Core, tools are still LiteRTLM.Tool — they'll be bridged
-        // from AppTool in Phase 2 Consumers. For now, pass through directly
-        // since the session controller handles tool assembly.
+        // AppTool → LiteRT Tool bridging deferred until AppTool rollout is complete.
+        // Tools are currently assembled by ModelSessionController.buildActiveTools()
+        // and passed via loadWithLiteRTConfig(). This path is for future direct
+        // InferenceEngine consumers that bypass the session controller.
         let tools: [Tool]?
         if let appTools = config.tools {
             // Register tools for lookup during execution
             LiteRTToolBridgeRegistry.shared.registerAll(appTools)
-            // For now, tools must be passed through the legacy path.
-            // The session controller's buildActiveTools() still returns [Tool].
-            tools = nil  // TODO: Phase 2 Consumers — bridge AppTool → Tool
+            tools = nil
         } else {
             tools = nil
         }

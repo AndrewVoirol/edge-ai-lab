@@ -54,7 +54,42 @@ for try await text in session.streamResponse(to: "Hello") {
 }
 ```
 
-**Session reset**: `ChatSession` has NO explicit reset method. To reset conversation state (clear KV cache and history), **recreate the session**: `session = ChatSession(container)`.
+**Session reset**: `ChatSession` has NO explicit reset method. To reset conversation state (clear KV cache and history), **recreate the session**: `session = ChatSession(container)`. Preserve `instructions`, `tools`, `toolDispatch`, and `generateParameters` when recreating.
+
+### Chat Session — Sampling Parameters
+
+```swift
+// Set sampling params directly on the session (mutable public var)
+session.generateParameters.temperature = 0.6
+session.generateParameters.topP = 0.9
+session.generateParameters.topK = 40
+session.generateParameters.maxTokens = 1024
+session.generateParameters.repetitionPenalty = 1.1
+session.generateParameters.seed = 42
+```
+
+### Chat Session — Tool Calling
+
+```swift
+// Set tool schemas on the session
+session.tools = mlxToolSpecs  // [ToolSpec] from MLXToolBridge
+
+// Wire automatic tool dispatch
+session.toolDispatch = { toolCall in
+    let name = toolCall.function.name
+    let arguments = toolCall.function.arguments.mapValues { $0.anyValue }
+    return try await MLXToolBridge.executeToolCall(toolName: name, arguments: arguments, tools: appTools)
+}
+
+// Use streamDetails() for native Generation events (text + tool calls + metrics)
+for try await generation in session.streamDetails(to: prompt) {
+    switch generation {
+    case .chunk(let text): ...
+    case .toolCall(let toolCall): ...
+    case .info(let completionInfo): ...
+    }
+}
+```
 
 ### Generation Stream (Advanced — with tool calls + metrics)
 
@@ -92,9 +127,9 @@ params.repetitionPenalty = 1.1  // Optional, MLX-only
 params.maxTokens = 1024      // Optional
 ```
 
-**`topK` is NOT a direct property** on `GenerateParameters`. It may be available at the sampler level but is not guaranteed. Map `topK` to `topP` equivalent for MLX.
+**`topK`** is a direct property on `GenerateParameters` as `topK: Int` (default: 0, which disables).
 
-**`seed`**: Not in `GenerateParameters`. Use `MLXRandom.seed(42)` separately.
+**`seed`**: Available as `GenerateParameters.seed: UInt64?`. When set, the sampler's RNG is seeded deterministically.
 
 ### Tool Calling
 
