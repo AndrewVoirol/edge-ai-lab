@@ -28,6 +28,9 @@ struct InputAreaView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showAudioPicker = false
     @State private var showPhotoPicker = false
+    #if os(iOS)
+    @State private var showCamera = false
+    #endif
     @FocusState private var isPromptFocused: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var isSendPressed = false
@@ -98,6 +101,21 @@ struct InputAreaView: View {
                         .buttonStyle(.plain)
                         .help("Attach an image")
                         .accessibilityIdentifier("button_attachImage")
+
+                        #if os(iOS)
+                        // Camera button — iOS only, when device has a camera.
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            Button {
+                                showCamera = true
+                            } label: {
+                                Image(systemName: "camera.fill")
+                                    .foregroundStyle(AppColors.textTertiary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("button_captureCamera")
+                            .accessibilityLabel("Take a photo")
+                        }
+                        #endif
                     }
 
                     if viewModel.supportsAudioInput {
@@ -292,6 +310,14 @@ struct InputAreaView: View {
                 }
             }
         }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraImagePicker { data in
+                viewModel.selectedImageData = data
+            }
+            .ignoresSafeArea()
+        }
+        #endif
     }
 
     // MARK: - Send Button

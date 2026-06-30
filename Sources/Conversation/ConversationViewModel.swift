@@ -498,9 +498,13 @@ final class ConversationViewModel {
 
         do {
             let stream: AsyncThrowingStream<GenerationEvent, Error>
+            var genConfig = GenerationConfig.default
+            if let imageData = imageData {
+                genConfig.imageData = [imageData]
+            }
             stream = engine.generateStream(
                 prompt: currentPrompt,
-                config: GenerationConfig.default
+                config: genConfig
             )
 
             for try await event in stream {
