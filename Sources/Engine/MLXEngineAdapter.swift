@@ -26,6 +26,7 @@ import MLXLLM
 import MLXLMCommon
 import Tokenizers
 import Hub
+import CoreImage
 
 // MARK: - HuggingFace Integration (replaces MLXHuggingFace macros)
 
@@ -170,7 +171,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     var supportsToolCalling: Bool { true }
 
-    var supportsVision: Bool { false }  // TODO: Phase 4 — wire MLXVLM via VLMModelFactory
+    private(set) var supportsVision: Bool = false
 
     // MARK: - Loading
 
@@ -268,6 +269,10 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             quantization: nil,
             runtimeType: .mlx
         )
+
+        // Set vision capability from model config.
+        // VLMs (e.g., Gemma 4, Qwen-VL) report supportsVision = true in ModelLoadConfig.
+        self.supportsVision = config.supportsVision
     }
 
     // MARK: - Generation
@@ -302,7 +307,22 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                     // Use streamDetails() for native Generation events:
                     // .chunk(String), .toolCall(ToolCall), .info(GenerateCompletionInfo)
-                    for try await generation in session.streamDetails(to: prompt) {
+                    //
+                    // When imageData is present (VLM mode), convert Data → CIImage →
+                    // UserInput.Image for the vision pipeline. The processor handles
+                    // resizing/tokenization based on the model's config.
+                    let images: [UserInput.Image] = (config.imageData ?? []).compactMap { data in
+                        guard let ciImage = CIImage(data: data) else {
+                            // Skip invalid image data silently — don't crash the stream.
+                            return nil
+                        }
+                        return .ciImage(ciImage)
+                    }
+
+                    for try await generation in session.streamDetails(
+                        to: prompt,
+                        images: images
+                    ) {
                         if Task.isCancelled { break }
 
                         switch generation {

@@ -249,6 +249,19 @@ struct GenerationConfig: Sendable, Equatable {
     /// LiteRT-LM uses this natively; MLX uses `MLXRandom.seed()`.
     var seed: UInt64?
 
+    // MARK: - Multimodal (Optional)
+
+    /// Image data for vision-language models (VLMs).
+    ///
+    /// When non-nil, the adapter passes these images alongside the text prompt.
+    /// For MLX, each `Data` is converted to `UserInput.Image.data` and forwarded
+    /// to `ChatSession.streamDetails(to:images:)`.
+    /// For LiteRT-LM, the first image is forwarded via the existing `sendMessageStream`
+    /// multimodal overload.
+    ///
+    /// Ignored by engines that don't support vision (`supportsVision == false`).
+    var imageData: [Data]?
+
     // MARK: - Diffusion-Specific (Optional)
 
     /// Number of denoising steps for diffusion models. Ignored by autoregressive engines.
@@ -266,6 +279,7 @@ struct GenerationConfig: Sendable, Equatable {
         topK: 40,
         repetitionPenalty: nil,
         seed: nil,
+        imageData: nil,
         diffusionSteps: nil,
         diffusionSchedule: nil
     )
@@ -277,6 +291,7 @@ struct GenerationConfig: Sendable, Equatable {
         topK: Int = 40,
         repetitionPenalty: Double? = nil,
         seed: UInt64? = nil,
+        imageData: [Data]? = nil,
         diffusionSteps: Int? = nil,
         diffusionSchedule: String? = nil
     ) {
@@ -286,6 +301,7 @@ struct GenerationConfig: Sendable, Equatable {
         self.topK = topK
         self.repetitionPenalty = repetitionPenalty
         self.seed = seed
+        self.imageData = imageData
         self.diffusionSteps = diffusionSteps
         self.diffusionSchedule = diffusionSchedule
     }
