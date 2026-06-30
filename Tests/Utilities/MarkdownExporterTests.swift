@@ -160,7 +160,7 @@ struct MarkdownExporterTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -196,7 +196,7 @@ struct MarkdownExporterTests {
                 gpuAllocatedMemoryAtStartMB: 256,
                 gpuAllocatedMemoryAtEndMB: 512
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

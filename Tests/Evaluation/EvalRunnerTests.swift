@@ -88,7 +88,7 @@ final class EvalRunnerTests: XCTestCase {
             category: .general,
             prompts: [EvalPrompt(prompt: "Test", expectedBehavior: .nonEmpty)]
         )
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,

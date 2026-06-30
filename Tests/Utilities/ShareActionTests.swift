@@ -152,7 +152,7 @@ struct ShareActionTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -188,7 +188,7 @@ struct ShareActionTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

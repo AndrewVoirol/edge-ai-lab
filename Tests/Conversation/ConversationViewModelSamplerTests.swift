@@ -76,7 +76,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     @MainActor func testSystemMessagePassedToEngine() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
         vm.systemMessage = "You are a pirate."
-        vm.experimentalFlags.enableThinking = false  // Disable to test pure system message
+        vm.runtimeFlags.enableThinking = false  // Disable to test pure system message
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
@@ -87,7 +87,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     @MainActor func testEmptySystemMessagePassedAsNil() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
         vm.systemMessage = ""  // default
-        vm.experimentalFlags.enableThinking = false  // Disable to test nil behavior
+        vm.runtimeFlags.enableThinking = false  // Disable to test nil behavior
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
@@ -103,7 +103,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     @MainActor func testThinkingEnabledInjectsThinkToken() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
         vm.systemMessage = ""
-        vm.experimentalFlags.enableThinking = true
+        vm.runtimeFlags.enableThinking = true
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
@@ -117,7 +117,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     @MainActor func testThinkingEnabledWithUserSystemMessage() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
         vm.systemMessage = "You are a pirate."
-        vm.experimentalFlags.enableThinking = true
+        vm.runtimeFlags.enableThinking = true
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
@@ -204,7 +204,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     @MainActor func testFlagsAndSamplerBothPassedToEngine() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
         vm.topK = 10
-        vm.experimentalFlags = ExperimentalFlagsState(
+        vm.runtimeFlags = RuntimeFlags(
             enableBenchmark: false,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: true,

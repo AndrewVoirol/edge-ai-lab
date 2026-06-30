@@ -163,7 +163,7 @@ struct ModelSessionControllerTests {
             onStatusMessage: { _ in }
         )
 
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -171,7 +171,7 @@ struct ModelSessionControllerTests {
         )
 
         await controller.reinitializeIfNeeded(
-            experimentalFlags: flags,
+            runtimeFlags: flags,
             useGPU: true
         )
 

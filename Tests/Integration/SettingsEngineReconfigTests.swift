@@ -24,7 +24,7 @@ import LiteRTLM
 
 /// Integration tests for Settings → engine reconfiguration flow.
 ///
-/// Validates that changes to `ExperimentalFlagsState` and sampler parameters
+/// Validates that changes to `RuntimeFlags` and sampler parameters
 /// (temperature, topK, topP, seed) propagate correctly through the
 /// MockInstrumentedEngine, and that the `ExperimentConfig` snapshot captures
 /// the expected values.
@@ -59,7 +59,7 @@ final class SettingsEngineReconfigTests: XCTestCase {
 
     // MARK: - Default Settings
 
-    /// Verify `ExperimentalFlagsState` defaults match expected values.
+    /// Verify `RuntimeFlags` defaults match expected values.
     func testDefaultSettings() {
         let flags = ExperimentalFlagsState(
             enableBenchmark: true,
@@ -242,7 +242,7 @@ final class SettingsEngineReconfigTests: XCTestCase {
 
     // MARK: - Settings Persistence
 
-    /// Verify that ExperimentalFlagsState round-trips through Codable encoding/decoding.
+    /// Verify that RuntimeFlags round-trips through Codable encoding/decoding.
     func testSettingsPersistence() throws {
         let flags = ExperimentalFlagsState(
             enableBenchmark: true,

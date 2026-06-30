@@ -26,7 +26,7 @@ import Foundation
 //
 // Tests the data-layer types used by ConversationViewModel that are NOT
 // covered by ChatMessageSwiftTestingTests, SavedConversationTests,
-// ExperimentConfigTests, or ExperimentalFlagsStateTests.
+// ExperimentConfigTests, or RuntimeFlagsTests.
 //
 // Focus areas:
 // - ChatMessage Codable round-trips (including nested types)

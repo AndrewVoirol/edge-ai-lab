@@ -587,7 +587,7 @@ struct InstrumentationTests {
                     gpuAllocatedMemoryAtStartMB: 128.5,
                     gpuAllocatedMemoryAtEndMB: 384.0
                 ),
-                flags: ExperimentalFlagsState(
+                flags: RuntimeFlags(
                     enableBenchmark: true,
                     enableSpeculativeDecoding: nil,
                     enableConversationConstrainedDecoding: false,

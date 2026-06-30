@@ -241,7 +241,7 @@ struct BenchmarkCardLogicTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

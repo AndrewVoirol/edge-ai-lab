@@ -56,7 +56,7 @@ final class ConversationViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isGenerating)
         XCTAssertFalse(vm.isEngineReady)
         XCTAssertNil(vm.benchmarkInfo)
-        XCTAssertTrue(vm.experimentalFlags.enableBenchmark)
+        XCTAssertTrue(vm.runtimeFlags.enableBenchmark)
     }
 
     @MainActor
@@ -127,7 +127,7 @@ final class ConversationViewModelTests: XCTestCase {
     @MainActor
     func testExperimentalFlagsPassedToEngine() async {
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
-        vm.experimentalFlags = ExperimentalFlagsState(
+        vm.runtimeFlags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: false,
@@ -207,12 +207,12 @@ final class ConversationViewModelTests: XCTestCase {
     }
 }
 
-// MARK: - ExperimentalFlagsState Tests
+// MARK: - RuntimeFlags Tests
 
-final class ExperimentalFlagsStateTests: XCTestCase {
+final class LegacyRuntimeFlagsTests: XCTestCase {
 
     func testCodableRoundTrip() throws {
-        let original = ExperimentalFlagsState(
+        let original = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: false,
@@ -222,13 +222,13 @@ final class ExperimentalFlagsStateTests: XCTestCase {
         let encoder = JSONEncoder()
         let data = try encoder.encode(original)
         let decoder = JSONDecoder()
-        let decoded = try decoder.decode(ExperimentalFlagsState.self, from: data)
+        let decoded = try decoder.decode(RuntimeFlags.self, from: data)
 
         XCTAssertEqual(original, decoded)
     }
 
     func testCodableWithNilOptionals() throws {
-        let original = ExperimentalFlagsState(
+        let original = RuntimeFlags(
             enableBenchmark: false,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: true,
@@ -238,7 +238,7 @@ final class ExperimentalFlagsStateTests: XCTestCase {
         let encoder = JSONEncoder()
         let data = try encoder.encode(original)
         let decoder = JSONDecoder()
-        let decoded = try decoder.decode(ExperimentalFlagsState.self, from: data)
+        let decoded = try decoder.decode(RuntimeFlags.self, from: data)
 
         XCTAssertEqual(original, decoded)
     }
@@ -288,7 +288,7 @@ final class MetricsStoreTests: XCTestCase {
     }
 
     func testFlagsPersistedInEntry() throws {
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: true,
             enableConversationConstrainedDecoding: false,
@@ -339,7 +339,7 @@ final class MetricsStoreTests: XCTestCase {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -703,7 +703,7 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -739,7 +739,7 @@ final class MetricsStoreInferenceMetricsTests: XCTestCase {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

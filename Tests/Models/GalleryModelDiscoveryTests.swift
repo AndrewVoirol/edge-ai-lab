@@ -208,4 +208,156 @@ final class GalleryModelDiscoveryTests: XCTestCase {
         let fileURL = tempDirectory.appendingPathComponent(filename)
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
     }
+
+    // MARK: - MLX Directory Discovery
+
+    /// Create a fake MLX model directory with required files.
+    private func createFakeMLXDirectory(
+        named dirName: String,
+        includeConfig: Bool = true,
+        includeSafetensors: Bool = true,
+        safetensorsCount: Int = 1
+    ) throws -> URL {
+        let modelDir = tempDirectory.appendingPathComponent(dirName)
+        try FileManager.default.createDirectory(at: modelDir, withIntermediateDirectories: true)
+
+        if includeConfig {
+            let configData = Data("""
+            {"model_type": "gemma2", "hidden_size": 2048}
+            """.utf8)
+            try configData.write(to: modelDir.appendingPathComponent("config.json"))
+        }
+
+        if includeSafetensors {
+            for i in 1...safetensorsCount {
+                let filename = safetensorsCount == 1
+                    ? "model.safetensors"
+                    : "model-\(String(format: "%05d", i))-of-\(String(format: "%05d", safetensorsCount)).safetensors"
+                let data = Data(repeating: UInt8(i), count: 1024)
+                try data.write(to: modelDir.appendingPathComponent(filename))
+            }
+        }
+
+        // Add tokenizer files
+        let tokenizerData = Data("{}".utf8)
+        try tokenizerData.write(to: modelDir.appendingPathComponent("tokenizer.json"))
+
+        return modelDir
+    }
+
+    /// Scan the temp directory for MLX model directories.
+    /// Replicates GalleryModelDiscovery.scanForMLXModels logic.
+    private func scanTestDirectoryForMLX() -> [DiscoveredModel] {
+        let fileManager = FileManager.default
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: tempDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return contents.compactMap { url -> DiscoveredModel? in
+            let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
+            guard resourceValues?.isDirectory == true else { return nil }
+
+            let configURL = url.appendingPathComponent("config.json")
+            guard fileManager.fileExists(atPath: configURL.path) else { return nil }
+
+            guard let dirContents = try? fileManager.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: [.fileSizeKey],
+                options: [.skipsHiddenFiles]
+            ) else { return nil }
+
+            let safetensorsFiles = dirContents.filter { $0.pathExtension == "safetensors" }
+            guard !safetensorsFiles.isEmpty else { return nil }
+
+            let totalSize = dirContents.reduce(Int64(0)) { sum, fileURL in
+                let fileSize = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                return sum + Int64(fileSize)
+            }
+
+            return DiscoveredModel(
+                url: url,
+                sizeInBytes: totalSize,
+                source: .local,
+                metadata: nil
+            )
+        }
+    }
+
+    /// A valid MLX model directory (config.json + .safetensors) should be discovered.
+    func testScanDirectoryFindsMLXModelDirectories() throws {
+        _ = try createFakeMLXDirectory(named: "mlx-community--gemma-test-4bit")
+
+        let models = scanTestDirectoryForMLX()
+        XCTAssertEqual(models.count, 1, "Should discover 1 MLX model directory")
+        XCTAssertTrue(models.first!.url.lastPathComponent.contains("gemma-test"))
+    }
+
+    /// A directory missing config.json should NOT be discovered as an MLX model.
+    func testMLXDirectoryMissingConfigIsIgnored() throws {
+        _ = try createFakeMLXDirectory(
+            named: "mlx-community--no-config",
+            includeConfig: false
+        )
+
+        let models = scanTestDirectoryForMLX()
+        XCTAssertTrue(models.isEmpty, "Directory without config.json should not be discovered")
+    }
+
+    /// A directory missing .safetensors files should NOT be discovered as an MLX model.
+    func testMLXDirectoryMissingSafetensorsIsIgnored() throws {
+        _ = try createFakeMLXDirectory(
+            named: "mlx-community--no-tensors",
+            includeSafetensors: false
+        )
+
+        let models = scanTestDirectoryForMLX()
+        XCTAssertTrue(models.isEmpty, "Directory without .safetensors should not be discovered")
+    }
+
+    /// MLX and LiteRT models should coexist in the same directory.
+    func testMLXAndLiteRTModelsCoexist() throws {
+        // Create a LiteRT model
+        try createFakeModelFile(named: "test-litert.litertlm")
+
+        // Create an MLX model directory
+        _ = try createFakeMLXDirectory(named: "mlx-community--test-model")
+
+        let liteRTModels = scanTestDirectory()
+        let mlxModels = scanTestDirectoryForMLX()
+
+        XCTAssertEqual(liteRTModels.count, 1, "Should find 1 LiteRT model")
+        XCTAssertEqual(mlxModels.count, 1, "Should find 1 MLX model")
+
+        // Combined they should be 2 distinct models
+        let allFilenames = Set(liteRTModels.map(\.filename) + mlxModels.map(\.filename))
+        XCTAssertEqual(allFilenames.count, 2, "LiteRT and MLX models should have distinct filenames")
+    }
+
+    /// MLX model with multiple safetensors shards should report aggregate size.
+    func testMLXMultiShardModelReportsAggregateSize() throws {
+        _ = try createFakeMLXDirectory(
+            named: "mlx-community--multi-shard",
+            safetensorsCount: 3
+        )
+
+        let models = scanTestDirectoryForMLX()
+        XCTAssertEqual(models.count, 1)
+
+        // Should have size > 0 (aggregate of all files)
+        let model = models.first!
+        XCTAssertGreaterThan(model.sizeInBytes, 0, "Multi-shard model should have positive aggregate size")
+    }
+
+    /// Regular files (not directories) should be ignored by MLX scanner.
+    func testMLXScannerIgnoresRegularFiles() throws {
+        try createFakeFile(named: "not-a-model.txt", content: "Hello")
+        try createFakeModelFile(named: "model.litertlm")
+
+        let models = scanTestDirectoryForMLX()
+        XCTAssertTrue(models.isEmpty, "MLX scanner should ignore regular files")
+    }
 }

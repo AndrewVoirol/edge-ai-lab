@@ -81,7 +81,7 @@ struct MetricsStoreSyncTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: false,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -363,7 +363,7 @@ struct MetricsStoreSyncTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: false,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -397,7 +397,7 @@ struct MetricsStoreSyncTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: false,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

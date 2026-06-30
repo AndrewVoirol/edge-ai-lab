@@ -36,7 +36,7 @@ final class EvalRunnerLifecycleTests: XCTestCase {
     private var evalStore: EvalStore!
     private var tempDir: URL!
 
-    private let defaultFlags = ExperimentalFlagsState(
+    private let defaultFlags = RuntimeFlags(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,
         enableConversationConstrainedDecoding: false,

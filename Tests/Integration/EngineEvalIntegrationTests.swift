@@ -43,7 +43,7 @@ struct EngineEvalIntegrationTests {
     // MARK: - Helpers
 
     /// Default flags for eval — benchmarks enabled, no speculative decoding.
-    private static let defaultFlags = ExperimentalFlagsState(
+    private static let defaultFlags = RuntimeFlags(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,
         enableConversationConstrainedDecoding: false,

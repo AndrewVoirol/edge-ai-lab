@@ -87,7 +87,7 @@ struct MetricsStoreSwiftTestingTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: false,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,
@@ -127,7 +127,7 @@ struct MetricsStoreSwiftTestingTests {
                 gpuAllocatedMemoryAtStartMB: nil,
                 gpuAllocatedMemoryAtEndMB: nil
             ),
-            flags: ExperimentalFlagsState(
+            flags: RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: true,
                 enableConversationConstrainedDecoding: true,

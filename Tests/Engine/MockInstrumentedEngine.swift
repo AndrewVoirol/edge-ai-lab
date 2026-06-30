@@ -377,7 +377,7 @@ extension MockInstrumentedEngine: InferenceEngine {
     var runtimeType: RuntimeType { .litertlm }
 
     func loadModel(config: ModelLoadConfig) async throws {
-        let flags = config.experimentalFlags ?? ExperimentalFlagsState(
+        let flags = config.runtimeFlags?.toLiteRTFlags() ?? ExperimentalFlagsState(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,

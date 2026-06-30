@@ -23,7 +23,7 @@ import XCTest
 
 /// Tests for Settings toggle bindings and their effects on inference behavior.
 /// Validates that each settings tab's controls properly propagate to the
-/// underlying ExperimentalFlagsState and sampler configuration.
+/// underlying RuntimeFlags and sampler configuration.
 @MainActor
 final class SettingsToggleTests: XCTestCase {
 
@@ -32,11 +32,11 @@ final class SettingsToggleTests: XCTestCase {
     func testEnableBenchmarkDefaultsToTrue() {
         // The ViewModel's experimentalFlags.enableBenchmark is ON by default for research instrument
         let vm = ConversationViewModel()
-        XCTAssertTrue(vm.experimentalFlags.enableBenchmark, "Benchmarking should be enabled by default")
+        XCTAssertTrue(vm.runtimeFlags.enableBenchmark, "Benchmarking should be enabled by default")
     }
 
     func testThinkingModeDefaultsToTrue() {
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -46,7 +46,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testToolCallingDefaultsToFalse() {
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -56,7 +56,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testAgentSkillsDefaultsToFalse() {
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -66,14 +66,14 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testFlagsToggleRoundTrip() {
-        var flags = ExperimentalFlagsState(
+        var flags = RuntimeFlags(
             enableBenchmark: true,
-            enableSpeculativeDecoding: nil,
-            enableConversationConstrainedDecoding: false,
-            visualTokenBudget: nil,
             enableThinking: true,
             enableToolCalling: false,
-            enableAgentSkills: false
+            enableAgentSkills: false,
+            enableSpeculativeDecoding: nil,
+            enableConversationConstrainedDecoding: false,
+            visualTokenBudget: nil
         )
 
         // Toggle all flags
@@ -93,18 +93,18 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testFlagsCodableRoundTrip() throws {
-        let original = ExperimentalFlagsState(
+        let original = RuntimeFlags(
             enableBenchmark: true,
-            enableSpeculativeDecoding: true,
-            enableConversationConstrainedDecoding: true,
-            visualTokenBudget: 280,
             enableThinking: false,
             enableToolCalling: true,
-            enableAgentSkills: true
+            enableAgentSkills: true,
+            enableSpeculativeDecoding: true,
+            enableConversationConstrainedDecoding: true,
+            visualTokenBudget: 280
         )
 
         let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(ExperimentalFlagsState.self, from: data)
+        let decoded = try JSONDecoder().decode(RuntimeFlags.self, from: data)
 
         XCTAssertEqual(original, decoded, "Flags should survive JSON encode/decode round-trip")
     }
@@ -189,7 +189,7 @@ final class SettingsToggleTests: XCTestCase {
 
     func testVisualTokenBudgetOptions() {
         // Valid budgets per Gemma 4 documentation: 70, 140, 280, 560, 1120
-        var flags = ExperimentalFlagsState(
+        var flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -263,7 +263,7 @@ final class SettingsToggleTests: XCTestCase {
     // MARK: - Visual Token Budget UI Wiring
 
     func testVisualTokenBudgetNilMeansAuto() {
-        var flags = ExperimentalFlagsState(
+        var flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -283,7 +283,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testVisualTokenBudgetAppliedToGlobalFlags() {
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -295,7 +295,7 @@ final class SettingsToggleTests: XCTestCase {
 
         // Codable round-trip with budget
         let data = try! JSONEncoder().encode(flags)
-        let decoded = try! JSONDecoder().decode(ExperimentalFlagsState.self, from: data)
+        let decoded = try! JSONDecoder().decode(RuntimeFlags.self, from: data)
         XCTAssertEqual(decoded.visualTokenBudget, 560)
     }
 

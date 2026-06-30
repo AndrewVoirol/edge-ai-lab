@@ -306,7 +306,7 @@ final class ViewModelE2ETests: XCTestCase {
             modelPath: "/fake/model.litertlm"
         )
 
-        let flags = ExperimentalFlagsState(
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,

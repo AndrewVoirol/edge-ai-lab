@@ -64,7 +64,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testGenerateTextPassesEnableThinkingTrue() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = true
+        vm.runtimeFlags.enableThinking = true
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["Hello"]
 
@@ -83,7 +83,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testGenerateTextPassesEnableThinkingFalse() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = false
+        vm.runtimeFlags.enableThinking = false
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["Hello"]
 
@@ -104,7 +104,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testThinkingTagsStrippedInGenerateTextWhenDisabled() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = false
+        vm.runtimeFlags.enableThinking = false
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["<think>", "internal reasoning", "</think>", "The answer is 4."]
 
@@ -133,7 +133,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testAlternateThinkingTagsStrippedInGenerateText() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = false
+        vm.runtimeFlags.enableThinking = false
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["<|think|>", "reasoning here", "</think>", "Final answer."]
 
@@ -151,7 +151,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testThinkingContentParsedWhenEnabled() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = true
+        vm.runtimeFlags.enableThinking = true
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["<think>", "I need to calculate", "</think>", "The answer is 4."]
 
@@ -340,7 +340,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testPadTokensStrippedFromResponse() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        vm.experimentalFlags.enableThinking = false
+        vm.runtimeFlags.enableThinking = false
         mockEngine.isReady = true
         mockEngine.mockResponseChunks = ["Hello", "<pad>", " world", "<pad>"]
 
@@ -410,7 +410,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         XCTAssertTrue(
-            vm.experimentalFlags.enableBenchmark,
+            vm.runtimeFlags.enableBenchmark,
             "Benchmark should be enabled by default"
         )
     }

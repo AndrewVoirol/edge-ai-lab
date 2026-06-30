@@ -249,7 +249,7 @@ final class PerformanceTests: XCTestCase {
                     let entry = MetricsStore.createEntry(
                         from: info,
                         modelName: (modelPath as NSString).lastPathComponent,
-                        flags: engine.flagsState
+                        flags: RuntimeFlags(from: engine.flagsState)
                     )
                     try? store.append(entry: entry)
                 }
