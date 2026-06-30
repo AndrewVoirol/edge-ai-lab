@@ -83,13 +83,18 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
             samplerConfig = activeSamplerConfig
         }
 
-        // Use experimental flags from config or defaults.
-        let flags = config.experimentalFlags ?? ExperimentalFlagsState(
-            enableBenchmark: true,
-            enableSpeculativeDecoding: nil,
-            enableConversationConstrainedDecoding: false,
-            visualTokenBudget: nil
-        )
+        // Use runtime flags from config, converting to LiteRT-LM's native format.
+        let flags: ExperimentalFlagsState
+        if let rf = config.runtimeFlags {
+            flags = rf.toLiteRTFlags()
+        } else {
+            flags = ExperimentalFlagsState(
+                enableBenchmark: true,
+                enableSpeculativeDecoding: nil,
+                enableConversationConstrainedDecoding: false,
+                visualTokenBudget: nil
+            )
+        }
 
         // Determine cache directory.
         let cacheDir = config.cacheDir ?? NSTemporaryDirectory()

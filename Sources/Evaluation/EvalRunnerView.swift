@@ -718,7 +718,7 @@ struct EvalRunnerView: View {
             _ = try await runner.run(
                 suite: suite,
                 models: modelEntries,
-                flags: viewModel.experimentalFlags,
+                flags: viewModel.runtimeFlags,
                 cacheDir: cacheDir
             )
         } catch {
@@ -763,7 +763,7 @@ struct EvalRunnerView: View {
 
         _ = await orchestrator.runAll(
             plan: plan,
-            flags: viewModel.experimentalFlags,
+            flags: viewModel.runtimeFlags,
             cacheDir: FileManager.default.urls(
                 for: .cachesDirectory, in: .userDomainMask
             ).first?.path ?? NSTemporaryDirectory()

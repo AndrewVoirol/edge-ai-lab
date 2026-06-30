@@ -184,7 +184,7 @@ final class EvalRunner {
     func run(
         suite: EvalSuite,
         models: [EvalModelEntry],
-        flags: ExperimentalFlagsState,
+        flags: RuntimeFlags,
         cacheDir: String
     ) async throws -> EvalRun {
         guard !models.isEmpty else {
@@ -323,7 +323,7 @@ final class EvalRunner {
     private func evaluateModel(
         modelEntry: EvalModelEntry,
         suite: EvalSuite,
-        flags: ExperimentalFlagsState,
+        flags: RuntimeFlags,
         cacheDir: String
     ) async throws -> ModelEvalResult {
         let metadata = modelEntry.metadata
@@ -350,7 +350,7 @@ final class EvalRunner {
             tools: tools,
             supportsVision: metadata.supportsImage,
             supportsAudio: metadata.supportsAudio,
-            experimentalFlags: evalFlags
+            runtimeFlags: evalFlags
         )
         try await engine.loadModel(config: loadConfig)
 

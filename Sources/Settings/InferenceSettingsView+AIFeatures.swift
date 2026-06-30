@@ -21,7 +21,7 @@ extension InferenceSettingsView {
     @ViewBuilder
     var thinkingModeSection: some View {
         Section {
-            Toggle("Enable Thinking", isOn: $viewModel.experimentalFlags.enableThinking)
+            Toggle("Enable Thinking", isOn: $viewModel.runtimeFlags.enableThinking)
             .help("When enabled, the model's reasoning is displayed in a collapsible 'Thinking' section before the response. When disabled, thinking tags are stripped from the output.")
             .accessibilityIdentifier("toggle_enableThinking")
 
@@ -42,8 +42,8 @@ extension InferenceSettingsView {
         if let metadata = viewModel.activeModelMetadata, metadata.supportsImage {
             Section {
                 Picker("Visual Token Budget", selection: Binding(
-                    get: { viewModel.experimentalFlags.visualTokenBudget ?? 0 },
-                    set: { viewModel.experimentalFlags.visualTokenBudget = $0 == 0 ? nil : $0 }
+                    get: { viewModel.runtimeFlags.visualTokenBudget ?? 0 },
+                    set: { viewModel.runtimeFlags.visualTokenBudget = $0 == 0 ? nil : $0 }
                 )) {
                     Text("Auto (SDK Default)").tag(Int32(0))
                     Text("70 tokens (fastest)").tag(Int32(70))
@@ -70,12 +70,12 @@ extension InferenceSettingsView {
     @ViewBuilder
     var toolCallingSection: some View {
         Section {
-            Toggle("Enable Tool Calling", isOn: $viewModel.experimentalFlags.enableToolCalling)
+            Toggle("Enable Tool Calling", isOn: $viewModel.runtimeFlags.enableToolCalling)
             .help("Allow the model to invoke built-in tools during inference.")
             .accessibilityIdentifier("toggle_enableToolCalling")
 
-            if viewModel.experimentalFlags.enableToolCalling {
-                Toggle(isOn: $viewModel.experimentalFlags.enableAgentSkills) {
+            if viewModel.runtimeFlags.enableToolCalling {
+                Toggle(isOn: $viewModel.runtimeFlags.enableAgentSkills) {
                     HStack(spacing: AppSpacing.xs) {
                         Text("Enable Agent Skills")
                         Text("Beta")
@@ -131,7 +131,7 @@ extension InferenceSettingsView {
     @ViewBuilder
     var mcpServersSection: some View {
         #if os(macOS)
-        if viewModel.experimentalFlags.enableToolCalling {
+        if viewModel.runtimeFlags.enableToolCalling {
             Section {
                 ForEach(viewModel.mcpServers) { config in
                     VStack(alignment: .leading, spacing: 6) {

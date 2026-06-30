@@ -185,7 +185,7 @@ enum CloudKitModels {
         let thermalTransitions: [MetricsStore.ThermalTransitionRecord]? = decodeJSON(record["thermalTransitions"] as? Data)
 
         // Flags — fall back to defaults if missing
-        let flags: ExperimentalFlagsState = decodeJSON(record["flags"] as? Data) ?? ExperimentalFlagsState(
+        let flags: RuntimeFlags = decodeJSON(record["flags"] as? Data) ?? RuntimeFlags(
             enableBenchmark: false,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,

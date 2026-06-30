@@ -79,8 +79,8 @@ final class ModelSessionController {
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
     /// Callback when engine readiness state changes (so the ViewModel can update its tracked property).
     var onEngineReadyChanged: ((Bool) -> Void)?
-    /// Default experimental flags to use when none are explicitly passed.
-    var defaultExperimentalFlags: ExperimentalFlagsState?
+    /// Default runtime flags to use when none are explicitly passed.
+    var defaultRuntimeFlags: RuntimeFlags?
 
     // MARK: - Init
 
@@ -122,12 +122,12 @@ final class ModelSessionController {
     ///
     /// - Parameters:
     ///   - modelPath: Absolute path to the model file.
-    ///   - experimentalFlags: Current experimental flags configuration.
+    ///   - runtimeFlags: Current runtime flags configuration.
     ///   - useGPU: Whether GPU backend is preferred.
     ///   - mcpClients: Active MCP clients (macOS only) for tool bridging.
     func initializeEngine(
         modelPath: String,
-        experimentalFlags: ExperimentalFlagsState? = nil,
+        runtimeFlags: RuntimeFlags? = nil,
         useGPU: Bool? = nil,
         mcpClients: [UUID: Any] = [:]
     ) async {
@@ -161,7 +161,7 @@ final class ModelSessionController {
             onSamplerDefaultsApplied?(topK, topP, temperature)
         }
 
-        let flags = experimentalFlags ?? defaultExperimentalFlags ?? ExperimentalFlagsState(
+        let flags = runtimeFlags ?? defaultRuntimeFlags ?? RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
@@ -224,7 +224,7 @@ final class ModelSessionController {
                     modelPath: modelPath,
                     preferGPU: preferGPU,
                     cacheDir: modelCacheDirectory.path,
-                    flags: activeFlags,
+                    flags: activeFlags.toLiteRTFlags(),
                     samplerConfig: samplerConfig,
                     systemMessage: composedSystemMessage,
                     tools: tools,
@@ -248,7 +248,7 @@ final class ModelSessionController {
                     supportsVision: activeModelMetadata?.supportsImage ?? false,
                     supportsAudio: activeModelMetadata?.supportsAudio ?? false,
                     generationConfig: genConfig,
-                    experimentalFlags: activeFlags
+                    runtimeFlags: activeFlags
                 )
                 try await engine.loadModel(config: loadConfig)
                 backendResult = nil
@@ -291,7 +291,7 @@ final class ModelSessionController {
 
     /// Reboots the engine to apply new core settings if a model is currently loaded.
     func reinitializeIfNeeded(
-        experimentalFlags: ExperimentalFlagsState,
+        runtimeFlags: RuntimeFlags,
         useGPU: Bool,
         mcpClients: [UUID: Any] = [:]
     ) async {
@@ -301,7 +301,7 @@ final class ModelSessionController {
         engine.shutdown()
         await initializeEngine(
             modelPath: url.path,
-            experimentalFlags: experimentalFlags,
+            runtimeFlags: runtimeFlags,
             useGPU: useGPU,
             mcpClients: mcpClients
         )
@@ -343,7 +343,7 @@ final class ModelSessionController {
 
     /// Build the list of active tools based on flags and MCP clients.
     private func buildActiveTools(
-        flags: ExperimentalFlagsState,
+        flags: RuntimeFlags,
         mcpClients: [UUID: Any]
     ) -> [Tool]? {
         guard flags.enableToolCalling else { return nil }

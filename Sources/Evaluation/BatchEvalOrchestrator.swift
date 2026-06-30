@@ -182,7 +182,7 @@ final class BatchEvalOrchestrator {
     /// - Returns: Array of completed `EvalRun` results.
     func runAll(
         plan: BatchEvalPlan,
-        flags: ExperimentalFlagsState,
+        flags: RuntimeFlags,
         cacheDir: String
     ) async -> [EvalRun] {
         isCancelled = false

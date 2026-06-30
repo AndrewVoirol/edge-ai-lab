@@ -120,7 +120,7 @@ struct ModelStripView: View {
                 }
                 
                 if let metadata = model.metadata {
-                    ModelCapabilityBadges(metadata: metadata, experimentalFlags: viewModel.experimentalFlags)
+                    ModelCapabilityBadges(metadata: metadata, runtimeFlags: viewModel.runtimeFlags)
                 }
                 
                 HStack(spacing: AppSpacing.xs) {
@@ -175,7 +175,7 @@ struct ModelStripView: View {
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
                 
-            ModelCapabilityBadges(metadata: model, experimentalFlags: viewModel.experimentalFlags)
+            ModelCapabilityBadges(metadata: model, runtimeFlags: viewModel.runtimeFlags)
 
 
             switch state {
@@ -281,6 +281,26 @@ struct ModelStripView: View {
                         .font(.caption2)
                         .foregroundStyle(AppColors.warning)
                     Text("Paused · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.warning)
+                }
+
+            case .downloadingDirectory(let progress, let completed, let total):
+                VStack(alignment: .leading, spacing: 2) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.accentGold)
+                        .frame(width: 80)
+                    Text("\(completed)/\(total) files · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+
+            case .pausedDirectory(let progress, let completed, let total):
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "pause.fill")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.warning)
+                    Text("Paused · \(completed)/\(total) · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.warning)
                 }

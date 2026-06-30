@@ -357,7 +357,7 @@ struct iOSEvalTabView: View {
             _ = try await runner.run(
                 suite: suite,
                 models: modelEntries,
-                flags: viewModel.experimentalFlags,
+                flags: viewModel.runtimeFlags,
                 cacheDir: cacheDir
             )
 

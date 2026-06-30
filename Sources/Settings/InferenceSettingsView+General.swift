@@ -70,15 +70,15 @@ extension InferenceSettingsView {
     }
 
     @ViewBuilder
-    var experimentalFlagsSection: some View {
+    var runtimeFlagsSection: some View {
         Section {
-            Toggle("Enable Benchmarking", isOn: $viewModel.experimentalFlags.enableBenchmark)
+            Toggle("Enable Benchmarking", isOn: $viewModel.runtimeFlags.enableBenchmark)
             .help("Collect TTFT, decode speed, and prefill speed after each inference.")
             .accessibilityIdentifier("toggle_enableBenchmark")
 
             Toggle("Multi-Token Prediction (MTP)", isOn: Binding(
-                get: { viewModel.experimentalFlags.enableSpeculativeDecoding ?? false },
-                set: { viewModel.experimentalFlags.enableSpeculativeDecoding = $0 }
+                get: { viewModel.runtimeFlags.enableSpeculativeDecoding ?? false },
+                set: { viewModel.runtimeFlags.enableSpeculativeDecoding = $0 }
             ))
             .help("Enable speculative decoding (Multi-Token Prediction) for faster decode speeds on GPU backends. Recommended for GPU/Metal.")
             .accessibilityIdentifier("toggle_enableMTP")
@@ -89,7 +89,7 @@ extension InferenceSettingsView {
                     .foregroundStyle(AppColors.success)
             }
 
-            Toggle("Constrained Decoding", isOn: $viewModel.experimentalFlags.enableConversationConstrainedDecoding)
+            Toggle("Constrained Decoding", isOn: $viewModel.runtimeFlags.enableConversationConstrainedDecoding)
             .help("Enable constrained decoding for structured outputs.")
             .accessibilityIdentifier("toggle_constrainedDecoding")
         } header: {

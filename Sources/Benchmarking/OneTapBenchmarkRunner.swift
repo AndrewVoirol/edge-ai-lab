@@ -119,7 +119,7 @@ final class OneTapBenchmarkRunner {
     private let metricsStore: MetricsStore
     private let modelName: String
     /// LiteRT-specific flags, passed separately since not all runtimes have them.
-    private let experimentalFlags: ExperimentalFlagsState?
+    private let runtimeFlags: RuntimeFlags?
 
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.andrewvoirol.EdgeAILab",
@@ -133,17 +133,17 @@ final class OneTapBenchmarkRunner {
     ///   - engine: The inference engine to run inferences on. Must already be loaded.
     ///   - metricsStore: The store to persist benchmark results to.
     ///   - modelName: The model name for metrics store entries.
-    ///   - experimentalFlags: Optional LiteRT flags for metrics persistence.
+    ///   - runtimeFlags: Optional runtime flags for metrics persistence.
     init(
         engine: any InferenceEngine,
         metricsStore: MetricsStore,
         modelName: String,
-        experimentalFlags: ExperimentalFlagsState? = nil
+        runtimeFlags: RuntimeFlags? = nil
     ) {
         self.engine = engine
         self.metricsStore = metricsStore
         self.modelName = modelName
-        self.experimentalFlags = experimentalFlags
+        self.runtimeFlags = runtimeFlags
     }
 
     // MARK: - Run
@@ -202,7 +202,7 @@ final class OneTapBenchmarkRunner {
                 // Use LiteRT-specific path when available for full metrics, otherwise use generic path
                 if let liteRTAdapter = engine as? LiteRTEngineAdapter,
                    let benchmarkInfo = liteRTAdapter.wrappedEngine.lastBenchmarkInfo {
-                    let flags = experimentalFlags ?? liteRTAdapter.wrappedEngine.flagsState
+                    let flags = runtimeFlags ?? RuntimeFlags(from: liteRTAdapter.wrappedEngine.flagsState)
                     let entry = MetricsStore.createEntry(
                         from: benchmarkInfo,
                         modelName: modelName,

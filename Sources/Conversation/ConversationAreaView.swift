@@ -36,7 +36,7 @@ struct ConversationAreaView: View {
                             ForEach(viewModel.conversation.messages) { message in
                                 ChatBubbleView(
                                     message: message,
-                                    enableThinking: viewModel.experimentalFlags.enableThinking
+                                    enableThinking: viewModel.runtimeFlags.enableThinking
                                 )
                             }
 
@@ -155,7 +155,7 @@ struct ConversationAreaView: View {
                         id: "hint_tools",
                         delay: 0.1
                     ) {
-                        viewModel.experimentalFlags.enableToolCalling = true
+                        viewModel.runtimeFlags.enableToolCalling = true
                         viewModel.prompt = "What time is it in Tokyo?"
                         NotificationCenter.default.post(name: .focusPromptRequested, object: nil)
                     }
@@ -168,7 +168,7 @@ struct ConversationAreaView: View {
                         id: "hint_thinking",
                         delay: 0.15
                     ) {
-                        viewModel.experimentalFlags.enableThinking = true
+                        viewModel.runtimeFlags.enableThinking = true
                         viewModel.prompt = "Explain step by step: Why does 0.1 + 0.2 ≠ 0.3 in floating point?"
                         NotificationCenter.default.post(name: .focusPromptRequested, object: nil)
                     }

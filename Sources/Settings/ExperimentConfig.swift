@@ -148,7 +148,7 @@ struct ExperimentConfig: Codable, Sendable, Equatable {
         temperature: Float,
         seed: Int,
         systemMessage: String,
-        flags: ExperimentalFlagsState
+        flags: RuntimeFlags
     ) -> ExperimentConfig {
         let backendLabel: String
         let didFallback: Bool

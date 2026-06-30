@@ -33,7 +33,7 @@ final class MetricsStore {
         let platform: String
         let device: String
         let metrics: Metrics
-        let flags: ExperimentalFlagsState
+        let flags: RuntimeFlags
 
         /// Device information from CloudKit sync (nil for locally-created entries
         /// that haven't been synced yet).
@@ -47,7 +47,7 @@ final class MetricsStore {
             platform: String,
             device: String,
             metrics: Metrics,
-            flags: ExperimentalFlagsState,
+            flags: RuntimeFlags,
             syncDeviceInfo: DeviceInfo? = nil
         ) {
             self.id = id
@@ -70,7 +70,7 @@ final class MetricsStore {
             self.platform = try container.decode(String.self, forKey: .platform)
             self.device = try container.decode(String.self, forKey: .device)
             self.metrics = try container.decode(Metrics.self, forKey: .metrics)
-            self.flags = try container.decode(ExperimentalFlagsState.self, forKey: .flags)
+            self.flags = try container.decode(RuntimeFlags.self, forKey: .flags)
             self.syncDeviceInfo = try container.decodeIfPresent(DeviceInfo.self, forKey: .syncDeviceInfo)
         }
 
@@ -186,7 +186,7 @@ final class MetricsStore {
     static func createEntry(
         from benchmarkInfo: BenchmarkInfo,
         modelName: String,
-        flags: ExperimentalFlagsState,
+        flags: RuntimeFlags,
         inferenceMetrics: InferenceMetrics? = nil
     ) -> Entry {
         let platform: String
@@ -283,8 +283,8 @@ final class MetricsStore {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
-        // Default ExperimentalFlagsState for non-LiteRT engines.
-        let flags = ExperimentalFlagsState(
+        // Default RuntimeFlags for non-LiteRT engines.
+        let flags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,

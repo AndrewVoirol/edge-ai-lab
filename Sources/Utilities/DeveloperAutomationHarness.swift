@@ -58,13 +58,10 @@ struct DeveloperAutomationHarness {
         prompt: String,
         maxDecodeTokens: Int = 256
     ) async -> [String: Any]? {
-        guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
-            automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
-            return nil
-        }
+        let engine = viewModel.engine
         automationLog("[AUTOMATION] Resetting conversation...")
         do {
-            try await liteRTEngine.resetConversation()
+            try await engine.resetConversation()
         } catch {
             automationLog("[AUTOMATION_FAILURE] Failed to reset conversation: \(error.localizedDescription)")
             return nil
@@ -72,7 +69,7 @@ struct DeveloperAutomationHarness {
         
         automationLog("[AUTOMATION] Running warmup turn (priming counters)...")
         do {
-            try await liteRTEngine.warmup()
+            try await engine.warmup()
         } catch {
             automationLog("[AUTOMATION] Warmup warning: \(error.localizedDescription)")
         }
@@ -83,15 +80,25 @@ struct DeveloperAutomationHarness {
         var responseText = ""
         var firstTokenTime: Double? = nil
         
+        let config = GenerationConfig(maxTokens: maxDecodeTokens, temperature: 1.0, topP: 1.0, topK: 1)
+        
         do {
-            for try await chunk in liteRTEngine.sendMessageStream(prompt) {
-                if firstTokenTime == nil {
-                    firstTokenTime = CFAbsoluteTimeGetCurrent() - inferenceStart
-                }
-                responseText += chunk
-                tokenCount += 1
-                if tokenCount >= maxDecodeTokens {
+            for try await event in engine.generateStream(prompt: prompt, config: config) {
+                switch event {
+                case .text(let chunk):
+                    if firstTokenTime == nil {
+                        firstTokenTime = CFAbsoluteTimeGetCurrent() - inferenceStart
+                    }
+                    responseText += chunk
+                    tokenCount += 1
+                    if tokenCount >= maxDecodeTokens {
+                        engine.cancelGeneration()
+                        break
+                    }
+                case .done:
                     break
+                case .metrics, .toolCall:
+                    continue
                 }
             }
         } catch {
@@ -99,7 +106,7 @@ struct DeveloperAutomationHarness {
             return nil
         }
         
-        guard let info = liteRTEngine.lastBenchmarkInfo else {
+        guard let metrics = engine.lastPerformanceMetrics else {
             automationLog("[AUTOMATION_FAILURE] No benchmark metrics captured.")
             return nil
         }
@@ -107,12 +114,12 @@ struct DeveloperAutomationHarness {
         automationLog("[AUTOMATION] Benchmark turn finished. Generated tokens: \(tokenCount)")
         
         return [
-            "prefill_tok_s": info.lastPrefillTokensPerSecond,
-            "decode_tok_s": info.lastDecodeTokensPerSecond,
-            "ttft_s": info.timeToFirstTokenInSecond,
-            "init_time_s": info.initTimeInSecond,
+            "prefill_tok_s": metrics.promptTokensPerSecond ?? 0.0,
+            "decode_tok_s": metrics.tokensPerSecond,
+            "ttft_s": metrics.timeToFirstToken ?? firstTokenTime ?? 0.0,
+            "init_time_s": 0.0,  // Not available through generic InferenceEngine
             "median_token_latency_ms": viewModel.inferenceMetrics?.medianTokenLatencyMs ?? 0.0,
-            "memory_delta_mb": viewModel.inferenceMetrics?.memoryDeltaMB ?? 0.0
+            "memory_delta_mb": metrics.memoryDeltaMB ?? viewModel.inferenceMetrics?.memoryDeltaMB ?? 0.0
         ]
     }
     
@@ -272,7 +279,7 @@ struct DeveloperAutomationHarness {
                 
                 // Check 1: MetricsStore Entry encoding/decoding round-trip
                 do {
-                    let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
+                    let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
                     let entry = MetricsStore.Entry(
                         timestamp: ISO8601DateFormatter().string(from: Date()),
                         model: "test-model.litertlm", platform: "iOS", device: "TestDevice",
@@ -381,7 +388,7 @@ struct DeveloperAutomationHarness {
                 let targetURL = docs.appendingPathComponent(targetModel.modelFile)
                 automationLog("[AUTOMATION] Loading model \(targetModel.modelFile) on GPU...")
                 
-                let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
+                let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
                 let sampler = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
                 
                 let cachesDir = safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
@@ -396,7 +403,7 @@ struct DeveloperAutomationHarness {
                         modelPath: targetURL.path,
                         useGPU: true,
                         cacheDir: cachesDir.path,
-                        flags: flags,
+                        flags: flags.toLiteRTFlags(),
                         samplerConfig: sampler
                     )
                 } catch {
@@ -476,14 +483,14 @@ struct DeveloperAutomationHarness {
                     automationLog("[AUTOMATION] Start Thermal State: \(thermal.label)")
                     
                     let targetURL = docs.appendingPathComponent(cfg.model.modelFile)
-                    let flags = ExperimentalFlagsState(
+                    let flags = RuntimeFlags(
                         enableBenchmark: true,
                         enableSpeculativeDecoding: cfg.enableMTP ? true : nil,
                         enableConversationConstrainedDecoding: false,
                         visualTokenBudget: nil
                     )
                     
-                    await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
+                    viewModel.engine.shutdown()
                     
                     let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile)
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
@@ -497,12 +504,12 @@ struct DeveloperAutomationHarness {
                             modelPath: targetURL.path,
                             useGPU: cfg.useGPU,
                             cacheDir: cachesDir.path,
-                            flags: flags,
+                            flags: flags.toLiteRTFlags(),
                             samplerConfig: cfg.sampler
                         )
                     } catch {
                         automationLog("[AUTOMATION] Skipping config: Initialization failed: \(error.localizedDescription)")
-                        await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
+                        viewModel.engine.shutdown()
                         continue
                     }
                     
@@ -516,7 +523,7 @@ struct DeveloperAutomationHarness {
                     }
                     
                     if configIndexToRun == nil {
-                         await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
+                         viewModel.engine.shutdown()
                     }
                 }
                 
@@ -612,6 +619,12 @@ struct DeveloperAutomationHarness {
                     automationLog("[AUTOMATION] Download progress (\(model.modelFile)): \(pct)%")
                     lastLoggedProgress = pct
                 }
+            case .downloadingDirectory(let progress, let completed, let total):
+                let pct = Int(progress * 100)
+                if pct != lastLoggedProgress {
+                    automationLog("[AUTOMATION] Download progress (\(model.modelFile)): \(pct)% [\(completed)/\(total) files]")
+                    lastLoggedProgress = pct
+                }
             case .downloaded:
                 automationLog("[AUTOMATION] \(model.modelFile) downloaded successfully.")
                 completed = true
@@ -628,6 +641,8 @@ struct DeveloperAutomationHarness {
             case .paused:
                 automationLog("[AUTOMATION] \(model.modelFile) paused — resuming...")
                 viewModel.downloadManager.resumeDownload(model)
+            case .pausedDirectory:
+                automationLog("[AUTOMATION] \(model.modelFile) directory download paused")
             }
         }
     }
@@ -816,7 +831,7 @@ struct DeveloperAutomationHarness {
             defaults.set(configId, forKey: kActiveConfigKey)
             
             let targetURL = docs.appendingPathComponent(targetModel.modelFile)
-            let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
+            let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
             let sampler = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
             let cachesDir = safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
             try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
@@ -832,7 +847,7 @@ struct DeveloperAutomationHarness {
                     modelPath: targetURL.path,
                     useGPU: true,
                     cacheDir: cachesDir.path,
-                    flags: flags,
+                    flags: flags.toLiteRTFlags(),
                     samplerConfig: sampler
                 )
             } catch {
@@ -1039,7 +1054,7 @@ struct DeveloperAutomationHarness {
         let evalRunner = EvalRunner(engine: liteRTAdapter, store: evalStore)
         
         let targetURL = docs.appendingPathComponent(targetModel.modelFile)
-        let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
+        let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
         let sampler = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
         let cachesDir = safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
         try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
@@ -1054,7 +1069,7 @@ struct DeveloperAutomationHarness {
                 modelPath: targetURL.path,
                 useGPU: true,
                 cacheDir: cachesDir.path,
-                flags: flags,
+                flags: flags.toLiteRTFlags(),
                 samplerConfig: sampler
             )
         } catch {
@@ -1201,7 +1216,7 @@ struct DeveloperAutomationHarness {
         signalComplete(0, message: "Eval pipeline completed successfully")
         
         // Best-effort engine cleanup (only reached under XCUITest).
-        await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
+        viewModel.engine.shutdown()
         return
     }
     

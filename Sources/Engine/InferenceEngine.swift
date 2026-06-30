@@ -317,9 +317,10 @@ struct ModelLoadConfig: Sendable, Equatable {
     /// LiteRT-LM binds sampler config at conversation creation, so these are set here.
     var generationConfig: GenerationConfig?
 
-    /// LiteRT-LM specific: experimental flags configuration.
-    /// Ignored by MLX and other runtimes.
-    var experimentalFlags: ExperimentalFlagsState?
+    /// Runtime-agnostic flags configuration.
+    /// Replaces the LiteRT-specific `ExperimentalFlagsState` at the protocol boundary.
+    /// `LiteRTEngineAdapter` converts to `ExperimentalFlagsState` internally via `toLiteRTFlags()`.
+    var runtimeFlags: RuntimeFlags?
 
     init(
         modelPath: String,
@@ -330,7 +331,7 @@ struct ModelLoadConfig: Sendable, Equatable {
         supportsVision: Bool = false,
         supportsAudio: Bool = false,
         generationConfig: GenerationConfig? = nil,
-        experimentalFlags: ExperimentalFlagsState? = nil
+        runtimeFlags: RuntimeFlags? = nil
     ) {
         self.modelPath = modelPath
         self.preferGPU = preferGPU
@@ -340,7 +341,7 @@ struct ModelLoadConfig: Sendable, Equatable {
         self.supportsVision = supportsVision
         self.supportsAudio = supportsAudio
         self.generationConfig = generationConfig
-        self.experimentalFlags = experimentalFlags
+        self.runtimeFlags = runtimeFlags
     }
 
     /// Manual Equatable — `tools: [any AppTool]?` can't auto-synthesize.
@@ -353,7 +354,7 @@ struct ModelLoadConfig: Sendable, Equatable {
             && lhs.supportsVision == rhs.supportsVision
             && lhs.supportsAudio == rhs.supportsAudio
             && lhs.generationConfig == rhs.generationConfig
-            && lhs.experimentalFlags == rhs.experimentalFlags
+            && lhs.runtimeFlags == rhs.runtimeFlags
     }
 }
 

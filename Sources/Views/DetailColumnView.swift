@@ -149,7 +149,7 @@ private struct ModelDetailPanel: View {
                 // MARK: Capability Badges
                 ModelCapabilityBadges(
                     metadata: metadata,
-                    experimentalFlags: viewModel.experimentalFlags
+                    runtimeFlags: viewModel.runtimeFlags
                 )
                 .accessibilityIdentifier("modelDetail_badges")
 

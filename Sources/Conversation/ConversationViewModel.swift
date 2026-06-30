@@ -87,15 +87,15 @@ final class ConversationViewModel {
     /// Metadata for the currently loaded model, if known.
     var activeModelMetadata: ModelMetadata? { sessionController.activeModelMetadata }
 
-    /// Current experimental flags configuration (user-toggleable, default ON).
-    var experimentalFlags = ExperimentalFlagsState(
+    /// Current runtime flags configuration (user-toggleable, default ON).
+    var runtimeFlags = RuntimeFlags(
         enableBenchmark: true,
         enableSpeculativeDecoding: nil,
         enableConversationConstrainedDecoding: false,
         visualTokenBudget: nil
     ) {
         didSet {
-            sessionController.defaultExperimentalFlags = experimentalFlags
+            sessionController.defaultRuntimeFlags = runtimeFlags
             Task { await reinitializeEngineIfNeeded() }
         }
     }
@@ -338,7 +338,7 @@ final class ConversationViewModel {
             self?.temperature = temperature
         }
         // Give the controller access to the VM's experimental flags by default
-        controller.defaultExperimentalFlags = experimentalFlags
+        controller.defaultRuntimeFlags = runtimeFlags
 
         self.mcpServers = MCPServerStorage.load()
         // Auto-refresh discovered models when any download completes.
@@ -414,7 +414,7 @@ final class ConversationViewModel {
         mcpClients = activeClients
         #endif
         await sessionController.reinitializeIfNeeded(
-            experimentalFlags: experimentalFlags,
+            runtimeFlags: runtimeFlags,
             useGPU: useGPU,
             mcpClients: mcpClients
         )
@@ -507,7 +507,7 @@ final class ConversationViewModel {
                 switch event {
                 case .text(let chunk):
                     // Parse thinking tags from streaming chunks
-                    if experimentalFlags.enableThinking {
+                    if runtimeFlags.enableThinking {
                         let segments = thinkingParser.feed(chunk)
                         for segment in segments {
                             switch segment {
@@ -576,7 +576,7 @@ final class ConversationViewModel {
                     let entry = MetricsStore.createEntry(
                         from: benchmarkInfo,
                         modelName: modelName,
-                        flags: liteRTAdapter.wrappedEngine.flagsState,
+                        flags: RuntimeFlags(from: liteRTAdapter.wrappedEngine.flagsState),
                         inferenceMetrics: liteRTAdapter.wrappedEngine.lastInferenceMetrics
                     )
                     do {
@@ -751,7 +751,7 @@ final class ConversationViewModel {
             temperature: temperature,
             seed: seed,
             systemMessage: systemMessage,
-            flags: experimentalFlags
+            flags: runtimeFlags
         )
         let summary = ExperimentSummary.compute(from: conversation.messages)
         let now = Date()
@@ -801,7 +801,7 @@ final class ConversationViewModel {
             temperature: temperature,
             seed: seed,
             systemMessage: systemMessage,
-            flags: experimentalFlags
+            flags: runtimeFlags
         )
         let summary = ExperimentSummary.compute(from: conversation.messages)
         let now = Date()

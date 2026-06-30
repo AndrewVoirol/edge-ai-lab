@@ -175,14 +175,28 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     // MARK: - Loading
 
     func loadModel(config: ModelLoadConfig) async throws {
-        let configuration = ModelConfiguration(id: config.modelPath)
+        let container: ModelContainer
 
-        let container = try await LLMModelFactory.shared.loadContainer(
-            from: HubDownloader(),
-            using: TransformersTokenizerLoader(),
-            configuration: configuration
-        ) { [weak self] progress in
-            self?.downloadProgress = progress.fractionCompleted
+        // Determine if modelPath is a local directory or a HuggingFace repo ID
+        let modelURL = URL(fileURLWithPath: config.modelPath)
+        if FileManager.default.fileExists(atPath: config.modelPath),
+           (try? modelURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+            // Local path — load directly from disk (downloaded MLX model directory)
+            container = try await LLMModelFactory.shared.loadContainer(
+                from: modelURL,
+                using: TransformersTokenizerLoader()
+            )
+            self.downloadProgress = 1.0
+        } else {
+            // HuggingFace repo ID — download via Hub API
+            let configuration = ModelConfiguration(id: config.modelPath)
+            container = try await LLMModelFactory.shared.loadContainer(
+                from: HubDownloader(),
+                using: TransformersTokenizerLoader(),
+                configuration: configuration
+            ) { [weak self] progress in
+                self?.downloadProgress = progress.fractionCompleted
+            }
         }
 
         self.modelContainer = container
@@ -237,8 +251,16 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
         self.chatSession = session
 
-        // Configure Metal memory cache limit (512 MB — balances reuse vs. pressure).
-        Memory.cacheLimit = 512 * 1024 * 1024
+        // Configure Metal memory cache limits from RuntimeFlags, or use defaults.
+        if let cacheLimit = config.runtimeFlags?.metalCacheLimit {
+            Memory.cacheLimit = cacheLimit
+        } else {
+            // Default: 512 MB — balances buffer reuse vs. memory pressure.
+            Memory.cacheLimit = 512 * 1024 * 1024
+        }
+        if let memLimit = config.runtimeFlags?.metalMemoryLimit {
+            Memory.memoryLimit = memLimit
+        }
 
         modelInfo = InferenceModelInfo(
             name: config.modelPath.split(separator: "/").last.map(String.init) ?? config.modelPath,

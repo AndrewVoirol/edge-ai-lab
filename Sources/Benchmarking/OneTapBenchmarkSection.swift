@@ -232,7 +232,7 @@ struct OneTapBenchmarkSection: View {
             engine: viewModel.engine,
             metricsStore: MetricsStore(),
             modelName: viewModel.activeModelMetadata?.name ?? "Unknown",
-            experimentalFlags: viewModel.experimentalFlags
+            runtimeFlags: viewModel.runtimeFlags
         )
         runner = newRunner
         Task {

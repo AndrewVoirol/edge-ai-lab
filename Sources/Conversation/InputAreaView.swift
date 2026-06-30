@@ -374,7 +374,7 @@ struct InputAreaView: View {
 
     /// Border color changes when thinking mode is active.
     private var inputBorderColor: Color {
-        if viewModel.experimentalFlags.enableThinking && viewModel.isThinking {
+        if viewModel.runtimeFlags.enableThinking && viewModel.isThinking {
             return AppColors.thinking
         }
         return AppColors.borderActive
@@ -382,7 +382,7 @@ struct InputAreaView: View {
 
     /// Border width increases during thinking mode for visual emphasis.
     private var inputBorderWidth: CGFloat {
-        if viewModel.experimentalFlags.enableThinking && viewModel.isThinking {
+        if viewModel.runtimeFlags.enableThinking && viewModel.isThinking {
             return 1.5
         }
         return 0.5

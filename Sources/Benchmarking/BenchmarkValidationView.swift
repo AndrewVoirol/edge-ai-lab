@@ -50,7 +50,7 @@ class BenchmarkValidationRunner: ObservableObject {
 
         // Check 1: MetricsStore Entry encoding/decoding round-trip
         await runCheck("MetricsStore Entry Encoding") {
-            let flags = ExperimentalFlagsState(
+            let flags = RuntimeFlags(
                 enableBenchmark: true,
                 enableSpeculativeDecoding: nil,
                 enableConversationConstrainedDecoding: false,

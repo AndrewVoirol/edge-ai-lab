@@ -48,7 +48,7 @@ struct InferenceSettingsView: View {
             ToolDisplayItem(name: TextAnalyzerTool.name, desc: TextAnalyzerTool.description),
             ToolDisplayItem(name: SystemHealthTool.name, desc: SystemHealthTool.description),
         ]
-        if viewModel.experimentalFlags.enableAgentSkills {
+        if viewModel.runtimeFlags.enableAgentSkills {
             items.append(ToolDisplayItem(name: WikipediaSkillTool.name, desc: WikipediaSkillTool.description))
             items.append(ToolDisplayItem(name: MapSkillTool.name, desc: MapSkillTool.description))
         }
@@ -62,7 +62,7 @@ struct InferenceSettingsView: View {
         TabView {
             Form {
                 backendSection
-                experimentalFlagsSection
+                runtimeFlagsSection
             }
             .formStyle(.grouped)
             .tag("tab_general")
@@ -104,7 +104,7 @@ struct InferenceSettingsView: View {
         #else
         Form {
             backendSection
-            experimentalFlagsSection
+            runtimeFlagsSection
             downloadsSection
             thinkingModeSection
             visualTokenBudgetSection

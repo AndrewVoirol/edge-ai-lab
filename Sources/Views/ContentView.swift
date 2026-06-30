@@ -312,7 +312,7 @@ struct ContentView: View {
                     .frame(maxHeight: .infinity)
 
                 // Benchmark bar (shown when data is available)
-                if viewModel.experimentalFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                if viewModel.runtimeFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
                     Rectangle()
                         .fill(AppColors.border)
                         .frame(height: 0.5)
@@ -503,7 +503,7 @@ extension ContentView {
 
 struct ModelCapabilityBadges: View {
     let metadata: ModelMetadata
-    let experimentalFlags: ExperimentalFlagsState
+    let runtimeFlags: RuntimeFlags
     
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
@@ -525,13 +525,13 @@ struct ModelCapabilityBadges: View {
                     .accessibilityIdentifier("badge_mtp")
                     .accessibilityLabel("Multi-turn planning capability")
             }
-            if experimentalFlags.enableToolCalling {
+            if runtimeFlags.enableToolCalling {
                 Text("Tools")
                     .badge(AppColors.toolCall)
                     .accessibilityIdentifier("badge_tools")
                     .accessibilityLabel("Tool calling capability")
             }
-            if experimentalFlags.enableThinking {
+            if runtimeFlags.enableThinking {
                 Text("Thinking")
                     .badge(AppColors.badgeThinking)
                     .accessibilityIdentifier("badge_thinking")

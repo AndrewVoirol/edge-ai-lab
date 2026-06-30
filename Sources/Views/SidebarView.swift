@@ -105,7 +105,7 @@ struct SidebarView: View {
                     SidebarModelRow(
                         model: model,
                         isActive: viewModel.activeModelURL == model.url,
-                        experimentalFlags: viewModel.experimentalFlags,
+                        runtimeFlags: viewModel.runtimeFlags,
                         onDelete: model.source != .edgeGallery ? {
                             modelToDelete = model
                             showDeleteConfirmation = true
@@ -443,7 +443,7 @@ struct SidebarView: View {
 
             ModelCapabilityBadges(
                 metadata: model,
-                experimentalFlags: viewModel.experimentalFlags
+                runtimeFlags: viewModel.runtimeFlags
             )
 
             downloadStatusView(for: model, state: state)
@@ -593,6 +593,28 @@ struct SidebarView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("sidebar_resumeDownload_\(model.modelFile)")
                 }
+            }
+
+        case .downloadingDirectory(let progress, let completed, let total):
+            VStack(alignment: .leading, spacing: 2) {
+                ProgressView(value: progress)
+                    .tint(AppColors.accentGold)
+                HStack {
+                    Text("\(completed)/\(total) files · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Spacer()
+                }
+            }
+
+        case .pausedDirectory(let progress, let completed, let total):
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "pause.fill")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.warning)
+                Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.warning)
             }
         }
     }
@@ -775,7 +797,7 @@ struct SidebarView: View {
 private struct SidebarModelRow: View {
     let model: DiscoveredModel
     let isActive: Bool
-    let experimentalFlags: ExperimentalFlagsState
+    let runtimeFlags: RuntimeFlags
     let onDelete: (() -> Void)?
 
     @State private var isHovered = false
@@ -820,7 +842,7 @@ private struct SidebarModelRow: View {
             if let metadata = model.metadata {
                 ModelCapabilityBadges(
                     metadata: metadata,
-                    experimentalFlags: experimentalFlags
+                    runtimeFlags: runtimeFlags
                 )
             }
 
