@@ -215,10 +215,17 @@ final class OneTapBenchmarkRunner {
                         Self.logger.error("⚠️ MetricsStore persistence failed for run \(runIndex): \(error.localizedDescription, privacy: .public)")
                     }
                 } else {
-                    // Generic runtime (MLX, etc.) — MetricsStore currently requires LiteRT-specific
-                    // BenchmarkInfo. Metrics persistence for non-LiteRT engines will be added when
-                    // MetricsStore gains an EnginePerformanceMetrics-based createEntry overload.
-                    Self.logger.info("ℹ️ Run \(runIndex): metrics persistence skipped (non-LiteRT engine)")
+                    // Generic runtime (MLX, etc.) — use the EnginePerformanceMetrics overload.
+                    let entry = MetricsStore.createEntry(
+                        from: metrics,
+                        modelName: modelName,
+                        runtimeType: engine.runtimeType
+                    )
+                    do {
+                        try metricsStore.append(entry: entry)
+                    } catch {
+                        Self.logger.error("⚠️ MetricsStore persistence failed for run \(runIndex): \(error.localizedDescription, privacy: .public)")
+                    }
                 }
             }
 

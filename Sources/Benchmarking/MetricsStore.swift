@@ -246,6 +246,81 @@ final class MetricsStore {
         )
     }
 
+    /// Create an entry from `EnginePerformanceMetrics` — runtime-agnostic overload.
+    ///
+    /// Used by non-LiteRT engines (MLX, future runtimes) that don't produce
+    /// `BenchmarkInfo`. Fields unavailable from `EnginePerformanceMetrics`
+    /// (e.g., `initTimeSeconds`, per-token latencies) default to zero/nil.
+    static func createEntry(
+        from metrics: EnginePerformanceMetrics,
+        modelName: String,
+        runtimeType: RuntimeType
+    ) -> Entry {
+        let platform: String
+        #if os(iOS)
+        platform = "iOS"
+        #elseif os(macOS)
+        platform = "macOS"
+        #else
+        platform = "unknown"
+        #endif
+
+        let device: String
+        #if os(iOS)
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        device = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(cString: $0)
+            }
+        }
+        #elseif os(macOS)
+        device = Host.current().localizedName ?? "Mac"
+        #else
+        device = "unknown"
+        #endif
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        // Default ExperimentalFlagsState for non-LiteRT engines.
+        let flags = ExperimentalFlagsState(
+            enableBenchmark: true,
+            enableSpeculativeDecoding: nil,
+            enableConversationConstrainedDecoding: false,
+            visualTokenBudget: nil
+        )
+
+        return Entry(
+            timestamp: formatter.string(from: Date()),
+            model: "\(modelName) [\(runtimeType.rawValue)]",
+            platform: platform,
+            device: device,
+            metrics: Entry.Metrics(
+                initTimeSeconds: 0,  // Not tracked by EnginePerformanceMetrics
+                ttftSeconds: metrics.timeToFirstToken ?? 0,
+                decodeTokensPerSecond: metrics.tokensPerSecond,
+                prefillTokensPerSecond: metrics.promptTokensPerSecond ?? 0,
+                lastPrefillTokenCount: 0,  // Not tracked
+                lastDecodeTokenCount: metrics.tokenCount ?? 0,
+                thermalStateAtStart: nil,
+                thermalStateAtEnd: nil,
+                availableMemoryAtStartMB: nil,
+                availableMemoryAtEndMB: nil,
+                medianTokenLatencyMs: nil,
+                p95TokenLatencyMs: nil,
+                decodeLatenciesMs: nil,
+                latencyHistogram: nil,
+                thermalTransitions: nil,
+                estimatedMemoryBandwidthGBps: nil,
+                modelLoadDurationMs: nil,
+                gpuAllocatedMemoryAtStartMB: nil,
+                gpuAllocatedMemoryAtEndMB: nil
+            ),
+            flags: flags
+        )
+    }
+
     // MARK: - Queries
 
     /// Get the last N entries from the store.

@@ -741,4 +741,113 @@ struct MetricsStoreSwiftTestingTests {
         #expect(trend[0].speed == 42.0)
         #expect(trend[1].speed == 84.0)
     }
+
+    // MARK: - createEntry(from: EnginePerformanceMetrics)
+
+    @Test("createEntry from EnginePerformanceMetrics maps fields correctly")
+    func testCreateEntryFromEnginePerformanceMetrics() {
+        let metrics = EnginePerformanceMetrics(
+            tokensPerSecond: 45.2,
+            promptTokensPerSecond: 120.5,
+            timeToFirstToken: 0.35,
+            peakMemoryBytes: nil,
+            tokenCount: 128,
+            memoryDeltaMB: nil,
+            thermalStateChanged: nil,
+            runtimeType: .mlx
+        )
+
+        let entry = MetricsStore.createEntry(
+            from: metrics,
+            modelName: "gemma-4-e2b-it-4bit",
+            runtimeType: .mlx
+        )
+
+        // Core metrics should map directly
+        #expect(entry.metrics.decodeTokensPerSecond == 45.2)
+        #expect(entry.metrics.prefillTokensPerSecond == 120.5)
+        #expect(entry.metrics.ttftSeconds == 0.35)
+        #expect(entry.metrics.lastDecodeTokenCount == 128)
+
+        // Model name should include runtime type tag
+        #expect(entry.model == "gemma-4-e2b-it-4bit [MLX]")
+
+        // Fields not tracked by EnginePerformanceMetrics
+        #expect(entry.metrics.initTimeSeconds == 0)
+        #expect(entry.metrics.lastPrefillTokenCount == 0)
+        #expect(entry.metrics.thermalStateAtStart == nil)
+        #expect(entry.metrics.thermalStateAtEnd == nil)
+        #expect(entry.metrics.medianTokenLatencyMs == nil)
+        #expect(entry.metrics.p95TokenLatencyMs == nil)
+        #expect(entry.metrics.decodeLatenciesMs == nil)
+
+        // Platform should be set
+        #if os(macOS)
+        #expect(entry.platform == "macOS")
+        #elseif os(iOS)
+        #expect(entry.platform == "iOS")
+        #endif
+
+        // Flags should have benchmark enabled
+        #expect(entry.flags.enableBenchmark == true)
+    }
+
+    @Test("createEntry from EnginePerformanceMetrics handles nil optional fields")
+    func testCreateEntryFromEnginePerformanceMetricsNils() {
+        let metrics = EnginePerformanceMetrics(
+            tokensPerSecond: 30.0,
+            promptTokensPerSecond: nil,
+            timeToFirstToken: nil,
+            peakMemoryBytes: nil,
+            tokenCount: nil,
+            memoryDeltaMB: nil,
+            thermalStateChanged: nil,
+            runtimeType: .litertlm
+        )
+
+        let entry = MetricsStore.createEntry(
+            from: metrics,
+            modelName: "gemma-2b",
+            runtimeType: .litertlm
+        )
+
+        #expect(entry.metrics.decodeTokensPerSecond == 30.0)
+        #expect(entry.metrics.prefillTokensPerSecond == 0)  // nil → 0
+        #expect(entry.metrics.ttftSeconds == 0)              // nil → 0
+        #expect(entry.metrics.lastDecodeTokenCount == 0)     // nil → 0
+        #expect(entry.model == "gemma-2b [LiteRT-LM]")
+    }
+
+    @Test("createEntry from EnginePerformanceMetrics persists and loads correctly")
+    func testCreateEntryFromEnginePerformanceMetricsRoundTrip() throws {
+        let (store, tempDir) = makeTempStore()
+        defer { cleanup(tempDir) }
+
+        let metrics = EnginePerformanceMetrics(
+            tokensPerSecond: 55.8,
+            promptTokensPerSecond: 200.3,
+            timeToFirstToken: 0.12,
+            peakMemoryBytes: 4_000_000_000,
+            tokenCount: 256,
+            memoryDeltaMB: 1.5,
+            thermalStateChanged: false,
+            runtimeType: .mlx
+        )
+
+        let entry = MetricsStore.createEntry(
+            from: metrics,
+            modelName: "test-mlx-model",
+            runtimeType: .mlx
+        )
+
+        try store.append(entry: entry)
+
+        let loaded = try store.loadEntries()
+        #expect(loaded.count == 1)
+        #expect(loaded[0].metrics.decodeTokensPerSecond == 55.8)
+        #expect(loaded[0].metrics.prefillTokensPerSecond == 200.3)
+        #expect(loaded[0].metrics.ttftSeconds == 0.12)
+        #expect(loaded[0].metrics.lastDecodeTokenCount == 256)
+        #expect(loaded[0].model == "test-mlx-model [MLX]")
+    }
 }
