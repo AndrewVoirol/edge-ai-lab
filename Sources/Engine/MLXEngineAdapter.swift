@@ -118,10 +118,17 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
 ///
 /// ## Lifecycle
 ///
-/// 1. `loadModel(config:)` → downloads/loads model via `LLMModelFactory.shared.loadContainer()`
-/// 2. `generateStream(prompt:config:)` → yields `.text`, `.metrics`, `.done` events
+/// 1. `loadModel(config:)` → downloads/loads model, creates ChatSession with tools + sampling
+/// 2. `generateStream(prompt:config:)` → yields `.text`, `.toolCall`, `.metrics`, `.done` events
 /// 3. `resetConversation()` → recreates `ChatSession` (clears KV cache + history)
 /// 4. `shutdown()` → releases all resources and clears Metal memory cache
+///
+/// ## Tool Calling
+///
+/// Uses `ChatSession`'s native `tools` + `toolDispatch` mechanism:
+/// - Tools are converted to `ToolSpec` via `MLXToolBridge.convertToMLXFormat()`
+/// - `streamDetails()` yields `Generation.toolCall(ToolCall)` events
+/// - Tool dispatch results are fed back via `Chat.Message.tool()` automatically
 ///
 /// ## Memory
 ///
@@ -140,6 +147,9 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     /// The currently active generation task, for cancellation support.
     private var activeTask: Task<Void, Never>?
+
+    /// The app-level tools registered at load time, for tool dispatch lookups.
+    private var registeredTools: [any AppTool] = []
 
     /// Model metadata extracted after loading.
     private(set) var modelInfo: InferenceModelInfo?
@@ -160,7 +170,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     var supportsToolCalling: Bool { true }
 
-    var supportsVision: Bool { false } // Phase 4: VLM support
+    var supportsVision: Bool { false }  // TODO: Phase 4 — wire MLXVLM via VLMModelFactory
 
     // MARK: - Loading
 
@@ -176,7 +186,56 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         }
 
         self.modelContainer = container
-        self.chatSession = ChatSession(container)
+
+        // Build GenerateParameters from config.
+        var genParams = GenerateParameters()
+        if let gen = config.generationConfig {
+            genParams.temperature = Float(gen.temperature)
+            genParams.topP = Float(gen.topP)
+            genParams.topK = gen.topK
+            genParams.maxTokens = gen.maxTokens
+            if let penalty = gen.repetitionPenalty {
+                genParams.repetitionPenalty = Float(penalty)
+            }
+            if let seed = gen.seed {
+                genParams.seed = seed
+            }
+        }
+
+        // Convert AppTool → ToolSpec for ChatSession.
+        var mlxTools: [ToolSpec]?
+        if let appTools = config.tools, !appTools.isEmpty {
+            self.registeredTools = appTools
+            mlxTools = MLXToolBridge.convertToMLXFormat(appTools)
+        }
+
+        // Create ChatSession with tools, system instructions, and sampling params.
+        let session = ChatSession(
+            container,
+            instructions: config.systemMessage,
+            generateParameters: genParams,
+            tools: mlxTools
+        )
+
+        // Wire tool dispatch: when ChatSession detects a tool call in model output,
+        // this closure executes the matching AppTool and returns the result string.
+        // ChatSession automatically feeds the result back as a Chat.Message.tool()
+        // and re-runs generation.
+        if !self.registeredTools.isEmpty {
+            let tools = self.registeredTools
+            session.toolDispatch = { toolCall in
+                let name = toolCall.function.name
+                // Convert [String: JSONValue] → [String: Any] for AppTool.execute
+                let arguments = toolCall.function.arguments.mapValues { $0.anyValue }
+                return try await MLXToolBridge.executeToolCall(
+                    toolName: name,
+                    arguments: arguments,
+                    tools: tools
+                )
+            }
+        }
+
+        self.chatSession = session
 
         // Configure Metal memory cache limit (512 MB — balances reuse vs. pressure).
         Memory.cacheLimit = 512 * 1024 * 1024
@@ -199,9 +258,17 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             return AsyncThrowingStream { $0.finish(throwing: EngineError.notReady("MLX model not loaded")) }
         }
 
-        // Set seed if provided (MLX uses a global seed, not per-generation).
+        // Apply per-generation sampling parameters.
+        // ChatSession.generateParameters is a mutable public var.
+        session.generateParameters.temperature = Float(config.temperature)
+        session.generateParameters.topP = Float(config.topP)
+        session.generateParameters.topK = config.topK
+        session.generateParameters.maxTokens = config.maxTokens
+        if let penalty = config.repetitionPenalty {
+            session.generateParameters.repetitionPenalty = Float(penalty)
+        }
         if let seed = config.seed {
-            MLXRandom.seed(seed)
+            session.generateParameters.seed = seed
         }
 
         return AsyncThrowingStream { continuation in
@@ -211,33 +278,52 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     let startTime = CFAbsoluteTimeGetCurrent()
                     var firstTokenTime: Double?
 
-                    for try await token in session.streamResponse(to: prompt) {
+                    // Use streamDetails() for native Generation events:
+                    // .chunk(String), .toolCall(ToolCall), .info(GenerateCompletionInfo)
+                    for try await generation in session.streamDetails(to: prompt) {
                         if Task.isCancelled { break }
 
-                        tokenCount += 1
-                        if firstTokenTime == nil {
-                            firstTokenTime = CFAbsoluteTimeGetCurrent() - startTime
-                        }
-                        continuation.yield(.text(token))
-                    }
+                        switch generation {
+                        case .chunk(let text):
+                            tokenCount += 1
+                            if firstTokenTime == nil {
+                                firstTokenTime = CFAbsoluteTimeGetCurrent() - startTime
+                            }
+                            continuation.yield(.text(text))
 
-                    // Compute performance metrics from timing data.
-                    // Phase 2 refinement: use lower-level MLXLMCommon.generate() API
-                    // to get GenerateCompletionInfo with native prompt timing.
-                    let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                    if tokenCount > 0 && elapsed > 0 {
-                        let metrics = EnginePerformanceMetrics(
-                            tokensPerSecond: Double(tokenCount) / elapsed,
-                            promptTokensPerSecond: nil, // Requires lower-level API
-                            timeToFirstToken: firstTokenTime,
-                            peakMemoryBytes: nil,
-                            tokenCount: tokenCount,
-                            memoryDeltaMB: nil,
-                            thermalStateChanged: nil,
-                            runtimeType: .mlx
-                        )
-                        self.lastPerformanceMetrics = metrics
-                        continuation.yield(.metrics(metrics))
+                        case .toolCall(let toolCall):
+                            // Convert MLXLMCommon.ToolCall → AppToolCall for consumers.
+                            // Note: arguments are [String: JSONValue]; convert to strings
+                            // for AppToolCall's [String: String] contract.
+                            let args = toolCall.function.arguments.reduce(
+                                into: [String: String]()
+                            ) { result, pair in
+                                result[pair.key] = "\(pair.value)"
+                            }
+                            let appToolCall = AppToolCall(
+                                id: toolCall.id ?? UUID().uuidString,
+                                toolName: toolCall.function.name,
+                                arguments: args
+                            )
+                            continuation.yield(.toolCall(appToolCall))
+
+                        case .info(let completionInfo):
+                            // Build EnginePerformanceMetrics from native
+                            // GenerateCompletionInfo — gives us promptTokensPerSecond
+                            // natively instead of manual timing.
+                            let metrics = EnginePerformanceMetrics(
+                                tokensPerSecond: completionInfo.tokensPerSecond,
+                                promptTokensPerSecond: completionInfo.promptTokensPerSecond,
+                                timeToFirstToken: firstTokenTime,
+                                peakMemoryBytes: nil,
+                                tokenCount: completionInfo.generationTokenCount,
+                                memoryDeltaMB: nil,
+                                thermalStateChanged: nil,
+                                runtimeType: .mlx
+                            )
+                            self.lastPerformanceMetrics = metrics
+                            continuation.yield(.metrics(metrics))
+                        }
                     }
 
                     continuation.yield(.done)
@@ -268,7 +354,25 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     func resetConversation() async throws {
         guard let container = modelContainer else { return }
-        chatSession = ChatSession(container)
+        // Preserve tools and system instructions when recreating session.
+        let session = ChatSession(container, instructions: chatSession?.instructions)
+        if !registeredTools.isEmpty {
+            session.tools = chatSession?.tools
+            let tools = self.registeredTools
+            session.toolDispatch = { toolCall in
+                let name = toolCall.function.name
+                let arguments = toolCall.function.arguments.mapValues { $0.anyValue }
+                return try await MLXToolBridge.executeToolCall(
+                    toolName: name,
+                    arguments: arguments,
+                    tools: tools
+                )
+            }
+        }
+        if let oldParams = chatSession?.generateParameters {
+            session.generateParameters = oldParams
+        }
+        chatSession = session
     }
 
     func shutdown() {
@@ -276,6 +380,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         activeTask = nil
         chatSession = nil
         modelContainer = nil
+        registeredTools = []
         Memory.clearCache()
         lastPerformanceMetrics = nil
         modelInfo = nil
@@ -322,6 +427,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     func shutdown() { }
     func resetConversation() async throws { }
     func cancelGeneration() { }
+    func warmup() async throws { /* Metal not available — no-op */ }
 }
 
 #endif
