@@ -58,9 +58,13 @@ struct DeveloperAutomationHarness {
         prompt: String,
         maxDecodeTokens: Int = 256
     ) async -> [String: Any]? {
+        guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+            automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
+            return nil
+        }
         automationLog("[AUTOMATION] Resetting conversation...")
         do {
-            try await viewModel.engine.resetConversation()
+            try await liteRTEngine.resetConversation()
         } catch {
             automationLog("[AUTOMATION_FAILURE] Failed to reset conversation: \(error.localizedDescription)")
             return nil
@@ -68,7 +72,7 @@ struct DeveloperAutomationHarness {
         
         automationLog("[AUTOMATION] Running warmup turn (priming counters)...")
         do {
-            try await viewModel.engine.warmup()
+            try await liteRTEngine.warmup()
         } catch {
             automationLog("[AUTOMATION] Warmup warning: \(error.localizedDescription)")
         }
@@ -80,7 +84,7 @@ struct DeveloperAutomationHarness {
         var firstTokenTime: Double? = nil
         
         do {
-            for try await chunk in viewModel.engine.sendMessageStream(prompt) {
+            for try await chunk in liteRTEngine.sendMessageStream(prompt) {
                 if firstTokenTime == nil {
                     firstTokenTime = CFAbsoluteTimeGetCurrent() - inferenceStart
                 }
@@ -95,7 +99,7 @@ struct DeveloperAutomationHarness {
             return nil
         }
         
-        guard let info = viewModel.engine.lastBenchmarkInfo else {
+        guard let info = liteRTEngine.lastBenchmarkInfo else {
             automationLog("[AUTOMATION_FAILURE] No benchmark metrics captured.")
             return nil
         }
@@ -384,7 +388,11 @@ struct DeveloperAutomationHarness {
                 try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                 
                 do {
-                    try await viewModel.engine.initialize(
+                    guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                        automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
+                        exit(1)
+                    }
+                    try await liteRTEngine.initialize(
                         modelPath: targetURL.path,
                         useGPU: true,
                         cacheDir: cachesDir.path,
@@ -475,13 +483,17 @@ struct DeveloperAutomationHarness {
                         visualTokenBudget: nil
                     )
                     
-                    await viewModel.engine.shutdown()
+                    await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
                     
                     let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile)
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                     
                     do {
-                        try await viewModel.engine.initialize(
+                        guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                            automationLog("[AUTOMATION] Skipping config: No LiteRT engine")
+                            continue
+                        }
+                        try await liteRTEngine.initialize(
                             modelPath: targetURL.path,
                             useGPU: cfg.useGPU,
                             cacheDir: cachesDir.path,
@@ -490,7 +502,7 @@ struct DeveloperAutomationHarness {
                         )
                     } catch {
                         automationLog("[AUTOMATION] Skipping config: Initialization failed: \(error.localizedDescription)")
-                        await viewModel.engine.shutdown()
+                        await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
                         continue
                     }
                     
@@ -504,7 +516,7 @@ struct DeveloperAutomationHarness {
                     }
                     
                     if configIndexToRun == nil {
-                        await viewModel.engine.shutdown()
+                         await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
                     }
                 }
                 
@@ -810,7 +822,13 @@ struct DeveloperAutomationHarness {
             try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
             
             do {
-                try await viewModel.engine.initialize(
+                guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                    automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
+                    clearBenchmarkState()
+                    signalComplete(1, message: "No LiteRT engine")
+                    return
+                }
+                try await liteRTEngine.initialize(
                     modelPath: targetURL.path,
                     useGPU: true,
                     cacheDir: cachesDir.path,
@@ -1013,7 +1031,12 @@ struct DeveloperAutomationHarness {
         let evalDir = docs.appendingPathComponent("eval_results")
         try? FileManager.default.createDirectory(at: evalDir, withIntermediateDirectories: true)
         let evalStore = EvalStore(storageDirectory: evalDir)
-        let evalRunner = EvalRunner(engine: viewModel.engine, store: evalStore)
+        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
+            automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
+            signalComplete(1, message: "No LiteRT engine")
+            return
+        }
+        let evalRunner = EvalRunner(engine: liteRTAdapter.wrappedEngine, store: evalStore)
         
         let targetURL = docs.appendingPathComponent(targetModel.modelFile)
         let flags = ExperimentalFlagsState(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
@@ -1022,7 +1045,12 @@ struct DeveloperAutomationHarness {
         try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
         
         do {
-            try await viewModel.engine.initialize(
+            guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
+                signalComplete(1, message: "No LiteRT engine")
+                return
+            }
+            try await liteRTEngine.initialize(
                 modelPath: targetURL.path,
                 useGPU: true,
                 cacheDir: cachesDir.path,
@@ -1057,7 +1085,7 @@ struct DeveloperAutomationHarness {
                 
                 // Calculate pass rate from the run
                 let totalResults = run.modelResults.flatMap { $0.promptResults }
-                let passed = totalResults.filter(\.passed).count
+                let passed = totalResults.filter { $0.passed }.count
                 let passRate = totalResults.isEmpty ? 0.0 : Double(passed) / Double(totalResults.count)
                 // Guard against non-finite values that crash JSONSerialization
                 let safePassRate = passRate.isFinite ? passRate : 0.0
@@ -1173,7 +1201,7 @@ struct DeveloperAutomationHarness {
         signalComplete(0, message: "Eval pipeline completed successfully")
         
         // Best-effort engine cleanup (only reached under XCUITest).
-        await viewModel.engine.shutdown()
+        await (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine.shutdown()
         return
     }
     

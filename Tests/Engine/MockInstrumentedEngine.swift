@@ -355,3 +355,103 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         return engine
     }
 }
+
+// MARK: - InferenceEngine Conformance
+
+/// Allows MockInstrumentedEngine to be used with ConversationViewModel (which now expects `any InferenceEngine`).
+/// Maps InferenceEngine methods to the existing mock behavior.
+extension MockInstrumentedEngine: InferenceEngine {
+
+    var isLoaded: Bool { isReady }
+
+    var modelInfo: InferenceModelInfo? {
+        guard isReady else { return nil }
+        return InferenceModelInfo(
+            name: lastModelPath.map { ($0 as NSString).lastPathComponent } ?? "MockModel",
+            parameterCount: nil,
+            quantization: nil,
+            runtimeType: .litertlm
+        )
+    }
+
+    var runtimeType: RuntimeType { .litertlm }
+
+    func loadModel(config: ModelLoadConfig) async throws {
+        let flags = config.experimentalFlags ?? ExperimentalFlagsState(
+            enableBenchmark: true,
+            enableSpeculativeDecoding: nil,
+            enableConversationConstrainedDecoding: false,
+            visualTokenBudget: nil
+        )
+        // Bridge GenerationConfig → SamplerConfig for test assertions
+        let samplerConfig: SamplerConfig? = config.generationConfig.map { gen in
+            SamplerConfig(
+                topK: Int32(gen.topK ?? 40),
+                topP: gen.topP ?? 0.95,
+                temperature: gen.temperature ?? 1.0
+            )
+        }
+        try await initialize(
+            modelPath: config.modelPath,
+            useGPU: config.preferGPU,
+            cacheDir: config.cacheDir ?? NSTemporaryDirectory(),
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: config.systemMessage
+        )
+    }
+
+    func generateStream(
+        prompt: String,
+        config: GenerationConfig
+    ) -> AsyncThrowingStream<GenerationEvent, Error> {
+        // Delegate to sendMessageStream and wrap String chunks as GenerationEvent
+        let stringStream = sendMessageStream(prompt)
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    for try await chunk in stringStream {
+                        continuation.yield(.text(chunk))
+                    }
+                    // Emit metrics if available
+                    if let info = self.lastBenchmarkInfo {
+                        let metrics = EnginePerformanceMetrics(
+                            tokensPerSecond: info.lastDecodeTokensPerSecond,
+                            promptTokensPerSecond: nil,
+                            timeToFirstToken: info.timeToFirstTokenInSecond,
+                            peakMemoryBytes: nil,
+                            tokenCount: info.lastDecodeTokenCount,
+                            runtimeType: .litertlm
+                        )
+                        continuation.yield(.metrics(metrics))
+                    }
+                    continuation.yield(.done)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    func shutdown() {
+        // InferenceEngine.shutdown() is sync; apply side effects directly
+        shutdownCallCount += 1
+        isReady = false
+        lastBenchmarkInfo = nil
+        lastInferenceMetrics = nil
+        lastBackendResult = nil
+    }
+
+    var lastPerformanceMetrics: EnginePerformanceMetrics? {
+        guard let info = lastBenchmarkInfo else { return nil }
+        return EnginePerformanceMetrics(
+            tokensPerSecond: info.lastDecodeTokensPerSecond,
+            promptTokensPerSecond: nil,
+            timeToFirstToken: info.timeToFirstTokenInSecond,
+            peakMemoryBytes: nil,
+            tokenCount: info.lastDecodeTokenCount,
+            runtimeType: .litertlm
+        )
+    }
+}

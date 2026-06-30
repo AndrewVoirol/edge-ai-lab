@@ -75,20 +75,39 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     var supportsToolCalling: Bool { true }
 
     func loadModel(config: ModelLoadConfig) async throws {
-        // Build a sampler config if we have one cached from a prior generate call.
-        // LiteRT-LM binds sampler config at conversation creation time.
-        let samplerConfig = activeSamplerConfig
+        // Build sampler config from GenerationConfig if provided.
+        let samplerConfig: SamplerConfig?
+        if let genConfig = config.generationConfig {
+            samplerConfig = try LiteRTEngineAdapter.makeSamplerConfig(from: genConfig)
+        } else {
+            samplerConfig = activeSamplerConfig
+        }
 
-        // Determine cache directory — use the provided one or fall back to tmp.
-        let cacheDir = config.cacheDir ?? NSTemporaryDirectory()
-
-        // Default flags: benchmarking enabled, other experimental features off.
-        let flags = ExperimentalFlagsState(
+        // Use experimental flags from config or defaults.
+        let flags = config.experimentalFlags ?? ExperimentalFlagsState(
             enableBenchmark: true,
             enableSpeculativeDecoding: nil,
             enableConversationConstrainedDecoding: false,
             visualTokenBudget: nil
         )
+
+        // Determine cache directory.
+        let cacheDir = config.cacheDir ?? NSTemporaryDirectory()
+
+        // Bridge AppTool → LiteRTLM.Tool if tools are provided.
+        // During Phase 2 Core, tools are still LiteRTLM.Tool — they'll be bridged
+        // from AppTool in Phase 2 Consumers. For now, pass through directly
+        // since the session controller handles tool assembly.
+        let tools: [Tool]?
+        if let appTools = config.tools {
+            // Register tools for lookup during execution
+            LiteRTToolBridgeRegistry.shared.registerAll(appTools)
+            // For now, tools must be passed through the legacy path.
+            // The session controller's buildActiveTools() still returns [Tool].
+            tools = nil  // TODO: Phase 2 Consumers — bridge AppTool → Tool
+        } else {
+            tools = nil
+        }
 
         // Use smart fallback initialization.
         _ = try await engine.initializeWithFallback(
@@ -96,7 +115,11 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
             preferGPU: config.preferGPU,
             cacheDir: cacheDir,
             flags: flags,
-            samplerConfig: samplerConfig
+            samplerConfig: samplerConfig,
+            systemMessage: config.systemMessage,
+            tools: tools,
+            supportsVision: config.supportsVision,
+            supportsAudio: config.supportsAudio
         )
 
         // Extract model info from the path.
@@ -178,6 +201,88 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     }
 }
 
+// MARK: - LiteRT-Specific Extensions
+
+extension LiteRTEngineAdapter {
+
+    /// The wrapped `InstrumentedEngine` for LiteRT-specific property access.
+    ///
+    /// Used by consumers that need `flagsState`, `lastInferenceMetrics`, or
+    /// `lastBenchmarkInfo` during the Phase 2 migration. These properties are
+    /// LiteRT-LM specific and don't exist on `InferenceEngine`.
+    var wrappedEngine: InstrumentedEngine { engine }
+
+    /// Last `BackendResult` from LiteRT-LM initialization.
+    /// Tracks whether GPU or CPU backend was used, and whether fallback occurred.
+    private(set) var lastBackendResult: BackendResult? {
+        get { _lastBackendResult }
+        set { _lastBackendResult = newValue }
+    }
+    // Stored property backing — can't use stored properties in extensions.
+    // This is set via loadWithLiteRTConfig.
+    private static var _backendResults: [ObjectIdentifier: BackendResult] = [:]
+    private var _lastBackendResult: BackendResult? {
+        get { Self._backendResults[ObjectIdentifier(self)] }
+        set { Self._backendResults[ObjectIdentifier(self)] = newValue }
+    }
+
+    /// Load a model with LiteRT-specific configuration.
+    ///
+    /// This is used during Phase 2 Core when `ModelSessionController` still builds
+    /// `[Tool]` (LiteRTLM type) and `SamplerConfig` directly. Once tools migrate to
+    /// `AppTool` in Phase 2 Consumers, this method will be replaced by the generic
+    /// `loadModel(config:)` path.
+    ///
+    /// - Parameters:
+    ///   - modelPath: Path to the model file.
+    ///   - preferGPU: Whether to prefer GPU backend.
+    ///   - cacheDir: Cache directory for engine artifacts.
+    ///   - flags: Experimental flags configuration.
+    ///   - samplerConfig: LiteRT-LM sampler config.
+    ///   - systemMessage: Optional system message.
+    ///   - tools: LiteRT-LM Tool array (existing tool conformance).
+    ///   - supportsVision: Whether the model supports images.
+    ///   - supportsAudio: Whether the model supports audio.
+    /// - Returns: The `BackendResult` from initialization (backend used, fallback info).
+    @discardableResult
+    func loadWithLiteRTConfig(
+        modelPath: String,
+        preferGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?,
+        systemMessage: String?,
+        tools: [Tool]?,
+        supportsVision: Bool,
+        supportsAudio: Bool
+    ) async throws -> BackendResult {
+        let result = try await engine.initializeWithFallback(
+            modelPath: modelPath,
+            preferGPU: preferGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: systemMessage,
+            tools: tools,
+            supportsVision: supportsVision,
+            supportsAudio: supportsAudio
+        )
+        _lastBackendResult = result
+
+        // Extract model info
+        let filename = (modelPath as NSString).lastPathComponent
+        let name = (filename as NSString).deletingPathExtension
+        modelInfo = InferenceModelInfo(
+            name: name,
+            parameterCount: nil,
+            quantization: nil,
+            runtimeType: .litertlm
+        )
+
+        return result
+    }
+}
+
 // MARK: - GenerationConfig → SamplerConfig Mapping
 
 extension LiteRTEngineAdapter {
@@ -196,3 +301,4 @@ extension LiteRTEngineAdapter {
         )
     }
 }
+

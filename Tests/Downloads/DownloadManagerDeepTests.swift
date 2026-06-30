@@ -1065,10 +1065,10 @@ struct RuntimeTypeTests {
         #expect(RuntimeType.gguf.fileExtension == "gguf")
     }
 
-    @Test("only litertlm is supported in v2.0")
-    func onlyLitertlmSupported() {
+    @Test("litertlm and mlx are supported runtimes")
+    func supportedRuntimes() {
         #expect(RuntimeType.litertlm.isSupported == true)
-        #expect(RuntimeType.mlx.isSupported == false)
+        #expect(RuntimeType.mlx.isSupported == true)
         #expect(RuntimeType.gguf.isSupported == false)
     }
 

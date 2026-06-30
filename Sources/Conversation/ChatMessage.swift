@@ -115,6 +115,14 @@ struct ChatMessage: Identifiable, Sendable, Codable {
             self.timeToFirstToken = info.timeToFirstTokenInSecond
             self.tokenCount = info.lastDecodeTokenCount
         }
+
+        /// Initialize from runtime-agnostic performance metrics.
+        /// Used by the new `InferenceEngine` generation path.
+        init(from metrics: EnginePerformanceMetrics) {
+            self.decodeTokensPerSecond = metrics.tokensPerSecond
+            self.timeToFirstToken = metrics.timeToFirstToken ?? 0
+            self.tokenCount = metrics.tokenCount ?? 0
+        }
         
         init(decodeTokensPerSecond: Double, timeToFirstToken: Double, tokenCount: Int) {
             self.decodeTokensPerSecond = decodeTokensPerSecond

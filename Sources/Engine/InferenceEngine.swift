@@ -287,14 +287,60 @@ struct ModelLoadConfig: Sendable, Equatable {
     /// Cache directory for engine-specific artifacts (KV cache, compiled kernels, etc.).
     var cacheDir: String?
 
+    /// System message to prepend to conversations.
+    var systemMessage: String?
+
+    /// Tools available for function calling during inference.
+    /// Stored as `[any AppTool]` — each adapter bridges to its native format.
+    var tools: [any AppTool]?
+
+    /// Whether the model supports vision input.
+    var supportsVision: Bool
+
+    /// Whether the model supports audio input.
+    var supportsAudio: Bool
+
+    /// Generation parameters to apply at model load time.
+    /// LiteRT-LM binds sampler config at conversation creation, so these are set here.
+    var generationConfig: GenerationConfig?
+
+    /// LiteRT-LM specific: experimental flags configuration.
+    /// Ignored by MLX and other runtimes.
+    var experimentalFlags: ExperimentalFlagsState?
+
     init(
         modelPath: String,
         preferGPU: Bool = true,
-        cacheDir: String? = nil
+        cacheDir: String? = nil,
+        systemMessage: String? = nil,
+        tools: [any AppTool]? = nil,
+        supportsVision: Bool = false,
+        supportsAudio: Bool = false,
+        generationConfig: GenerationConfig? = nil,
+        experimentalFlags: ExperimentalFlagsState? = nil
     ) {
         self.modelPath = modelPath
         self.preferGPU = preferGPU
         self.cacheDir = cacheDir
+        self.systemMessage = systemMessage
+        self.tools = tools
+        self.supportsVision = supportsVision
+        self.supportsAudio = supportsAudio
+        self.generationConfig = generationConfig
+        self.experimentalFlags = experimentalFlags
+    }
+
+    /// Manual Equatable — `tools: [any AppTool]?` can't auto-synthesize.
+    /// Tools are intentionally excluded from equality since they're existential types.
+    static func == (lhs: ModelLoadConfig, rhs: ModelLoadConfig) -> Bool {
+        lhs.modelPath == rhs.modelPath
+            && lhs.preferGPU == rhs.preferGPU
+            && lhs.cacheDir == rhs.cacheDir
+            && lhs.systemMessage == rhs.systemMessage
+            && lhs.supportsVision == rhs.supportsVision
+            && lhs.supportsAudio == rhs.supportsAudio
+            && lhs.generationConfig == rhs.generationConfig
+            && lhs.experimentalFlags == rhs.experimentalFlags
     }
 }
 

@@ -127,7 +127,7 @@ struct ModelMetadataSwiftTests {
             let rt = RuntimeType.mlx
             #expect(rt.displayName == "MLX")
             #expect(rt.fileExtension == "safetensors")
-            #expect(rt.isSupported == false)
+            #expect(rt.isSupported == true)
         }
 
         @Test("gguf: displayName, fileExtension, isSupported")

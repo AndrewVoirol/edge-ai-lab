@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import Foundation
-import LiteRTLM
+import LiteRTLM  // Still needed for BenchmarkInfo references in MetricsStore during Phase 2 migration
 import Observation
 import os
 
@@ -68,8 +68,15 @@ final class ConversationViewModel {
         }
     }
 
-    /// The most recent BenchmarkInfo from completed inference.
-    var benchmarkInfo: BenchmarkInfo?
+    /// The most recent performance metrics from completed inference.
+    var performanceMetrics: EnginePerformanceMetrics?
+
+    /// Backward-compatible accessor for views still using `BenchmarkInfo`.
+    /// Returns the LiteRT-LM `BenchmarkInfo` if the engine is a `LiteRTEngineAdapter`.
+    /// Will be removed in Phase 2 Consumers when all views migrate to `EnginePerformanceMetrics`.
+    var benchmarkInfo: BenchmarkInfo? {
+        (engine as? LiteRTEngineAdapter)?.wrappedEngine.lastBenchmarkInfo
+    }
 
     /// Whether to show the file picker.
     var isFilePickerPresented = false
@@ -218,7 +225,9 @@ final class ConversationViewModel {
     let dynamicModelCatalog: DynamicModelCatalog
 
     /// The most recent device-level inference metrics (thermal, memory, per-token latency).
-    var inferenceMetrics: InferenceMetrics? { engine.lastInferenceMetrics }
+    var inferenceMetrics: InferenceMetrics? {
+        (engine as? LiteRTEngineAdapter)?.wrappedEngine.lastInferenceMetrics
+    }
 
     /// Whether the engine is initialized and ready for inference.
     ///
@@ -247,7 +256,7 @@ final class ConversationViewModel {
 
     /// @ObservationIgnored: Internal dependencies — views never observe these directly.
     @ObservationIgnored
-    let engine: InstrumentedEngineProtocol
+    let engine: any InferenceEngine
     @ObservationIgnored
     private let metricsStore: MetricsStore
     /// @ObservationIgnored: Views that need ConversationStore should observe it
@@ -294,7 +303,7 @@ final class ConversationViewModel {
     ///   - conversationStore: The conversation persistence layer.
     ///   - dynamicModelCatalog: Shared catalog for imported/community models.
     init(
-        engine: InstrumentedEngineProtocol = InstrumentedEngine(),
+        engine: any InferenceEngine = LiteRTEngineAdapter(),
         metricsStore: MetricsStore = MetricsStore(),
         downloadManager: ModelDownloadManager? = nil,
         conversationStore: ConversationStore? = nil,
@@ -362,7 +371,7 @@ final class ConversationViewModel {
         isSyncingSettings = false
         // Sync engine readiness — sessionController.onEngineReadyChanged fires during init,
         // but also sync explicitly here for safety.
-        isEngineReady = engine.isReady
+        isEngineReady = engine.isLoaded
         // Start a new conversation when loading a new model
         conversation.clear()
         // Refresh discovered models so the Models tab immediately reflects the active model
@@ -420,7 +429,7 @@ final class ConversationViewModel {
     /// Generate a response for the current prompt via streaming.
     /// Routes through the agentic ReAct loop when `isAgentMode` is true.
     func generateText() async {
-        guard engine.isReady else { return }
+        guard engine.isLoaded else { return }
         guard !isGenerating else { return }
 
         // Route to agent mode if enabled
@@ -433,7 +442,7 @@ final class ConversationViewModel {
         isGenerating = true
         generationId += 1
         let currentGenerationId = generationId
-        benchmarkInfo = nil
+        performanceMetrics = nil
         currentThinkingText = ""
         isThinking = false
         toolCallEvents = []
@@ -488,73 +497,66 @@ final class ConversationViewModel {
         var accumulatedThinking = ""
 
         do {
-            let stream: AsyncThrowingStream<String, Error>
-            if imageData != nil || audioData != nil {
-                stream = engine.sendMessageStream(
-                    currentPrompt,
-                    imageData: imageData,
-                    audioData: audioData,
-                    enableThinking: experimentalFlags.enableThinking
-                )
-            } else {
-                stream = engine.sendMessageStream(currentPrompt, enableThinking: experimentalFlags.enableThinking)
-            }
+            let stream: AsyncThrowingStream<GenerationEvent, Error>
+            stream = engine.generateStream(
+                prompt: currentPrompt,
+                config: GenerationConfig.default
+            )
 
-            for try await chunk in stream {
-                // Parse thinking tags from streaming chunks
-                if experimentalFlags.enableThinking {
-                    let segments = thinkingParser.feed(chunk)
-                    for segment in segments {
-                        switch segment {
-                        case .thinking(let text):
-                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
-                            accumulatedThinking += cleaned
-                            currentThinkingText = accumulatedThinking
-                            isThinking = true
-                        case .response(let text):
-                            let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
-                            accumulatedResponse += cleaned
-                            isThinking = false
+            for try await event in stream {
+                switch event {
+                case .text(let chunk):
+                    // Parse thinking tags from streaming chunks
+                    if experimentalFlags.enableThinking {
+                        let segments = thinkingParser.feed(chunk)
+                        for segment in segments {
+                            switch segment {
+                            case .thinking(let text):
+                                let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                                accumulatedThinking += cleaned
+                                currentThinkingText = accumulatedThinking
+                                isThinking = true
+                            case .response(let text):
+                                let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                                accumulatedResponse += cleaned
+                                isThinking = false
+                            }
                         }
+                    } else {
+                        // Thinking disabled: strip <think> tags entirely
+                        var cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "<think>", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "<|think|>", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "</think>", with: "")
+                        accumulatedResponse += cleaned
                     }
-                } else {
-                    // Thinking disabled: strip <think> tags entirely so they don't leak
-                    // into the visible response as raw text.
-                    var cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
-                    cleaned = cleaned.replacingOccurrences(of: "<think>", with: "")
-                    cleaned = cleaned.replacingOccurrences(of: "<|think|>", with: "")
-                    cleaned = cleaned.replacingOccurrences(of: "</think>", with: "")
-                    accumulatedResponse += cleaned
-                }
 
-                // Update the streaming assistant message
-                conversation.updateLastAssistantMessage(
-                    content: accumulatedResponse,
-                    thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking
-                )
-            }
+                    // Update the streaming assistant message
+                    conversation.updateLastAssistantMessage(
+                        content: accumulatedResponse,
+                        thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking
+                    )
 
-            // Finalize thinking parser
-            if experimentalFlags.enableThinking {
-                let finalSegments = thinkingParser.finalize()
-                for segment in finalSegments {
-                    switch segment {
-                    case .thinking(let text):
-                        accumulatedThinking += text
-                    case .response(let text):
-                        accumulatedResponse += text
-                    }
+                case .toolCall(_):
+                    // Tool calls handled via ToolExecutionTracker callbacks for now
+                    break
+
+                case .metrics(let metrics):
+                    performanceMetrics = metrics
+
+                case .done:
+                    break
                 }
             }
 
             isThinking = false
 
-            // Capture benchmark data after inference completes
-            benchmarkInfo = engine.lastBenchmarkInfo
             Self.logger.info("✅ Generation complete: \(accumulatedResponse.count) chars")
 
-            // Finalize the assistant message
-            let benchmarkSnapshot = benchmarkInfo.map { ChatMessage.BenchmarkSnapshot(from: $0) }
+            // Finalize the assistant message with metrics
+            let benchmarkSnapshot = performanceMetrics.map {
+                ChatMessage.BenchmarkSnapshot(from: $0)
+            }
             conversation.updateLastAssistantMessage(
                 content: accumulatedResponse,
                 thinkingContent: accumulatedThinking.isEmpty ? nil : accumulatedThinking,
@@ -563,21 +565,25 @@ final class ConversationViewModel {
                 benchmarkInfo: benchmarkSnapshot
             )
 
-            // Persist to metrics store if benchmark data is available
-            if let info = benchmarkInfo {
+            // Persist to metrics store if performance data is available
+            if performanceMetrics != nil {
                 let modelName = activeModelURL.map { ($0.lastPathComponent as NSString).deletingPathExtension }
                     ?? "unknown"
-                let entry = MetricsStore.createEntry(
-                    from: info,
-                    modelName: modelName,
-                    flags: engine.flagsState,
-                    inferenceMetrics: engine.lastInferenceMetrics
-                )
-                do {
-                    try metricsStore.append(entry: entry)
-                } catch {
-                    // Don't fail inference over metrics persistence errors
-                    Self.logger.error("❌ MetricsStore persistence failed: \(error.localizedDescription, privacy: .public)")
+                // Bridge EnginePerformanceMetrics → BenchmarkInfo for MetricsStore compatibility
+                // TODO: Phase 2 Consumers — migrate MetricsStore to use EnginePerformanceMetrics directly
+                if let liteRTAdapter = engine as? LiteRTEngineAdapter,
+                   let benchmarkInfo = liteRTAdapter.wrappedEngine.lastBenchmarkInfo {
+                    let entry = MetricsStore.createEntry(
+                        from: benchmarkInfo,
+                        modelName: modelName,
+                        flags: liteRTAdapter.wrappedEngine.flagsState,
+                        inferenceMetrics: liteRTAdapter.wrappedEngine.lastInferenceMetrics
+                    )
+                    do {
+                        try metricsStore.append(entry: entry)
+                    } catch {
+                        Self.logger.error("❌ MetricsStore persistence failed: \(error.localizedDescription, privacy: .public)")
+                    }
                 }
             }
         } catch {
@@ -643,11 +649,12 @@ final class ConversationViewModel {
 
                 // Run a single inference turn
                 var accumulatedResponse = ""
-                let stream = self.engine.sendMessageStream(
-                    agentPrompt,
-                    enableThinking: self.experimentalFlags.enableThinking
+                let stream = self.engine.generateStream(
+                    prompt: agentPrompt,
+                    config: GenerationConfig.default
                 )
-                for try await chunk in stream {
+                for try await event in stream {
+                    guard case .text(let chunk) = event else { continue }
                     let cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
                         .replacingOccurrences(of: "<think>", with: "")
                         .replacingOccurrences(of: "<|think|>", with: "")
@@ -715,12 +722,12 @@ final class ConversationViewModel {
         currentThinkingText = ""
         isThinking = false
         toolCallEvents = []
-        benchmarkInfo = nil
+        performanceMetrics = nil
         activeConversationId = nil
         isViewingArchivedConversation = false
 
         // Reset the engine conversation (preserves model weights, clears context window)
-        if engine.isReady {
+        if engine.isLoaded {
             do {
                 try await engine.resetConversation()
             } catch {
@@ -839,7 +846,7 @@ final class ConversationViewModel {
             currentThinkingText = ""
             isThinking = false
             toolCallEvents = []
-            benchmarkInfo = nil
+            performanceMetrics = nil
             Self.logger.info("📂 Loaded archived conversation: \(saved.title, privacy: .public)")
         } catch {
             Self.logger.error("❌ Failed to load conversation: \(error.localizedDescription, privacy: .public)")
@@ -966,7 +973,7 @@ final class ConversationViewModel {
         Self.logger.info("🛑 Shutdown initiated")
         await sessionController.shutdown()
         isEngineReady = false
-        benchmarkInfo = nil
+        performanceMetrics = nil
         conversation.clear()
         
         #if os(macOS)

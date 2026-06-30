@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import Foundation
-import LiteRTLM
+import LiteRTLM  // Still needed for SamplerConfig, Tool, BackendResult during Phase 2 migration
 import os
 
 /// Manages engine initialization, sampler configuration, tool setup, and backend fallback.
@@ -73,7 +73,7 @@ final class ModelSessionController {
 
     // MARK: - Dependencies
 
-    let engine: InstrumentedEngineProtocol
+    let engine: any InferenceEngine
     var onStatusMessage: (String) -> Void
     /// Callback when model-specific sampler defaults are applied (so the ViewModel can sync).
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
@@ -89,7 +89,7 @@ final class ModelSessionController {
     ///   - engine: The instrumented engine (real or mock).
     ///   - onStatusMessage: Callback for status message updates to the ViewModel.
     init(
-        engine: InstrumentedEngineProtocol,
+        engine: any InferenceEngine,
         onStatusMessage: @escaping (String) -> Void
     ) {
         self.engine = engine
@@ -217,31 +217,57 @@ final class ModelSessionController {
                 return parts.isEmpty ? nil : parts.joined(separator: "\n")
             }()
 
-            // Use smart fallback initialization
-            let result = try await engine.initializeWithFallback(
-                modelPath: modelPath,
-                preferGPU: preferGPU,
-                cacheDir: modelCacheDirectory.path,
-                flags: activeFlags,
-                samplerConfig: samplerConfig,
-                systemMessage: composedSystemMessage,
-                tools: tools,
-                supportsVision: activeModelMetadata?.supportsImage ?? false,
-                supportsAudio: activeModelMetadata?.supportsAudio ?? false
-            )
-
-            backendResult = result
-
-            let backendLabel = result.activeBackend == .gpu ? "GPU" : "CPU"
+            // Use runtime-specific initialization
+            if let liteRTAdapter = engine as? LiteRTEngineAdapter {
+                // LiteRT path: use loadWithLiteRTConfig for full tool/flags/backend support
+                let result = try await liteRTAdapter.loadWithLiteRTConfig(
+                    modelPath: modelPath,
+                    preferGPU: preferGPU,
+                    cacheDir: modelCacheDirectory.path,
+                    flags: activeFlags,
+                    samplerConfig: samplerConfig,
+                    systemMessage: composedSystemMessage,
+                    tools: tools,
+                    supportsVision: activeModelMetadata?.supportsImage ?? false,
+                    supportsAudio: activeModelMetadata?.supportsAudio ?? false
+                )
+                backendResult = result
+            } else {
+                // Generic InferenceEngine path (MLX, future runtimes)
+                let genConfig = GenerationConfig(
+                    topK: Int(topK),
+                    topP: Float(topP),
+                    temperature: Float(temperature),
+                    seed: seed
+                )
+                let loadConfig = ModelLoadConfig(
+                    modelPath: modelPath,
+                    preferGPU: preferGPU,
+                    cacheDir: modelCacheDirectory.path,
+                    systemMessage: composedSystemMessage,
+                    supportsVision: activeModelMetadata?.supportsImage ?? false,
+                    supportsAudio: activeModelMetadata?.supportsAudio ?? false,
+                    generationConfig: genConfig,
+                    experimentalFlags: activeFlags
+                )
+                try await engine.loadModel(config: loadConfig)
+                backendResult = nil
+            }
             let modelLabel = activeModelMetadata?.name ?? modelFilename
 
-            if result.didFallback {
-                onStatusMessage("\(modelLabel) ready (\(backendLabel)) ⚠️ Fallback")
+            if let result = backendResult {
+                let backendLabel = result.activeBackend == .gpu ? "GPU" : "CPU"
+                if result.didFallback {
+                    onStatusMessage("\(modelLabel) ready (\(backendLabel)) ⚠️ Fallback")
+                } else {
+                    onStatusMessage("\(modelLabel) ready (\(backendLabel))")
+                }
+                Self.logger.info("✅ Engine initialized: backend=\(backendLabel, privacy: .public)")
             } else {
-                onStatusMessage("\(modelLabel) ready (\(backendLabel))")
+                // Generic engine (MLX, etc.) — no backend info
+                onStatusMessage("\(modelLabel) ready")
+                Self.logger.info("✅ Engine initialized")
             }
-
-            Self.logger.info("✅ Engine initialized: backend=\(backendLabel, privacy: .public)")
             onEngineReadyChanged?(true)
 
         } catch {
@@ -269,10 +295,10 @@ final class ModelSessionController {
         useGPU: Bool,
         mcpClients: [UUID: Any] = [:]
     ) async {
-        guard engine.isReady, let url = activeModelURL else { return }
+        guard engine.isLoaded, let url = activeModelURL else { return }
         Self.logger.info("♻️ Settings changed, rebooting engine to apply new configuration...")
         onStatusMessage("Applying new settings...")
-        await engine.shutdown()
+        engine.shutdown()
         await initializeEngine(
             modelPath: url.path,
             experimentalFlags: experimentalFlags,
@@ -288,7 +314,7 @@ final class ModelSessionController {
         activeModelURL = nil
         activeModelMetadata = nil
         backendResult = nil
-        await engine.shutdown()
+        engine.shutdown()
         onEngineReadyChanged?(false)
     }
 
