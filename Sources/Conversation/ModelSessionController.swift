@@ -73,7 +73,7 @@ final class ModelSessionController {
 
     // MARK: - Dependencies
 
-    let engine: any InferenceEngine
+    private(set) var engine: any InferenceEngine
     var onStatusMessage: (String) -> Void
     /// Callback when model-specific sampler defaults are applied (so the ViewModel can sync).
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
@@ -94,6 +94,38 @@ final class ModelSessionController {
     ) {
         self.engine = engine
         self.onStatusMessage = onStatusMessage
+    }
+
+    // MARK: - Engine Switching
+
+    /// Replace the active engine with a new one.
+    ///
+    /// Performs a safe engine swap:
+    /// 1. Cancel any in-progress model load
+    /// 2. Shutdown the old engine (clears Metal memory for MLX)
+    /// 3. Swap the engine reference
+    /// 4. Reset readiness state
+    ///
+    /// The caller is responsible for triggering a new `initializeEngine()` if a model
+    /// should be reloaded on the new engine.
+    func replaceEngine(_ newEngine: any InferenceEngine) async {
+        Self.logger.info("🔄 Switching engine: \(self.engine.runtimeType.displayName) → \(newEngine.runtimeType.displayName)")
+
+        // Cancel in-progress load
+        modelLoadTask?.cancel()
+        modelLoadTask = nil
+        isLoadingModel = false
+
+        // Shutdown the old engine
+        await engine.shutdown()
+
+        // Swap
+        engine = newEngine
+        backendResult = nil
+        activeModelMetadata = nil
+        onEngineReadyChanged?(false)
+
+        onStatusMessage("Switched to \(newEngine.runtimeType.displayName) engine")
     }
 
     // MARK: - Model Loading

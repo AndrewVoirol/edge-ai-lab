@@ -61,6 +61,7 @@ struct InferenceSettingsView: View {
         #if os(macOS)
         TabView {
             Form {
+                EnginePickerView(viewModel: viewModel)
                 backendSection
                 runtimeFlagsSection
             }
@@ -103,6 +104,7 @@ struct InferenceSettingsView: View {
         .frame(minWidth: 480, minHeight: 400)
         #else
         Form {
+            EnginePickerView(viewModel: viewModel)
             backendSection
             runtimeFlagsSection
             downloadsSection

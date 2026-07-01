@@ -67,7 +67,7 @@ enum BackendRecommendation: String, Sendable {
 ///
 /// Edge AI Lab v2.0 primarily supports LiteRT-LM; MLX and GGUF are recognized
 /// for catalog purposes but not yet runnable.
-enum RuntimeType: String, Codable, Sendable, CaseIterable {
+enum RuntimeType: String, Codable, Sendable, CaseIterable, Identifiable {
     /// Google LiteRT-LM format — the primary runtime for this app.
     case litertlm = "LiteRT-LM"
     /// Apple MLX format (safetensors weights + config.json).
@@ -75,8 +75,20 @@ enum RuntimeType: String, Codable, Sendable, CaseIterable {
     /// GGUF quantized format (llama.cpp compatible).
     case gguf = "GGUF"
 
+    /// Identifiable conformance — uses the raw value as a stable ID.
+    var id: String { rawValue }
+
     /// Human-readable name for display in the UI.
     var displayName: String { rawValue }
+
+    /// SF Symbol name representing this engine type.
+    var iconName: String {
+        switch self {
+        case .litertlm: return "cpu"
+        case .mlx: return "apple.logo"
+        case .gguf: return "memorychip"
+        }
+    }
 
     /// Expected file extension for models of this runtime type.
     var fileExtension: String {
@@ -90,6 +102,11 @@ enum RuntimeType: String, Codable, Sendable, CaseIterable {
     /// Whether this runtime is currently supported for inference.
     var isSupported: Bool {
         self == .litertlm || self == .mlx
+    }
+
+    /// All runtime types that are currently supported for inference.
+    static var supportedCases: [RuntimeType] {
+        allCases.filter(\.isSupported)
     }
 }
 

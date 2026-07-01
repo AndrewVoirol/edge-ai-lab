@@ -256,7 +256,7 @@ final class ConversationViewModel {
 
     /// @ObservationIgnored: Internal dependencies — views never observe these directly.
     @ObservationIgnored
-    let engine: any InferenceEngine
+    private(set) var engine: any InferenceEngine
     @ObservationIgnored
     private let metricsStore: MetricsStore
     /// @ObservationIgnored: Views that need ConversationStore should observe it
@@ -267,6 +267,10 @@ final class ConversationViewModel {
     /// tool setup, and backend fallback. Not directly observable by views.
     @ObservationIgnored
     let sessionController: ModelSessionController
+
+    /// The currently selected runtime type for inference.
+    /// Changing this triggers an engine swap via `switchEngine(to:)`.
+    var selectedRuntimeType: RuntimeType = .litertlm
 
     // MARK: - Persistence State
 
@@ -310,6 +314,7 @@ final class ConversationViewModel {
         dynamicModelCatalog: DynamicModelCatalog? = nil
     ) {
         self.engine = engine
+        self.selectedRuntimeType = engine.runtimeType
         self.metricsStore = metricsStore
         self.downloadManager = downloadManager ?? ModelDownloadManager()
         self.conversationStore = conversationStore ?? ConversationStore()
@@ -355,10 +360,72 @@ final class ConversationViewModel {
         #endif
     }
 
+    // MARK: - Engine Switching
+
+    /// Switch the active inference engine to a different runtime type.
+    ///
+    /// This performs a safe engine swap:
+    /// 1. Shut down the current engine (frees Metal memory for MLX)
+    /// 2. Create a new engine via `EngineFactory`
+    /// 3. Update both the ViewModel and SessionController references
+    /// 4. Reset conversation state
+    ///
+    /// If a model was loaded, the caller should trigger a reload on the new engine.
+    func switchEngine(to runtimeType: RuntimeType) async {
+        guard runtimeType != self.engine.runtimeType else { return }
+
+        do {
+            let newEngine = try EngineFactory.createEngine(for: runtimeType)
+
+            // Delegate the safe shutdown + swap to the session controller
+            await sessionController.replaceEngine(newEngine)
+
+            // Sync the ViewModel's own engine reference
+            engine = newEngine
+            selectedRuntimeType = runtimeType
+            isEngineReady = false
+
+            // Clear conversation state since the new engine has no context
+            conversation.clear()
+            performanceMetrics = nil
+
+            Self.logger.info("✅ Engine switched to \(runtimeType.displayName)")
+
+            // If a model path is available, auto-reload on the new engine
+            if let modelURL = activeModelURL {
+                let detectedType = ModelFormatDetector.detectFormat(at: modelURL)
+                if detectedType == runtimeType {
+                    // Use session controller directly to avoid re-entering handleModelSelection
+                    await sessionController.handleModelSelection(modelURL)
+                    isEngineReady = self.engine.isLoaded
+                } else {
+                    statusMessage = "Model format incompatible with \(runtimeType.displayName) engine"
+                }
+            }
+        } catch {
+            statusMessage = "Failed to create \(runtimeType.displayName) engine: \(error.localizedDescription)"
+            Self.logger.error("❌ Engine switch failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - Model Loading
 
     /// Handle a model file selection from the file picker.
+    ///
+    /// Auto-detects the model format and switches engines if needed before loading.
     func handleModelSelection(_ url: URL) async {
+        // Auto-detect format and switch engines if the model requires a different runtime
+        if let detectedFormat = ModelFormatDetector.detectFormat(at: url),
+           detectedFormat != self.engine.runtimeType {
+            Self.logger.info("🔄 Auto-switching engine: \(self.engine.runtimeType.displayName) → \(detectedFormat.displayName) for \(url.lastPathComponent, privacy: .public)")
+            await switchEngine(to: detectedFormat)
+            // switchEngine already calls handleModelSelection if formats match,
+            // so we can return early if the switch succeeded
+            if self.engine.runtimeType == detectedFormat {
+                return
+            }
+        }
+
         await sessionController.handleModelSelection(url)
         // Sync sampler config from model defaults that the controller may have applied.
         // Use isSyncingSettings to suppress the didSet → reinitializeEngineIfNeeded() cascade.
@@ -371,7 +438,7 @@ final class ConversationViewModel {
         isSyncingSettings = false
         // Sync engine readiness — sessionController.onEngineReadyChanged fires during init,
         // but also sync explicitly here for safety.
-        isEngineReady = engine.isLoaded
+        isEngineReady = self.engine.isLoaded
         // Start a new conversation when loading a new model
         conversation.clear()
         // Refresh discovered models so the Models tab immediately reflects the active model
