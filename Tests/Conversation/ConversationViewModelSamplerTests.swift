@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -26,14 +25,14 @@ import LiteRTLM
 
 final class ConversationViewModelSamplerTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var metricsStore: MetricsStore!
     private var metricsFileURL: URL!
 
     @MainActor
     override func setUp() {
         super.setUp()
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
         metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_sampler_metrics_\(UUID().uuidString).json")
         metricsStore = MetricsStore(fileURL: metricsFileURL)
@@ -53,7 +52,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        XCTAssertNotNil(mockEngine.lastSamplerConfig, "SamplerConfig should be passed to engine")
+        XCTAssertNotNil(mockEngine.lastGenerationConfig, "SamplerConfig should be passed to engine")
         // The SamplerConfig is constructed with topK/topP/temperature/seed from the VM.
         // We verify seed was passed (it's an Int on the VM, mapped to SamplerConfig).
     }
@@ -66,7 +65,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
         // SamplerConfig should still be constructed (with seed=0)
-        XCTAssertNotNil(mockEngine.lastSamplerConfig)
+        XCTAssertNotNil(mockEngine.lastGenerationConfig)
     }
 
     // MARK: - System Message
@@ -145,7 +144,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        XCTAssertNotNil(mockEngine.lastSamplerConfig)
+        XCTAssertNotNil(mockEngine.lastGenerationConfig)
     }
 
     // MARK: - Default Sampling Preset
@@ -172,9 +171,9 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        XCTAssertNotNil(mockEngine.lastSamplerConfig, "SamplerConfig should be constructed")
+        XCTAssertNotNil(mockEngine.lastGenerationConfig, "SamplerConfig should be constructed")
         // Verify the engine received the initialization call with our config
-        XCTAssertGreaterThanOrEqual(mockEngine.initializeCallCount, 1)
+        XCTAssertGreaterThanOrEqual(mockEngine.loadModelCallCount, 1)
     }
 
     // MARK: - Model Default Config Applied
@@ -213,9 +212,9 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        XCTAssertNotNil(mockEngine.lastSamplerConfig)
-        XCTAssertNotNil(mockEngine.lastFlags)
-        XCTAssertEqual(mockEngine.lastFlags?.enableBenchmark, false)
-        XCTAssertEqual(mockEngine.lastFlags?.enableSpeculativeDecoding, true)
+        XCTAssertNotNil(mockEngine.lastGenerationConfig)
+        XCTAssertNotNil(mockEngine.lastRuntimeFlags)
+        XCTAssertEqual(mockEngine.lastRuntimeFlags?.enableBenchmark, false)
+        XCTAssertEqual(mockEngine.lastRuntimeFlags?.enableSpeculativeDecoding, true)
     }
 }

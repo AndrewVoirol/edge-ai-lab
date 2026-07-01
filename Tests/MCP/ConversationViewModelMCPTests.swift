@@ -33,7 +33,7 @@ struct ConversationViewModelMCPTests {
 
     /// Creates a ConversationViewModel with a mock engine and temp metrics store.
     private static func makeViewModel() -> ConversationViewModel {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_mcp_metrics_\(UUID().uuidString).json")
         let metricsStore = MetricsStore(fileURL: metricsFileURL)

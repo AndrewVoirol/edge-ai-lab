@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
+
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -93,20 +93,22 @@ final class ToolCallingIntegrationTests: XCTestCase {
 
     @MainActor
     func testToolExecutionTrackerViewModelIntegration() async throws {
-        let engine = MockInstrumentedEngine()
-        try await engine.initialize(
+        let engine = MockInferenceEngine()
+        let config = ModelLoadConfig(
             modelPath: "",
-            useGPU: false,
-            cacheDir: "",
-            flags: ExperimentalFlagsState(enableBenchmark: false, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil),
-            samplerConfig: nil,
-            systemMessage: nil,
-            tools: nil
+            preferGPU: false,
+            runtimeFlags: RuntimeFlags(
+                enableBenchmark: false,
+                enableSpeculativeDecoding: nil,
+                enableConversationConstrainedDecoding: false,
+                visualTokenBudget: nil
+            )
         )
+        try await engine.loadModel(config: config)
         let viewModel = ConversationViewModel(engine: engine)
         
         // Simulate a tool call being triggered while generateText is executing.
-        // We set chunkDelay on MockInstrumentedEngine to ensure the stream stays active
+        // We set chunkDelay on MockInferenceEngine to ensure the stream stays active
         // while we inject the tool call notification.
         engine.chunkDelay = 0.1
         

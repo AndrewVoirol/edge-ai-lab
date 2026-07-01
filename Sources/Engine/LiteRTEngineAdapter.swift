@@ -53,6 +53,12 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     /// Cached performance metrics from the last generation.
     private(set) var lastPerformanceMetrics: EnginePerformanceMetrics?
 
+    /// Backend result from LiteRT-LM initialization (GPU/CPU fallback info).
+    var lastBackendResult: BackendResult? { engine.lastBackendResult }
+
+    /// Device-level inference metrics from the wrapped engine.
+    var lastInferenceMetrics: InferenceMetrics? { engine.lastInferenceMetrics }
+
     // MARK: - Init
 
     /// Creates an adapter wrapping a new `InstrumentedEngine`.
@@ -217,24 +223,10 @@ extension LiteRTEngineAdapter {
 
     /// The wrapped `InstrumentedEngine` for LiteRT-specific property access.
     ///
-    /// Used by consumers that need `flagsState`, `lastInferenceMetrics`, or
-    /// `lastBenchmarkInfo` during the Phase 2 migration. These properties are
-    /// LiteRT-LM specific and don't exist on `InferenceEngine`.
+    /// Used by consumers that need `flagsState` or `lastBenchmarkInfo` during
+    /// the Phase 2 migration. These properties are LiteRT-LM specific and don't
+    /// exist on `InferenceEngine`.
     var wrappedEngine: InstrumentedEngine { engine }
-
-    /// Last `BackendResult` from LiteRT-LM initialization.
-    /// Tracks whether GPU or CPU backend was used, and whether fallback occurred.
-    private(set) var lastBackendResult: BackendResult? {
-        get { _lastBackendResult }
-        set { _lastBackendResult = newValue }
-    }
-    // Stored property backing — can't use stored properties in extensions.
-    // This is set via loadWithLiteRTConfig.
-    private static var _backendResults: [ObjectIdentifier: BackendResult] = [:]
-    private var _lastBackendResult: BackendResult? {
-        get { Self._backendResults[ObjectIdentifier(self)] }
-        set { Self._backendResults[ObjectIdentifier(self)] = newValue }
-    }
 
     /// Load a model with LiteRT-specific configuration.
     ///
@@ -277,7 +269,8 @@ extension LiteRTEngineAdapter {
             supportsVision: supportsVision,
             supportsAudio: supportsAudio
         )
-        _lastBackendResult = result
+        // BackendResult is now set on engine.lastBackendResult by initializeWithFallback,
+        // and surfaced via the protocol-level computed property.
 
         // Extract model info
         let filename = (modelPath as NSString).lastPathComponent

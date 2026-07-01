@@ -121,7 +121,7 @@ struct BatchEvalStateTests {
 
 /// Tests for `BatchEvalOrchestrator` property behavior (progress, state).
 ///
-/// These tests use `MockInstrumentedEngine` and an `EvalStore` with a temporary
+/// These tests use `MockInferenceEngine` and an `EvalStore` with a temporary
 /// directory so no real inference or persistence occurs.
 @Suite("BatchEvalOrchestrator")
 @MainActor
@@ -131,7 +131,7 @@ struct BatchEvalOrchestratorTests {
 
     /// Create an orchestrator backed by a mock engine and temp-dir store.
     private func makeOrchestrator() -> BatchEvalOrchestrator {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("BatchEvalOrchestratorTests-\(UUID().uuidString)")
         let store = EvalStore(storageDirectory: tempDir)
@@ -183,7 +183,7 @@ struct BatchEvalOrchestratorTests {
         orch.completedRuns = 0
 
         // Create a mock EvalRunner to simulate partial progress
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("BatchEvalOrchestratorTests-runner-\(UUID().uuidString)")
         let store = EvalStore(storageDirectory: tempDir)

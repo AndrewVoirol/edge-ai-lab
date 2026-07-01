@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -35,13 +34,13 @@ import LiteRTLM
 @MainActor
 final class ModelReadinessStateTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var metricsStore: MetricsStore!
     private var metricsFileURL: URL!
 
     override func setUp() {
         super.setUp()
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
 
         metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_metrics_\(UUID().uuidString).json")

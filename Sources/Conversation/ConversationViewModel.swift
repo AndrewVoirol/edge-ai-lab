@@ -226,7 +226,7 @@ final class ConversationViewModel {
 
     /// The most recent device-level inference metrics (thermal, memory, per-token latency).
     var inferenceMetrics: InferenceMetrics? {
-        (engine as? LiteRTEngineAdapter)?.wrappedEngine.lastInferenceMetrics
+        engine.lastInferenceMetrics
     }
 
     /// Whether the engine is initialized and ready for inference.
@@ -550,6 +550,24 @@ final class ConversationViewModel {
 
                 case .done:
                     break
+                }
+            }
+
+            // Flush any remaining buffered content from the parser.
+            // The parser retains trailing characters that could be partial tags;
+            // finalize() treats them as literal text since no more input will arrive.
+            if runtimeFlags.enableThinking {
+                let remainingSegments = thinkingParser.finalize()
+                for segment in remainingSegments {
+                    switch segment {
+                    case .thinking(let text):
+                        let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                        accumulatedThinking += cleaned
+                        currentThinkingText = accumulatedThinking
+                    case .response(let text):
+                        let cleaned = text.replacingOccurrences(of: "<pad>", with: "")
+                        accumulatedResponse += cleaned
+                    }
                 }
             }
 

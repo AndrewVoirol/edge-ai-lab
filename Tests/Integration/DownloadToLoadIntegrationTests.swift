@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
+
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -53,8 +53,8 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeEngine() -> MockInstrumentedEngine {
-        MockInstrumentedEngine.happyPath()
+    private func makeEngine() -> MockInferenceEngine {
+        MockInferenceEngine.happyPath()
     }
 
     private func makeDownloadManager() -> ModelDownloadManager {
@@ -63,7 +63,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
     }
 
     private func makeViewModel(
-        engine: MockInstrumentedEngine? = nil,
+        engine: MockInferenceEngine? = nil,
         downloadManager: ModelDownloadManager? = nil
     ) -> ConversationViewModel {
         let eng = engine ?? makeEngine()
@@ -166,7 +166,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
         // The engine should have been initialized with the model path
         XCTAssertGreaterThan(
-            engine.initializeCallCount, 0,
+            engine.loadModelCallCount, 0,
             "Engine should be initialized after handleModelSelection"
         )
         XCTAssertEqual(
@@ -188,7 +188,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         // After loading, activeModelMetadata should be populated
         // (or at minimum, the engine should be ready)
         XCTAssertTrue(
-            engine.isReady,
+            engine.isLoaded,
             "Engine should be ready after handleModelSelection"
         )
     }
@@ -227,7 +227,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
         // Load the model first
         await vm.handleModelSelection(fakeModelURL)
-        let initCountAfterLoad = engine.initializeCallCount
+        let initCountAfterLoad = engine.loadModelCallCount
 
         XCTAssertGreaterThan(
             initCountAfterLoad, 0,
@@ -242,7 +242,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
         // Engine should have been re-initialized
         XCTAssertGreaterThan(
-            engine.initializeCallCount, initCountAfterLoad,
+            engine.loadModelCallCount, initCountAfterLoad,
             "Engine should be re-initialized after settings change with a loaded model"
         )
     }
@@ -252,7 +252,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         let engine = makeEngine()
         let vm = makeViewModel(engine: engine)
 
-        let initCountBefore = engine.initializeCallCount
+        let initCountBefore = engine.loadModelCallCount
 
         // Change a setting WITHOUT loading a model first
         vm.useGPU.toggle()
@@ -260,7 +260,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         try? await Task.sleep(for: .milliseconds(100))
 
         XCTAssertEqual(
-            engine.initializeCallCount, initCountBefore,
+            engine.loadModelCallCount, initCountBefore,
             "Engine should NOT be initialized when no model is loaded"
         )
     }

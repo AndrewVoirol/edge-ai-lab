@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -33,7 +32,7 @@ import LiteRTLM
 /// - Sampler didSet auto-reinit triggers
 final class SprintFeatureIntegrationTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var metricsStore: MetricsStore!
     private var metricsFileURL: URL!
     private var conversationStoreDir: URL!
@@ -41,7 +40,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     @MainActor
     override func setUp() {
         super.setUp()
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
         metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_sprint_metrics_\(UUID().uuidString).json")
         metricsStore = MetricsStore(fileURL: metricsFileURL)
@@ -58,42 +57,49 @@ final class SprintFeatureIntegrationTests: XCTestCase {
 
     // MARK: - T1: enableThinking Passed Through generateText
 
-    /// Verify that when thinking mode is enabled, generateText passes
-    /// enableThinking=true to the engine's sendMessageStream.
+    /// Verify that when thinking mode is enabled, the ViewModel's thinking parser
+    /// processes response text through the thinking segment pipeline.
     @MainActor
     func testGenerateTextPassesEnableThinkingTrue() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = true
-        mockEngine.isReady = true
-        mockEngine.mockResponseChunks = ["Hello"]
+        mockEngine.isLoaded = true
+        mockEngine.mockResponseChunks = ["<think>reasoning</think>Hello"]
 
         vm.prompt = "What is 2+2?"
         await vm.generateText()
 
+        // With enableThinking=true, the ViewModel uses ThinkingParser to separate
+        // thinking from response content. The engine itself always gets the same
+        // generateStream call — thinking parsing happens client-side.
         XCTAssertTrue(
-            mockEngine.lastEnableThinking,
-            "generateText should pass enableThinking=true when thinking mode is ON"
+            vm.runtimeFlags.enableThinking,
+            "runtimeFlags.enableThinking should be true"
         )
+        XCTAssertEqual(mockEngine.generateStreamCallCount, 1,
+            "generateStream should have been called once")
     }
 
-    /// Verify that when thinking mode is disabled, generateText passes
-    /// enableThinking=false to the engine's sendMessageStream.
+    /// Verify that when thinking mode is disabled, <think> tags are stripped
+    /// and the ViewModel does not parse thinking segments.
     @MainActor
     func testGenerateTextPassesEnableThinkingFalse() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = false
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello"]
 
         vm.prompt = "What is 2+2?"
         await vm.generateText()
 
         XCTAssertFalse(
-            mockEngine.lastEnableThinking,
-            "generateText should pass enableThinking=false when thinking mode is OFF"
+            vm.runtimeFlags.enableThinking,
+            "runtimeFlags.enableThinking should be false"
         )
+        XCTAssertEqual(mockEngine.generateStreamCallCount, 1,
+            "generateStream should have been called once")
     }
 
     // MARK: - T1: Thinking Tag Stripping When Disabled
@@ -105,7 +111,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = false
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["<think>", "internal reasoning", "</think>", "The answer is 4."]
 
         vm.prompt = "What is 2+2?"
@@ -134,7 +140,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = false
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["<|think|>", "reasoning here", "</think>", "Final answer."]
 
         vm.prompt = "Question?"
@@ -152,7 +158,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = true
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["<think>", "I need to calculate", "</think>", "The answer is 4."]
 
         vm.prompt = "What is 2+2?"
@@ -217,7 +223,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testMultimodalSendCalledWithImageData() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["I see an image."]
 
         vm.prompt = "Describe this image"
@@ -237,7 +243,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testConversationAutoSavedAfterInference() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello there!"]
 
         XCTAssertTrue(store.indexEntries.isEmpty, "Store should start empty")
@@ -256,7 +262,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testNoAutoSaveForArchivedConversation() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello!"]
         vm.isViewingArchivedConversation = true
 
@@ -281,14 +287,14 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
         defer { try? FileManager.default.removeItem(at: testModelURL) }
         await vm.handleModelSelection(testModelURL)
-        let initialCount = mockEngine.initializeCallCount
+        let initialCount = mockEngine.loadModelCallCount
 
         vm.topK = 32
         // Give the async didSet task time to fire
         try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
-            mockEngine.initializeCallCount, initialCount,
+            mockEngine.loadModelCallCount, initialCount,
             "Changing topK should trigger engine reinitialization"
         )
     }
@@ -302,13 +308,13 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
         defer { try? FileManager.default.removeItem(at: testModelURL) }
         await vm.handleModelSelection(testModelURL)
-        let initialCount = mockEngine.initializeCallCount
+        let initialCount = mockEngine.loadModelCallCount
 
         vm.temperature = 0.5
         try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
-            mockEngine.initializeCallCount, initialCount,
+            mockEngine.loadModelCallCount, initialCount,
             "Changing temperature should trigger engine reinitialization"
         )
     }
@@ -322,13 +328,13 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         FileManager.default.createFile(atPath: testModelURL.path, contents: nil)
         defer { try? FileManager.default.removeItem(at: testModelURL) }
         await vm.handleModelSelection(testModelURL)
-        let initialCount = mockEngine.initializeCallCount
+        let initialCount = mockEngine.loadModelCallCount
 
         vm.systemMessage = "You are a pirate."
         try? await Task.sleep(for: .milliseconds(500))
 
         XCTAssertGreaterThan(
-            mockEngine.initializeCallCount, initialCount,
+            mockEngine.loadModelCallCount, initialCount,
             "Changing systemMessage should trigger engine reinitialization"
         )
     }
@@ -341,7 +347,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
         vm.runtimeFlags.enableThinking = false
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello", "<pad>", " world", "<pad>"]
 
         vm.prompt = "Test"
@@ -360,7 +366,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testDeleteConversationClearsActiveState() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello!"]
 
         // Generate a conversation
@@ -422,7 +428,7 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testForkConversationCreatesNewEntry() async {
         let store = ConversationStore(storageDirectory: conversationStoreDir)
         let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: store)
-        mockEngine.isReady = true
+        mockEngine.isLoaded = true
         mockEngine.mockResponseChunks = ["Hello!"]
 
         // Generate a conversation

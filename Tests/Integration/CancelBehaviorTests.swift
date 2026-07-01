@@ -24,7 +24,7 @@ import Foundation
 
 /// Integration tests for inference engine cancel behavior.
 ///
-/// Validates three cancellation scenarios using `MockInstrumentedEngine`:
+/// Validates three cancellation scenarios using `MockInferenceEngine`:
 /// 1. **Mid-stream cancel** — stream stops before all chunks are emitted.
 /// 2. **Cancel before stream** — calling `cancelGeneration()` before starting
 ///    a stream is a harmless no-op.
@@ -35,14 +35,14 @@ struct CancelBehaviorTests {
 
     // MARK: - Helpers
 
-    /// Creates a `MockInstrumentedEngine` pre-configured for cancel testing.
+    /// Creates a `MockInferenceEngine` pre-configured for cancel testing.
     ///
     /// - Parameters:
     ///   - chunkCount: Number of response chunks to generate.
     ///   - chunkDelay: Delay between chunks (seconds).
     /// - Returns: A configured engine with `simulateCancelBehavior` enabled.
-    private func makeEngine(chunkCount: Int = 20, chunkDelay: TimeInterval = 0.1) -> MockInstrumentedEngine {
-        let engine = MockInstrumentedEngine()
+    private func makeEngine(chunkCount: Int = 20, chunkDelay: TimeInterval = 0.1) -> MockInferenceEngine {
+        let engine = MockInferenceEngine()
         engine.simulateCancelBehavior = true
         engine.chunkDelay = chunkDelay
         engine.mockResponseChunks = (0..<chunkCount).map { "chunk_\($0) " }
@@ -61,13 +61,15 @@ struct CancelBehaviorTests {
         let engine = makeEngine(chunkCount: 20, chunkDelay: 0.1)
 
         var collected: [String] = []
-        let stream = engine.sendMessageStream("Hello", enableThinking: false)
+        let stream = engine.generateStream(prompt: "Hello", config: .default)
 
         // Consume the stream in a child task so we can cancel from outside.
         let collectTask = Task<[String], Error> {
             var buffer: [String] = []
-            for try await chunk in stream {
-                buffer.append(chunk)
+            for try await event in stream {
+                if case .text(let chunk) = event {
+                    buffer.append(chunk)
+                }
             }
             return buffer
         }
@@ -83,12 +85,12 @@ struct CancelBehaviorTests {
 
         #expect(collected.count > 0, "Should have received at least one chunk before cancel")
         #expect(collected.count < 20, "Stream should have stopped early; got \(collected.count) of 20 chunks")
-        #expect(engine.sendMessageCallCount == 1, "sendMessageStream should have been called exactly once")
+        #expect(engine.generateStreamCallCount == 1, "sendMessageStream should have been called exactly once")
     }
 
     /// Verifies that calling `cancelGeneration()` *before* starting a stream is a no-op.
     ///
-    /// Because `MockInstrumentedEngine` resets its internal cancel flag at the start
+    /// Because `MockInferenceEngine` resets its internal cancel flag at the start
     /// of each `sendMessageStream` call, a pre-emptive cancel should have no effect
     /// on a subsequently started stream — all chunks should be delivered normally.
     @Test("Cancel before stream start is a no-op")
@@ -99,12 +101,14 @@ struct CancelBehaviorTests {
         engine.cancelGeneration()
 
         var collected: [String] = []
-        for try await chunk in engine.sendMessageStream("Hello", enableThinking: false) {
-            collected.append(chunk)
+        for try await event in engine.generateStream(prompt: "Hello", config: .default) {
+            if case .text(let chunk) = event {
+                collected.append(chunk)
+            }
         }
 
         #expect(collected.count == 5, "All chunks should be delivered; cancel before stream is a no-op")
-        #expect(engine.sendMessageCallCount == 1)
+        #expect(engine.generateStreamCallCount == 1)
     }
 
     /// Verifies that calling `cancelGeneration()` after the stream has fully
@@ -114,8 +118,10 @@ struct CancelBehaviorTests {
         let engine = makeEngine(chunkCount: 4, chunkDelay: 0)
 
         var collected: [String] = []
-        for try await chunk in engine.sendMessageStream("Hello", enableThinking: false) {
-            collected.append(chunk)
+        for try await event in engine.generateStream(prompt: "Hello", config: .default) {
+            if case .text(let chunk) = event {
+                collected.append(chunk)
+            }
         }
 
         // All chunks consumed — stream is finished.
@@ -125,15 +131,17 @@ struct CancelBehaviorTests {
         engine.cancelGeneration()
 
         // Engine should still be in a usable state afterward.
-        #expect(engine.sendMessageCallCount == 1)
+        #expect(engine.generateStreamCallCount == 1)
 
         // Start another stream to prove the engine isn't wedged.
         var secondRun: [String] = []
-        for try await chunk in engine.sendMessageStream("Follow-up", enableThinking: false) {
-            secondRun.append(chunk)
+        for try await event in engine.generateStream(prompt: "Follow-up", config: .default) {
+            if case .text(let chunk) = event {
+                secondRun.append(chunk)
+            }
         }
 
         #expect(secondRun.count == 4, "Second stream should deliver all chunks normally")
-        #expect(engine.sendMessageCallCount == 2)
+        #expect(engine.generateStreamCallCount == 2)
     }
 }

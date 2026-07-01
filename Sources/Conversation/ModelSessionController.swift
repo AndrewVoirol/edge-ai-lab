@@ -251,7 +251,8 @@ final class ModelSessionController {
                     runtimeFlags: activeFlags
                 )
                 try await engine.loadModel(config: loadConfig)
-                backendResult = nil
+                // Generic engines may populate lastBackendResult via protocol
+                backendResult = engine.lastBackendResult
             }
             let modelLabel = activeModelMetadata?.name ?? modelFilename
 

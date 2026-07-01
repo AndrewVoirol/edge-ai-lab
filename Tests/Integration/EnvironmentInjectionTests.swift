@@ -64,7 +64,7 @@ final class EnvironmentInjectionTests: XCTestCase {
     // MARK: - Injected Engine
 
     func testViewModelWithMockEngine() {
-        let mockEngine = MockInstrumentedEngine()
+        let mockEngine = MockInferenceEngine()
         let vm = ConversationViewModel(engine: mockEngine)
 
         XCTAssertFalse(vm.isEngineReady,

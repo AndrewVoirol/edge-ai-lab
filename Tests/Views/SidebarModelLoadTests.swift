@@ -175,7 +175,7 @@ final class SidebarModelLoadTests: XCTestCase {
             storageDirectory: tempDir.appendingPathComponent("conversations")
         )
         let vm = ConversationViewModel(
-            engine: MockInstrumentedEngine.happyPath(),
+            engine: MockInferenceEngine.happyPath(),
             metricsStore: MetricsStore(fileURL: tempDir.appendingPathComponent("metrics.json")),
             downloadManager: dm,
             conversationStore: store
@@ -194,7 +194,7 @@ final class SidebarModelLoadTests: XCTestCase {
             storageDirectory: tempDir.appendingPathComponent("conversations")
         )
         let vm = ConversationViewModel(
-            engine: MockInstrumentedEngine.happyPath(),
+            engine: MockInferenceEngine.happyPath(),
             metricsStore: MetricsStore(fileURL: tempDir.appendingPathComponent("metrics.json")),
             conversationStore: store
         )

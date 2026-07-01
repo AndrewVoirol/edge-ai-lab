@@ -15,7 +15,6 @@
 
 import Testing
 import Foundation
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -31,10 +30,10 @@ struct ModelSessionControllerTests {
 
     // MARK: - Helpers
 
-    /// Creates a controller with a MockInstrumentedEngine and captures status messages.
+    /// Creates a controller with a MockInferenceEngine and captures status messages.
     private static func makeController(
-        engine: MockInstrumentedEngine = .happyPath()
-    ) -> (ModelSessionController, MockInstrumentedEngine, [String]) {
+        engine: MockInferenceEngine = .happyPath()
+    ) -> (ModelSessionController, MockInferenceEngine, [String]) {
         var statusMessages: [String] = []
         let controller = ModelSessionController(
             engine: engine,
@@ -49,7 +48,7 @@ struct ModelSessionControllerTests {
 
     @Test("Initial state has no model loaded and no backend result")
     func testInitialState() {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let controller = ModelSessionController(
             engine: engine,
             onStatusMessage: { _ in }
@@ -65,7 +64,7 @@ struct ModelSessionControllerTests {
 
     @Test("Default sampler values match SDK defaults")
     func testDefaultSamplerValues() {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let controller = ModelSessionController(
             engine: engine,
             onStatusMessage: { _ in }
@@ -81,7 +80,7 @@ struct ModelSessionControllerTests {
 
     @Test("cancelModelLoad sets isLoadingModel to false and posts status message")
     func testCancelModelLoad() {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         var lastStatus = ""
         let controller = ModelSessionController(
             engine: engine,
@@ -98,7 +97,7 @@ struct ModelSessionControllerTests {
 
     @Test("shutdown clears all model state")
     func testShutdown() async {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let controller = ModelSessionController(
             engine: engine,
             onStatusMessage: { _ in }
@@ -120,7 +119,7 @@ struct ModelSessionControllerTests {
 
     @Test("systemMessage property is settable")
     func testSystemMessageComposition() {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let controller = ModelSessionController(
             engine: engine,
             onStatusMessage: { _ in }
@@ -137,7 +136,7 @@ struct ModelSessionControllerTests {
 
     @Test("onStatusMessage callback fires during initialization")
     func testStatusCallbackFires() async {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         var messages: [String] = []
         let controller = ModelSessionController(
             engine: engine,
@@ -154,9 +153,9 @@ struct ModelSessionControllerTests {
 
     @Test("reinitializeIfNeeded returns without action when engine is not ready")
     func testReinitializeIfNeededGuard() async {
-        let engine = MockInstrumentedEngine.happyPath()
-        // engine.isReady is false by default
-        #expect(engine.isReady == false)
+        let engine = MockInferenceEngine.happyPath()
+        // engine.isLoaded is false by default
+        #expect(engine.isLoaded == false)
 
         let controller = ModelSessionController(
             engine: engine,
@@ -176,14 +175,14 @@ struct ModelSessionControllerTests {
         )
 
         // Should not have called initialize since engine wasn't ready
-        #expect(engine.initializeCallCount == 0, "Should not reinitialize when engine is not ready")
+        #expect(engine.loadModelCallCount == 0, "Should not reinitialize when engine is not ready")
     }
 
     // MARK: - Sampler Config via Engine
 
     @Test("Sampler properties are forwarded to engine during initialization")
     func testBuildSamplerConfigNormalValues() async {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let controller = ModelSessionController(
             engine: engine,
             onStatusMessage: { _ in }
@@ -195,7 +194,7 @@ struct ModelSessionControllerTests {
 
         await controller.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        #expect(engine.lastSamplerConfig != nil, "SamplerConfig should be passed to engine")
-        #expect(engine.initializeCallCount >= 1, "Engine should have been initialized")
+        #expect(engine.lastGenerationConfig != nil, "SamplerConfig should be passed to engine")
+        #expect(engine.loadModelCallCount >= 1, "Engine should have been initialized")
     }
 }

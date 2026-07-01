@@ -174,6 +174,14 @@ protocol InferenceEngine: AnyObject, Sendable {
     /// Performance metrics from the most recent generation, if available.
     var lastPerformanceMetrics: EnginePerformanceMetrics? { get }
 
+    /// Backend initialization result (LiteRT-specific: GPU/CPU fallback info).
+    /// Returns nil for engines that don't have backend selection (MLX, GGUF).
+    var lastBackendResult: BackendResult? { get }
+
+    /// Device-level inference metrics (thermal, memory, per-token latency).
+    /// Populated after each generation if the engine supports device metrics capture.
+    var lastInferenceMetrics: InferenceMetrics? { get }
+
     // MARK: - Capabilities
 
     /// Whether this engine supports vision/image input.
@@ -218,6 +226,12 @@ extension InferenceEngine {
 
     /// Default: no metrics available.
     var lastPerformanceMetrics: EnginePerformanceMetrics? { nil }
+
+    /// Default: no backend result.
+    var lastBackendResult: BackendResult? { nil }
+
+    /// Default: no inference metrics.
+    var lastInferenceMetrics: InferenceMetrics? { nil }
 }
 
 // MARK: - GenerationConfig

@@ -24,10 +24,10 @@ import XCTest
 
 /// Tests for `EvalRunner` state transitions, progress tracking, and error handling.
 ///
-/// Uses `MockInstrumentedEngine` and a temporary `EvalStore` for isolation.
+/// Uses `MockInferenceEngine` and a temporary `EvalStore` for isolation.
 final class EvalRunnerTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var evalStore: EvalStore!
     private var tempDir: URL!
     private var evalRunner: EvalRunner!
@@ -38,7 +38,7 @@ final class EvalRunnerTests: XCTestCase {
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("EvalRunnerTests-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
         evalStore = EvalStore(storageDirectory: tempDir)
         evalRunner = EvalRunner(engine: mockEngine, store: evalStore)
     }

@@ -26,7 +26,7 @@ import Foundation
 
 /// Validates the integration seam between the inference engine and evaluation runner.
 ///
-/// These tests exercise `EvalRunner` with `MockInstrumentedEngine` to verify that:
+/// These tests exercise `EvalRunner` with `MockInferenceEngine` to verify that:
 /// - Normal engine responses flow through scoring correctly
 /// - Engine errors (init failures, mid-stream errors) are handled gracefully
 /// - Empty engine responses produce correct edge-case scoring
@@ -34,7 +34,7 @@ import Foundation
 ///
 /// ## Pattern
 /// Uses Swift Testing (`@Suite`/`@Test`) per project conventions.
-/// Each test creates its own `MockInstrumentedEngine`, a temporary `EvalStore`,
+/// Each test creates its own `MockInferenceEngine`, a temporary `EvalStore`,
 /// and an `EvalRunner` wired together. Since `EvalRunner` is `@MainActor`,
 /// all test bodies run on MainActor.
 @Suite("Engine ↔ Eval Integration")
@@ -110,7 +110,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine returns matching text → EvalRunner scores as pass")
     @MainActor
     func testHappyPathContainsTextPass() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         // "Hello, world!" contains "world"
         engine.mockResponseChunks = ["The answer is ", "4", "."]
 
@@ -151,7 +151,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine returns nonEmpty response → EvalRunner scores as pass")
     @MainActor
     func testHappyPathNonEmptyPass() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         engine.mockResponseChunks = ["Some", " response"]
 
         let store = Self.makeTempStore()
@@ -185,7 +185,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine returns text not matching expectation → EvalRunner scores as fail")
     @MainActor
     func testContainsTextFail() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         engine.mockResponseChunks = ["I don't know the answer"]
 
         let store = Self.makeTempStore()
@@ -221,7 +221,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine init failure → model gets failed result without crashing")
     @MainActor
     func testEngineInitFailureHandledGracefully() async throws {
-        let engine = MockInstrumentedEngine.failingEngine()
+        let engine = MockInferenceEngine.failingEngine()
 
         let store = Self.makeTempStore()
         let runner = EvalRunner(engine: engine, store: store)
@@ -259,7 +259,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine mid-stream error → prompt gets error score, run continues")
     @MainActor
     func testMidStreamErrorHandledGracefully() async throws {
-        let engine = MockInstrumentedEngine()
+        let engine = MockInferenceEngine()
         engine.mockResponseChunks = ["chunk1", "chunk2", "chunk3", "chunk4"]
         engine.errorAtChunkIndex = 2  // Error after emitting chunks 0 and 1
 
@@ -296,8 +296,8 @@ struct EngineEvalIntegrationTests {
     @Test("Engine inference error → prompt scored as error, not crash")
     @MainActor
     func testInferenceErrorProducesErrorScore() async throws {
-        let engine = MockInstrumentedEngine()
-        engine.inferenceError = NSError(
+        let engine = MockInferenceEngine()
+        engine.generateError = NSError(
             domain: "TestDomain",
             code: -1,
             userInfo: [NSLocalizedDescriptionKey: "Simulated inference failure"]
@@ -342,7 +342,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine returns empty chunks → nonEmpty check fails correctly")
     @MainActor
     func testEmptyResponseFailsNonEmptyCheck() async throws {
-        let engine = MockInstrumentedEngine()
+        let engine = MockInferenceEngine()
         engine.mockResponseChunks = []  // No chunks at all
 
         let store = Self.makeTempStore()
@@ -378,7 +378,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine returns whitespace-only chunks → containsText fails")
     @MainActor
     func testWhitespaceOnlyResponseFailsContainsText() async throws {
-        let engine = MockInstrumentedEngine()
+        let engine = MockInferenceEngine()
         engine.mockResponseChunks = ["  ", "\n", "\t"]
 
         let store = Self.makeTempStore()
@@ -414,7 +414,7 @@ struct EngineEvalIntegrationTests {
     @Test("Multiple prompts run sequentially through same engine instance")
     @MainActor
     func testMultiplePromptsRunSequentially() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         // Same chunks for each prompt — "Hello, world!" satisfies .nonEmpty
         engine.mockResponseChunks = ["Hello", ", ", "world", "!"]
 
@@ -464,7 +464,7 @@ struct EngineEvalIntegrationTests {
         }
 
         // Verify the engine received all 3 prompts
-        #expect(engine.sendMessageCallCount == 3,
+        #expect(engine.generateStreamCallCount == 3,
                 "Engine should have been called 3 times")
 
         // Verify conversation was reset between prompts (N-1 resets for N prompts)
@@ -475,7 +475,7 @@ struct EngineEvalIntegrationTests {
     @Test("Multiple prompts with mixed pass/fail produce correct aggregate passRate")
     @MainActor
     func testMixedPassFailAggregation() async throws {
-        let engine = MockInstrumentedEngine()
+        let engine = MockInferenceEngine()
         // Response contains "hello" but not "42"
         engine.mockResponseChunks = ["hello", " world"]
 
@@ -537,7 +537,7 @@ struct EngineEvalIntegrationTests {
     @Test("EvalRunner state reaches .complete after successful run")
     @MainActor
     func testRunnerStateCompletesAfterRun() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
         let runner = EvalRunner(engine: engine, store: store)
 
@@ -568,7 +568,7 @@ struct EngineEvalIntegrationTests {
     @Test("EvalRunner rejects empty model list with noModels error")
     @MainActor
     func testEmptyModelListThrowsNoModels() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
         let runner = EvalRunner(engine: engine, store: store)
 
@@ -600,7 +600,7 @@ struct EngineEvalIntegrationTests {
     @Test("EvalRunner shuts down engine after evaluation completes")
     @MainActor
     func testEngineShutdownAfterEval() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
         let runner = EvalRunner(engine: engine, store: store)
 
@@ -627,7 +627,7 @@ struct EngineEvalIntegrationTests {
         // Engine should be shut down after eval: once before model init + once after eval
         #expect(engine.shutdownCallCount >= 2,
                 "Engine should be shut down at least twice (before model init + after eval)")
-        #expect(!engine.isReady,
+        #expect(!engine.isLoaded,
                 "Engine should not be ready after eval shutdown")
     }
 
@@ -636,7 +636,7 @@ struct EngineEvalIntegrationTests {
     @Test("Engine response matching regex → scores as pass")
     @MainActor
     func testRegexMatchPass() async throws {
-        let engine = MockInstrumentedEngine()
+        let engine = MockInferenceEngine()
         engine.mockResponseChunks = ["The result is 42 units"]
 
         let store = Self.makeTempStore()
@@ -671,7 +671,7 @@ struct EngineEvalIntegrationTests {
     @Test("Completed eval run is persisted to EvalStore")
     @MainActor
     func testRunPersistedToStore() async throws {
-        let engine = MockInstrumentedEngine.happyPath()
+        let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
         let runner = EvalRunner(engine: engine, store: store)
 

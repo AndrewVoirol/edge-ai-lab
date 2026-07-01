@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -24,7 +23,7 @@ import LiteRTLM
 
 /// End-to-end tests for the ConversationViewModel lifecycle.
 ///
-/// These tests use MockInstrumentedEngine but real persistence stores
+/// These tests use MockInferenceEngine but real persistence stores
 /// (ConversationStore, MetricsStore, EvalStore) to validate the full
 /// ViewModel behavioral contract: state transitions, auto-save, fork,
 /// tool calling integration, and eval execution.
@@ -54,11 +53,11 @@ final class ViewModelE2ETests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeEngine(responseChunks: [String] = ["Hello", ", ", "world", "!"]) -> MockInstrumentedEngine {
-        let engine = MockInstrumentedEngine()
+    private func makeEngine(responseChunks: [String] = ["Hello", ", ", "world", "!"]) -> MockInferenceEngine {
+        let engine = MockInferenceEngine()
         engine.mockResponseChunks = responseChunks
-        // Note: BenchmarkInfo init is internal to LiteRTLM, so we leave mockBenchmarkInfo
-        // as nil. Tests that need benchmark data should set it if the init becomes public.
+        // Note: PerformanceMetrics are set via mockPerformanceMetrics.
+        // Leave as nil for tests that don't need them.
         return engine
     }
 
@@ -75,7 +74,7 @@ final class ViewModelE2ETests: XCTestCase {
     }
 
     private func makeViewModel(
-        engine: MockInstrumentedEngine? = nil,
+        engine: MockInferenceEngine? = nil,
         conversationStore: ConversationStore? = nil,
         metricsStore: MetricsStore? = nil
     ) -> ConversationViewModel {
@@ -215,7 +214,7 @@ final class ViewModelE2ETests: XCTestCase {
         await vm.generateText()
 
         XCTAssertFalse(vm.conversation.isEmpty, "Should have messages after generation")
-        let initialInitCount = engine.initializeCallCount
+        let initialInitCount = engine.loadModelCallCount
 
         // Create a fake model file for selection
         let fakeModelURL = tempDir.appendingPathComponent("new-model.litertlm")
@@ -224,7 +223,7 @@ final class ViewModelE2ETests: XCTestCase {
         // Handle model selection — this should reinitialize the engine
         await vm.handleModelSelection(fakeModelURL)
 
-        XCTAssertGreaterThan(engine.initializeCallCount, initialInitCount,
+        XCTAssertGreaterThan(engine.loadModelCallCount, initialInitCount,
             "Engine should have been re-initialized after model switch")
 
         // Conversation should be cleared after model switch

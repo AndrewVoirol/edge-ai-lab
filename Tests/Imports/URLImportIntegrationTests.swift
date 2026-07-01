@@ -192,7 +192,7 @@ final class URLImportIntegrationTests: XCTestCase {
     @MainActor
     func testViewModelOwnsURLImportManager() {
         let vm = ConversationViewModel(
-            engine: MockInstrumentedEngine(),
+            engine: MockInferenceEngine(),
             downloadManager: ModelDownloadManager(),
             dynamicModelCatalog: catalog
         )
@@ -206,7 +206,7 @@ final class URLImportIntegrationTests: XCTestCase {
     @MainActor
     func testStartURLImportSetsStateAndOpensSheet() async {
         let vm = ConversationViewModel(
-            engine: MockInstrumentedEngine(),
+            engine: MockInferenceEngine(),
             downloadManager: ModelDownloadManager(),
             dynamicModelCatalog: catalog
         )

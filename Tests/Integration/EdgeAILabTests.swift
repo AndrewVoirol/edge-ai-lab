@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
+
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -26,14 +26,14 @@ import LiteRTLM
 
 final class ConversationViewModelTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var metricsStore: MetricsStore!
     private var metricsFileURL: URL!
 
     @MainActor
     override func setUp() {
         super.setUp()
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
 
         // Use a temp file for metrics store to avoid polluting real data
         metricsFileURL = FileManager.default.temporaryDirectory
@@ -69,14 +69,14 @@ final class ConversationViewModelTests: XCTestCase {
         XCTAssertTrue(vm.statusMessage.contains("ready"), "Status should contain 'ready' after init")
         XCTAssertTrue(vm.isEngineReady)
         // initializeWithFallback calls initialize internally
-        XCTAssertGreaterThanOrEqual(mockEngine.initializeCallCount, 1)
+        XCTAssertGreaterThanOrEqual(mockEngine.loadModelCallCount, 1)
         XCTAssertEqual(mockEngine.lastModelPath, "/path/to/model.litertlm")
         XCTAssertNotNil(vm.backendResult)
     }
 
     @MainActor
     func testEngineInitializationFailure() async {
-        mockEngine.initError = NSError(
+        mockEngine.loadError = NSError(
             domain: "TestError",
             code: -1,
             userInfo: [NSLocalizedDescriptionKey: "Mock init failure"]
@@ -105,12 +105,12 @@ final class ConversationViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.responseText, "Hello World")
         XCTAssertFalse(vm.isGenerating)
-        XCTAssertEqual(mockEngine.sendMessageCallCount, 1)
+        XCTAssertEqual(mockEngine.generateStreamCallCount, 1)
     }
 
     @MainActor
     func testGenerateTextInferenceError() async {
-        mockEngine.inferenceError = NSError(
+        mockEngine.generateError = NSError(
             domain: "InferenceError",
             code: -1,
             userInfo: [NSLocalizedDescriptionKey: "GPU out of memory"]
@@ -136,7 +136,7 @@ final class ConversationViewModelTests: XCTestCase {
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
-        let passedFlags = mockEngine.lastFlags!
+        let passedFlags = mockEngine.lastRuntimeFlags!
         XCTAssertTrue(passedFlags.enableBenchmark)
         XCTAssertEqual(passedFlags.enableSpeculativeDecoding, true)
         XCTAssertFalse(passedFlags.enableConversationConstrainedDecoding)
@@ -493,14 +493,14 @@ final class InferenceMetricsTests: XCTestCase {
 
 final class InferenceMetricsIntegrationTests: XCTestCase {
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var metricsStore: MetricsStore!
     private var metricsFileURL: URL!
 
     @MainActor
     override func setUp() {
         super.setUp()
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
         metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_metrics_im_\(UUID().uuidString).json")
         metricsStore = MetricsStore(fileURL: metricsFileURL)

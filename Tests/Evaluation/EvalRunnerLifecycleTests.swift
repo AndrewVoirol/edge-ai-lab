@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -26,13 +25,13 @@ import LiteRTLM
 ///
 /// Validates the full lifecycle: `idle → preparing → running → scoring → complete`,
 /// including cancellation, progress updates, and multi-suite execution.
-/// Uses MockInstrumentedEngine and a temporary EvalStore for isolation.
+/// Uses MockInferenceEngine and a temporary EvalStore for isolation.
 @MainActor
 final class EvalRunnerLifecycleTests: XCTestCase {
 
     // MARK: - Test Infrastructure
 
-    private var mockEngine: MockInstrumentedEngine!
+    private var mockEngine: MockInferenceEngine!
     private var evalStore: EvalStore!
     private var tempDir: URL!
 
@@ -48,7 +47,7 @@ final class EvalRunnerLifecycleTests: XCTestCase {
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("EvalRunnerLifecycleTests-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        mockEngine = MockInstrumentedEngine()
+        mockEngine = MockInferenceEngine()
         mockEngine.mockResponseChunks = ["Test", " response", "."]
         evalStore = EvalStore(storageDirectory: tempDir)
     }

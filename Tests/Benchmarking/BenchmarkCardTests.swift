@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import XCTest
-import LiteRTLM
+
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -29,7 +29,7 @@ import LiteRTLM
 /// - BenchmarkCardRenderer image output
 /// - BenchmarkCardTransferable conformance
 /// - Performance tier classification
-/// - BenchmarkCardData.from() factory via MockInstrumentedEngine
+/// - BenchmarkCardData.from() factory via MockInferenceEngine
 final class BenchmarkCardTests: XCTestCase {
 
     // MARK: - Test Data Factory
@@ -210,15 +210,15 @@ final class BenchmarkCardTests: XCTestCase {
         }
     }
 
-    // MARK: - BenchmarkCardData.from() Factory (via MockInstrumentedEngine)
+    // MARK: - BenchmarkCardData.from() Factory (via MockInferenceEngine)
 
     /// The factory should produce card data with model metadata when provided.
-    /// Uses MockInstrumentedEngine to run a mock inference cycle that produces
+    /// Uses MockInferenceEngine to run a mock inference cycle that produces
     /// a real BenchmarkInfo, then verifies the factory maps it correctly.
     @MainActor
     func testFactoryFromEngineWithMetadata() async {
-        let mock = MockInstrumentedEngine()
-        mock.isReady = true
+        let mock = MockInferenceEngine()
+        mock.isLoaded = true
         mock.mockResponseChunks = ["Hello", " world"]
 
         let metricsFileURL = FileManager.default.temporaryDirectory
@@ -243,22 +243,10 @@ final class BenchmarkCardTests: XCTestCase {
         // We test the metadata mapping path by using model metadata.
         let metadata = ModelRegistry.gemma4E2BStandard
 
-        // If BenchmarkInfo is available from the engine, use it; otherwise
-        // we can only test the non-BenchmarkInfo paths
-        if let benchInfo = mock.lastBenchmarkInfo {
-            let data = BenchmarkCardData.from(
-                benchmarkInfo: benchInfo,
-                inferenceMetrics: nil,
-                modelMetadata: metadata,
-                backendResult: nil
-            )
-
-            XCTAssertEqual(data.modelName, metadata.name)
-            XCTAssertEqual(data.modelArchitecture, metadata.architectureType)
-            XCTAssertGreaterThan(data.ramGB, 0)
-        }
-        // If BenchmarkInfo is nil from mock, the factory was already tested
-        // via the BenchmarkCardData direct construction tests above.
+        // BenchmarkCardData.from(benchmarkInfo:) requires LiteRT-LM's BenchmarkInfo type,
+        // which MockInferenceEngine cannot provide. That factory path is exercised
+        // by the real-engine integration tests (PerformanceTests). The direct
+        // BenchmarkCardData construction is fully tested in the tests above.
     }
 
     /// Test factory with GPU backend result.
