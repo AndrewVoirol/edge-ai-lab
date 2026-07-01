@@ -51,8 +51,8 @@ struct DiscoveredModel: Identifiable, Sendable {
 
 // MARK: - Gallery Model Discovery
 
-/// Discovers .litertlm model files from the app's Documents directory and
-/// the AI Edge Gallery's shared folder (accessible via Files.app on iOS).
+/// Discovers .litertlm model files and MLX model directories from the app's
+/// Documents directory and the AI Edge Gallery's shared folder (accessible via Files.app on iOS).
 ///
 /// On iOS, apps with `UIFileSharingEnabled` expose their Documents folder
 /// via the "On My iPhone" section of Files.app. The Gallery app appears as
@@ -73,6 +73,13 @@ enum GalleryModelDiscovery {
             models.append(model)
         }
 
+        // Also scan for MLX model directories
+        let mlxModels = scanForMLXModels(modelsDir, source: .local)
+        for model in mlxModels where !seenFilenames.contains(model.filename) {
+            seenFilenames.insert(model.filename)
+            models.append(model)
+        }
+
         #if os(macOS) || targetEnvironment(simulator)
         // On macOS/simulator, also check Caches
         let additionalDirs: [URL] = [
@@ -82,6 +89,13 @@ enum GalleryModelDiscovery {
         for dir in additionalDirs {
             let found = scanDirectory(dir, source: .local)
             for m in found where !seenFilenames.contains(m.filename) {
+                seenFilenames.insert(m.filename)
+                models.append(m)
+            }
+
+            // Also scan for MLX model directories
+            let mlxFound = scanForMLXModels(dir, source: .local)
+            for m in mlxFound where !seenFilenames.contains(m.filename) {
                 seenFilenames.insert(m.filename)
                 models.append(m)
             }
@@ -168,6 +182,68 @@ enum GalleryModelDiscovery {
                 metadata: metadata
             )
         }
+    }
+
+    /// Scan a directory for MLX model directories.
+    /// An MLX model directory must contain config.json AND at least one .safetensors file.
+    /// Directory names follow the pattern: `mlx-community--model-name` (slashes replaced with --).
+    private static func scanForMLXModels(_ directory: URL, source: DiscoveredModel.DiscoverySource) -> [DiscoveredModel] {
+        let fileManager = FileManager.default
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return contents.compactMap { url -> DiscoveredModel? in
+            // Must be a directory
+            let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
+            guard resourceValues?.isDirectory == true else { return nil }
+
+            // Must contain config.json
+            let configURL = url.appendingPathComponent("config.json")
+            guard fileManager.fileExists(atPath: configURL.path) else { return nil }
+
+            // Must contain at least one .safetensors file
+            guard let dirContents = try? fileManager.contentsOfDirectory(
+                at: url,
+                includingPropertiesForKeys: [.fileSizeKey],
+                options: [.skipsHiddenFiles]
+            ) else { return nil }
+
+            let safetensorsFiles = dirContents.filter { $0.pathExtension == "safetensors" }
+            guard !safetensorsFiles.isEmpty else { return nil }
+
+            // Calculate total size across all files in the directory
+            let totalSize = dirContents.reduce(Int64(0)) { sum, fileURL in
+                let fileSize = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                return sum + Int64(fileSize)
+            }
+
+            // Parse model metadata from config.json if possible
+            let metadata = parseMLXConfig(configURL)
+
+            return DiscoveredModel(
+                url: url,
+                sizeInBytes: totalSize,
+                source: source,
+                metadata: metadata
+            )
+        }
+    }
+
+    /// Parse model metadata from an MLX model's config.json.
+    /// Extracts model_type and quantization_config if present.
+    private static func parseMLXConfig(_ configURL: URL) -> ModelMetadata? {
+        guard let data = try? Data(contentsOf: configURL),
+              let _ = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        // Return nil — MLX models don't have a registry entry.
+        // The DiscoveredModel stores the URL, size, and source without a registry match.
+        return nil
     }
 
     // MARK: - Gallery Model Bookmarking

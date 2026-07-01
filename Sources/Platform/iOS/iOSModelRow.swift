@@ -100,9 +100,13 @@ struct iOSModelRow: View {
                 // Download progress subtitle (replaces capabilities when downloading)
                 if case .downloading(let progress) = downloadState {
                     downloadProgressRow(progress: progress)
+                } else if case .downloadingDirectory(let progress, _, _) = downloadState {
+                    downloadProgressRow(progress: progress)
                 } else if case .queued(let position) = downloadState {
                     queuedRow(position: position)
                 } else if case .paused(_, let progress) = downloadState {
+                    pausedRow(progress: progress)
+                } else if case .pausedDirectory(let progress, _, _) = downloadState {
                     pausedRow(progress: progress)
                 } else {
                     // Capability badges
@@ -263,7 +267,7 @@ struct iOSModelRow: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("modelRow_download_\(metadata.modelFile)")
 
-        case .downloading:
+        case .downloading, .downloadingDirectory:
             // Circular progress with cancel — per HIG progress indicators
             Button {
                 onCancelTap?()
@@ -325,7 +329,7 @@ struct iOSModelRow: View {
                 .accessibilityLabel("Queued for download")
                 .accessibilityIdentifier("modelRow_queued_\(metadata.modelFile)")
 
-        case .paused:
+        case .paused, .pausedDirectory:
             // Resume button for paused state
             Button {
                 onResumeTap?()

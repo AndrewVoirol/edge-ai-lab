@@ -170,6 +170,70 @@ struct HFLFSInfo: Codable, Sendable {
     }
 }
 
+// MARK: - HFTreeEntry
+
+/// A file entry from the HuggingFace repository tree API.
+///
+/// Returned by `GET /api/models/{id}/tree/{revision}`. Unlike `HFSibling` (from the
+/// model detail endpoint), this includes the entry `type` (file vs directory) and
+/// the `oid` directly on the entry for non-LFS files.
+///
+/// Example API response entry:
+/// ```json
+/// {
+///   "type": "file",
+///   "oid": "abc123...",
+///   "size": 4200000000,
+///   "path": "model-00001-of-00003.safetensors",
+///   "lfs": {
+///     "oid": "sha256:abc123...",
+///     "size": 4200000000,
+///     "pointerSize": 135
+///   }
+/// }
+/// ```
+struct HFTreeEntry: Codable, Sendable {
+
+    /// Entry type: "file" or "directory".
+    let type: String
+
+    /// Object ID (Git blob hash for regular files, LFS OID for LFS files).
+    let oid: String?
+
+    /// File size in bytes. For LFS files, this is the pointer file size.
+    let size: Int64?
+
+    /// Relative path within the repository (e.g., "model-00001-of-00003.safetensors").
+    let path: String
+
+    /// Git LFS metadata, present only for LFS-tracked files.
+    /// When present, `lfs.size` is the actual file size and `lfs.oid` is the SHA-256 hash.
+    let lfs: HFTreeLFSInfo?
+}
+
+// MARK: - HFTreeLFSInfo
+
+/// Git LFS metadata from the tree API response.
+///
+/// Similar to `HFLFSInfo` but uses a slightly different field naming convention
+/// in the tree endpoint response.
+struct HFTreeLFSInfo: Codable, Sendable {
+
+    /// The SHA-256 hash of the file content (the LFS object identifier).
+    let oid: String
+
+    /// Actual file size in bytes.
+    let size: Int64
+
+    /// Size of the LFS pointer file in the Git repository.
+    let pointerSize: Int
+
+    enum CodingKeys: String, CodingKey {
+        case oid, size
+        case pointerSize = "pointer_size"
+    }
+}
+
 // MARK: - Model Format Detection
 
 /// Detected model format based on file contents of a HuggingFace repository.
@@ -626,6 +690,88 @@ final class HFModelBrowser: @unchecked Sendable {
         return .unknown
     }
 
+    // MARK: - File Manifest (MLX Multi-File Downloads)
+
+    /// Fetch the complete file listing for a model repository using the HF tree API.
+    ///
+    /// Endpoint: `GET https://huggingface.co/api/models/{id}/tree/main`
+    ///
+    /// This returns per-file metadata including sizes and LFS hashes, enabling
+    /// manifest-first downloads where total size is known before downloading.
+    ///
+    /// - Parameter repoId: The full repository ID (e.g., "mlx-community/gemma-4-E2B-it-4bit").
+    /// - Returns: An array of `HFTreeEntry` with file metadata.
+    /// - Throws: `HFModelBrowserError` on network or decoding failures.
+    func fetchFileManifest(for repoId: String) async throws -> [HFTreeEntry] {
+        let urlString = "\(Self.apiBaseURL)/\(repoId)/tree/main"
+        guard let url = URL(string: urlString) else {
+            throw HFModelBrowserError.invalidURL(urlString)
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+
+        // Attach HF token if available
+        if let token = HFTokenStorage.retrieve() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, _) = try await performWithRetry(request)
+
+        do {
+            return try decoder.decode([HFTreeEntry].self, from: data)
+        } catch {
+            throw HFModelBrowserError.decodingFailed(underlying: error)
+        }
+    }
+
+    /// Filter a file manifest to only the files required for an MLX model.
+    ///
+    /// Keeps: `config.json`, `tokenizer*.json`, `special_tokens_map.json`,
+    /// `*.safetensors`, `*.safetensors.index.json`.
+    /// Excludes: `*.gguf`, `*.bin`, `README.md`, `.gitattributes`, etc.
+    ///
+    /// - Parameter manifest: The full file listing from `fetchFileManifest`.
+    /// - Returns: Only the files needed to run the MLX model.
+    static func filterRequiredMLXFiles(_ manifest: [HFTreeEntry]) -> [HFTreeEntry] {
+        let requiredPatterns: [(String) -> Bool] = [
+            { $0 == "config.json" },
+            { $0.hasPrefix("tokenizer") && $0.hasSuffix(".json") },
+            { $0 == "special_tokens_map.json" },
+            { $0 == "generation_config.json" },
+            { $0.hasSuffix(".safetensors") },
+            { $0.hasSuffix(".safetensors.index.json") },
+        ]
+
+        return manifest.filter { entry in
+            // Only include regular files (not directories)
+            guard entry.type == "file" else { return false }
+            let filename = entry.path
+            return requiredPatterns.contains { $0(filename) }
+        }
+    }
+
+    /// Build download metadata for all required files in an MLX model.
+    ///
+    /// Returns tuples of (filename, downloadURL, expectedSize, sha256Hash) for each
+    /// required file. The SHA-256 hash comes from the LFS `oid` field if present.
+    ///
+    /// - Parameters:
+    ///   - repoId: The full repository ID.
+    ///   - requiredFiles: The filtered manifest from `filterRequiredMLXFiles`.
+    /// - Returns: Array of download descriptors.
+    static func downloadDescriptors(
+        repoId: String,
+        requiredFiles: [HFTreeEntry]
+    ) -> [(filename: String, url: URL, size: Int64, sha256: String?)] {
+        return requiredFiles.map { entry in
+            let url = downloadURL(repoId: repoId, filename: entry.path)
+            let size = entry.lfs?.size ?? entry.size ?? 0
+            let hash = entry.lfs?.oid  // LFS oid IS the SHA-256 hash
+            return (filename: entry.path, url: url, size: size, sha256: hash)
+        }
+    }
+
     // MARK: - Model Size
 
     /// Extract the size of the largest model file from the repository's file listing.
@@ -649,6 +795,37 @@ final class HFModelBrowser: @unchecked Sendable {
         }
 
         return sizes.max()
+    }
+
+    /// Calculate the total download size for all required files in an MLX model.
+    ///
+    /// Unlike `modelSize()` which returns the largest file, this sums all required
+    /// files for MLX models which need multiple files downloaded.
+    ///
+    /// - Parameter model: The model info with populated `siblings`.
+    /// - Returns: The total size in bytes of all required MLX files, or nil if not an MLX model.
+    func totalMLXModelSize(_ model: HFModelInfo) -> Int64? {
+        guard let siblings = model.siblings else { return nil }
+
+        let requiredFilenames: [(String) -> Bool] = [
+            { $0 == "config.json" },
+            { $0.hasPrefix("tokenizer") && $0.hasSuffix(".json") },
+            { $0 == "special_tokens_map.json" },
+            { $0 == "generation_config.json" },
+            { $0.hasSuffix(".safetensors") },
+            { $0.hasSuffix(".safetensors.index.json") },
+        ]
+
+        let requiredSiblings = siblings.filter { sibling in
+            requiredFilenames.contains { $0(sibling.rfilename) }
+        }
+
+        guard !requiredSiblings.isEmpty else { return nil }
+
+        return requiredSiblings.reduce(Int64(0)) { sum, sibling in
+            let size = sibling.lfs?.size ?? sibling.size ?? 0
+            return sum + size
+        }
     }
 
     // MARK: - Download URL Construction

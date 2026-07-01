@@ -75,6 +75,10 @@ struct iOSModelHubView: View {
                 if !matchesSearch(model) { continue }
                 if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .downloading(progress: progress)))
+            case .downloadingDirectory(let progress, let completed, let total):
+                if !matchesSearch(model) { continue }
+                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                results.append((model, URL(fileURLWithPath: ""), .downloadingDirectory(progress: progress, completedFiles: completed, totalFiles: total)))
             case .queued(let position):
                 if !matchesSearch(model) { continue }
                 if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
@@ -83,6 +87,10 @@ struct iOSModelHubView: View {
                 if !matchesSearch(model) { continue }
                 if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .paused(resumeData: data, progress: progress)))
+            case .pausedDirectory(let progress, let completed, let total):
+                if !matchesSearch(model) { continue }
+                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                results.append((model, URL(fileURLWithPath: ""), .pausedDirectory(progress: progress, completedFiles: completed, totalFiles: total)))
             default:
                 break
             }
@@ -98,7 +106,7 @@ struct iOSModelHubView: View {
             switch state {
             case .notDownloaded, .failed, .authRequired:
                 return matchesSearch(model)
-            case .queued, .paused:
+            case .queued, .paused, .pausedDirectory:
                 return false // Show in "On This Device" section
             default:
                 return false

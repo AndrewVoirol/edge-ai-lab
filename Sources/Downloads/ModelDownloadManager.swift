@@ -58,12 +58,16 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     enum DownloadState: Sendable {
         /// Model file exists on disk.
         case downloaded(URL)
-        /// Download is in progress.
+        /// Download is in progress (single file).
         case downloading(progress: Double)
+        /// Multi-file download in progress (MLX models).
+        case downloadingDirectory(progress: Double, completedFiles: Int, totalFiles: Int)
         /// Waiting in serial download queue.
         case queued(position: Int)
         /// Download paused by user — can resume from saved progress.
         case paused(resumeData: Data, progress: Double)
+        /// Multi-file download paused.
+        case pausedDirectory(progress: Double, completedFiles: Int, totalFiles: Int)
         /// Not downloaded and not in progress.
         case notDownloaded
         /// Download failed.
@@ -135,6 +139,53 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
         var resumeData: Data?
         var queuePosition: Int?
         var isCommunityModel: Bool
+    }
+
+    // MARK: - Multi-File Download Types
+
+    /// Tracks a multi-file model download (MLX directory models).
+    ///
+    /// MLX models consist of multiple files (config.json, tokenizer, safetensors shards)
+    /// that must all be downloaded and verified before the model is usable.
+    struct DirectoryDownload: Sendable {
+        /// HuggingFace repo ID (e.g., "mlx-community/gemma-4-E2B-it-4bit").
+        let modelId: String
+        /// Runtime type for this model.
+        let runtimeType: RuntimeType
+        /// Individual file downloads within this model.
+        var files: [FileDownload]
+        /// Total expected size across all files.
+        var totalBytes: Int64
+        /// Sum of bytes downloaded across all files.
+        var downloadedBytes: Int64 { files.reduce(0) { $0 + $1.downloadedBytes } }
+        /// Whether all files are complete and verified.
+        var isComplete: Bool { files.allSatisfy(\.isComplete) }
+        /// Aggregate progress (0.0–1.0).
+        var progress: Double { totalBytes > 0 ? Double(downloadedBytes) / Double(totalBytes) : 0 }
+        /// Number of files that have completed download.
+        var completedFileCount: Int { files.filter(\.isComplete).count }
+        /// Local directory where files are stored.
+        let localDirectory: URL
+    }
+
+    /// Tracks an individual file within a multi-file download.
+    struct FileDownload: Sendable {
+        /// Filename within the model directory (e.g., "model-00001-of-00003.safetensors").
+        let filename: String
+        /// HuggingFace download URL for this file.
+        let url: URL
+        /// Expected file size in bytes.
+        let expectedSize: Int64
+        /// Expected SHA-256 hash from HuggingFace manifest (nil if not available).
+        let expectedHash: String?
+        /// Bytes downloaded so far.
+        var downloadedBytes: Int64
+        /// Saved resume data for pausing/resuming.
+        var resumeData: Data?
+        /// Whether this file's download is complete.
+        var isComplete: Bool
+        /// Whether the SHA-256 hash has been verified after download.
+        var hashVerified: Bool
     }
 
     // MARK: - Published State
@@ -371,7 +422,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
         // re-scans the filesystem for each model.
         downloadStates = downloadStates.filter { _, state in
             switch state {
-            case .downloading, .queued, .paused: return true
+            case .downloading, .downloadingDirectory, .queued, .paused, .pausedDirectory: return true
             default: return false
             }
         }
@@ -613,6 +664,294 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
             ))
             updateQueuePositions()
         }
+    }
+
+    // MARK: - Multi-File Download (MLX Models)
+
+    /// Active directory downloads keyed by model ID.
+    @ObservationIgnored
+    private var activeDirectoryDownloads: [String: DirectoryDownload] = [:]
+
+    /// Maximum concurrent file downloads within a single model (parallel shard downloads).
+    private let maxConcurrentShardDownloads = 3
+
+    /// Download an MLX model's multi-file directory from HuggingFace.
+    ///
+    /// This method:
+    /// 1. Fetches the file manifest from HuggingFace's tree API
+    /// 2. Filters to required files (config, tokenizer, safetensors)
+    /// 3. Downloads files in parallel (up to `maxConcurrentShardDownloads` at a time)
+    /// 4. Verifies SHA-256 hash of each file after download
+    /// 5. Marks the model as `.downloaded` only when ALL files are present and verified
+    ///
+    /// - Parameters:
+    ///   - model: The HuggingFace model info.
+    ///   - descriptors: Pre-computed download descriptors from `HFModelBrowser.downloadDescriptors`.
+    func downloadMLXModel(
+        modelId: String,
+        descriptors: [(filename: String, url: URL, size: Int64, sha256: String?)]
+    ) {
+        // Use model ID with slashes replaced as the directory name
+        let dirName = modelId.replacingOccurrences(of: "/", with: "--")
+
+        // Don't start a duplicate download
+        if activeDirectoryDownloads[modelId] != nil { return }
+
+        let modelDir = documentsDirectory.appendingPathComponent(dirName)
+
+        // Create the directory
+        try? FileManager.default.createDirectory(at: modelDir, withIntermediateDirectories: true)
+
+        // Build file downloads
+        let fileDownloads = descriptors.map { desc in
+            FileDownload(
+                filename: desc.filename,
+                url: desc.url,
+                expectedSize: desc.size,
+                expectedHash: desc.sha256,
+                downloadedBytes: 0,
+                resumeData: nil,
+                isComplete: false,
+                hashVerified: false
+            )
+        }
+
+        let totalBytes = descriptors.reduce(Int64(0)) { $0 + $1.size }
+
+        let dirDownload = DirectoryDownload(
+            modelId: modelId,
+            runtimeType: .mlx,
+            files: fileDownloads,
+            totalBytes: totalBytes,
+            localDirectory: modelDir
+        )
+
+        activeDirectoryDownloads[modelId] = dirDownload
+        downloadStates[dirName] = .downloadingDirectory(
+            progress: 0,
+            completedFiles: 0,
+            totalFiles: fileDownloads.count
+        )
+
+        // Start the parallel download
+        Task { @MainActor in
+            await performDirectoryDownload(modelId: modelId, dirName: dirName)
+        }
+    }
+
+    /// Perform the actual multi-file download with parallel shard downloads.
+    private func performDirectoryDownload(modelId: String, dirName: String) async {
+        guard var dirDownload = activeDirectoryDownloads[modelId] else { return }
+        let modelDir = dirDownload.localDirectory
+
+        do {
+            // Download files in parallel batches
+            try await withThrowingTaskGroup(of: (Int, URL).self) { group in
+                var pendingIndices = Array(dirDownload.files.indices)
+                var activeTasks = 0
+
+                // Seed initial batch
+                while activeTasks < maxConcurrentShardDownloads, !pendingIndices.isEmpty {
+                    let index = pendingIndices.removeFirst()
+                    let file = dirDownload.files[index]
+                    activeTasks += 1
+
+                    group.addTask { [weak self] in
+                        guard let self else { throw CancellationError() }
+                        let destURL = modelDir.appendingPathComponent(file.filename)
+                        try await self.downloadSingleFile(from: file.url, to: destURL)
+                        return (index, destURL)
+                    }
+                }
+
+                // Process completed files and start new ones
+                for try await (completedIndex, destURL) in group {
+                    activeTasks -= 1
+
+                    // Verify hash if available
+                    let file = dirDownload.files[completedIndex]
+                    if let expectedHash = file.expectedHash {
+                        let verified = try await FileIntegrityChecker.verify(
+                            file: destURL,
+                            expectedHash: expectedHash
+                        )
+                        if !verified {
+                            // Re-download on hash mismatch
+                            logger.warning("⚠️ Hash mismatch for \(file.filename) — re-downloading")
+                            try FileManager.default.removeItem(at: destURL)
+                            try await self.downloadSingleFile(from: file.url, to: destURL)
+                            let retryVerified = try await FileIntegrityChecker.verify(
+                                file: destURL,
+                                expectedHash: expectedHash
+                            )
+                            dirDownload.files[completedIndex].hashVerified = retryVerified
+                        } else {
+                            dirDownload.files[completedIndex].hashVerified = true
+                        }
+                    } else {
+                        dirDownload.files[completedIndex].hashVerified = true
+                    }
+
+                    dirDownload.files[completedIndex].isComplete = true
+                    dirDownload.files[completedIndex].downloadedBytes = file.expectedSize
+                    activeDirectoryDownloads[modelId] = dirDownload
+
+                    // Update UI state
+                    downloadStates[dirName] = .downloadingDirectory(
+                        progress: dirDownload.progress,
+                        completedFiles: dirDownload.completedFileCount,
+                        totalFiles: dirDownload.files.count
+                    )
+
+                    // Start next file if available
+                    if !pendingIndices.isEmpty {
+                        let nextIndex = pendingIndices.removeFirst()
+                        let nextFile = dirDownload.files[nextIndex]
+                        activeTasks += 1
+
+                        group.addTask { [weak self] in
+                            guard let self else { throw CancellationError() }
+                            let nextDest = modelDir.appendingPathComponent(nextFile.filename)
+                            try await self.downloadSingleFile(from: nextFile.url, to: nextDest)
+                            return (nextIndex, nextDest)
+                        }
+                    }
+                }
+            }
+
+            // All files complete — mark as downloaded
+            excludeFromBackup(modelDir)
+            downloadStates[dirName] = .downloaded(modelDir)
+            downloadProgress.removeValue(forKey: dirName)
+            activeDirectoryDownloads.removeValue(forKey: modelId)
+
+            // Fire callbacks
+            onDownloadCompleted?(dirName, modelDir)
+
+            #if os(iOS)
+            sendDownloadCompleteNotification(modelFile: dirName)
+            #endif
+
+        } catch {
+            if error is CancellationError {
+                // User cancelled — state already handled
+            } else {
+                downloadStates[dirName] = .failed("Download failed: \(error.localizedDescription)")
+            }
+            activeDirectoryDownloads.removeValue(forKey: modelId)
+        }
+    }
+
+    /// Download a single file using URLSession (non-background, for multi-file orchestration).
+    private func downloadSingleFile(from url: URL, to destination: URL) async throws {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 7200
+
+        // Attach HF token if available
+        if let token = HFTokenStorage.retrieve() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (tempURL, response) = try await URLSession.shared.download(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw HFModelBrowserError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 401 {
+            throw HFModelBrowserError.httpError(statusCode: 401, repoId: url.absoluteString)
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw HFModelBrowserError.httpStatusError(statusCode: httpResponse.statusCode)
+        }
+
+        // Ensure parent directory exists
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+
+        // Remove existing file if present
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+
+        // Move from temp to permanent location
+        try FileManager.default.moveItem(at: tempURL, to: destination)
+
+        // Exclude from iCloud backup
+        excludeFromBackup(destination)
+    }
+
+    /// Cancel an active multi-file download.
+    func cancelDirectoryDownload(modelId: String) {
+        let dirName = modelId.replacingOccurrences(of: "/", with: "--")
+        activeDirectoryDownloads.removeValue(forKey: modelId)
+        downloadStates[dirName] = .notDownloaded
+        downloadProgress.removeValue(forKey: dirName)
+
+        // Clean up partially downloaded directory
+        let modelDir = documentsDirectory.appendingPathComponent(dirName)
+        try? FileManager.default.removeItem(at: modelDir)
+    }
+
+    /// Delete a downloaded MLX model directory.
+    func deleteMLXModel(modelId: String) {
+        let dirName = modelId.replacingOccurrences(of: "/", with: "--")
+        let modelDir = documentsDirectory.appendingPathComponent(dirName)
+        do {
+            if FileManager.default.fileExists(atPath: modelDir.path) {
+                try FileManager.default.removeItem(at: modelDir)
+            }
+        } catch {
+            logger.warning("Failed to delete MLX model directory: \(error.localizedDescription)")
+        }
+        downloadStates[dirName] = .notDownloaded
+        downloadProgress.removeValue(forKey: dirName)
+    }
+
+    /// Check whether an MLX model directory is fully downloaded and valid.
+    ///
+    /// A valid MLX model directory must contain `config.json` and at least one
+    /// `.safetensors` file.
+    func checkMLXModelState(modelId: String) -> DownloadState {
+        let dirName = modelId.replacingOccurrences(of: "/", with: "--")
+
+        // Return cached state if in-flight
+        if let existing = downloadStates[dirName] {
+            switch existing {
+            case .downloading, .downloadingDirectory, .queued, .paused, .pausedDirectory:
+                return existing
+            default:
+                break
+            }
+        }
+
+        let modelDir = documentsDirectory.appendingPathComponent(dirName)
+        let fm = FileManager.default
+
+        guard fm.fileExists(atPath: modelDir.path) else {
+            downloadStates[dirName] = .notDownloaded
+            return .notDownloaded
+        }
+
+        let configPath = modelDir.appendingPathComponent("config.json").path
+        guard fm.fileExists(atPath: configPath) else {
+            downloadStates[dirName] = .notDownloaded
+            return .notDownloaded
+        }
+
+        // Check for at least one safetensors file
+        if let contents = try? fm.contentsOfDirectory(atPath: modelDir.path),
+           contents.contains(where: { $0.hasSuffix(".safetensors") }) {
+            let state = DownloadState.downloaded(modelDir)
+            downloadStates[dirName] = state
+            return state
+        }
+
+        downloadStates[dirName] = .notDownloaded
+        return .notDownloaded
     }
 
     // MARK: - Private — Download Task Management

@@ -75,6 +75,8 @@ struct iOSModelDetailView: View {
                 // Download progress (if downloading)
                 if case .downloading(let progress) = downloadState {
                     downloadProgressSection(progress: progress)
+                } else if case .downloadingDirectory(let progress, _, _) = downloadState {
+                    downloadProgressSection(progress: progress)
                 }
 
                 // Queued indicator
@@ -84,6 +86,8 @@ struct iOSModelDetailView: View {
 
                 // Paused indicator
                 if case .paused(_, let progress) = downloadState {
+                    pausedSection(progress: progress)
+                } else if case .pausedDirectory(let progress, _, _) = downloadState {
                     pausedSection(progress: progress)
                 }
 
@@ -112,7 +116,7 @@ struct iOSModelDetailView: View {
                 // Danger Zone
                 if case .downloaded = downloadState {
                     dangerZoneSection
-                } else if case .paused = downloadState {
+                } else if downloadState.isPausedState {
                     dangerZoneSection
                 }
             }
@@ -305,7 +309,7 @@ struct iOSModelDetailView: View {
                 .accessibilityHint("Double-tap to load this model for chat")
                 .accessibilityIdentifier("modelDetail_loadButton")
 
-            } else if case .downloading = downloadState {
+            } else if downloadState.isActivelyDownloading {
                 // Downloading — Pause + Cancel buttons
                 HStack(spacing: AppSpacing.md) {
                     Button {
@@ -335,7 +339,7 @@ struct iOSModelDetailView: View {
                     .accessibilityIdentifier("modelDetail_cancelButton")
                 }
 
-            } else if case .paused = downloadState {
+            } else if downloadState.isPausedState {
                 // Paused — Resume button
                 Button {
                     viewModel.downloadManager.resumeDownload(metadata)
@@ -711,8 +715,20 @@ struct iOSModelDetailView: View {
 // MARK: - Download State Helpers
 
 extension ModelDownloadManager.DownloadState {
+    /// Whether this state represents any kind of active download (single or multi-file).
     var isDownloading: Bool {
         if case .downloading = self { return true }
+        if case .downloadingDirectory = self { return true }
+        return false
+    }
+
+    /// Alias for `isDownloading` — used in conditional UI rendering.
+    var isActivelyDownloading: Bool { isDownloading }
+
+    /// Whether this state represents any kind of paused download.
+    var isPausedState: Bool {
+        if case .paused = self { return true }
+        if case .pausedDirectory = self { return true }
         return false
     }
 }

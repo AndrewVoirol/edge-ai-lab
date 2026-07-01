@@ -52,8 +52,12 @@ struct HFModelCard: View {
         return nil
     }
 
-    /// Download state for this model's file.
+    /// Download state for this model's file or directory.
     private var downloadState: ModelDownloadManager.DownloadState {
+        if format == .mlx {
+            let dirName = model.id.replacingOccurrences(of: "/", with: "--")
+            return downloadManager.downloadStates[dirName] ?? .notDownloaded
+        }
         guard let sibling = litertlmSibling else { return .notDownloaded }
         return downloadManager.downloadStates[sibling.rfilename] ?? .notDownloaded
     }
@@ -185,6 +189,27 @@ struct HFModelCard: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("hf_download_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+            } else if format == .mlx {
+                // MLX multi-file download — label shows file info when available
+                let sizeLabel = modelSize.map { formatBytes($0) } ?? "MLX"
+                Button {
+                    // MLX download flow — caller should fetch manifest and call downloadMLXModel
+                    // For now, trigger through onLoadModel callback
+                    onLoadModel?(model.id, URL(fileURLWithPath: ""))
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text("Download (\(sizeLabel))")
+                            .font(AppTypography.caption)
+                    }
+                    .foregroundStyle(AppColors.accentGold)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.xs)
+                    .background(AppColors.accentGold.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hf_download_mlx_\(model.id.replacingOccurrences(of: "/", with: "_"))")
             } else {
                 Text("Coming Soon")
                     .font(AppTypography.caption)
@@ -259,6 +284,35 @@ struct HFModelCard: View {
                 Image(systemName: "pause.fill")
                     .foregroundStyle(AppColors.warning)
                 Text("Paused · \(Int(progress * 100))%")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.warning)
+            }
+
+        case .downloadingDirectory(let progress, let completed, let total):
+            VStack(spacing: 2) {
+                ProgressView(value: progress)
+                    .tint(AppColors.accentGold)
+                HStack {
+                    Text("\(completed)/\(total) files · \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Spacer()
+                    Button {
+                        downloadManager.cancelDirectoryDownload(modelId: model.id)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+        case .pausedDirectory(let progress, let completed, let total):
+            HStack(spacing: AppSpacing.xs) {
+                Image(systemName: "pause.fill")
+                    .foregroundStyle(AppColors.warning)
+                Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.warning)
             }
