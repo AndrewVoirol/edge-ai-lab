@@ -195,7 +195,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
         // Bundle.main won't have it in a unit test runner,
         // and the home path may or may not exist. We can only assert non-crash behavior.
         // If nil is returned, it means no baselines file was found — which is valid.
-        let result = DeveloperAutomationHarness.findBaselinesFile()
+        let result = BenchmarkAutomationPipeline.findBaselinesFile()
         // This test mainly verifies the method doesn't crash and returns a valid URL or nil.
         if let url = result {
             XCTAssertTrue(
@@ -207,7 +207,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
     }
 
     func testFindEvalBaselinesFileReturnsNilWhenMissing() {
-        let result = DeveloperAutomationHarness.findEvalBaselinesFile()
+        let result = EvalAutomationPipeline.findEvalBaselinesFile()
         if let url = result {
             XCTAssertTrue(
                 FileManager.default.fileExists(atPath: url.path),
@@ -243,7 +243,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
             ("TestSuite", 0.85, 10)
         ]
 
-        DeveloperAutomationHarness.persistEvalHistory(results: results, model: "test-model-create")
+        EvalAutomationPipeline.persistEvalHistory(results: results, model: "test-model-create")
 
         guard let historyURL = findEvalHistoryFile(),
               FileManager.default.fileExists(atPath: historyURL.path) else {
@@ -276,13 +276,13 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
         let results1: [(suiteName: String, passRate: Double, promptCount: Int)] = [
             ("Suite1", 0.9, 5)
         ]
-        DeveloperAutomationHarness.persistEvalHistory(results: results1, model: "model-a-append")
+        EvalAutomationPipeline.persistEvalHistory(results: results1, model: "model-a-append")
 
         // Second call
         let results2: [(suiteName: String, passRate: Double, promptCount: Int)] = [
             ("Suite2", 0.75, 8)
         ]
-        DeveloperAutomationHarness.persistEvalHistory(results: results2, model: "model-b-append")
+        EvalAutomationPipeline.persistEvalHistory(results: results2, model: "model-b-append")
 
         guard let url = findEvalHistoryFile(),
               let data = try? Data(contentsOf: url),
@@ -303,7 +303,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
         ]
 
         // This should NOT crash — the isFinite guard sanitizes non-finite values to 0.0
-        DeveloperAutomationHarness.persistEvalHistory(results: results, model: "nonfinite-test")
+        EvalAutomationPipeline.persistEvalHistory(results: results, model: "nonfinite-test")
 
         guard let url = findEvalHistoryFile(),
               let data = try? Data(contentsOf: url),
@@ -329,7 +329,7 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
             ("SkippedSuite", -1.0, 0)
         ]
 
-        DeveloperAutomationHarness.persistEvalHistory(results: results, model: "skipped-test")
+        EvalAutomationPipeline.persistEvalHistory(results: results, model: "skipped-test")
 
         guard let url = findEvalHistoryFile(),
               let data = try? Data(contentsOf: url),
