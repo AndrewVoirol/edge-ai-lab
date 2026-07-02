@@ -13,13 +13,13 @@ let project = Project(
     ),
     packages: [
         // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
-        // Uses .branch("main") to bypass SPM unsafeFlags restriction on tagged releases.
-        // NOTE: .revision() doesn't work with this repo (SPM can't checkout custom paths).
+        // Uses .branch("main") because: (1) unsafeFlags blocks SPM versioned deps,
+        // (2) force-push history makes .revision() unreliable, (3) no semver tags available.
         // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
         // mlx-swift-lm: MLX inference (Apple Silicon Metal GPU) for macOS/iOS.
-        // Tracks main branch (consistent with LiteRT-LM strategy).
-        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .branch("main")),
+        // Pinned to semver — 3.x series has proper tagged releases (unlike LiteRT-LM).
+        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .upToNextMajor(from: "3.31.3")),
         // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
         .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
@@ -64,8 +64,7 @@ let project = Project(
                 .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
                 .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
                 .package(product: "Hub"),             // HuggingFace Hub download client
-                .package(product: "MarkdownUI"),
-                .sdk(name: "CloudKit", type: .framework)
+                .package(product: "MarkdownUI")
             ]
         ),
         .target(
@@ -76,7 +75,7 @@ let project = Project(
             deploymentTargets: .iOS("27.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
-            resources: ["Tests/Resources/**"],
+            resources: ["Tests/Resources/**", "automation/flows/**/*.json"],
             dependencies: [
                 .target(name: "EdgeAILab_iOS")
             ]
@@ -103,8 +102,7 @@ let project = Project(
                 .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
                 .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
                 .package(product: "Hub"),             // HuggingFace Hub download client
-                .package(product: "MarkdownUI"),
-                .sdk(name: "CloudKit", type: .framework)
+                .package(product: "MarkdownUI")
             ],
             settings: .settings(
                 base: [
@@ -121,7 +119,7 @@ let project = Project(
             deploymentTargets: .macOS("27.0"),
             infoPlist: .default,
             sources: ["Tests/**"],
-            resources: ["Tests/Resources/**"],
+            resources: ["Tests/Resources/**", "automation/flows/**/*.json"],
             dependencies: [
                 .target(name: "EdgeAILab_macOS")
             ],
@@ -138,7 +136,7 @@ let project = Project(
             bundleId: "com.andrewvoirol.EdgeAILab.mac.UITests",
             deploymentTargets: .macOS("27.0"),
             infoPlist: .default,
-            sources: ["UITests/**"],
+            sources: ["UITests/**", "SharedTestSupport/**"],
             resources: ["automation/flows/**/*.json"],
             dependencies: [
                 .target(name: "EdgeAILab_macOS")
@@ -156,7 +154,7 @@ let project = Project(
             bundleId: "com.andrewvoirol.EdgeAILab.UITests",
             deploymentTargets: .iOS("27.0"),
             infoPlist: .default,
-            sources: ["iOSUITests/**"],
+            sources: ["iOSUITests/**", "SharedTestSupport/**"],
             resources: ["automation/flows/**/*.json"],
             dependencies: [
                 .target(name: "EdgeAILab_iOS")

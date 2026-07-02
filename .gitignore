@@ -88,6 +88,7 @@ metrics/
 !metrics/coverage_baseline.json
 !metrics/DASHBOARD.md
 default.profraw
+regression_report.json
 *.trace
 
 # --- Misc ---

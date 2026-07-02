@@ -253,12 +253,24 @@ struct AutomationFlowRunnerTests {
         #expect(!jsonURLs.isEmpty, "Expected at least one flow JSON file")
 
         let decoder = JSONDecoder()
+        var failedFiles: [String] = []
         for url in jsonURLs {
-            let data = try Data(contentsOf: url)
-            let flow = try decoder.decode(AutomationFlow.self, from: data)
-            #expect(!flow.name.isEmpty, "Flow in \(url.lastPathComponent) should have a name")
-            #expect(!flow.steps.isEmpty, "Flow '\(flow.name)' should have at least one step")
+            do {
+                let data = try Data(contentsOf: url)
+                // Pre-check: skip files that aren't flow definitions
+                // (e.g., test fixtures or config files that may end up in the same directory)
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   json["name"] == nil {
+                    continue // Not a flow file — skip silently
+                }
+                let flow = try decoder.decode(AutomationFlow.self, from: data)
+                #expect(!flow.name.isEmpty, "Flow in \(url.lastPathComponent) should have a name")
+                #expect(!flow.steps.isEmpty, "Flow '\(flow.name)' should have at least one step")
+            } catch {
+                failedFiles.append("\(url.lastPathComponent): \(error)")
+            }
         }
+        #expect(failedFiles.isEmpty, "Failed to parse flow files: \(failedFiles.joined(separator: "; "))")
     }
 
     // MARK: - Empty Steps

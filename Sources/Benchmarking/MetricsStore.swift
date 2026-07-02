@@ -16,6 +16,60 @@
 import Foundation
 import LiteRTLM
 
+// MARK: - Device Info
+
+/// Information about the device that produced a benchmark entry.
+/// Used to tag entries so they can be grouped by device for cross-device comparison.
+struct DeviceInfo: Codable, Sendable, Equatable {
+    /// User-facing device name (e.g., "Andrew's MacBook Pro", "Andrew's iPhone")
+    let deviceName: String
+    /// Hardware model identifier (e.g., "arm64", "iPhone17,2")
+    let deviceModel: String
+    /// OS version string (e.g., "macOS 26.0", "iOS 26.5")
+    let osVersion: String
+    /// App version string from the bundle
+    let appVersion: String
+
+    /// Capture current device info.
+    static func current() -> DeviceInfo {
+        let deviceName: String
+        let osVersion: String
+
+        #if os(macOS)
+        deviceName = Host.current().localizedName ?? "Mac"
+        osVersion = "macOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).\(ProcessInfo.processInfo.operatingSystemVersion.minorVersion)"
+        #elseif os(iOS)
+        // UIDevice is not available in unit tests without a host app,
+        // so we use ProcessInfo for OS version and utsname for device name
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        osVersion = "iOS \(version.majorVersion).\(version.minorVersion)"
+        deviceName = ProcessInfo.processInfo.hostName
+        #else
+        deviceName = "Unknown"
+        osVersion = "Unknown"
+        #endif
+
+        let deviceModel: String = {
+            var systemInfo = utsname()
+            uname(&systemInfo)
+            return withUnsafePointer(to: &systemInfo.machine) {
+                $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                    String(cString: $0)
+                }
+            }
+        }()
+
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+
+        return DeviceInfo(
+            deviceName: deviceName,
+            deviceModel: deviceModel,
+            osVersion: osVersion,
+            appVersion: appVersion
+        )
+    }
+}
+
 /// Manages a local JSON-based metrics store for tracking benchmark results over time.
 /// Each inference run appends an entry to `metrics/history.json` in the project root.
 /// The AI agent queries this file for trend analysis and regression detection.
@@ -119,9 +173,6 @@ final class MetricsStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    /// Optional CloudKit sync manager. When set, local saves are automatically
-    /// pushed to CloudKit for cross-device availability.
-    var syncManager: CloudKitSyncManager?
 
     /// Initialize with a custom file URL (useful for testing).
     /// Defaults to `metrics/history.json` relative to the app's documents directory.
@@ -162,7 +213,6 @@ final class MetricsStore {
     // MARK: - Write
 
     /// Append a new benchmark entry to the metrics store.
-    /// After local save, pushes to CloudKit if a sync manager is configured.
     func append(entry: Entry) throws {
         var entries = (try? loadEntries()) ?? []
         entries.append(entry)
@@ -173,13 +223,6 @@ final class MetricsStore {
 
         let data = try encoder.encode(entries)
         try data.write(to: fileURL, options: .atomic)
-
-        // Push to CloudKit asynchronously (fire-and-forget)
-        if let syncManager {
-            Task {
-                try? await syncManager.pushEntry(entry)
-            }
-        }
     }
 
     /// Create an entry from BenchmarkInfo, optional InferenceMetrics, and current state.
@@ -357,9 +400,9 @@ final class MetricsStore {
         return Array(Set(entries.map(\.model))).sorted()
     }
 
-    // MARK: - CloudKit Sync Integration
+    // MARK: - Cross-Device Merge
 
-    /// Merge remote entries from CloudKit into the local store.
+    /// Merge remote entries into the local store.
     ///
     /// Deduplicates by entry UUID — remote entries with IDs already present
     /// locally are skipped. New remote entries are appended and persisted.

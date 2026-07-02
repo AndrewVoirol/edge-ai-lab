@@ -319,11 +319,15 @@ class FlowDrivenUITestRunner {
                 // Use resolveElement() which supports partial/CONTAINS matching,
                 // so "Gemma 4 E2B" matches "Gemma 4 E2B · Desktop GPU+CPU".
                 if let element = resolveElement(candidate, timeout: timeout) {
+                    #if os(macOS)
+                    element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                    #else
                     if element.isHittable {
                         element.tap()
                     } else {
                         element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
                     }
+                    #endif
                     tapped = true
                     break
                 }
@@ -332,7 +336,11 @@ class FlowDrivenUITestRunner {
                 // Fallback: try tapping the first cell in the first collection/table
                 let firstCell = app.cells.firstMatch
                 if firstCell.waitForExistence(timeout: timeout) && firstCell.isHittable {
+                    #if os(macOS)
+                    firstCell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                    #else
                     firstCell.tap()
+                    #endif
                     tapped = true
                 }
             }
@@ -346,7 +354,11 @@ class FlowDrivenUITestRunner {
             }
             let element = app.descendants(matching: .any)[target]
             if element.waitForExistence(timeout: timeout) && element.isHittable {
+                #if os(macOS)
+                element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+                #else
                 element.tap()
+                #endif
                 print("[FLOW_RUNNER]   tap_if_exists: tapped '\(target)'")
             } else {
                 print("[FLOW_RUNNER]   tap_if_exists: '\(target)' not found, skipping")
@@ -458,6 +470,19 @@ class FlowDrivenUITestRunner {
             throw FlowRunnerError.elementNotFound(target)
         }
 
+        #if os(macOS)
+        print("[FLOW_RUNNER]   tap: '\(target)' frame=\(element.frame) hittable=\(element.isHittable) type=\(element.elementType.rawValue)")
+
+        // macOS: Always use coordinate-based click. When resolveElement returns
+        // a staticText child of a NavigationLink, a direct .click() doesn't
+        // trigger the List(selection:) binding. Coordinate click hits the row
+        // at the element's center, which reliably triggers selection changes.
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+
+        // Longer pause for sidebar NavigationLink selection propagation
+        let isSidebarTarget = target.hasPrefix("sidebar_")
+        usleep(isSidebarTarget ? 1_000_000 : 300_000)
+        #else
         if element.isHittable {
             element.tap()
         } else {
@@ -468,6 +493,7 @@ class FlowDrivenUITestRunner {
 
         // Brief pause to allow SwiftUI state propagation
         usleep(300_000)
+        #endif
     }
 
     /// Type text into a target text field.
@@ -482,8 +508,12 @@ class FlowDrivenUITestRunner {
         // Interpolate environment variables
         let interpolatedValue = interpolateEnvironmentVariables(value)
 
-        // Click to focus, then type
+        // Click/tap to focus, then type
+        #if os(macOS)
+        element.click()
+        #else
         element.tap()
+        #endif
         usleep(200_000) // Brief pause for focus
         element.typeText(interpolatedValue)
         usleep(200_000)
@@ -628,15 +658,31 @@ class FlowDrivenUITestRunner {
         }
 
         #if os(macOS)
-        let window = app.windows.firstMatch
-        guard window.exists else {
-            throw FlowRunnerError.elementNotFound("window (for scrollTo)")
-        }
+        // macOS scroll: use the window's coordinate space for drag gestures.
+        // Falls back to keyboard Page Down if coordinates produce INFINITY
+        // (can happen when the scroll target is inside a sidebar or sheet).
+        //
+        // Sidebar detection: if the target identifier starts with "sidebar_",
+        // scroll the left column of the NavigationSplitView (dx ~0.15) instead
+        // of the center (dx 0.5) which hits the detail column.
+        let isSidebar = identifier.hasPrefix("sidebar_")
+        let scrollDx: CGFloat = isSidebar ? 0.15 : 0.5
 
         for attempt in 0..<maxAttempts {
-            let from = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
-            let to = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
-            from.press(forDuration: 0.05, thenDragTo: to)
+            let scrollTarget = app.windows.count > 0 ? app.windows.firstMatch : app
+            let frame = scrollTarget.frame
+
+            if frame.origin.x.isFinite && frame.origin.y.isFinite
+                && frame.width > 0 && frame.height > 0 {
+                // Coordinate-based scroll within the valid frame
+                let from = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: scrollDx, dy: 0.7))
+                let to = scrollTarget.coordinate(withNormalizedOffset: CGVector(dx: scrollDx, dy: 0.2))
+                from.press(forDuration: 0.05, thenDragTo: to)
+            } else {
+                // Fallback: keyboard-based scrolling
+                print("[FLOW_RUNNER]   scroll_to: Using keyboard Page Down (frame invalid)")
+                app.typeKey(.pageDown, modifierFlags: [])
+            }
             usleep(500_000)
 
             if element.exists {
@@ -676,7 +722,7 @@ class FlowDrivenUITestRunner {
         // macOS SwiftUI TabView tab items appear as radioButtons
         let radioButton = app.radioButtons[label]
         if radioButton.waitForExistence(timeout: 3.0) {
-            radioButton.tap()
+            radioButton.click()
             usleep(500_000)
             return
         }
@@ -684,7 +730,7 @@ class FlowDrivenUITestRunner {
         // Fallback: try as a button
         let button = app.buttons[label]
         if button.waitForExistence(timeout: 2.0) {
-            button.tap()
+            button.click()
             usleep(500_000)
             return
         }
@@ -694,7 +740,7 @@ class FlowDrivenUITestRunner {
             .matching(NSPredicate(format: "label == %@", label))
             .firstMatch
         if anyElement.waitForExistence(timeout: 2.0) {
-            anyElement.tap()
+            anyElement.click()
             usleep(500_000)
             return
         }
