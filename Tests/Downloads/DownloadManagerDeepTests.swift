@@ -1047,8 +1047,8 @@ struct BackendCapabilityTests {
 
 // MARK: - RuntimeType Tests
 
-@Suite("RuntimeType")
-struct RuntimeTypeTests {
+@Suite("RuntimeType — Download Context")
+struct DownloadManagerRuntimeTypeTests {
 
     @Test("litertlm file extension is litertlm")
     func litertlmExtension() {

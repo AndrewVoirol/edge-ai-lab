@@ -201,13 +201,13 @@ final class OneTapBenchmarkRunner {
                 // Persist each individual run to the metrics store
                 // Use LiteRT-specific path when available for full metrics, otherwise use generic path
                 if let liteRTAdapter = engine as? LiteRTEngineAdapter,
-                   let benchmarkInfo = liteRTAdapter.wrappedEngine.lastBenchmarkInfo {
-                    let flags = runtimeFlags ?? RuntimeFlags(from: liteRTAdapter.wrappedEngine.flagsState)
+                   let benchmarkInfo = liteRTAdapter.lastBenchmarkInfo {
+                    let flags = runtimeFlags ?? RuntimeFlags(from: liteRTAdapter.flagsState)
                     let entry = MetricsStore.createEntry(
                         from: benchmarkInfo,
                         modelName: modelName,
                         flags: flags,
-                        inferenceMetrics: liteRTAdapter.wrappedEngine.lastInferenceMetrics
+                        inferenceMetrics: liteRTAdapter.lastInferenceMetrics
                     )
                     do {
                         try metricsStore.append(entry: entry)

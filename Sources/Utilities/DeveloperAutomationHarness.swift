@@ -395,11 +395,11 @@ struct DeveloperAutomationHarness {
                 try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                 
                 do {
-                    guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                    guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
                         automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
                         exit(1)
                     }
-                    try await liteRTEngine.initialize(
+                    try await liteRTAdapter.initializeLiteRT(
                         modelPath: targetURL.path,
                         useGPU: true,
                         cacheDir: cachesDir.path,
@@ -496,11 +496,11 @@ struct DeveloperAutomationHarness {
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                     
                     do {
-                        guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
                             automationLog("[AUTOMATION] Skipping config: No LiteRT engine")
                             continue
                         }
-                        try await liteRTEngine.initialize(
+                        try await liteRTAdapter.initializeLiteRT(
                             modelPath: targetURL.path,
                             useGPU: cfg.useGPU,
                             cacheDir: cachesDir.path,
@@ -837,13 +837,13 @@ struct DeveloperAutomationHarness {
             try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
             
             do {
-                guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+                guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
                     automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
                     clearBenchmarkState()
                     signalComplete(1, message: "No LiteRT engine")
                     return
                 }
-                try await liteRTEngine.initialize(
+                try await liteRTAdapter.initializeLiteRT(
                     modelPath: targetURL.path,
                     useGPU: true,
                     cacheDir: cachesDir.path,
@@ -1060,12 +1060,12 @@ struct DeveloperAutomationHarness {
         try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
         
         do {
-            guard let liteRTEngine = (viewModel.engine as? LiteRTEngineAdapter)?.wrappedEngine else {
+            guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
                 automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
                 signalComplete(1, message: "No LiteRT engine")
                 return
             }
-            try await liteRTEngine.initialize(
+            try await liteRTAdapter.initializeLiteRT(
                 modelPath: targetURL.path,
                 useGPU: true,
                 cacheDir: cachesDir.path,

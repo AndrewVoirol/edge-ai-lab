@@ -239,9 +239,15 @@ In `Project.swift`, the following products are needed:
 .package(product: "MLXLLM"),       // LLM implementations
 .package(product: "MLXLMCommon"),   // Shared types (ChatSession, GenerateParameters)
 .package(product: "MLXVLM"),       // Vision Language Models (Phase 4)
-.package(product: "MLXHuggingFace"), // HuggingFace Hub integration (downloads)
+.package(product: "Tokenizers"),    // HuggingFace tokenizer loading
+.package(product: "Hub"),           // HuggingFace Hub download client
 ```
 
-Package source: `https://github.com/ml-explore/mlx-swift-lm.git` tracking `main` branch.
+Package source: `https://github.com/ml-explore/mlx-swift-lm.git` pinned to `.upToNextMajor(from: "3.31.3")`.
+
+> **Note:** The project does NOT use `MLXHuggingFace` product. Instead, `MLXEngineAdapter` implements
+> its own `HubDownloader` (conforming to `MLXLMCommon.Downloader`) and `TransformersTokenizerLoader`
+> to avoid the macro dependency.
 
 Minimum platform requirements: macOS 14+ / iOS 17+ (but project targets macOS 27 / iOS 27).
+

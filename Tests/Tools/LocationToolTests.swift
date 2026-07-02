@@ -1,5 +1,6 @@
 // Copyright 2026 Andrew Voirol. Apache-2.0
 
+import Foundation
 import Testing
 
 #if os(iOS)
@@ -8,12 +9,14 @@ import Testing
 @testable import EdgeAILab_macOS
 #endif
 
-// MARK: - LocationTool Tests
+/// Tests for `LocationTool`'s structural behavior.
+///
+/// Note: `run()` is NOT called because it requires location permissions
+/// which are unavailable in unit test environments.
+@Suite("LocationTool – Tools")
+struct LocationToolSwiftTests {
 
-/// Tests for the LocationTool's structural behavior and error handling.
-/// Note: Actual GPS functionality requires device hardware and cannot be unit-tested.
-@Suite("LocationTool")
-struct LocationToolTests {
+    // MARK: - Tool Identity
 
     @Test("Tool name is get_location")
     func toolName() {
@@ -24,6 +27,8 @@ struct LocationToolTests {
     func toolDescription() {
         #expect(!LocationTool.description.isEmpty)
     }
+
+    // MARK: - Registration
 
     @Test("Tool is registered in ToolRegistry")
     func registeredInRegistry() {

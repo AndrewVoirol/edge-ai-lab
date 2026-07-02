@@ -25,7 +25,7 @@ struct ModelFormatDetectorTests {
         let dir = fm.temporaryDirectory
             .appendingPathComponent("ModelFormatDetectorTests-\(UUID().uuidString)")
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let cleanup = { try? fm.removeItem(at: dir) }
+        let cleanup: () -> Void = { try? fm.removeItem(at: dir) }
         return (dir, cleanup)
     }
 

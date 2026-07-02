@@ -221,12 +221,35 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
 
 extension LiteRTEngineAdapter {
 
-    /// The wrapped `InstrumentedEngine` for LiteRT-specific property access.
+    /// LiteRT-specific benchmark info from the last completed inference.
+    var lastBenchmarkInfo: BenchmarkInfo? { engine.lastBenchmarkInfo }
+
+    /// The current experimental flags state from the wrapped LiteRT engine.
+    var flagsState: ExperimentalFlagsState { engine.flagsState }
+
+    /// Initialize the LiteRT engine directly (bypassing the `InferenceEngine` abstraction).
     ///
-    /// Used by consumers that need `flagsState` or `lastBenchmarkInfo` during
-    /// the Phase 2 migration. These properties are LiteRT-LM specific and don't
-    /// exist on `InferenceEngine`.
-    var wrappedEngine: InstrumentedEngine { engine }
+    /// Used by `DeveloperAutomationHarness` for benchmark and eval automation flows
+    /// that need direct control over backend selection (GPU vs CPU).
+    func initializeLiteRT(
+        modelPath: String,
+        useGPU: Bool,
+        cacheDir: String,
+        flags: ExperimentalFlagsState,
+        samplerConfig: SamplerConfig?
+    ) async throws {
+        try await engine.initialize(
+            modelPath: modelPath,
+            useGPU: useGPU,
+            cacheDir: cacheDir,
+            flags: flags,
+            samplerConfig: samplerConfig,
+            systemMessage: nil,
+            tools: nil,
+            supportsVision: false,
+            supportsAudio: false
+        )
+    }
 
     /// Load a model with LiteRT-specific configuration.
     ///

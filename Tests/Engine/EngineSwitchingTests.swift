@@ -108,11 +108,19 @@ struct EngineSwitchingTests {
         let vm = ConversationViewModel(engine: engine)
 
         // Add a message to the conversation first
-        vm.conversation.appendMessage(
-            ConversationMessage(role: .user, content: "Hello")
+        vm.conversation.append(
+            ChatMessage(
+                id: UUID(), role: .user, content: "Hello", thinkingContent: nil,
+                toolCalls: [], attachments: [], timestamp: Date(),
+                benchmarkInfo: nil, isStreaming: false, thinkingWordCount: 0, specialResults: [:]
+            )
         )
-        vm.conversation.appendMessage(
-            ConversationMessage(role: .assistant, content: "Hi there!")
+        vm.conversation.append(
+            ChatMessage(
+                id: UUID(), role: .assistant, content: "Hi there!", thinkingContent: nil,
+                toolCalls: [], attachments: [], timestamp: Date(),
+                benchmarkInfo: nil, isStreaming: false, thinkingWordCount: 0, specialResults: [:]
+            )
         )
         #expect(vm.conversation.messages.count == 2)
 
@@ -130,10 +138,14 @@ struct EngineSwitchingTests {
 
         // Simulate having metrics from a previous run
         vm.performanceMetrics = EnginePerformanceMetrics(
-            timeToFirstToken: 0.5,
             tokensPerSecond: 20.0,
-            totalTokens: 100,
-            totalTime: 5.0
+            promptTokensPerSecond: nil,
+            timeToFirstToken: 0.5,
+            peakMemoryBytes: nil,
+            tokenCount: 100,
+            memoryDeltaMB: nil,
+            thermalStateChanged: nil,
+            runtimeType: .litertlm
         )
         #expect(vm.performanceMetrics != nil)
 

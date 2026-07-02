@@ -1,5 +1,6 @@
 // Copyright 2026 Andrew Voirol. Apache-2.0
 
+import Foundation
 import Testing
 
 #if os(iOS)

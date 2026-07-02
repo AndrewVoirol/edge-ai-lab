@@ -33,15 +33,16 @@ private func validationLog(_ message: String) {
 /// Runs internal validation checks for the benchmarking subsystem.
 /// Ported from IO 2026 Concierge E2EValidationRunner pattern.
 @MainActor
-class BenchmarkValidationRunner: ObservableObject {
-    @Published var status: String = "Starting Validations..."
+@Observable
+class BenchmarkValidationRunner {
+    var status: String = "Starting Validations..."
 
     struct ValidationResult: Identifiable, Hashable {
         let id = UUID()
         let text: String
     }
 
-    @Published var results: [ValidationResult] = []
+    var results: [ValidationResult] = []
     private var passCount = 0
     private var failCount = 0
 
@@ -249,7 +250,7 @@ class BenchmarkValidationRunner: ObservableObject {
 ///
 /// Ported from IO 2026 Concierge E2EValidationView pattern.
 struct BenchmarkValidationView: View {
-    @StateObject private var runner = BenchmarkValidationRunner()
+    @State private var runner = BenchmarkValidationRunner()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
