@@ -357,6 +357,11 @@ struct ModelLoadConfig: Sendable, Equatable {
     /// `LiteRTEngineAdapter` converts to `ExperimentalFlagsState` internally via `toLiteRTFlags()`.
     var runtimeFlags: RuntimeFlags?
 
+    /// Maximum number of tokens for the KV-cache.
+    /// Controls context window size and memory usage.
+    /// `nil` means auto-sized (SDK default). Must be positive when set.
+    var maxNumTokens: Int?
+
     init(
         modelPath: String,
         preferGPU: Bool = true,
@@ -366,7 +371,8 @@ struct ModelLoadConfig: Sendable, Equatable {
         supportsVision: Bool = false,
         supportsAudio: Bool = false,
         generationConfig: GenerationConfig? = nil,
-        runtimeFlags: RuntimeFlags? = nil
+        runtimeFlags: RuntimeFlags? = nil,
+        maxNumTokens: Int? = nil
     ) {
         self.modelPath = modelPath
         self.preferGPU = preferGPU
@@ -377,6 +383,7 @@ struct ModelLoadConfig: Sendable, Equatable {
         self.supportsAudio = supportsAudio
         self.generationConfig = generationConfig
         self.runtimeFlags = runtimeFlags
+        self.maxNumTokens = maxNumTokens
     }
 
     /// Manual Equatable — `tools: [any AppTool]?` can't auto-synthesize.
@@ -390,6 +397,7 @@ struct ModelLoadConfig: Sendable, Equatable {
             && lhs.supportsAudio == rhs.supportsAudio
             && lhs.generationConfig == rhs.generationConfig
             && lhs.runtimeFlags == rhs.runtimeFlags
+            && lhs.maxNumTokens == rhs.maxNumTokens
     }
 }
 
@@ -425,6 +433,10 @@ enum EngineError: LocalizedError, Equatable {
     /// The engine is not in a valid state for the requested operation.
     case notReady(String)
 
+    /// The model format is incompatible with the active engine.
+    /// For example, an MLX directory model was passed to the LiteRT engine.
+    case formatMismatch(engine: String, modelPath: String, hint: String)
+
     var errorDescription: String? {
         switch self {
         case .runtimeNotYetAvailable(let runtime):
@@ -433,6 +445,8 @@ enum EngineError: LocalizedError, Equatable {
             return "Unsupported model format: \(format). Supported formats: LiteRT-LM, MLX, GGUF."
         case .notReady(let reason):
             return "Engine not ready: \(reason)"
+        case .formatMismatch(let engine, _, let hint):
+            return "\(engine) engine cannot load this model. \(hint)"
         }
     }
 }

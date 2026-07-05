@@ -178,11 +178,27 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     func loadModel(config: ModelLoadConfig) async throws {
         let container: ModelContainer
 
-        // Determine if modelPath is a local directory or a HuggingFace repo ID
+        // Determine if modelPath is a local directory or a HuggingFace repo ID.
+        // Three cases:
+        //   1. Local directory (downloaded MLX model) → load from disk
+        //   2. Local path that exists but isn't a valid directory → error (e.g., stub file from failed download)
+        //   3. HuggingFace repo ID (e.g., "mlx-community/gemma-4-E2B-it-4bit") → download via Hub
+        let isLocalPath = config.modelPath.hasPrefix("/") || config.modelPath.hasPrefix("~")
         let modelURL = URL(fileURLWithPath: config.modelPath)
-        if FileManager.default.fileExists(atPath: config.modelPath),
-           (try? modelURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
-            // Local path — load directly from disk (downloaded MLX model directory)
+
+        if isLocalPath {
+            // Local path — must be a valid directory with MLX model files
+            var isDir: ObjCBool = false
+            let exists = FileManager.default.fileExists(atPath: config.modelPath, isDirectory: &isDir)
+
+            guard exists, isDir.boolValue else {
+                // Path exists as a regular file (e.g., download stub) or doesn't exist at all
+                let reason = exists
+                    ? "Path exists but is not a directory. The MLX model may not be fully downloaded."
+                    : "Model directory not found at path."
+                throw EngineError.notReady(reason)
+            }
+
             container = try await LLMModelFactory.shared.loadContainer(
                 from: modelURL,
                 using: TransformersTokenizerLoader()

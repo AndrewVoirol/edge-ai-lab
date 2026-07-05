@@ -79,7 +79,7 @@ final class MetricsStore {
 
     /// A single benchmark measurement entry.
     struct Entry: Codable {
-        /// Unique identifier for deduplication during CloudKit sync.
+        /// Unique identifier for deduplication.
         /// Auto-generated for new entries; preserved across encode/decode.
         let id: String
         let timestamp: String
@@ -89,8 +89,7 @@ final class MetricsStore {
         let metrics: Metrics
         let flags: RuntimeFlags
 
-        /// Device information from CloudKit sync (nil for locally-created entries
-        /// that haven't been synced yet).
+        /// Device information (nil for locally-created entries).
         let syncDeviceInfo: DeviceInfo?
 
         /// Memberwise initializer with defaults for backward-compatible call sites.

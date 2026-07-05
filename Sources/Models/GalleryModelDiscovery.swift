@@ -234,16 +234,64 @@ enum GalleryModelDiscovery {
         }
     }
 
-    /// Parse model metadata from an MLX model's config.json.
-    /// Extracts model_type and quantization_config if present.
+    /// Parse model metadata from an MLX model's config.json and directory name.
+    ///
+    /// Extracts model_type from config.json and derives a human-readable name
+    /// from the directory name. If the directory name matches a ModelRegistry entry,
+    /// returns that entry's full metadata instead.
     private static func parseMLXConfig(_ configURL: URL) -> ModelMetadata? {
+        // First check if this directory matches a known registry model
+        let dirName = configURL.deletingLastPathComponent().lastPathComponent
+        if let registryMatch = ModelRegistry.knownModels.first(where: { $0.modelFile == dirName }) {
+            return registryMatch
+        }
+
+        // No registry match — construct minimal metadata from the directory name
         guard let data = try? Data(contentsOf: configURL),
-              let _ = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let config = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil
         }
-        // Return nil — MLX models don't have a registry entry.
-        // The DiscoveredModel stores the URL, size, and source without a registry match.
-        return nil
+
+        let modelType = config["model_type"] as? String ?? "unknown"
+        // Convert directory name to human-readable: "mlx-community--gemma-4-E2B-it-4bit" → "gemma-4-E2B-it-4bit"
+        let humanName: String
+        if dirName.contains("--") {
+            humanName = String(dirName.split(separator: "--", maxSplits: 1).last ?? Substring(dirName))
+        } else {
+            humanName = dirName
+        }
+        // Reconstruct model ID from directory name: "mlx-community--gemma-4-E2B-it-4bit" → "mlx-community/gemma-4-E2B-it-4bit"
+        let modelId = dirName.replacingOccurrences(of: "--", with: "/")
+
+        return ModelMetadata(
+            name: humanName,
+            modelId: modelId,
+            modelFile: dirName,
+            description: "MLX \(modelType) model",
+            sizeInBytes: 0,  // Size will be computed from actual directory contents by the caller
+            minDeviceMemoryGB: 8,
+            contextWindowSize: 128_000,
+            architectureType: modelType,
+            recommendedFor: "Apple Silicon inference",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: [],
+            defaultConfig: ModelDefaultConfig(
+                topK: 40,
+                topP: 0.9,
+                temperature: 0.6,
+                maxContextLength: 32_000,
+                maxTokens: 4_000,
+                accelerators: "gpu",
+                visionAccelerator: nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuOnly,
+                iOSDevice: .gpuOnly,
+                iOSSimulator: .unknown
+            ),
+            runtimeType: .mlx
+        )
     }
 
     // MARK: - Gallery Model Bookmarking
@@ -286,11 +334,26 @@ enum GalleryModelDiscovery {
             guard url.startAccessingSecurityScopedResource() else { return nil }
             defer { url.stopAccessingSecurityScopedResource() }
 
+            let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
+
+            // MLX directory models: validate it's a real directory with config.json + safetensors,
+            // not a stub file left from a failed download attempt.
+            if metadata?.isMLXDirectoryModel == true {
+                guard ModelFormatDetector.detectMLXDirectory(at: url) else { return nil }
+                let totalSize = directorySize(at: url)
+                return DiscoveredModel(
+                    url: url,
+                    sizeInBytes: totalSize,
+                    source: .edgeGallery,
+                    metadata: metadata
+                )
+            }
+
+            // Single-file models (LiteRT, etc.): must be a regular file
             let resourceValues = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
             guard resourceValues?.isRegularFile == true else { return nil }
 
             let size = Int64(resourceValues?.fileSize ?? 0)
-            let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
 
             return DiscoveredModel(
                 url: url,
@@ -314,5 +377,18 @@ enum GalleryModelDiscovery {
             bookmarkDataIsStale: &isStale
         ) else { return nil }
         return (url, isStale)
+    }
+
+    /// Compute total file size of a directory's contents (non-recursive, top-level files only).
+    private static func directorySize(at url: URL) -> Int64 {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+        return contents.reduce(Int64(0)) { sum, fileURL in
+            let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            return sum + Int64(size)
+        }
     }
 }

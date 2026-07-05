@@ -51,4 +51,55 @@ extension ConversationViewModel {
     func statusStream() -> some AsyncSequence<String, Never> {
         Observations { self.statusMessage }
     }
+
+    /// AsyncSequence that emits whenever the backend result changes
+    /// (e.g., after engine init with GPU → CPU fallback).
+    func backendResultStream() -> some AsyncSequence<BackendResult?, Never> {
+        Observations { self.backendResult }
+    }
+
+    /// AsyncSequence that emits whenever engine config changes are detected
+    /// (backend or KV-cache differ from last initialized values).
+    func engineConfigChangedStream() -> some AsyncSequence<Bool, Never> {
+        Observations { self.engineConfigChanged }
+    }
+}
+
+// MARK: - Diagnostic Observer
+
+/// Lightweight observer that logs bridge events for automation diagnostics.
+/// Attach to a ViewModel to prove the ObservationBridge works end-to-end
+/// without changing any harness flow logic.
+///
+/// Usage:
+/// ```swift
+/// let observer = DiagnosticObserver(viewModel: vm)
+/// observer.start()  // begins logging in background
+/// // ... later ...
+/// observer.stop()   // cancels the observation task
+/// ```
+@MainActor
+struct DiagnosticObserver {
+    private let viewModel: ConversationViewModel
+    private var task: Task<Void, Never>?
+
+    init(viewModel: ConversationViewModel) {
+        self.viewModel = viewModel
+    }
+
+    /// Start observing engine state changes and logging them.
+    mutating func start() {
+        task = Task { @MainActor [viewModel] in
+            for await isReady in viewModel.engineReadyStream() {
+                guard !Task.isCancelled else { break }
+                automationLog("[DiagnosticObserver] Engine ready: \(isReady)")
+            }
+        }
+    }
+
+    /// Stop the diagnostic observer.
+    mutating func stop() {
+        task?.cancel()
+        task = nil
+    }
 }

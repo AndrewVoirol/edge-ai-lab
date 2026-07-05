@@ -21,11 +21,41 @@ extension InferenceSettingsView {
     @ViewBuilder
     var backendSection: some View {
         Section {
-            Toggle("Use GPU", isOn: $viewModel.useGPU)
-                .help("Use GPU acceleration for inference. Disable to fall back to CPU.")
-                .accessibilityIdentifier("toggle_useGPU")
+            // KV-Cache (maxNumTokens) stepper
+            let modelContextLength = viewModel.activeModelMetadata?.contextWindowSize
+            let presets = KVCacheConfigLogic.presetSteps(modelContextLength: modelContextLength)
 
-            // Show platform compatibility context
+            Picker(selection: Binding(
+                get: {
+                    // Map nil (auto) to 0 for the picker, actual values to themselves
+                    viewModel.maxNumTokens ?? 0
+                },
+                set: { newValue in
+                    viewModel.maxNumTokens = newValue == 0 ? nil : newValue
+                }
+            )) {
+                Text("Auto").tag(0)
+                    .accessibilityIdentifier("kvcache_option_auto")
+                ForEach(presets, id: \.self) { preset in
+                    Text("\(preset) tokens").tag(preset)
+                        .accessibilityIdentifier("kvcache_option_\(preset)")
+                }
+            } label: {
+                Label("KV-Cache Size", systemImage: "memorychip")
+                    .accessibilityIdentifier("kvcache_picker_label")
+            }
+            .accessibilityIdentifier("kvcache_picker")
+
+            // Display label showing current config
+            Text(KVCacheConfigLogic.formatDisplayLabel(
+                tokenCount: viewModel.maxNumTokens,
+                modelDefault: modelContextLength
+            ))
+            .font(.caption)
+            .foregroundStyle(AppColors.textTertiary)
+            .accessibilityIdentifier("kvcache_display_label")
+
+            // Show platform compatibility context for active backend
             if let result = viewModel.backendResult {
                 HStack {
                     Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
@@ -33,39 +63,39 @@ extension InferenceSettingsView {
                     Text("Active: \(result.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)")")
                         .font(.caption)
                 }
+                .accessibilityIdentifier("backend_active_status")
 
                 if result.didFallback, let reason = result.fallbackReason {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .foregroundStyle(AppColors.warning)
+                        .accessibilityIdentifier("backend_fallback_reason")
                 }
             }
 
-            // Model compatibility hint from metadata
-            if let metadata = viewModel.activeModelMetadata {
-                let capability = metadata.platformSupport.currentPlatform
-                switch capability {
-                case .gpuOnly:
-                    Label("This model only supports GPU on this platform.", systemImage: "info.circle")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.accentTeal)
-                case .cpuOnly:
-                    Label("GPU is not available for this model on this platform.", systemImage: "info.circle")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.warning)
-                case .gpuAndCpu:
-                    Label("Both GPU and CPU are available.", systemImage: "checkmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.success)
-                case .unknown:
-                    Label("Backend compatibility unknown — will probe at runtime.", systemImage: "questionmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.textTertiary)
+            // Restart-required warning
+            if viewModel.engineConfigChanged {
+                Label(
+                    "Settings changed — restart engine to apply",
+                    systemImage: "arrow.clockwise.circle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(AppColors.warning)
+                .accessibilityIdentifier("engine_restart_warning")
+
+                Button {
+                    Task {
+                        await viewModel.restartEngine()
+                    }
+                } label: {
+                    Label("Restart Engine", systemImage: "arrow.clockwise")
                 }
+                .accessibilityIdentifier("engine_restart_button")
             }
         } header: {
-            Label("Backend", systemImage: "cpu")
+            Label("Backend & Memory", systemImage: "cpu")
                 .foregroundStyle(AppColors.textSecondary)
+                .accessibilityIdentifier("backend_section_header")
         }
     }
 

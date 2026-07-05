@@ -879,6 +879,24 @@ private struct CommunityModelsBrowser: View {
                                     await viewModel.handleModelSelection(url)
                                     viewModel.refreshDiscoveredModels()
                                 }
+                            },
+                            onDownloadMLXModel: { mlxModel in
+                                Task {
+                                    do {
+                                        let manifest = try await browser.fetchFileManifest(for: mlxModel.id)
+                                        let required = HFModelBrowser.filterRequiredMLXFiles(manifest)
+                                        let descriptors = HFModelBrowser.downloadDescriptors(
+                                            repoId: mlxModel.id,
+                                            requiredFiles: required
+                                        )
+                                        viewModel.downloadManager.downloadMLXModel(
+                                            modelId: mlxModel.id,
+                                            descriptors: descriptors
+                                        )
+                                    } catch {
+                                        viewModel.statusMessage = "Failed to fetch model manifest: \(error.localizedDescription)"
+                                    }
+                                }
                             }
                         )
                     }

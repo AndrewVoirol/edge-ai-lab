@@ -62,7 +62,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
         systemMessage: String?,
         tools: [Tool]?,
         supportsVision: Bool,
-        supportsAudio: Bool
+        supportsAudio: Bool,
+        maxNumTokens: Int?
     ) async throws
 
     /// Initialize with smart fallback: try the preferred backend, fall back if it fails.
@@ -86,7 +87,8 @@ protocol InstrumentedEngineProtocol: AnyObject {
         systemMessage: String?,
         tools: [Tool]?,
         supportsVision: Bool,
-        supportsAudio: Bool
+        supportsAudio: Bool,
+        maxNumTokens: Int?
     ) async throws -> BackendResult
 
     /// Send a message and receive a streamed response.
@@ -167,7 +169,8 @@ extension InstrumentedEngineProtocol {
             systemMessage: nil,
             tools: nil,
             supportsVision: false,
-            supportsAudio: false
+            supportsAudio: false,
+            maxNumTokens: nil
         )
     }
 
@@ -189,7 +192,8 @@ extension InstrumentedEngineProtocol {
             systemMessage: systemMessage,
             tools: nil,
             supportsVision: false,
-            supportsAudio: false
+            supportsAudio: false,
+            maxNumTokens: nil
         )
     }
 
@@ -209,7 +213,8 @@ extension InstrumentedEngineProtocol {
             systemMessage: nil,
             tools: nil,
             supportsVision: false,
-            supportsAudio: false
+            supportsAudio: false,
+            maxNumTokens: nil
         )
     }
 
@@ -231,7 +236,8 @@ extension InstrumentedEngineProtocol {
             systemMessage: systemMessage,
             tools: nil,
             supportsVision: false,
-            supportsAudio: false
+            supportsAudio: false,
+            maxNumTokens: nil
         )
     }
 
@@ -322,7 +328,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         systemMessage: String? = nil,
         tools: [Tool]? = nil,
         supportsVision: Bool = false,
-        supportsAudio: Bool = false
+        supportsAudio: Bool = false,
+        maxNumTokens: Int? = nil
     ) async throws {
         // Tear down any existing engine first
         await shutdown()
@@ -357,6 +364,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 backend: useGPU ? .gpu : .cpu(),
                 visionBackend: visionBackend,
                 audioBackend: audioBackend,
+                maxNumTokens: maxNumTokens,
                 cacheDir: cacheDir
             )
 
@@ -736,7 +744,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         systemMessage: String? = nil,
         tools: [Tool]? = nil,
         supportsVision: Bool = false,
-        supportsAudio: Bool = false
+        supportsAudio: Bool = false,
+        maxNumTokens: Int? = nil
     ) async throws -> BackendResult {
         // Check known model registry first for pre-verified guidance
         let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
@@ -762,7 +771,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 systemMessage: systemMessage,
                 tools: tools,
                 supportsVision: supportsVision,
-                supportsAudio: supportsAudio
+                supportsAudio: supportsAudio,
+                maxNumTokens: maxNumTokens
             )
 
             let result = BackendResult(
@@ -795,7 +805,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     systemMessage: systemMessage,
                     tools: tools,
                     supportsVision: supportsVision,
-                    supportsAudio: supportsAudio
+                    supportsAudio: supportsAudio,
+                    maxNumTokens: maxNumTokens
                 )
 
                 let result = BackendResult(

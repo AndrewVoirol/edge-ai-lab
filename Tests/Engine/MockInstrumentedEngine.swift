@@ -150,7 +150,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         systemMessage: String?,
         tools: [Tool]?,
         supportsVision: Bool = false,
-        supportsAudio: Bool = false
+        supportsAudio: Bool = false,
+        maxNumTokens: Int? = nil
     ) async throws {
         initializeCallCount += 1
         lastModelPath = modelPath
@@ -178,7 +179,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
         systemMessage: String?,
         tools: [Tool]?,
         supportsVision: Bool = false,
-        supportsAudio: Bool = false
+        supportsAudio: Bool = false,
+        maxNumTokens: Int? = nil
     ) async throws -> BackendResult {
         // If fallbackError is set, simulate both backends failing
         if let error = fallbackError {
@@ -195,7 +197,8 @@ final class MockInstrumentedEngine: InstrumentedEngineProtocol {
             systemMessage: systemMessage,
             tools: tools,
             supportsVision: supportsVision,
-            supportsAudio: supportsAudio
+            supportsAudio: supportsAudio,
+            maxNumTokens: maxNumTokens
         )
 
         let result = mockBackendResult ?? BackendResult(

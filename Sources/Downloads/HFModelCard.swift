@@ -27,6 +27,10 @@ struct HFModelCard: View {
     let downloadManager: ModelDownloadManager
     let onLoadModel: ((String, URL) -> Void)?
 
+    /// Callback to initiate an MLX multi-file download.
+    /// Parameter is the HFModelInfo to download.
+    let onDownloadMLXModel: ((HFModelInfo) -> Void)?
+
     /// The `.litertlm` sibling file for download targeting.
     ///
     /// Priority:
@@ -193,9 +197,7 @@ struct HFModelCard: View {
                 // MLX multi-file download — label shows file info when available
                 let sizeLabel = modelSize.map { formatBytes($0) } ?? "MLX"
                 Button {
-                    // MLX download flow — caller should fetch manifest and call downloadMLXModel
-                    // For now, trigger through onLoadModel callback
-                    onLoadModel?(model.id, URL(fileURLWithPath: ""))
+                    onDownloadMLXModel?(model)
                 } label: {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "arrow.down.circle.fill")

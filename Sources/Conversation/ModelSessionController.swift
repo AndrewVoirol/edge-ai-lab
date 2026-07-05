@@ -71,6 +71,10 @@ final class ModelSessionController {
     /// Optional system message to set model persona/instructions.
     var systemMessage: String = ""
 
+    /// Maximum number of tokens for the KV-cache.
+    /// `nil` means auto-sized (SDK default). Must be positive when set.
+    var maxNumTokens: Int?
+
     // MARK: - Dependencies
 
     private(set) var engine: any InferenceEngine
@@ -117,7 +121,7 @@ final class ModelSessionController {
         isLoadingModel = false
 
         // Shutdown the old engine
-        await engine.shutdown()
+        engine.shutdown()
 
         // Swap
         engine = newEngine
@@ -251,6 +255,17 @@ final class ModelSessionController {
 
             // Use runtime-specific initialization
             if let liteRTAdapter = engine as? LiteRTEngineAdapter {
+                // Guard: LiteRT cannot load directory-based models (MLX format).
+                // If the caller accidentally passes an MLX directory to a LiteRT engine,
+                // fail fast with a clear message instead of crashing in the C++ LiteRT loader.
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: modelPath, isDirectory: &isDir), isDir.boolValue {
+                    throw EngineError.formatMismatch(
+                        engine: "LiteRT",
+                        modelPath: modelPath,
+                        hint: "This appears to be an MLX model directory. Switch to the MLX engine first."
+                    )
+                }
                 // LiteRT path: use loadWithLiteRTConfig for full tool/flags/backend support
                 let result = try await liteRTAdapter.loadWithLiteRTConfig(
                     modelPath: modelPath,
@@ -261,7 +276,8 @@ final class ModelSessionController {
                     systemMessage: composedSystemMessage,
                     tools: tools,
                     supportsVision: activeModelMetadata?.supportsImage ?? false,
-                    supportsAudio: activeModelMetadata?.supportsAudio ?? false
+                    supportsAudio: activeModelMetadata?.supportsAudio ?? false,
+                    maxNumTokens: maxNumTokens
                 )
                 backendResult = result
             } else {
@@ -272,15 +288,21 @@ final class ModelSessionController {
                     topK: Int(topK),
                     seed: seed > 0 ? UInt64(seed) : nil
                 )
+                // Convert LiteRT Tool → AppTool for the generic engine path.
+                // Existing tools conform to LiteRTLM.Tool; ModelLoadConfig expects AppTool.
+                // ToolToAppToolAdapter bridges via JSON round-trip through Tool's Decodable conformance.
+                let appTools: [any AppTool]? = tools.map { ToolToAppToolAdapter.adaptAll($0) }
                 let loadConfig = ModelLoadConfig(
                     modelPath: modelPath,
                     preferGPU: preferGPU,
                     cacheDir: modelCacheDirectory.path,
                     systemMessage: composedSystemMessage,
+                    tools: appTools,
                     supportsVision: activeModelMetadata?.supportsImage ?? false,
                     supportsAudio: activeModelMetadata?.supportsAudio ?? false,
                     generationConfig: genConfig,
-                    runtimeFlags: activeFlags
+                    runtimeFlags: activeFlags,
+                    maxNumTokens: maxNumTokens
                 )
                 try await engine.loadModel(config: loadConfig)
                 // Generic engines may populate lastBackendResult via protocol

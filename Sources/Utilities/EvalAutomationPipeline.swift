@@ -167,7 +167,7 @@ struct EvalAutomationPipeline {
                 // Calculate pass rate from the run
                 let totalResults = run.modelResults.flatMap { $0.promptResults }
                 let passed = totalResults.filter { $0.passed }.count
-                let passRate = totalResults.isEmpty ? 0.0 : Double(passed) / Double(totalResults.count)
+                let passRate = EvalPipelineLogic.calculatePassRate(passed: passed, total: totalResults.count)
                 // Guard against non-finite values that crash JSONSerialization
                 let safePassRate = passRate.isFinite ? passRate : 0.0
                 
@@ -188,7 +188,7 @@ struct EvalAutomationPipeline {
         
         var evalReport: [[String: Any]] = []
         for result in allResults {
-            if result.passRate < 0 {
+            if EvalPipelineLogic.isSuiteSkipped(passRate: result.passRate) {
                 // Skipped suite
                 automationLog("[AUTOMATION]   ⏭️ \(result.suiteName): SKIPPED")
                 evalReport.append([
@@ -198,7 +198,7 @@ struct EvalAutomationPipeline {
                     "model": targetModel.modelFile
                 ])
             } else {
-                let icon = result.passRate >= 0.7 ? "✅" : (result.passRate >= 0.4 ? "⚠️" : "❌")
+                let icon = EvalPipelineLogic.formatPassRateIcon(passRate: result.passRate)
                 automationLog("[AUTOMATION]   \(icon) \(result.suiteName): \(String(format: "%.0f", result.passRate * 100))%")
                 evalReport.append([
                     "suite": result.suiteName,
@@ -246,9 +246,14 @@ struct EvalAutomationPipeline {
                     automationLog("[AUTOMATION]   \(icon) \(check.suiteName): \(check.status) (\(String(format: "%.1f", check.deviationPct))% vs baseline)\(floorNote)")
                 }
                 
-                if isGated && (!criticalRegressions.isEmpty || !floorViolations.isEmpty) {
-                    let issueCount = criticalRegressions.count + floorViolations.count
-                    automationLog("[AUTOMATION_FAILURE] \(issueCount) critical eval regression(s) detected — CI gate FAILED")
+                let gateResult = EvalPipelineLogic.determineGateResult(
+                    criticalRegressions: criticalRegressions.count,
+                    floorViolations: floorViolations.count,
+                    isGated: isGated
+                )
+                
+                if gateResult.shouldFail {
+                    automationLog("[AUTOMATION_FAILURE] \(gateResult.issueCount) critical eval regression(s) detected — CI gate FAILED")
                     DeveloperAutomationHarness.signalComplete(1, message: "Critical eval regression(s) detected, CI gate failed")
                     return
                 } else if !criticalRegressions.isEmpty {
@@ -361,7 +366,7 @@ struct EvalAutomationPipeline {
             }
             
             let suiteEntries: [[String: Any]] = results.map { result in
-                if result.passRate < 0 {
+                if EvalPipelineLogic.isSuiteSkipped(passRate: result.passRate) {
                     // Skipped suite
                     return [
                         "name": result.suiteName,

@@ -58,6 +58,33 @@ struct EnginePickerView: View {
                 .accessibilityIdentifier("engine_status_ready")
             }
 
+            // GPU/CPU Backend picker
+            let capability = viewModel.activeModelMetadata?.platformSupport.currentPlatform ?? .unknown
+            let availableBackends = BackendPickerLogic.availableBackends(for: capability)
+
+            if availableBackends.count > 1 {
+                Picker(selection: $viewModel.preferredBackend) {
+                    ForEach(availableBackends) { backend in
+                        Label(backend.displayName, systemImage: backend.iconName)
+                            .tag(backend)
+                            .accessibilityIdentifier("backend_option_\(backend.rawValue)")
+                    }
+                } label: {
+                    Label("Accelerator", systemImage: "bolt.horizontal")
+                        .accessibilityIdentifier("backend_picker_label")
+                }
+                .accessibilityIdentifier("backend_picker")
+            } else if let only = availableBackends.first {
+                HStack {
+                    Image(systemName: only.iconName)
+                        .foregroundStyle(AppColors.textSecondary)
+                    Text("\(only.displayName) only")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .accessibilityIdentifier("backend_single_option")
+            }
+
             // Auto-detect hint when model metadata is available
             if let metadata = viewModel.activeModelMetadata {
                 let detectedType = metadata.runtimeType

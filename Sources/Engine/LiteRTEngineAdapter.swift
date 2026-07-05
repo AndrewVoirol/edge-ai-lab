@@ -279,7 +279,8 @@ extension LiteRTEngineAdapter {
         systemMessage: String?,
         tools: [Tool]?,
         supportsVision: Bool,
-        supportsAudio: Bool
+        supportsAudio: Bool,
+        maxNumTokens: Int? = nil
     ) async throws -> BackendResult {
         let result = try await engine.initializeWithFallback(
             modelPath: modelPath,
@@ -290,7 +291,8 @@ extension LiteRTEngineAdapter {
             systemMessage: systemMessage,
             tools: tools,
             supportsVision: supportsVision,
-            supportsAudio: supportsAudio
+            supportsAudio: supportsAudio,
+            maxNumTokens: maxNumTokens
         )
         // BackendResult is now set on engine.lastBackendResult by initializeWithFallback,
         // and surfaced via the protocol-level computed property.

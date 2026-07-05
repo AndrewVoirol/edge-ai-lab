@@ -187,6 +187,9 @@ struct SidebarView: View {
                 ForEach(downloadableModels) { model in
                     downloadableModelRow(model)
                         .accessibilityIdentifier("sidebar_downloadable_\(model.modelFile)")
+                        .onAppear {
+                            print("📦 Sidebar rendering downloadable: \(model.name) | file: \(model.modelFile) | MLX: \(model.isMLXDirectoryModel) | runtime: \(model.runtimeType)")
+                        }
                 }
             } header: {
                 Label("Models", systemImage: SidebarSection.models.systemImage)
@@ -427,7 +430,19 @@ struct SidebarView: View {
     /// Registry models that are not yet discovered on disk.
     private var downloadableModels: [ModelMetadata] {
         let discoveredFilenames = Set(viewModel.discoveredModels.map(\.filename))
-        return ModelRegistry.knownModels.filter { !discoveredFilenames.contains($0.modelFile) }
+        return ModelRegistry.knownModels.filter { model in
+            if model.isMLXDirectoryModel {
+                // MLX models: check both discovered filenames and download state
+                let dirName = model.modelFile
+                if discoveredFilenames.contains(dirName) { return false }
+                if case .downloaded = viewModel.downloadManager.checkMLXModelState(modelId: model.modelId) {
+                    return false
+                }
+                return true
+            } else {
+                return !discoveredFilenames.contains(model.modelFile)
+            }
+        }
     }
 
     /// Row for a model that can be downloaded from HuggingFace.
@@ -460,7 +475,14 @@ struct SidebarView: View {
         switch state {
         case .notDownloaded:
             Button {
-                viewModel.downloadManager.download(model)
+                print("🔘 Sidebar download button tapped for: \(model.name) (MLX=\(model.isMLXDirectoryModel))")
+                if model.isMLXDirectoryModel {
+                    Task {
+                        await viewModel.downloadMLXRegistryModel(model)
+                    }
+                } else {
+                    viewModel.downloadManager.download(model)
+                }
             } label: {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "arrow.down.circle")
@@ -471,7 +493,7 @@ struct SidebarView: View {
                     .font(AppTypography.caption)
                 }
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.accentCyan)
+                .foregroundStyle(model.isMLXDirectoryModel ? AppColors.accentGold : AppColors.accentCyan)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("sidebar_download_\(model.modelFile)")

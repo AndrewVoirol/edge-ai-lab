@@ -20,6 +20,8 @@
 - Lines marked `// design-system-exempt` use intentionally fixed values (e.g., fixed-size fonts for image-export cards). Do not migrate these to Dynamic Type tokens or `AppIconSize`.
 - **Extract testable logic from SwiftUI views** into `enum` namespaces with `static` methods (e.g., `EvalRunnerLogic`, `ModelDetailFormatters`). Pure functions, computed property logic, and formatting helpers should not live in `View` structs — they are untestable there. The `enum` pattern prevents accidental instantiation while keeping related logic grouped.
 - **Before defining new `Notification.Name` extensions**, search for existing notification names: `grep -rn "Notification.Name(" Sources/ --include="*.swift"`. Reuse existing names where semantically equivalent. All notification names are defined in `DesignSystem.swift` (cross-view communication) or `EdgeAILabApp.swift` (menu bar commands). New tool-specific notifications should be added to the appropriate central location, not in the tool file itself.
+- **Never write to `@Observable` / `@Published` properties from within functions called during SwiftUI view body computation** (computed properties, `@ViewBuilder` methods, or functions invoked from these). Writing to an observed property during body evaluation causes an infinite re-render loop that beach-balls the app with no error output. If a function needs to both compute AND cache a result, split it: a pure read-only query for view body use, and a separate mutating method for explicit state updates.
+- **All properties in `Codable` structs that decode external API responses (HuggingFace, GitHub, etc.) MUST be optional** unless the field is documented as always-present AND verified against a live response. External APIs change without notice and return different shapes for list vs. detail endpoints. A single required field missing from one entry in an array causes the ENTIRE array decode to fail.
 
 ## Swift Concurrency
 - For `static let` properties with `Sendable` types (e.g., `String`, `Int`) on `@MainActor` types, use `nonisolated` (NOT `nonisolated(unsafe)`). The `unsafe` qualifier is only needed for mutable (`var`) or non-`Sendable` statics.
@@ -35,13 +37,18 @@
   #endif
   ```
   Never use `@testable import EdgeAILab` — the module doesn't exist. Tuist generates `EdgeAILab_iOS` and `EdgeAILab_macOS` as separate targets.
-- **Two `FlowDrivenUITestRunner.swift` files exist**: `UITests/` (macOS target) and `iOSUITests/` (iOS target). They are independent copies — changes to one do NOT propagate to the other. Always apply UI test runner fixes to both files.
+- **`FlowDrivenUITestRunner.swift` is a unified shared file** in `SharedTestSupport/`. Both macOS (`UITests/`) and iOS (`iOSUITests/`) test targets link against it. Platform differences are handled via `#if os()` guards within the single file.
 - All perpetual animations MUST have `XCTestConfigurationFilePath` guard.
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
 - iOS Simulator destination: `iPhone 16 Pro Max` (ID: `CD9FBA60-9BA8-42DC-8D19-335ECEF4C915`).
 - **testmanagerd contention**: When running iOS Simulator UI tests followed by iOS Device UI tests in the same pipeline, the host Mac's `testmanagerd` must fully tear down the simulator session before the device session starts. Always run `xcrun simctl shutdown all && sleep 15` between simulator and device test steps. Without this, device tests fail with "Timed out while enabling automation mode."
 - **Before adding items to any registered collection** (`ToolRegistry.defaultTools`, `BuiltInEvalSuites.allBuiltIn`, `EvalCategory`, `NavigationRouter` cases, etc.), search for hardcoded count assertions in tests: `grep -rn "count ==" Tests/ --include="*.swift" | grep -i "<keyword>"`. Update every matching assertion before committing. This applies to both direct edits and subagent-delegated work.
 - **When testing multi-rule validation chains** (e.g., `CalculatorValidation.validateStructure`), use inputs that trigger ONLY the target rule. If a test input could be caught by an earlier rule, either (a) craft a more specific input, or (b) only assert `result != nil` without checking the error message. Validation rules fire in declaration order — `"+-*/"` triggers "trailing operator" before "no numbers".
+
+## Default Test Model
+- **Gemma 4 E2B Standard** (`gemma-4-E2B-it.litertlm`) is the default test target for all feature work and benchmarking.
+- Do NOT default to Gemma 4 12B unless specifically testing: (a) ≥16GB memory scenarios, (b) 256K context window behavior, or (c) dense-architecture-specific behavior.
+- All Gemma 4 Standard variants (E2B, E4B, 12B) have identical multimodal capability (image + audio). Web/Mobile variants have no multimodal support.
 
 ## Plan Execution Discipline
 - **Never silently drop or rename a plan item.** If a planned deliverable can't be completed or needs to change, update the plan artifact with a `> [!WARNING]` block explaining what changed and why BEFORE marking it done.
@@ -64,6 +71,20 @@
 - **Never write speculative failure diagnoses into AGENTS.md.** Phrases like "likely an iOS 27 issue" or "probably a compatibility problem" are opinions, not evidence. If you haven't verified the root cause, write "status unknown — not verified" instead. Rules in AGENTS.md are treated as facts by future sessions — speculation in rules compounds into persistent misinformation.
 - **Diagnose before planning, not after.** When asked to create a plan for investigation or verification, run diagnostic commands FIRST (check device connectivity, model presence, cache state, test plan contents) and present findings in the plan. A plan full of "if X is present..." and "we may need to..." signals that research was skipped. The user should see answers in the plan, not questions.
 
+## Feature Gap Verification
+- **Before listing any feature as "missing" or "not integrated" in a plan, verify against the live codebase:**
+  1. `git log --oneline --grep='<feature keyword>' -10` — check if it was already shipped
+  2. `grep -rn '<feature keyword>' Sources/ --include='*.swift' -l` — check for implementation
+  3. Read the actual source files, not skill file gap tables (which become stale as features ship)
+- **When proposing SDK feature integration work**, always state which SDK API is being used and verify it exists in the resolved dependency, not just in skill file documentation.
+
+## Subagent Research Integrity
+- **Never forward subagent findings about feature existence to the user without independent verification.** Subagents fabricate data (e.g., inventing TODO comments, reporting APIs as "not integrated" when they are shipped). Before including subagent claims in plans or reports:
+  1. Verify any "TODO" or "FIXME" claims with `grep -rn 'TODO\|FIXME' Sources/`
+  2. Verify any "not integrated" claims with `git log --oneline --grep='<keyword>'` and source file inspection
+  3. Verify model capabilities against `ModelMetadata.swift`, not skill file tables
+- **Skill file gap lists are historical snapshots.** They become stale as features ship. Always cross-reference gap claims against the live codebase and git history before citing them.
+
 ## Multi-Agent Git Coordination
 - **Never use `git add -A` when parallel agents share a workspace.** Use `git add <specific files>` to prevent capturing another agent's uncommitted work. List the exact files in the commit command.
 - **Parallel agents MUST use separate feature branches.** Each agent works on its own branch (e.g., `wave3/stats-and-share`, `wave3/cross-device-sync`). The user merges branches after independent verification.
@@ -75,8 +96,8 @@
 - **Before starting feature work, verify the tree builds clean on both platforms.** Run `xcodebuild build` for macOS and iOS. If the build is broken, commit fixes separately with message prefix `fix: pre-existing —` before beginning feature work. Do not mix pre-existing fixes with feature commits.
 
 ## Apple Framework API Verification
-- **Before using any system framework API (CloudKit, Core ML, MapKit, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
-- **Known non-existent APIs agents have invented:** `CKRecordValueProtocol` (doesn't exist — use `CKRecordValueProtocol` is not a thing, cast to `NSString`/`NSNumber` instead), `CKQueryResultCursor` (doesn't exist — the correct type is `CKQueryOperation.Cursor`), `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`).
+- **Before using any system framework API (Core ML, MapKit, CoreLocation, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
+- **Known non-existent APIs agents have invented:** `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`). When in doubt, verify against SDK headers in Xcode.
 
 ## Apple Developer Team Limitations
 - **This project uses a FREE personal Apple Developer team** (Team ID: `Y7J7WUK693`, holder: Andrew Voirol).
@@ -98,3 +119,7 @@
 - **Always run `tuist generate` after creating new `.swift` source or test files.** Tuist scans the filesystem to build the Xcode project; new files are invisible to the build until project regeneration.
 - **Always run `tuist generate` after switching git branches.** The `.xcodeproj` is gitignored and not branch-aware — it retains the file list from the previous branch.
 - **Always run `tuist generate` after modifying `Project.swift`** or any `.entitlements` file.
+
+## Debugging
+- **When debugging a user-reported UI interaction failure, add diagnostic `print()` statements FIRST — before making any code changes.** Place prints at: (a) the UI action handler (button tap, gesture), (b) the function it calls, and (c) the network/filesystem operation. Build, have the user test, and read the output. Fix only after the diagnostic output identifies which layer failed. Remove diagnostic prints after the issue is resolved.
+- **When a user reports "I clicked X and nothing happened," trace the code path from the UI element DOWN to the backend — not from the error message UP to the UI.** Start by identifying which SwiftUI view renders the element, what action handler fires on click, and what function it calls. The bug is more often in the routing/dispatch layer (wrong function called, wrong parameter passed, action not wired) than in the destination function itself.

@@ -885,7 +885,7 @@ final class ModelMetadataTests: XCTestCase {
 
 
     func testKnownModelCount() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 5)
+        XCTAssertEqual(ModelRegistry.knownModels.count, 7)
     }
 
     func testLookup12BByFilename() {

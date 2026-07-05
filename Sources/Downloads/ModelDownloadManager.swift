@@ -394,6 +394,12 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
             return existing
         }
 
+        // For MLX directory models, delegate to the directory-aware checker
+        // which validates config.json + .safetensors presence.
+        if model.isMLXDirectoryModel {
+            return checkMLXModelState(modelId: model.modelId)
+        }
+
         // First-time check: scan filesystem to determine initial state.
         let fileURL = documentsDirectory.appendingPathComponent(model.modelFile)
 
@@ -699,6 +705,14 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
 
         let modelDir = documentsDirectory.appendingPathComponent(dirName)
 
+        // If a regular file (e.g., a failed download stub) exists at the directory path,
+        // remove it so we can create the directory. Without this, createDirectory silently
+        // fails and all subsequent file writes go to the wrong location.
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: modelDir.path, isDirectory: &isDir), !isDir.boolValue {
+            try? FileManager.default.removeItem(at: modelDir)
+        }
+
         // Create the directory
         try? FileManager.default.createDirectory(at: modelDir, withIntermediateDirectories: true)
 
@@ -923,6 +937,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
             switch existing {
             case .downloading, .downloadingDirectory, .queued, .paused, .pausedDirectory:
                 return existing
+            case .downloaded:
+                return existing
             default:
                 break
             }
@@ -932,25 +948,23 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
         let fm = FileManager.default
 
         guard fm.fileExists(atPath: modelDir.path) else {
-            downloadStates[dirName] = .notDownloaded
             return .notDownloaded
         }
 
         let configPath = modelDir.appendingPathComponent("config.json").path
         guard fm.fileExists(atPath: configPath) else {
-            downloadStates[dirName] = .notDownloaded
             return .notDownloaded
         }
 
         // Check for at least one safetensors file
         if let contents = try? fm.contentsOfDirectory(atPath: modelDir.path),
            contents.contains(where: { $0.hasSuffix(".safetensors") }) {
+            // Cache the result so future reads don't hit filesystem
             let state = DownloadState.downloaded(modelDir)
             downloadStates[dirName] = state
             return state
         }
 
-        downloadStates[dirName] = .notDownloaded
         return .notDownloaded
     }
 

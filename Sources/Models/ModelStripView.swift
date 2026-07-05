@@ -90,7 +90,19 @@ struct ModelStripView: View {
     /// Registry models that are not yet discovered on disk.
     private var downloadableModels: [ModelMetadata] {
         let discoveredFilenames = Set(viewModel.discoveredModels.map(\.filename))
-        return ModelRegistry.knownModels.filter { !discoveredFilenames.contains($0.modelFile) }
+        return ModelRegistry.knownModels.filter { model in
+            if model.isMLXDirectoryModel {
+                // MLX models: check both discovered filenames and download state
+                let dirName = model.modelFile
+                if discoveredFilenames.contains(dirName) { return false }
+                if case .downloaded = viewModel.downloadManager.checkMLXModelState(modelId: model.modelId) {
+                    return false
+                }
+                return true
+            } else {
+                return !discoveredFilenames.contains(model.modelFile)
+            }
+        }
     }
 
     // MARK: - Model Cards
@@ -181,7 +193,13 @@ struct ModelStripView: View {
             switch state {
             case .notDownloaded:
                 Button {
-                    viewModel.downloadManager.download(model)
+                    if model.isMLXDirectoryModel {
+                        Task {
+                            await viewModel.downloadMLXRegistryModel(model)
+                        }
+                    } else {
+                        viewModel.downloadManager.download(model)
+                    }
                 } label: {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "arrow.down.circle")
@@ -189,7 +207,7 @@ struct ModelStripView: View {
                             .font(AppTypography.caption)
                     }
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(model.isMLXDirectoryModel ? AppColors.accentGold : AppColors.accentCyan)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("download_\(model.modelFile)")

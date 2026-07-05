@@ -235,7 +235,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         )
 
         // Change a setting that triggers reinitializeIfNeeded via didSet
-        vm.useGPU.toggle()
+        vm.preferredBackend = (vm.preferredBackend == .gpu) ? .cpu : .gpu
 
         // Allow the async reinitialize to execute
         try? await Task.sleep(for: .milliseconds(100))
@@ -255,7 +255,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         let initCountBefore = engine.loadModelCallCount
 
         // Change a setting WITHOUT loading a model first
-        vm.useGPU.toggle()
+        vm.preferredBackend = (vm.preferredBackend == .gpu) ? .cpu : .gpu
 
         try? await Task.sleep(for: .milliseconds(100))
 

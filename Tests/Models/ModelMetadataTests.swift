@@ -211,7 +211,7 @@ struct ModelMetadataSwiftTests {
 
         @Test("knownModels has at least 5 entries")
         func knownModelsCount() {
-            #expect(ModelRegistry.knownModels.count >= 5)
+            #expect(ModelRegistry.knownModels.count >= 7)
         }
 
         @Test("lookup(filename:) returns non-nil for a known model")

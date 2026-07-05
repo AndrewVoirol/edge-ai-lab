@@ -31,7 +31,7 @@ final class ModelRegistryTests: XCTestCase {
     /// Validates that the registry contains the expected number of models.
     /// Update this count when adding new models to ModelRegistry.
     func testKnownModelCount() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 5)
+        XCTAssertEqual(ModelRegistry.knownModels.count, 7)
     }
 
     // MARK: - Uniqueness (Issue #16)
@@ -193,11 +193,14 @@ final class ModelRegistryTests: XCTestCase {
         }
     }
 
-    // MARK: - All Models Have .litertlm Extension
+    // MARK: - LiteRT Models Have .litertlm Extension
 
-    /// Every model file should have the .litertlm extension.
-    func testAllModelFilesHaveLitertlmExtension() {
-        for model in ModelRegistry.knownModels {
+    /// Every LiteRT model file should have the .litertlm extension.
+    /// MLX models use directory names without file extensions.
+    func testAllLiteRTModelFilesHaveLitertlmExtension() {
+        let litertModels = ModelRegistry.knownModels.filter { $0.runtimeType == .litertlm }
+        XCTAssertFalse(litertModels.isEmpty, "Should have at least one LiteRT model")
+        for model in litertModels {
             XCTAssertTrue(
                 model.modelFile.hasSuffix(".litertlm"),
                 "\(model.name) modelFile doesn't end with .litertlm: \(model.modelFile)"

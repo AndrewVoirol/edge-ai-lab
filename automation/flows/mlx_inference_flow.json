@@ -1,0 +1,43 @@
+{
+  "name": "MLX Inference Flow",
+  "description": "Single-turn chat using an MLX model: selects the MLX E2B model, types a prompt, generates, and verifies response.",
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Select the MLX E2B model from the sidebar.",
+      "target_element": "Gemma 4 E2B · MLX 4-bit"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for the MLX model to load (may take 10-30 seconds).",
+      "condition": "element_exists:ready"
+    },
+    {
+      "step": 3,
+      "action": "type_text",
+      "description": "Type prompt in the input field.",
+      "target_element": "Enter your prompt here",
+      "value": "Write a short haiku about mountains."
+    },
+    {
+      "step": 4,
+      "action": "tap",
+      "description": "Tap 'Generate Response' to start text generation.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 5,
+      "action": "wait",
+      "description": "Wait until generation completes.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify that text generation produced results.",
+      "expected_elements": ["TTFT", "Decode"]
+    }
+  ]
+}

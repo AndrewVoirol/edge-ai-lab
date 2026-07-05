@@ -162,7 +162,8 @@ struct HFLFSInfo: Codable, Sendable {
     let size: Int64
 
     /// Size of the LFS pointer file in bytes.
-    let pointerSize: Int
+    /// Not always present in the HuggingFace API response.
+    let pointerSize: Int?
 
     enum CodingKeys: String, CodingKey {
         case oid, size
@@ -226,7 +227,8 @@ struct HFTreeLFSInfo: Codable, Sendable {
     let size: Int64
 
     /// Size of the LFS pointer file in the Git repository.
-    let pointerSize: Int
+    /// Not always present in the HuggingFace API response.
+    let pointerSize: Int?
 
     enum CodingKeys: String, CodingKey {
         case oid, size
@@ -728,7 +730,8 @@ final class HFModelBrowser: @unchecked Sendable {
     /// Filter a file manifest to only the files required for an MLX model.
     ///
     /// Keeps: `config.json`, `tokenizer*.json`, `special_tokens_map.json`,
-    /// `*.safetensors`, `*.safetensors.index.json`.
+    /// `*.safetensors`, `*.safetensors.index.json`, `chat_template.jinja`,
+    /// `processor_config.json`.
     /// Excludes: `*.gguf`, `*.bin`, `README.md`, `.gitattributes`, etc.
     ///
     /// - Parameter manifest: The full file listing from `fetchFileManifest`.
@@ -741,6 +744,13 @@ final class HFModelBrowser: @unchecked Sendable {
             { $0 == "generation_config.json" },
             { $0.hasSuffix(".safetensors") },
             { $0.hasSuffix(".safetensors.index.json") },
+            // Chat template — required for Gemma 4 and other models that store
+            // their chat template in a standalone .jinja file rather than inline
+            // in tokenizer_config.json.
+            { $0 == "chat_template.jinja" || $0 == "chat_template.json" },
+            // Processor config — required for VLM models (Gemma4, Paligemma, etc.)
+            // that use a dedicated processor for input formatting.
+            { $0 == "processor_config.json" || $0 == "preprocessor_config.json" },
         ]
 
         return manifest.filter { entry in
@@ -814,6 +824,8 @@ final class HFModelBrowser: @unchecked Sendable {
             { $0 == "generation_config.json" },
             { $0.hasSuffix(".safetensors") },
             { $0.hasSuffix(".safetensors.index.json") },
+            { $0 == "chat_template.jinja" || $0 == "chat_template.json" },
+            { $0 == "processor_config.json" || $0 == "preprocessor_config.json" },
         ]
 
         let requiredSiblings = siblings.filter { sibling in

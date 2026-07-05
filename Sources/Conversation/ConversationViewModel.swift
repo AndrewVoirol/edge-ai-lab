@@ -62,12 +62,49 @@ final class ConversationViewModel {
     /// Whether a model is currently being loaded.
     var isLoadingModel: Bool { sessionController.isLoadingModel }
 
-    /// Whether GPU backend is preferred.
-    var useGPU = true {
+    /// User-selected inference backend (per-session, resets to GPU-preferred on new session).
+    /// Controls whether the engine uses GPU or CPU acceleration.
+    /// Replaces the raw `useGPU` Bool with a typed option extensible for NPU.
+    var preferredBackend: BackendOption = .gpu {
         didSet {
             Task { await reinitializeEngineIfNeeded() }
         }
     }
+
+    /// Whether GPU backend is preferred — derived from `preferredBackend`.
+    /// Backward-compatible accessor for existing engine initialization path.
+    var useGPU: Bool {
+        BackendPickerLogic.useGPU(for: preferredBackend)
+    }
+
+    /// Maximum number of tokens for the KV-cache (per-session, nil = auto/SDK default).
+    /// Controls context window size and memory usage.
+    var maxNumTokens: Int? = nil {
+        didSet {
+            sessionController.maxNumTokens = maxNumTokens
+            Task { await reinitializeEngineIfNeeded() }
+        }
+    }
+
+    /// The backend and KV-cache settings that were active when the engine was last initialized.
+    /// Used to detect whether the user has changed settings since last load.
+    private var lastInitializedBackend: BackendOption?
+    private var lastInitializedMaxNumTokens: Int??
+
+    /// Whether the current backend/KV-cache settings differ from what's running.
+    /// When true, the UI should show a "Restart Engine" prompt.
+    var engineConfigChanged: Bool {
+        guard isEngineReady else { return false }
+        if let lastBackend = lastInitializedBackend, lastBackend != preferredBackend {
+            return true
+        }
+        // Compare Optional<Int> — double-optional unwrap
+        if let lastTokens = lastInitializedMaxNumTokens, lastTokens != maxNumTokens {
+            return true
+        }
+        return false
+    }
+
 
     /// The most recent performance metrics from completed inference.
     var performanceMetrics: EnginePerformanceMetrics?
@@ -336,6 +373,11 @@ final class ConversationViewModel {
         // Wire engine readiness callback so the tracked property stays in sync
         controller.onEngineReadyChanged = { [weak self] ready in
             self?.isEngineReady = ready
+            if ready {
+                // Snapshot current config so we can detect mid-session changes
+                self?.lastInitializedBackend = self?.preferredBackend
+                self?.lastInitializedMaxNumTokens = self?.maxNumTokens
+            }
         }
         // Sync sampler defaults back to the VM when model-specific configs are applied
         controller.onSamplerDefaultsApplied = { [weak self] topK, topP, temperature in
@@ -415,14 +457,22 @@ final class ConversationViewModel {
     ///
     /// Auto-detects the model format and switches engines if needed before loading.
     func handleModelSelection(_ url: URL) async {
-        // Auto-detect format and switch engines if the model requires a different runtime
-        if let detectedFormat = ModelFormatDetector.detectFormat(at: url),
-           detectedFormat != self.engine.runtimeType {
+        // Auto-detect format and switch engines if the model requires a different runtime.
+        // Two detection strategies — filesystem-based and registry-based — for robustness.
+        let detectedFormat: RuntimeType? = ModelFormatDetector.detectFormat(at: url)
+            ?? ModelRegistry.lookup(path: url.path)?.runtimeType
+
+        if let detectedFormat, detectedFormat != self.engine.runtimeType {
             Self.logger.info("🔄 Auto-switching engine: \(self.engine.runtimeType.displayName) → \(detectedFormat.displayName) for \(url.lastPathComponent, privacy: .public)")
+            // Switch the engine but DON'T rely on switchEngine's internal auto-reload
+            // (activeModelURL may be nil on first load or point to a different model).
+            // We always fall through to sessionController.handleModelSelection below.
+            let previousURL = activeModelURL
             await switchEngine(to: detectedFormat)
-            // switchEngine already calls handleModelSelection if formats match,
-            // so we can return early if the switch succeeded
-            if self.engine.runtimeType == detectedFormat {
+            // If switchEngine already loaded this exact model (activeModelURL changed), skip reload
+            if activeModelURL == url, activeModelURL != previousURL, self.engine.isLoaded {
+                isEngineReady = true
+                refreshDiscoveredModels()
                 return
             }
         }
@@ -470,6 +520,42 @@ final class ConversationViewModel {
         discoveredModels = GalleryModelDiscovery.discoverModels()
     }
 
+    /// Download an MLX model from the registry using the multi-file download flow.
+    ///
+    /// This fetches the file manifest from HuggingFace, filters to required MLX files,
+    /// and initiates a parallel multi-file download via `ModelDownloadManager`.
+    ///
+    /// - Parameter model: The registry model metadata for the MLX model.
+    func downloadMLXRegistryModel(_ model: ModelMetadata) async {
+        Self.logger.info("🔽 downloadMLXRegistryModel: \(model.name, privacy: .public) (\(model.modelId, privacy: .public))")
+        guard model.isMLXDirectoryModel else {
+            Self.logger.warning("⚠️ Model is not MLX directory type, falling back to single-file download")
+            downloadManager.download(model)
+            return
+        }
+
+        statusMessage = "Fetching model manifest..."
+        let browser = HFModelBrowser()
+        do {
+            let manifest = try await browser.fetchFileManifest(for: model.modelId)
+            let required = HFModelBrowser.filterRequiredMLXFiles(manifest)
+            Self.logger.info("📋 Manifest: \(manifest.count) total files, \(required.count) required for \(model.modelId, privacy: .public)")
+            let descriptors = HFModelBrowser.downloadDescriptors(
+                repoId: model.modelId,
+                requiredFiles: required
+            )
+            downloadManager.downloadMLXModel(
+                modelId: model.modelId,
+                descriptors: descriptors
+            )
+            statusMessage = "Downloading \(model.name)..."
+            Self.logger.info("✅ MLX directory download started for \(model.name, privacy: .public)")
+        } catch {
+            statusMessage = "Failed to fetch manifest: \(error.localizedDescription)"
+            Self.logger.error("❌ Manifest fetch failed for \(model.modelId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     /// Cancel an in-progress model load.
     func cancelModelLoad() {
         sessionController.cancelModelLoad()
@@ -486,6 +572,13 @@ final class ConversationViewModel {
             useGPU: useGPU,
             mcpClients: mcpClients
         )
+    }
+
+    /// Force-restarts the engine with current settings.
+    /// Called from the "Restart Engine" button when backend or KV-cache settings
+    /// have changed mid-session and the user explicitly requests a restart.
+    func restartEngine() async {
+        await reinitializeEngineIfNeeded()
     }
 
     // MARK: - Inference State

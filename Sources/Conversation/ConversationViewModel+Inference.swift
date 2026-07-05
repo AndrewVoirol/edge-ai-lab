@@ -27,8 +27,12 @@ extension ConversationViewModel {
     /// Generate a response for the current prompt via streaming.
     /// Routes through the agentic ReAct loop when `isAgentMode` is true.
     func generateText() async {
-        guard engine.isLoaded else { return }
-        guard !isGenerating else { return }
+        guard engine.isLoaded else {
+            return
+        }
+        guard !isGenerating else {
+            return
+        }
 
         // Route to agent mode if enabled
         if isAgentMode {
@@ -96,10 +100,19 @@ extension ConversationViewModel {
 
         do {
             let stream: AsyncThrowingStream<GenerationEvent, Error>
-            var genConfig = GenerationConfig.default
-            if let imageData = imageData {
-                genConfig.imageData = [imageData]
-            }
+            // Build generation config from the ViewModel's actual sampler settings.
+            // MLXEngineAdapter applies these per-generation to ChatSession.generateParameters,
+            // so using GenerationConfig.default would overwrite model-specific defaults
+            // (e.g., maxTokens 512 instead of the model's recommended 4000).
+            let genConfig = GenerationConfig(
+                maxTokens: sessionController.activeModelMetadata?.defaultConfig.maxTokens ?? 4000,
+                temperature: Double(temperature),
+                topP: Double(topP),
+                topK: topK,
+                repetitionPenalty: nil,
+                seed: seed > 0 ? UInt64(seed) : nil,
+                imageData: imageData.map { [$0] }
+            )
             stream = engine.generateStream(
                 prompt: currentPrompt,
                 config: genConfig
@@ -125,11 +138,16 @@ extension ConversationViewModel {
                             }
                         }
                     } else {
-                        // Thinking disabled: strip <think> tags entirely
+                        // Thinking disabled: strip all thinking-related tags entirely
                         var cleaned = chunk.replacingOccurrences(of: "<pad>", with: "")
                         cleaned = cleaned.replacingOccurrences(of: "<think>", with: "")
                         cleaned = cleaned.replacingOccurrences(of: "<|think|>", with: "")
                         cleaned = cleaned.replacingOccurrences(of: "</think>", with: "")
+                        // Gemma 4 MLX channel-based thinking markers
+                        cleaned = cleaned.replacingOccurrences(of: "<|channel>thought\n", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "<|channel>thought", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "\n<channel|>", with: "")
+                        cleaned = cleaned.replacingOccurrences(of: "<channel|>", with: "")
                         accumulatedResponse += cleaned
                     }
 
@@ -219,7 +237,7 @@ extension ConversationViewModel {
                 }
             }
         } catch {
-            Self.logger.error("❌ Generation failed: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("❌ Generation error: \(error.localizedDescription, privacy: .public)")
             // Update the assistant message with the error
             conversation.updateLastAssistantMessage(
                 content: "Inference error: \(error.localizedDescription)",
@@ -279,11 +297,19 @@ extension ConversationViewModel {
                     ToolExecutionTracker.shared.clearCallback()
                 }
 
-                // Run a single inference turn
+                // Run a single inference turn with the ViewModel's actual sampler settings.
                 var accumulatedResponse = ""
+                let agentGenConfig = GenerationConfig(
+                    maxTokens: self.sessionController.activeModelMetadata?.defaultConfig.maxTokens ?? 4000,
+                    temperature: Double(self.temperature),
+                    topP: Double(self.topP),
+                    topK: self.topK,
+                    repetitionPenalty: nil,
+                    seed: self.seed > 0 ? UInt64(self.seed) : nil
+                )
                 let stream = self.engine.generateStream(
                     prompt: agentPrompt,
-                    config: GenerationConfig.default
+                    config: agentGenConfig
                 )
                 for try await event in stream {
                     guard case .text(let chunk) = event else { continue }
@@ -291,6 +317,11 @@ extension ConversationViewModel {
                         .replacingOccurrences(of: "<think>", with: "")
                         .replacingOccurrences(of: "<|think|>", with: "")
                         .replacingOccurrences(of: "</think>", with: "")
+                        // Gemma 4 MLX channel-based thinking markers
+                        .replacingOccurrences(of: "<|channel>thought\n", with: "")
+                        .replacingOccurrences(of: "<|channel>thought", with: "")
+                        .replacingOccurrences(of: "\n<channel|>", with: "")
+                        .replacingOccurrences(of: "<channel|>", with: "")
                     accumulatedResponse += cleaned
 
                     // Update the streaming assistant message with agent progress

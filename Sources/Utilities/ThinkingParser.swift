@@ -82,12 +82,15 @@ struct ThinkingParser {
   // MARK: - Tag Definitions
 
   /// Supported opening tag variants for think blocks.
-  /// Gemma 4 models may use either `<think>` or `<|think|>` depending on configuration.
-  private static let openTags = ["<think>", "<|think|>"]
+  /// - `<think>` / `<|think|>`: Standard tags used by Gemma models via LiteRT.
+  /// - `<|channel>thought`: Gemma 4 MLX channel-based thinking marker.
+  ///   The model emits `<|channel>thought\n{text}\n<channel|>` for thinking content.
+  private static let openTags = ["<think>", "<|think|>", "<|channel>thought\n", "<|channel>thought"]
 
-  /// The closing tag for think blocks.
-  /// Both open-tag variants use `</think>` as the closing delimiter.
-  private static let closeTags = ["</think>"]
+  /// Closing tag variants for think blocks.
+  /// - `</think>`: Standard close tag for `<think>` / `<|think|>` open tags.
+  /// - `<channel|>`: Gemma 4 MLX channel-based thinking close marker.
+  private static let closeTags = ["</think>", "\n<channel|>", "<channel|>"]
 
   /// The maximum length among all supported tags. Used to determine how much
   /// trailing content to retain in the buffer when a partial tag might be present.

@@ -180,10 +180,10 @@ struct BenchmarkAutomationPipeline {
             return
         }
         
-        let configId = "\(targetModel.modelFile)_gpu_greedy"
+        let configId = BenchmarkPipelineLogic.buildConfigId(modelFile: targetModel.modelFile, backend: "gpu", samplingStrategy: "greedy")
         
         // Skip if this config was already processed (crash recovery)
-        if processedConfigs.contains(configId) {
+        if BenchmarkPipelineLogic.shouldSkipConfig(configId: configId, processedConfigs: processedConfigs) {
             automationLog("[AUTOMATION] Skipping already-processed config: \(configId)")
         } else {
             // Persist active config before starting (crash recovery breadcrumb)
@@ -258,12 +258,7 @@ struct BenchmarkAutomationPipeline {
                         let baselines = try JSONDecoder().decode(BenchmarkBaselines.self, from: data)
                         
                         // Convert [String: Any] metrics to [String: Double]
-                        var doubleMetrics: [String: Double] = [:]
-                        for (key, value) in metrics {
-                            if let d = value as? Double {
-                                doubleMetrics[key] = d
-                            }
-                        }
+                        let doubleMetrics = BenchmarkPipelineLogic.convertMetricsToDoubles(metrics: metrics)
                         
                         // Find matching baseline by model name and backend
                         let matchingBaselines = baselines.baselines.filter {
@@ -283,16 +278,16 @@ struct BenchmarkAutomationPipeline {
                             rules: baselines.regressionRules
                         )
                         
-                        let criticalRegressions = results.filter { $0.isRegression && $0.severity == .critical }
+                        let hasCritical = BenchmarkPipelineLogic.hasCriticalRegressions(results: results)
                         
                         automationLog("\n[AUTOMATION_BENCHMARK_REGRESSION]")
                         for result in results {
-                            let icon = result.isRegression ? "❌" : (result.deviationPct > 0 ? "🎉" : "✅")
+                            let icon = BenchmarkPipelineLogic.formatRegressionIcon(isRegression: result.isRegression, deviationPct: result.deviationPct)
                             automationLog("[AUTOMATION]   \(icon) \(result.metricKey): \(result.status) (\(String(format: "%.1f", result.deviationPct))% vs baseline)")
                         }
                         
-                        if !criticalRegressions.isEmpty {
-                            automationLog("[AUTOMATION_FAILURE] \(criticalRegressions.count) critical regression(s) detected")
+                        if hasCritical {
+                            automationLog("[AUTOMATION_FAILURE] Critical regression(s) detected")
                             clearBenchmarkState()
                             DeveloperAutomationHarness.signalComplete(1, message: "Critical benchmark regression(s) detected")
                             return

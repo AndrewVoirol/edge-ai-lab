@@ -265,6 +265,12 @@ struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
     var supportsToolCalling: Bool {
         modelId.contains("-it")
     }
+
+    /// Whether this model uses a multi-file directory format (MLX models).
+    /// Directory models require manifest-based downloads instead of single-file downloads.
+    var isMLXDirectoryModel: Bool {
+        runtimeType == .mlx
+    }
 }
 
 /// Default inference configuration for a model, mirroring the Gallery allowlist schema.
@@ -313,6 +319,9 @@ enum ModelRegistry {
         gemma4E4BWeb,
         gemma4E2BStandard,
         gemma4E2BWeb,
+        // MLX Models
+        gemma4E2B_MLX,
+        gemma4E4B_MLX,
     ]
 
     // MARK: - Gemma 4 E2B (Standard)
@@ -495,6 +504,73 @@ enum ModelRegistry {
         runtimeType: .litertlm
     )
 
+    // MARK: - Gemma 4 E2B (MLX 4-bit)
+
+    /// MLX 4-bit quantized Gemma 4 E2B for Apple Silicon.
+    /// Runs on Metal GPU via mlx-swift. Multi-file directory model.
+    static let gemma4E2B_MLX = ModelMetadata(
+        name: "Gemma 4 E2B · MLX 4-bit",
+        modelId: "mlx-community/gemma-4-E2B-it-4bit",
+        modelFile: "mlx-community--gemma-4-E2B-it-4bit",
+        description: "MLX 4-bit quantized Gemma 4 E2B for Apple Silicon. Runs on Metal GPU via mlx-swift. Multi-file directory model.",
+        sizeInBytes: 2_200_000_000,
+        minDeviceMemoryGB: 8,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (2B effective, MLX 4-bit)",
+        recommendedFor: "Apple Silicon chat, fast Metal GPU inference",
+        supportsImage: true,
+        supportsAudio: true,
+        capabilities: ["llm_thinking"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 40,
+            topP: 0.9,
+            temperature: 0.6,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: "gpu"
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,
+            iOSDevice: .gpuOnly,
+            iOSSimulator: .unknown
+        ),
+        runtimeType: .mlx
+    )
+
+    // MARK: - Gemma 4 E4B (MLX 4-bit)
+
+    /// MLX 4-bit quantized Gemma 4 E4B for Apple Silicon.
+    /// Higher quality than E2B. Multi-file directory model.
+    static let gemma4E4B_MLX = ModelMetadata(
+        name: "Gemma 4 E4B · MLX 4-bit",
+        modelId: "mlx-community/gemma-4-E4B-it-4bit",
+        modelFile: "mlx-community--gemma-4-E4B-it-4bit",
+        description: "MLX 4-bit quantized Gemma 4 E4B for Apple Silicon. Higher quality than E2B. Multi-file directory model.",
+        sizeInBytes: 3_400_000_000,
+        minDeviceMemoryGB: 12,
+        contextWindowSize: 128_000,
+        architectureType: "MoE Edge (4B effective, MLX 4-bit)",
+        recommendedFor: "Apple Silicon balanced quality",
+        supportsImage: true,
+        supportsAudio: true,
+        capabilities: ["llm_thinking"],
+        defaultConfig: ModelDefaultConfig(
+            topK: 40,
+            topP: 0.9,
+            temperature: 0.6,
+            maxContextLength: 32_000,
+            maxTokens: 4_000,
+            accelerators: "gpu",
+            visionAccelerator: "gpu"
+        ),
+        platformSupport: PlatformSupport(
+            macOS: .gpuOnly,
+            iOSDevice: .gpuOnly,
+            iOSSimulator: .unknown
+        ),
+        runtimeType: .mlx
+    )
 
     // MARK: - Gemma 3n E2B (Standard INT4 — Gated)
 
