@@ -105,7 +105,10 @@ struct iOSModelHubView: View {
 
     /// Community models to display — search results when searching, otherwise the default listing.
     private var displayedCommunityModels: [HFModelInfo] {
-        communitySearchResults.isEmpty ? browser.discoveredModels : communitySearchResults
+        if communitySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return browser.discoveredModels
+        }
+        return communitySearchResults
     }
 
     // MARK: - Body

@@ -372,6 +372,7 @@ struct iOSModelDetailView: View {
                         Task { await viewModel.downloadManager.cancelDownload(metadata) }
                     }
                     .foregroundStyle(AppColors.danger)
+                    .accessibilityIdentifier("modelDetail_cancelQueuedButton")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.md)

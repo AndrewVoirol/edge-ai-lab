@@ -85,18 +85,25 @@ struct HFModelCard: View {
 
             // Organization with avatar
             HStack(spacing: AppSpacing.xs) {
-                AsyncImage(
-                    request: URLRequest(url: URL(string: "https://huggingface.co/api/organizations/\(model.orgName)/avatar")!)
-                ) { image in
-                    image.resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
+                if let encoded = model.orgName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+                   let avatarURL = URL(string: "https://huggingface.co/api/organizations/\(encoded)/avatar") {
+                    AsyncImage(
+                        request: URLRequest(url: avatarURL)
+                    ) { image in
+                        image.resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Image(systemName: "building.2")
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .frame(width: 20, height: 20)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+                } else {
                     Image(systemName: "building.2")
                         .foregroundStyle(AppColors.textTertiary)
+                        .frame(width: 20, height: 20)
                 }
-                .frame(width: 20, height: 20)
-                .clipShape(Circle())
-                .accessibilityHidden(true)
 
                 Text(model.orgName)
                     .font(AppTypography.caption)

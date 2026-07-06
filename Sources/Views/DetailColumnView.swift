@@ -1328,7 +1328,10 @@ private struct CommunityModelsBrowser: View {
 
     /// Models to display — search results when searching, otherwise the default listing.
     private var displayedModels: [HFModelInfo] {
-        searchResults.isEmpty ? browser.discoveredModels : searchResults
+        if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return browser.discoveredModels
+        }
+        return searchResults
     }
 
     /// Execute a HuggingFace search across all models.

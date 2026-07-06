@@ -277,7 +277,8 @@ struct SidebarView: View {
                                 .font(.caption)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
-                        .menuStyle(.borderlessButton)
+                        .menuStyle(.button)
+                        .buttonStyle(.borderless)
                         .fixedSize()
                         .accessibilityIdentifier("menu_conversationManagement")
                     }
@@ -325,6 +326,18 @@ struct SidebarView: View {
             .accessibilityIdentifier("button_clearAllConfirm")
         } message: {
             Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
+        }
+        .alert("Rename Conversation", isPresented: $showRenameAlert) {
+            TextField("Title", text: $renameText)
+                .accessibilityIdentifier("textField_renameConversation")
+            Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("button_renameCancelAlert")
+            Button("Rename") {
+                if let target = renameTarget {
+                    viewModel.renameConversation(id: target.id, newTitle: renameText)
+                }
+            }
+            .accessibilityIdentifier("button_renameConfirmAlert")
         }
     }
 
@@ -452,7 +465,7 @@ struct SidebarView: View {
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityIdentifier("sidebar_cancelDownload_\(filename)")
+                        .accessibilityIdentifier("sidebar_cancelDirDownload_\(filename)")
                     }
                 }
 
@@ -601,21 +614,21 @@ struct SidebarView: View {
             } label: {
                 Label("Rename", systemImage: "pencil")
             }
-            .accessibilityIdentifier("sidebar_context_rename")
+            .accessibilityIdentifier("sidebar_context_rename_\(entry.id.uuidString.prefix(8))")
 
             Button {
                 viewModel.forkConversation(id: entry.id)
             } label: {
                 Label("Fork Experiment", systemImage: "arrow.triangle.branch")
             }
-            .accessibilityIdentifier("sidebar_context_fork")
+            .accessibilityIdentifier("sidebar_context_fork_\(entry.id.uuidString.prefix(8))")
 
             Button {
                 exportConversation(entry.id)
             } label: {
                 Label("Export JSON", systemImage: "square.and.arrow.up")
             }
-            .accessibilityIdentifier("sidebar_context_export")
+            .accessibilityIdentifier("sidebar_context_export_\(entry.id.uuidString.prefix(8))")
 
             Divider()
 
@@ -624,20 +637,9 @@ struct SidebarView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
-            .accessibilityIdentifier("sidebar_context_delete")
+            .accessibilityIdentifier("sidebar_context_delete_\(entry.id.uuidString.prefix(8))")
         }
-        .alert("Rename Conversation", isPresented: $showRenameAlert) {
-            TextField("Title", text: $renameText)
-                .accessibilityIdentifier("textField_renameConversation")
-            Button("Cancel", role: .cancel) {}
-                .accessibilityIdentifier("button_renameCancelAlert")
-            Button("Rename") {
-                if let target = renameTarget {
-                    viewModel.renameConversation(id: target.id, newTitle: renameText)
-                }
-            }
-            .accessibilityIdentifier("button_renameConfirmAlert")
-        }
+
     }
 
     // MARK: - Conversation Export
