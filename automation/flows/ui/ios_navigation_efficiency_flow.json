@@ -37,7 +37,7 @@
       "step": 6,
       "action": "verify_ui",
       "description": "Verify Settings view loaded with a known toggle.",
-      "expected_elements_any": ["toggle_useGPU", "toggle_enableBenchmark", "toggle_enableThinking"]
+      "expected_elements_any": ["backend_picker", "toggle_enableBenchmark", "toggle_enableThinking"]
     },
     {
       "step": 7,

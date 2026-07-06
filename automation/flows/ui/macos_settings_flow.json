@@ -43,8 +43,8 @@
     {
       "step": 7,
       "action": "verify_ui",
-      "description": "Verify GPU toggle exists.",
-      "expected_elements": ["toggle_useGPU"]
+      "description": "Verify backend picker exists on General tab.",
+      "expected_elements": ["backend_picker"]
     },
     {
       "step": 8,

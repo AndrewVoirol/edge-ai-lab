@@ -50,8 +50,8 @@
     {
       "step": 8,
       "action": "verify_ui",
-      "description": "Verify settings toggles are visible in portrait layout. Broader match for iOS 27 Liquid Glass.",
-      "expected_elements_any": ["toggle_useGPU", "Use GPU", "toggle_enableBenchmark", "Backend"]
+      "description": "Verify settings controls are visible in portrait layout.",
+      "expected_elements_any": ["backend_picker", "toggle_enableBenchmark", "Backend"]
     },
     {
       "step": 9,

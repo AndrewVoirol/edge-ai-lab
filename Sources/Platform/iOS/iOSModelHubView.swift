@@ -25,7 +25,7 @@ import SwiftUI
 /// - Three user-facing sections:
 ///   1. "Now Running" — the currently loaded model (0-1 items)
 ///   2. "On This Device" — downloaded + actively downloading models
-///   3. "Get More Models" — registry models not yet downloaded
+///   3. "Get More Models" — HuggingFace community browser with live search
 /// - `.searchable` integration — bottom-aligned on iPhone in iOS 26+
 /// - Swipe actions — trailing delete, leading load (HIG-confirmed API)
 /// - Pull-to-refresh — HIG: "A refresh control lets people immediately reload content"
@@ -45,6 +45,10 @@ struct iOSModelHubView: View {
     @State private var showDownloadConfirmation = false
     @State private var storageCheck: ModelDownloadManager.StorageCheck?
     @State private var showURLImport = false
+    @State private var browser = HFModelBrowser()
+    @State private var communitySearchQuery = ""
+    @State private var communitySearchResults: [HFModelInfo] = []
+    @State private var isCommunitySearching = false
 
     // MARK: - Computed Collections
 
@@ -99,19 +103,9 @@ struct iOSModelHubView: View {
         return sortModels(results)
     }
 
-    /// Registry models that are NOT downloaded and NOT downloading.
-    private var availableModels: [ModelMetadata] {
-        ModelRegistry.knownModels.filter { model in
-            let state = viewModel.downloadManager.checkState(for: model)
-            switch state {
-            case .notDownloaded, .failed, .authRequired:
-                return matchesSearch(model)
-            case .queued, .paused, .pausedDirectory:
-                return false // Show in "On This Device" section
-            default:
-                return false
-            }
-        }
+    /// Community models to display — search results when searching, otherwise the default listing.
+    private var displayedCommunityModels: [HFModelInfo] {
+        communitySearchResults.isEmpty ? browser.discoveredModels : communitySearchResults
     }
 
     // MARK: - Body
@@ -126,6 +120,7 @@ struct iOSModelHubView: View {
             .refreshable {
                 viewModel.refreshDiscoveredModels()
                 viewModel.downloadManager.refreshStates()
+                await browser.refreshGemmaModels()
             }
             .navigationDestination(for: ModelMetadata.self) { metadata in
                 iOSModelDetailView(metadata: metadata)
@@ -188,6 +183,11 @@ struct iOSModelHubView: View {
                 // so the Models tab always shows current filesystem and engine state.
                 viewModel.refreshDiscoveredModels()
                 viewModel.downloadManager.refreshStates()
+            }
+            .task {
+                if browser.discoveredModels.isEmpty {
+                    await browser.refreshGemmaModels()
+                }
             }
     }
 
@@ -273,42 +273,203 @@ struct iOSModelHubView: View {
         }
     }
 
-    // MARK: - Get More Models Section
+    // MARK: - Get More Models Section (Community Browser)
 
     @ViewBuilder
     private var getMoreModelsSection: some View {
-        if !availableModels.isEmpty {
-            Section {
-                ForEach(availableModels) { metadata in
-                    availableModelRow(metadata: metadata)
-                }
-            } header: {
-                Text("Get More Models")
-            } footer: {
-                Text("Models are downloaded to your device for private, offline inference.")
-                    .font(AppTypography.listTertiary)
+        Section {
+            // Community search bar
+            HStack(spacing: AppSpacing.sm) {
+                Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppColors.textTertiary)
+                    .font(.caption)
+                TextField("Search HuggingFace models…", text: $communitySearchQuery)
+                    .textFieldStyle(.plain)
+                    .font(AppTypography.listSubtitle)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .onSubmit {
+                        guard !communitySearchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                        Task { await performCommunitySearch() }
+                    }
+                    .accessibilityIdentifier("communityModels_iOS_searchField")
+                if isCommunitySearching {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(AppColors.accentTeal)
+                }
+                if !communitySearchQuery.isEmpty {
+                    Button {
+                        communitySearchQuery = ""
+                        communitySearchResults = []
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppColors.textTertiary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("communityModels_iOS_clearSearch")
+                }
             }
+
+            // Community model rows
+            if let error = browser.lastError {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(AppColors.warning)
+                    Text(error)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(2)
+                }
+                .accessibilityIdentifier("communityModels_iOS_error")
+            } else if browser.discoveredModels.isEmpty && !browser.isLoading {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text("No models found. Pull to refresh.")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+            } else {
+                ForEach(displayedCommunityModels) { model in
+                    communityModelRow(model: model)
+                }
+            }
+        } header: {
+            HStack {
+                Text("Get More Models")
+                Spacer()
+                if browser.isLoading {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(AppColors.accentTeal)
+                }
+                Button {
+                    Task { await browser.refreshGemmaModels() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("communityModels_iOS_refresh")
+            }
+        } footer: {
+            Text("Browse and download models from HuggingFace for private, offline inference.")
+                .font(AppTypography.listTertiary)
+                .foregroundStyle(AppColors.textTertiary)
         }
     }
 
-    private func availableModelRow(metadata: ModelMetadata) -> some View {
-        iOSModelRow(
-            metadata: metadata,
-            downloadState: viewModel.downloadManager.checkState(for: metadata),
-            onDownloadTap: {
-                confirmDownload(metadata)
-            },
-            onRetryTap: {
-                confirmDownload(metadata)
-            },
-            onPauseTap: {
-                Task { await viewModel.downloadManager.pauseDownload(metadata) }
-            },
-            onResumeTap: {
-                viewModel.downloadManager.resumeDownload(metadata)
+    /// A single community model row for the iOS list.
+    private func communityModelRow(model: HFModelInfo) -> some View {
+        let format = browser.detectFormat(model)
+        let modelSize = browser.modelSize(model)
+
+        return HStack(spacing: AppSpacing.md) {
+            // Format icon
+            ZStack {
+                RoundedRectangle(cornerRadius: AppRadius.sm)
+                    .fill(formatColor(format).opacity(0.15))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppRadius.sm)
+                            .stroke(formatColor(format).opacity(0.3), lineWidth: 0.5)
+                    )
+                Image(systemName: format == .mlx ? "cpu" : "shippingbox")
+                    .font(AppIconSize.md)
+                    .foregroundStyle(formatColor(format))
             }
-        )
+            .frame(width: 36, height: 36)
+
+            // Model info
+            VStack(alignment: .leading, spacing: 3) {
+                Text(model.displayName)
+                    .font(AppTypography.listTitle)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: AppSpacing.sm) {
+                    // Format badge
+                    Text(formatLabel(format))
+                        .font(AppTypography.badge)
+                        .foregroundStyle(formatColor(format))
+
+                    // Organization
+                    Text(model.orgName)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: AppSpacing.sm) {
+                    // Downloads
+                    Label(formatCount(model.downloads), systemImage: "arrow.down.circle")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+
+                    // Size
+                    if let size = modelSize {
+                        Label(ByteCountFormatter.string(fromByteCount: size, countStyle: .file), systemImage: "doc")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Download action
+            communityDownloadButton(model: model, format: format)
+        }
+        .padding(.vertical, AppSpacing.listRowVertical)
+        .accessibilityIdentifier("communityModel_iOS_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+    }
+
+    /// Download button for a community model row, state-aware.
+    @ViewBuilder
+    private func communityDownloadButton(model: HFModelInfo, format: HFModelFormat) -> some View {
+        let state = communityDownloadState(model: model, format: format)
+
+        switch state {
+        case .notDownloaded:
+            Button {
+                triggerCommunityDownload(model: model, format: format)
+            } label: {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(formatColor(format))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("communityDownload_iOS_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+
+        case .downloading(let progress):
+            ProgressView(value: progress)
+                .tint(AppColors.accentTeal)
+                .frame(width: 36)
+
+        case .downloadingDirectory(let progress, _, _):
+            ProgressView(value: progress)
+                .tint(AppColors.accentGold)
+                .frame(width: 36)
+
+        case .downloaded:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title2)
+                .foregroundStyle(AppColors.success)
+
+        case .failed:
+            Button {
+                triggerCommunityDownload(model: model, format: format)
+            } label: {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(AppColors.danger)
+            }
+            .buttonStyle(.plain)
+
+        default:
+            EmptyView()
+        }
     }
 
     // MARK: - Toolbar
@@ -462,6 +623,98 @@ struct iOSModelHubView: View {
         // Refresh the model list
         viewModel.refreshDiscoveredModels()
         viewModel.downloadManager.refreshStates()
+    }
+
+    /// Execute a HuggingFace community search.
+    private func performCommunitySearch() async {
+        isCommunitySearching = true
+        do {
+            communitySearchResults = try await browser.searchModels(query: communitySearchQuery)
+        } catch {
+            communitySearchResults = []
+        }
+        isCommunitySearching = false
+    }
+
+    /// Get the download state for a community model.
+    private func communityDownloadState(model: HFModelInfo, format: HFModelFormat) -> ModelDownloadManager.DownloadState {
+        if format == .mlx {
+            let dirName = model.id.replacingOccurrences(of: "/", with: "--")
+            return viewModel.downloadManager.downloadStates[dirName] ?? .notDownloaded
+        }
+        if let sibling = communityLitertlmSibling(for: model, format: format) {
+            return viewModel.downloadManager.downloadStates[sibling.rfilename] ?? .notDownloaded
+        }
+        return .notDownloaded
+    }
+
+    /// Find the .litertlm sibling for a community model.
+    private func communityLitertlmSibling(for model: HFModelInfo, format: HFModelFormat) -> HFSibling? {
+        if let sibling = model.siblings?.first(where: { $0.rfilename.hasSuffix(".litertlm") }) {
+            return sibling
+        }
+        if format == .litertlm {
+            let repoName = model.id.split(separator: "/").last.map(String.init) ?? model.id
+            let baseName = repoName
+                .replacingOccurrences(of: "-litert-lm", with: "")
+                .replacingOccurrences(of: "-litert_lm", with: "")
+            return HFSibling(rfilename: "\(baseName).litertlm", size: nil, lfs: nil)
+        }
+        return nil
+    }
+
+    /// Trigger a download for a community model.
+    private func triggerCommunityDownload(model: HFModelInfo, format: HFModelFormat) {
+        if format == .litertlm {
+            if let sibling = communityLitertlmSibling(for: model, format: format) {
+                viewModel.downloadManager.downloadCommunityModel(model: model, sibling: sibling)
+            }
+        } else if format == .mlx {
+            Task {
+                do {
+                    let manifest = try await browser.fetchFileManifest(for: model.id)
+                    let required = HFModelBrowser.filterRequiredMLXFiles(manifest)
+                    let descriptors = HFModelBrowser.downloadDescriptors(
+                        repoId: model.id,
+                        requiredFiles: required
+                    )
+                    viewModel.downloadManager.downloadMLXModel(
+                        modelId: model.id,
+                        descriptors: descriptors
+                    )
+                } catch {
+                    viewModel.statusMessage = "Failed to fetch model manifest: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Format color for a model format.
+    private func formatColor(_ format: HFModelFormat) -> Color {
+        switch format {
+        case .litertlm: AppColors.success
+        case .mlx: AppColors.accentGold
+        case .unknown: AppColors.textTertiary
+        }
+    }
+
+    /// Format label for a model format.
+    private func formatLabel(_ format: HFModelFormat) -> String {
+        switch format {
+        case .litertlm: "LiteRT"
+        case .mlx: "MLX"
+        case .unknown: "Unknown"
+        }
+    }
+
+    /// Format large counts with K/M suffix.
+    private func formatCount(_ count: Int) -> String {
+        if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.1fK", Double(count) / 1_000)
+        }
+        return "\(count)"
     }
 }
 
