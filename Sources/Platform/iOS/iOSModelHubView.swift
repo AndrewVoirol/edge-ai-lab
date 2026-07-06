@@ -129,6 +129,18 @@ struct iOSModelHubView: View {
             .navigationDestination(for: ModelMetadata.self) { metadata in
                 iOSModelDetailView(metadata: metadata)
             }
+            .navigationDestination(for: ModelSource.self) { source in
+                switch source {
+                case .onDevice(let metadata):
+                    iOSModelDetailView(metadata: metadata)
+                case .huggingFace(let hfModel):
+                    iOSHFModelDetailView(
+                        model: hfModel,
+                        format: browser.detectFormat(hfModel),
+                        modelSize: browser.modelSize(hfModel)
+                    )
+                }
+            }
             .sensoryFeedback(.success, trigger: viewModel.isEngineReady)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -221,6 +233,14 @@ struct iOSModelHubView: View {
                     activeModelRow(active)
                 }
                 .glassEffect(in: .rect(cornerRadius: AppRadius.md))
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button {
+                        Task { await viewModel.shutdown() }
+                    } label: {
+                        Label("Unload", systemImage: "eject")
+                    }
+                    .tint(AppColors.warning)
+                }
             } header: {
                 Label("Now Running", systemImage: "bolt.fill")
                     .foregroundStyle(AppColors.accentCyan)
@@ -232,9 +252,10 @@ struct iOSModelHubView: View {
 
     @ViewBuilder
     private var onThisDeviceSection: some View {
-        if !onDeviceModels.isEmpty {
+        let models = onDeviceModels
+        if !models.isEmpty {
             Section("On This Device") {
-                ForEach(onDeviceModels, id: \.metadata.modelFile) { item in
+                ForEach(models, id: \.metadata.modelFile) { item in
                     onDeviceModelRow(item: item)
                 }
             }
@@ -341,7 +362,10 @@ struct iOSModelHubView: View {
                 }
             } else {
                 ForEach(displayedCommunityModels) { model in
-                    communityModelRow(model: model)
+                    NavigationLink(value: ModelSource.huggingFace(model)) {
+                        communityModelRow(model: model)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         } header: {

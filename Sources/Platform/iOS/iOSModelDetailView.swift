@@ -105,7 +105,7 @@ struct iOSModelDetailView: View {
 
                 // Benchmark (if this is the active model)
                 if isActiveModel, let metrics = viewModel.performanceMetrics {
-                    benchmarkSection(metrics: metrics)
+                    BenchmarkSummaryCard(metrics: metrics)
                 }
 
                 // One-Tap Benchmark Runner
@@ -281,6 +281,23 @@ struct iOSModelDetailView: View {
                     .sensoryFeedback(.impact(weight: .medium), trigger: router.selectedTab)
                     .accessibilityLabel("Open chat with this model")
                     .accessibilityIdentifier("modelDetail_openChat")
+
+                    Button {
+                        Task { await viewModel.shutdown() }
+                    } label: {
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "eject.fill")
+                            Text("Unload Model")
+                                .font(AppTypography.subtitle)
+                        }
+                        .foregroundStyle(AppColors.warning)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppColors.warning)
+                    .accessibilityIdentifier("modelDetail_unloadButton")
+                    .accessibilityLabel("Unload model from memory")
                 }
 
             } else if isLoading {

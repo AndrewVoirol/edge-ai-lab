@@ -13,52 +13,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import LiteRTLM
 import SwiftUI
 
 // MARK: - Benchmark Bar View
 
 /// Displays inference performance metrics in a compact bar with an expandable detail view.
 ///
+/// Consumes `EnginePerformanceMetrics` (the universal type populated by both LiteRT-LM
+/// and MLX engines) instead of the LiteRT-specific `BenchmarkInfo`. This fixes the
+/// SwiftUI observation bug where `viewModel.benchmarkInfo` (a computed property reading
+/// from `@ObservationIgnored engine`) never triggered view updates.
+///
 /// All `accessibilityIdentifier` values are preserved from the original inline code
 /// in `ContentView` so that agent discoverability and UI testing remain intact.
 struct BenchmarkBarView: View {
-    let info: BenchmarkInfo
+    let metrics: EnginePerformanceMetrics
     @Environment(ConversationViewModel.self) private var viewModel
     @State private var isBenchmarkExpanded = true
     @State private var isShowingBenchmarkCard = false
 
     var body: some View {
-        benchmarkBar(info: info)
+        benchmarkBar(metrics: metrics)
     }
 
     // MARK: - Benchmark Bar
 
-    private func benchmarkBar(info: BenchmarkInfo) -> some View {
-        let decodeTier = PerformanceTier(decodeSpeed: info.lastDecodeTokensPerSecond)
+    private func benchmarkBar(metrics: EnginePerformanceMetrics) -> some View {
+        let decodeTier = PerformanceTier(decodeSpeed: metrics.tokensPerSecond)
 
         return VStack(spacing: AppSpacing.xs) {
             // Compact bar (always visible)
             #if os(iOS)
             // iOS: Two-row wrapped grid to fit narrow screens
-            iosBenchmarkCompactBar(info: info, decodeTier: decodeTier)
+            iosBenchmarkCompactBar(metrics: metrics, decodeTier: decodeTier)
             #else
             HStack(spacing: AppSpacing.md) {
-                // Backend indicator
-                if let result = viewModel.backendResult {
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                        Text(result.activeBackend == .gpu ? "GPU" : "CPU")
-                            .font(AppTypography.badge)
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                    }
+                // Runtime/Backend indicator
+                runtimeBadge
                     .accessibilityIdentifier("badge_backend")
 
-                    Rectangle()
-                        .fill(AppColors.border)
-                        .frame(width: 0.5, height: 18)
-                }
+                Rectangle()
+                    .fill(AppColors.border)
+                    .frame(width: 0.5, height: 18)
 
                 // Thermal state indicator
                 thermalIndicator
@@ -68,8 +64,8 @@ struct BenchmarkBarView: View {
                     .fill(AppColors.border)
                     .frame(width: 0.5, height: 18)
 
-                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
-                    .accessibilityLabel("Time to first token: \(String(format: "%.3f", info.timeToFirstTokenInSecond)) seconds")
+                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", metrics.timeToFirstToken ?? 0))
+                    .accessibilityLabel("Time to first token: \(String(format: "%.3f", metrics.timeToFirstToken ?? 0)) seconds")
                 Rectangle()
                     .fill(AppColors.border)
                     .frame(width: 0.5, height: 18)
@@ -79,19 +75,19 @@ struct BenchmarkBarView: View {
                     Text("Decode")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
-                    Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                    Text(String(format: "%.1f tok/s", metrics.tokensPerSecond))
                         .font(AppTypography.metric)
                         .foregroundStyle(decodeTier.color)
                         .contentTransition(.numericText())
-                        .accessibilityLabel("Decode speed: \(String(format: "%.1f", info.lastDecodeTokensPerSecond)) tokens per second")
+                        .accessibilityLabel("Decode speed: \(String(format: "%.1f", metrics.tokensPerSecond)) tokens per second")
                 }
 
                 Rectangle()
                     .fill(AppColors.border)
                     .frame(width: 0.5, height: 18)
 
-                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
-                    .accessibilityLabel("Prefill speed: \(String(format: "%.1f", info.lastPrefillTokensPerSecond)) tokens per second")
+                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", metrics.promptTokensPerSecond ?? 0))
+                    .accessibilityLabel("Prefill speed: \(String(format: "%.1f", metrics.promptTokensPerSecond ?? 0)) tokens per second")
 
                 // Memory indicator
                 Rectangle()
@@ -142,8 +138,8 @@ struct BenchmarkBarView: View {
             }
 
             // Expanded detail view
-            if isBenchmarkExpanded, let metrics = viewModel.inferenceMetrics {
-                expandedMetricsView(metrics: metrics, info: info)
+            if isBenchmarkExpanded {
+                expandedMetricsView(metrics: metrics)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
@@ -151,7 +147,7 @@ struct BenchmarkBarView: View {
         .sheet(isPresented: $isShowingBenchmarkCard) {
             BenchmarkCardShareSheet(
                 cardData: BenchmarkCardData.from(
-                    benchmarkInfo: info,
+                    performanceMetrics: metrics,
                     inferenceMetrics: viewModel.inferenceMetrics,
                     modelMetadata: viewModel.activeModelMetadata,
                     backendResult: viewModel.backendResult
@@ -164,25 +160,17 @@ struct BenchmarkBarView: View {
 
     #if os(iOS)
     /// Two-row layout for the benchmark bar on narrow iPhone screens.
-    private func iosBenchmarkCompactBar(info: BenchmarkInfo, decodeTier: PerformanceTier) -> some View {
+    private func iosBenchmarkCompactBar(metrics: EnginePerformanceMetrics, decodeTier: PerformanceTier) -> some View {
         VStack(spacing: AppSpacing.xs) {
             // Row 1: Backend, Thermal, TTFT, Expand button
             HStack(spacing: AppSpacing.sm) {
-                if let result = viewModel.backendResult {
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                        Text(result.activeBackend == .gpu ? "GPU" : "CPU")
-                            .font(AppTypography.badge)
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                    }
+                runtimeBadge
                     .accessibilityIdentifier("badge_backend")
-                }
 
                 thermalIndicator
                     .accessibilityIdentifier("indicator_thermal")
 
-                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", info.timeToFirstTokenInSecond))
+                benchmarkItem(label: "TTFT", value: String(format: "%.3fs", metrics.timeToFirstToken ?? 0))
 
                 Spacer()
 
@@ -215,14 +203,14 @@ struct BenchmarkBarView: View {
                     Text("Decode")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
-                    Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                    Text(String(format: "%.1f tok/s", metrics.tokensPerSecond))
                         .font(AppTypography.metric)
                         .foregroundStyle(decodeTier.color)
                         .contentTransition(.numericText())
-                        .accessibilityLabel("Decode speed: \(String(format: "%.1f", info.lastDecodeTokensPerSecond)) tokens per second")
+                        .accessibilityLabel("Decode speed: \(String(format: "%.1f", metrics.tokensPerSecond)) tokens per second")
                 }
 
-                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
+                benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", metrics.promptTokensPerSecond ?? 0))
 
                 memoryIndicator
 
@@ -231,6 +219,33 @@ struct BenchmarkBarView: View {
         }
     }
     #endif
+
+    // MARK: - Runtime Badge
+
+    /// Shows the runtime type (MLX / LiteRT) and backend (GPU/CPU) as a colored badge.
+    private var runtimeBadge: some View {
+        HStack(spacing: AppSpacing.xs) {
+            if metrics.runtimeType == .mlx {
+                Image(systemName: "bolt.fill")
+                    .foregroundStyle(AppColors.accentCyan)
+                Text("MLX")
+                    .font(AppTypography.badge)
+                    .foregroundStyle(AppColors.accentCyan)
+            } else if let result = viewModel.backendResult {
+                Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                Text(result.activeBackend == .gpu ? "GPU" : "CPU")
+                    .font(AppTypography.badge)
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+            } else {
+                Image(systemName: "cpu")
+                    .foregroundStyle(AppColors.textSecondary)
+                Text("LiteRT")
+                    .font(AppTypography.badge)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+        }
+    }
 
     // MARK: - Thermal Indicator
 
@@ -269,9 +284,7 @@ struct BenchmarkBarView: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Expanded Metrics Detail
-
-    private func expandedMetricsView(metrics: InferenceMetrics, info: BenchmarkInfo) -> some View {
+    private func expandedMetricsView(metrics: EnginePerformanceMetrics) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Rectangle()
                 .fill(AppColors.border)
@@ -281,98 +294,172 @@ struct BenchmarkBarView: View {
             // iOS: 2-column grid to avoid horizontal overflow on narrow screens
             let columns = [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)]
 
-            // Token latency statistics
-            if !metrics.decodeLatenciesMs.isEmpty {
+            // Token latency statistics (from InferenceMetrics if available)
+            if let inferenceMetrics = viewModel.inferenceMetrics,
+               !inferenceMetrics.decodeLatenciesMs.isEmpty {
+                expandedSection(title: "LATENCY") {
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.accentCyan)
+                    }
+                }
+            }
+
+            // Memory delta (from InferenceMetrics)
+            if let inferenceMetrics = viewModel.inferenceMetrics {
+                expandedSection(title: "MEMORY") {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.accentTeal)
+                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.accentTeal)
+                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.warning : AppColors.accentTeal)
+                        }
+
+                        // Thermal transition
+                        if inferenceMetrics.thermalStateChanged {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(AppColors.warning)
+                                Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Token counts and timing
+            expandedSection(title: "TOKENS") {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                    statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
-                    statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))
-                    statItem(label: "Min", value: String(format: "%.1f ms", metrics.minTokenLatencyMs))
-                    statItem(label: "Max", value: String(format: "%.1f ms", metrics.maxTokenLatencyMs))
+                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.accentGold)
+                    if let initTime = metrics.initTimeSeconds {
+                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.accentGold)
+                    }
+                    if let prefillCount = metrics.promptTokenCount {
+                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.accentGold)
+                    }
                 }
             }
 
-            // Memory delta
-            LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                statItem(
-                    label: "Mem Start",
-                    value: String(format: "%.0f MB", metrics.startSnapshot.availableMemoryMB)
-                )
-                statItem(
-                    label: "Mem End",
-                    value: String(format: "%.0f MB", metrics.endSnapshot.availableMemoryMB)
-                )
-                statItem(
-                    label: "Δ Memory",
-                    value: String(format: "%+.0f MB", metrics.memoryDeltaMB)
-                )
-            }
-
-            // Thermal transition
-            if metrics.thermalStateChanged {
-                HStack(spacing: AppSpacing.xs) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(AppColors.warning)
-                    Text("Thermal: \(metrics.startSnapshot.thermalLevel.label) → \(metrics.endSnapshot.thermalLevel.label)")
-                        .foregroundStyle(AppColors.textSecondary)
+            // MTP Speculation stats (MLX only)
+            if let acceptance = metrics.draftAcceptanceRate {
+                expandedSection(title: "MTP SPECULATION") {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
+                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.warning)
+                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.warning)
+                        }
+                        if let reason = metrics.passthroughReason {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "info.circle")
+                                    .foregroundStyle(AppColors.textTertiary)
+                                Text("Passthrough: \(reason)")
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                        }
+                    }
                 }
             }
 
-            // Token counts
-            LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                statItem(label: "Tokens", value: "\(metrics.totalTokenCount)")
-                statItem(label: "Init", value: String(format: "%.2fs", info.initTimeInSecond))
-                statItem(label: "Prefill", value: "\(info.lastPrefillTokenCount) tok")
-                statItem(label: "Decode", value: "\(info.lastDecodeTokenCount) tok")
+            // Timing breakdown
+            if let promptTime = metrics.promptTimeSeconds, let genTime = metrics.generateTimeSeconds {
+                expandedSection(title: "TIMING") {
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
+                        coloredStatItem(label: "Prefill", value: String(format: "%.3fs", promptTime), color: AppColors.textSecondary)
+                        coloredStatItem(label: "Generate", value: String(format: "%.3fs", genTime), color: AppColors.textSecondary)
+                    }
+                }
             }
+
             #else
-            // Token latency statistics
-            if !metrics.decodeLatenciesMs.isEmpty {
+            // macOS: horizontal layout with section headers
+
+            // Token latency statistics (from InferenceMetrics if available)
+            if let inferenceMetrics = viewModel.inferenceMetrics,
+               !inferenceMetrics.decodeLatenciesMs.isEmpty {
+                expandedSection(title: "LATENCY") {
+                    HStack(spacing: AppSpacing.lg) {
+                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.accentCyan)
+                        Spacer()
+                    }
+                }
+            }
+
+            // Memory delta (from InferenceMetrics)
+            if let inferenceMetrics = viewModel.inferenceMetrics {
+                expandedSection(title: "MEMORY") {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        HStack(spacing: AppSpacing.lg) {
+                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.accentTeal)
+                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.accentTeal)
+                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.warning : AppColors.accentTeal)
+                            Spacer()
+                        }
+
+                        // Thermal transition
+                        if inferenceMetrics.thermalStateChanged {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(AppColors.warning)
+                                Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Token counts and timing
+            expandedSection(title: "TOKENS") {
                 HStack(spacing: AppSpacing.lg) {
-                    statItem(label: "Median", value: String(format: "%.1f ms", metrics.medianTokenLatencyMs))
-                    statItem(label: "P95", value: String(format: "%.1f ms", metrics.p95TokenLatencyMs))
-                    statItem(label: "Min", value: String(format: "%.1f ms", metrics.minTokenLatencyMs))
-                    statItem(label: "Max", value: String(format: "%.1f ms", metrics.maxTokenLatencyMs))
+                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.accentGold)
+                    if let initTime = metrics.initTimeSeconds {
+                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.accentGold)
+                    }
+                    if let prefillCount = metrics.promptTokenCount {
+                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.accentGold)
+                    }
                     Spacer()
                 }
             }
 
-            // Memory delta
-            HStack(spacing: AppSpacing.lg) {
-                statItem(
-                    label: "Mem Start",
-                    value: String(format: "%.0f MB", metrics.startSnapshot.availableMemoryMB)
-                )
-                statItem(
-                    label: "Mem End",
-                    value: String(format: "%.0f MB", metrics.endSnapshot.availableMemoryMB)
-                )
-                statItem(
-                    label: "Δ Memory",
-                    value: String(format: "%+.0f MB", metrics.memoryDeltaMB)
-                )
-                Spacer()
-            }
-
-            // Thermal transition
-            if metrics.thermalStateChanged {
-                HStack(spacing: AppSpacing.xs) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(AppColors.warning)
-                    Text("Thermal: \(metrics.startSnapshot.thermalLevel.label) → \(metrics.endSnapshot.thermalLevel.label)")
-                        .foregroundStyle(AppColors.textSecondary)
+            // MTP Speculation stats (MLX only)
+            if let acceptance = metrics.draftAcceptanceRate {
+                expandedSection(title: "MTP SPECULATION") {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        HStack(spacing: AppSpacing.lg) {
+                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
+                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.warning)
+                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.warning)
+                            if let reason = metrics.passthroughReason {
+                                coloredStatItem(label: "Passthrough", value: reason, color: AppColors.warning)
+                            }
+                            Spacer()
+                        }
+                    }
                 }
             }
 
-            // Token counts
-            HStack(spacing: AppSpacing.lg) {
-                statItem(label: "Tokens", value: "\(metrics.totalTokenCount)")
-                statItem(label: "Init", value: String(format: "%.2fs", info.initTimeInSecond))
-                statItem(label: "Prefill", value: "\(info.lastPrefillTokenCount) tok")
-                statItem(label: "Decode", value: "\(info.lastDecodeTokenCount) tok")
-                Spacer()
+            // Timing breakdown
+            if let promptTime = metrics.promptTimeSeconds, let genTime = metrics.generateTimeSeconds {
+                expandedSection(title: "TIMING") {
+                    HStack(spacing: AppSpacing.lg) {
+                        coloredStatItem(label: "Prefill", value: String(format: "%.3fs", promptTime), color: AppColors.textSecondary)
+                        coloredStatItem(label: "Generate", value: String(format: "%.3fs", genTime), color: AppColors.textSecondary)
+                        Spacer()
+                    }
+                }
             }
             #endif
         }
+
         .padding(.top, AppSpacing.xs)
     }
 
@@ -395,6 +482,34 @@ struct BenchmarkBarView: View {
             Text(value)
                 .font(AppTypography.metric)
                 .foregroundStyle(AppColors.textSecondary)
+        }
+    }
+
+    // MARK: - Visual Polish Helpers
+
+    /// Section wrapper with uppercase header label and subtle background.
+    private func expandedSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+            Text(title)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+                .tracking(1)
+            content()
+        }
+        .padding(AppSpacing.sm)
+        .background(AppColors.backgroundTertiary.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+    }
+
+    /// Stat item with custom value color for visual category grouping.
+    private func coloredStatItem(label: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+            Text(value)
+                .font(AppTypography.metric)
+                .foregroundStyle(color)
         }
     }
 }
