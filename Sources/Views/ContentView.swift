@@ -133,7 +133,8 @@ struct ContentView: View {
         .preferredColorScheme(.dark)
         .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            // Settings — isolated on the left of the primary action area
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showSettings = true
                 } label: {
@@ -142,7 +143,12 @@ struct ContentView: View {
                 .help("Settings")
                 .accessibilityIdentifier("button_settings")
                 .accessibilityLabel("Settings")
+            }
 
+            ToolbarSpacer(.fixed)
+
+            // Model actions — grouped together under a shared glass capsule
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     viewModel.refreshDiscoveredModels()
                     viewModel.downloadManager.refreshStates()
@@ -161,7 +167,12 @@ struct ContentView: View {
                 .help("Load a custom model from disk")
                 .accessibilityIdentifier("button_loadModel")
                 .accessibilityLabel("Load Model")
+            }
 
+            ToolbarSpacer(.fixed)
+
+            // Chat panel toggle — isolated on the right
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     withAnimation(AppAnimation.standard) {
                         isChatCollapsed.toggle()

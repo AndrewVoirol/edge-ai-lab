@@ -117,6 +117,7 @@ struct iOSModelHubView: View {
             // Search bar text truncates when the bar collapses into the navigation
             // title area. No API workaround exists; filed as Apple Feedback.
             .searchable(text: $searchText, prompt: "Search models…")
+            .searchToolbarBehavior(.minimize)
             .refreshable {
                 viewModel.refreshDiscoveredModels()
                 viewModel.downloadManager.refreshStates()

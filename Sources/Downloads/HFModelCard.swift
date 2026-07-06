@@ -83,10 +83,25 @@ struct HFModelCard: View {
                 formatBadge
             }
 
-            // Organization
-            Text(model.orgName)
-                .font(AppTypography.caption)
-                .foregroundStyle(AppColors.textTertiary)
+            // Organization with avatar
+            HStack(spacing: AppSpacing.xs) {
+                AsyncImage(
+                    request: URLRequest(url: URL(string: "https://huggingface.co/api/organizations/\(model.orgName)/avatar")!)
+                ) { image in
+                    image.resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Image(systemName: "building.2")
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+                .frame(width: 20, height: 20)
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+
+                Text(model.orgName)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
 
             // Stats row: downloads + likes + size
             HStack(spacing: AppSpacing.lg) {
