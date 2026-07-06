@@ -104,8 +104,8 @@ struct iOSModelDetailView: View {
                 descriptionSection
 
                 // Benchmark (if this is the active model)
-                if isActiveModel, let info = viewModel.benchmarkInfo {
-                    benchmarkSection(info: info)
+                if isActiveModel, let metrics = viewModel.performanceMetrics {
+                    benchmarkSection(metrics: metrics)
                 }
 
                 // One-Tap Benchmark Runner
@@ -131,7 +131,9 @@ struct iOSModelDetailView: View {
             Button("Delete", role: .destructive) {
                 deleteModel()
             }
+            .accessibilityIdentifier("modelDetail_deleteConfirmAlert")
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("modelDetail_deleteCancelAlert")
         } message: {
             Text("This will remove \"\(metadata.name)\" (\(formattedSize)) from your device. You can re-download it later.")
         }
@@ -143,10 +145,13 @@ struct iOSModelDetailView: View {
                 Button("Download (\(check.formattedModelSize))") {
                     viewModel.downloadManager.download(metadata)
                 }
+                .accessibilityIdentifier("modelDetail_downloadConfirmDialog")
             } else {
                 Button("Not Enough Storage", role: .cancel) {}
+                    .accessibilityIdentifier("modelDetail_notEnoughStorage")
             }
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("modelDetail_downloadCancelDialog")
         } message: {
             if let check = storageCheck {
                 if check.hasEnoughSpace {
@@ -554,20 +559,20 @@ struct iOSModelDetailView: View {
 
     // MARK: - Benchmark Section
 
-    private func benchmarkSection(info: BenchmarkInfo) -> some View {
+    private func benchmarkSection(metrics: EnginePerformanceMetrics) -> some View {
         detailCard(title: "Last Benchmark", icon: "speedometer") {
             VStack(spacing: AppSpacing.sm) {
                 HStack {
                     metricDisplay(
                         label: "Decode",
-                        value: String(format: "%.1f", info.lastDecodeTokensPerSecond),
+                        value: String(format: "%.1f", metrics.tokensPerSecond),
                         unit: "tok/s",
-                        color: PerformanceTier(decodeSpeed: info.lastDecodeTokensPerSecond).color
+                        color: PerformanceTier(decodeSpeed: metrics.tokensPerSecond).color
                     )
                     Spacer()
                     metricDisplay(
                         label: "Prefill",
-                        value: String(format: "%.1f", info.lastPrefillTokensPerSecond),
+                        value: String(format: "%.1f", metrics.promptTokensPerSecond ?? 0),
                         unit: "tok/s",
                         color: AppColors.textSecondary
                     )
@@ -576,14 +581,14 @@ struct iOSModelDetailView: View {
                 HStack {
                     metricDisplay(
                         label: "TTFT",
-                        value: String(format: "%.2f", info.timeToFirstTokenInSecond),
+                        value: String(format: "%.2f", metrics.timeToFirstToken ?? 0),
                         unit: "s",
                         color: AppColors.textSecondary
                     )
                     Spacer()
                     metricDisplay(
                         label: "Init",
-                        value: String(format: "%.2f", info.initTimeInSecond),
+                        value: String(format: "%.2f", metrics.initTimeSeconds ?? 0),
                         unit: "s",
                         color: AppColors.textSecondary
                     )
@@ -732,49 +737,5 @@ extension ModelDownloadManager.DownloadState {
         return false
     }
 }
-
-// MARK: - Flow Layout
-
-/// A simple horizontal flow layout that wraps items to the next line.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = layoutResult(for: proposal.width ?? 0, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = layoutResult(for: bounds.width, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(
-                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
-                proposal: .unspecified
-            )
-        }
-    }
-
-    private func layoutResult(for containerWidth: CGFloat, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
-        var positions: [CGPoint] = []
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var lineHeight: CGFloat = 0
-        var maxWidth: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > containerWidth, currentX > 0 {
-                currentX = 0
-                currentY += lineHeight + spacing
-                lineHeight = 0
-            }
-            positions.append(CGPoint(x: currentX, y: currentY))
-            lineHeight = max(lineHeight, size.height)
-            currentX += size.width + spacing
-            maxWidth = max(maxWidth, currentX - spacing)
-        }
-
-        return (CGSize(width: maxWidth, height: currentY + lineHeight), positions)
-    }
-}
 #endif
+

@@ -148,7 +148,9 @@ struct iOSModelHubView: View {
                 Button("Delete", role: .destructive) {
                     deleteModel(model)
                 }
+                .accessibilityIdentifier("button_deleteConfirmAlert")
                 Button("Cancel", role: .cancel) {}
+                    .accessibilityIdentifier("button_deleteCancelAlert")
             } message: { model in
                 Text("This will remove \"\(model.name)\" from your device. You can re-download it later.")
             }
@@ -161,10 +163,13 @@ struct iOSModelHubView: View {
                     Button("Download (\(check.formattedModelSize))") {
                         viewModel.downloadManager.download(model)
                     }
+                    .accessibilityIdentifier("button_downloadConfirmDialog")
                 } else {
                     Button("Not Enough Storage", role: .cancel) {}
+                        .accessibilityIdentifier("button_notEnoughStorage")
                 }
                 Button("Cancel", role: .cancel) {}
+                    .accessibilityIdentifier("button_downloadCancelDialog")
             } message: { model in
                 if let check = storageCheck {
                     if check.hasEnoughSpace {

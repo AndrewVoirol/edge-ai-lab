@@ -137,7 +137,9 @@ struct HFModelCard: View {
                     onLoadModel?(sibling.rfilename, url)
                 }
             }
+            .accessibilityIdentifier("button_loadNowAlert")
             Button("Later", role: .cancel) {}
+                .accessibilityIdentifier("button_loadLaterAlert")
         } message: {
             Text("The model has been downloaded and is ready to use.")
         }
@@ -241,6 +243,7 @@ struct HFModelCard: View {
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("hf_cancelDownload_\(model.id.replacingOccurrences(of: "/", with: "_"))")
                 }
             }
 
@@ -307,6 +310,7 @@ struct HFModelCard: View {
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("hf_cancelDirDownload_\(model.id.replacingOccurrences(of: "/", with: "_"))")
                 }
             }
 

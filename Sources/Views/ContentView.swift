@@ -157,10 +157,10 @@ struct ContentView: View {
                     viewModel.isFilePickerPresented = true
                 } label: {
                     Image(systemName: "plus.square")
-                    Text("Load Model")
                 }
                 .help("Load a custom model from disk")
                 .accessibilityIdentifier("button_loadModel")
+                .accessibilityLabel("Load Model")
 
                 Button {
                     withAnimation(AppAnimation.standard) {
@@ -312,11 +312,11 @@ struct ContentView: View {
                     .frame(maxHeight: .infinity)
 
                 // Benchmark bar (shown when data is available)
-                if viewModel.runtimeFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+                if viewModel.runtimeFlags.enableBenchmark, let metrics = viewModel.performanceMetrics {
                     Rectangle()
                         .fill(AppColors.border)
                         .frame(height: 0.5)
-                    BenchmarkBarView(info: info)
+                    BenchmarkBarView(metrics: metrics)
                         #if os(iOS)
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.xs)
@@ -449,9 +449,11 @@ extension ContentView {
                     viewModel.downloadManager.showTokenPrompt = false
                     showSettings = true
                 }
+                .accessibilityIdentifier("button_alertOpenSettings")
                 Button("Cancel", role: .cancel) {
                     viewModel.downloadManager.showTokenPrompt = false
                 }
+                .accessibilityIdentifier("button_alertTokenCancel")
             }
             #if os(macOS)
             .sheet(isPresented: Binding(

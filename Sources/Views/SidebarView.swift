@@ -294,6 +294,7 @@ struct SidebarView: View {
             Button("Cancel", role: .cancel) {
                 modelToDelete = nil
             }
+            .accessibilityIdentifier("button_deleteModelCancel")
             Button("Delete", role: .destructive) {
                 if let model = modelToDelete {
                     if let metadata = model.metadata {
@@ -305,6 +306,7 @@ struct SidebarView: View {
                     modelToDelete = nil
                 }
             }
+            .accessibilityIdentifier("button_deleteModelConfirm")
         } message: {
             if let model = modelToDelete {
                 Text("\"\(model.metadata?.name ?? model.filename)\" will be permanently removed from disk. This cannot be undone.")
@@ -316,9 +318,11 @@ struct SidebarView: View {
             isPresented: $showClearAllConfirmation
         ) {
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("button_clearAllCancel")
             Button("Delete All", role: .destructive) {
                 viewModel.deleteAllConversations()
             }
+            .accessibilityIdentifier("button_clearAllConfirm")
         } message: {
             Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
         }
@@ -597,18 +601,21 @@ struct SidebarView: View {
             } label: {
                 Label("Rename", systemImage: "pencil")
             }
+            .accessibilityIdentifier("sidebar_context_rename")
 
             Button {
                 viewModel.forkConversation(id: entry.id)
             } label: {
                 Label("Fork Experiment", systemImage: "arrow.triangle.branch")
             }
+            .accessibilityIdentifier("sidebar_context_fork")
 
             Button {
                 exportConversation(entry.id)
             } label: {
                 Label("Export JSON", systemImage: "square.and.arrow.up")
             }
+            .accessibilityIdentifier("sidebar_context_export")
 
             Divider()
 
@@ -617,15 +624,19 @@ struct SidebarView: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .accessibilityIdentifier("sidebar_context_delete")
         }
         .alert("Rename Conversation", isPresented: $showRenameAlert) {
             TextField("Title", text: $renameText)
+                .accessibilityIdentifier("textField_renameConversation")
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("button_renameCancelAlert")
             Button("Rename") {
                 if let target = renameTarget {
                     viewModel.renameConversation(id: target.id, newTitle: renameText)
                 }
             }
+            .accessibilityIdentifier("button_renameConfirmAlert")
         }
     }
 
