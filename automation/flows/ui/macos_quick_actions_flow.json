@@ -18,8 +18,8 @@
     {
       "step": 3,
       "action": "verify_ui",
-      "description": "Verify sidebar getting started section exists (no model state).",
-      "expected_elements": ["sidebar_gettingStarted"]
+      "description": "Verify sidebar empty state exists (no models on device).",
+      "expected_elements": ["sidebar_emptyState"]
     }
   ]
 }

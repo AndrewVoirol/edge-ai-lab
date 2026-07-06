@@ -1,0 +1,50 @@
+{
+  "name": "macOS Model Detail Panel",
+  "description": "Tests the model detail panel in the center column. Verifies that clicking a sidebar model shows the detail panel with model name, status, capabilities, stats grid, and load/unload button. Requires at least one model on device.",
+  "platform": "macOS",
+  "prerequisites": ["At least one model file in the Documents directory"],
+  "steps": [
+    {
+      "step": 1,
+      "action": "verify_ui",
+      "description": "Verify sidebar list exists with at least one model.",
+      "expected_elements": ["sidebar_list"]
+    },
+    {
+      "step": 2,
+      "action": "verify_ui",
+      "description": "Verify the detail column root exists.",
+      "expected_elements": ["detailColumn_root"]
+    },
+    {
+      "step": 3,
+      "action": "verify_ui",
+      "description": "Verify the community browser is shown by default (no model selected).",
+      "expected_elements": ["communityModelsBrowser"]
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify the model detail panel root exists.",
+      "expected_elements": ["modelDetailPanel_root"]
+    },
+    {
+      "step": 5,
+      "action": "verify_ui",
+      "description": "After clicking a model, verify the model detail shows name and status.",
+      "expected_elements": ["modelDetail_name", "modelDetail_status_notLoaded"]
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify capability badges are shown.",
+      "expected_elements": ["modelDetail_badges"]
+    },
+    {
+      "step": 7,
+      "action": "verify_ui",
+      "description": "Verify the Load Model button is visible (model not currently loaded).",
+      "expected_elements": ["modelDetail_loadButton"]
+    }
+  ]
+}

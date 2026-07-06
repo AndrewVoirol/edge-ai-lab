@@ -78,9 +78,6 @@ struct SidebarView: View {
     @State private var modelToDelete: DiscoveredModel?
     @State private var showDeleteConfirmation = false
 
-    /// Downloadable model pending delete confirmation (sidebar download status).
-    @State private var downloadableModelToDelete: ModelMetadata?
-    @State private var showDownloadableDeleteConfirmation = false
 
     /// Conversation bulk delete confirmation.
     @State private var showClearAllConfirmation = false
@@ -91,6 +88,7 @@ struct SidebarView: View {
 
             Section {
                 activeModelRow
+                    .glassEffect(in: .rect(cornerRadius: AppRadius.md))
             } header: {
                 Text("Active Model")
                     .font(AppTypography.sectionHeader)
@@ -114,9 +112,7 @@ struct SidebarView: View {
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selectedSection = .models
-                        Task {
-                            await viewModel.handleModelSelection(model.url)
-                        }
+                        selectedModelId = model.filename
                     }
                     .contextMenu {
                         if let metadata = model.metadata {
@@ -143,53 +139,28 @@ struct SidebarView: View {
                     .accessibilityHint("Double-tap to load this model")
                 }
 
-                // Getting Started card — shown when no models are on disk
-                if viewModel.discoveredModels.isEmpty {
-                    VStack(alignment: .leading, spacing: AppSpacing.md) {
-                        HStack(spacing: AppSpacing.sm) {
-                            Image(systemName: "sparkles")
-                                .font(.title3)
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [AppColors.accentGold, AppColors.accentTeal],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                            Text("Get Started")
-                                .font(AppTypography.sectionHeader)
-                                .foregroundStyle(AppColors.textPrimary)
-                        }
-
-                        Text("Models run entirely on your device.\nNo cloud. No API keys.")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textSecondary)
-
-                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                            Text("Recommended first model:")
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.textTertiary)
-                            HStack(spacing: AppSpacing.xs) {
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .foregroundStyle(AppColors.accentCyan)
-                                Text("Gemma 4 E2B (~2.6 GB)")
-                                    .font(AppTypography.subtitle)
-                                    .foregroundStyle(AppColors.accentCyan)
-                            }
-                        }
-                    }
-                    .padding(AppSpacing.md)
-                    .glassCard(cornerRadius: AppRadius.md)
-                    .accessibilityIdentifier("sidebar_gettingStarted")
+                // Models currently downloading / queued / paused
+                ForEach(activeDownloads, id: \.key) { filename, state in
+                    downloadingModelRow(filename: filename, state: state)
                 }
 
-                // Registry models not yet on disk (downloadable)
-                ForEach(downloadableModels) { model in
-                    downloadableModelRow(model)
-                        .accessibilityIdentifier("sidebar_downloadable_\(model.modelFile)")
-                        .onAppear {
-                            print("📦 Sidebar rendering downloadable: \(model.name) | file: \(model.modelFile) | MLX: \(model.isMLXDirectoryModel) | runtime: \(model.runtimeType)")
-                        }
+                // Empty state — no models on disk and no active downloads
+                if viewModel.discoveredModels.isEmpty && activeDownloads.isEmpty {
+                    VStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "shippingbox")
+                            .font(.largeTitle)
+                            .foregroundStyle(AppColors.textTertiary.opacity(0.5))
+                        Text("No Models")
+                            .font(AppTypography.sectionHeader)
+                            .foregroundStyle(AppColors.textSecondary)
+                        Text("Browse and download models\nfrom the Models panel.")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.lg)
+                    .accessibilityIdentifier("sidebar_emptyState")
                 }
             } header: {
                 Label("Models", systemImage: SidebarSection.models.systemImage)
@@ -339,22 +310,7 @@ struct SidebarView: View {
                 Text("\"\(model.metadata?.name ?? model.filename)\" will be permanently removed from disk. This cannot be undone.")
             }
         }
-        .alert("Delete Model?", isPresented: $showDownloadableDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {
-                downloadableModelToDelete = nil
-            }
-            Button("Delete", role: .destructive) {
-                if let metadata = downloadableModelToDelete {
-                    viewModel.downloadManager.deleteModel(metadata)
-                    viewModel.refreshDiscoveredModels()
-                    downloadableModelToDelete = nil
-                }
-            }
-        } message: {
-            if let metadata = downloadableModelToDelete {
-                Text("\"\(metadata.name)\" will be permanently removed from disk. This cannot be undone.")
-            }
-        }
+
         .alert(
             "Delete All Conversations?",
             isPresented: $showClearAllConfirmation
@@ -425,220 +381,125 @@ struct SidebarView: View {
         }
     }
 
-    // MARK: - Downloadable Models
+    // MARK: - Active Downloads
 
-    /// Registry models that are not yet discovered on disk.
-    private var downloadableModels: [ModelMetadata] {
-        let discoveredFilenames = Set(viewModel.discoveredModels.map(\.filename))
-        return ModelRegistry.knownModels.filter { model in
-            if model.isMLXDirectoryModel {
-                // MLX models: check both discovered filenames and download state
-                let dirName = model.modelFile
-                if discoveredFilenames.contains(dirName) { return false }
-                if case .downloaded = viewModel.downloadManager.checkMLXModelState(modelId: model.modelId) {
-                    return false
-                }
+    /// Download states that represent in-progress activity (downloading, queued, paused).
+    private var activeDownloads: [(key: String, value: ModelDownloadManager.DownloadState)] {
+        viewModel.downloadManager.downloadStates.filter { _, state in
+            switch state {
+            case .downloading, .downloadingDirectory, .queued, .paused, .pausedDirectory:
                 return true
-            } else {
-                return !discoveredFilenames.contains(model.modelFile)
+            default:
+                return false
             }
         }
+        .sorted { $0.key < $1.key }
     }
 
-    /// Row for a model that can be downloaded from HuggingFace.
+    /// Row for a model that is currently downloading, queued, or paused.
     @ViewBuilder
-    private func downloadableModelRow(_ model: ModelMetadata) -> some View {
-        let state = viewModel.downloadManager.downloadStates[model.modelFile] ?? .notDownloaded
-
+    private func downloadingModelRow(
+        filename: String,
+        state: ModelDownloadManager.DownloadState
+    ) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            Text(model.name)
+            Text(filename)
                 .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
 
-            ModelCapabilityBadges(
-                metadata: model,
-                runtimeFlags: viewModel.runtimeFlags
-            )
-
-            downloadStatusView(for: model, state: state)
-        }
-        .padding(.vertical, AppSpacing.xs)
-    }
-
-    /// Status indicator and action controls for each download state.
-    @ViewBuilder
-    private func downloadStatusView(
-        for model: ModelMetadata,
-        state: ModelDownloadManager.DownloadState
-    ) -> some View {
-        switch state {
-        case .notDownloaded:
-            Button {
-                print("🔘 Sidebar download button tapped for: \(model.name) (MLX=\(model.isMLXDirectoryModel))")
-                if model.isMLXDirectoryModel {
-                    Task {
-                        await viewModel.downloadMLXRegistryModel(model)
+            switch state {
+            case .downloading(let progress):
+                VStack(alignment: .leading, spacing: 2) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.accentTeal)
+                        .accessibilityLabel("Downloading, \(Int(progress * 100)) percent")
+                    HStack {
+                        Text("\(Int(progress * 100))%")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                        Spacer()
+                        Button {
+                            Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("sidebar_cancelDownload_\(filename)")
                     }
-                } else {
-                    viewModel.downloadManager.download(model)
                 }
-            } label: {
-                HStack(spacing: AppSpacing.xs) {
-                    Image(systemName: "arrow.down.circle")
-                    Text(ByteCountFormatter.string(
-                        fromByteCount: model.sizeInBytes,
-                        countStyle: .file
-                    ))
-                    .font(AppTypography.caption)
-                }
-                .font(AppTypography.caption)
-                .foregroundStyle(model.isMLXDirectoryModel ? AppColors.accentGold : AppColors.accentCyan)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("sidebar_download_\(model.modelFile)")
 
-        case .downloading(let progress):
-            VStack(alignment: .leading, spacing: 2) {
-                ProgressView(value: progress)
-                    .tint(AppColors.accentTeal)
-                    .accessibilityLabel("Downloading, \(Int(progress * 100)) percent")
-                HStack {
-                    Text("\(Int(progress * 100))%")
+            case .downloadingDirectory(let progress, let completed, let total):
+                VStack(alignment: .leading, spacing: 2) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.accentGold)
+                    HStack {
+                        Text("\(completed)/\(total) files · \(Int(progress * 100))%")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                        Spacer()
+                        Button {
+                            Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("sidebar_cancelDownload_\(filename)")
+                    }
+                }
+
+            case .queued(let position):
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text("Queued (#\(position))")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                     Spacer()
                     Button {
-                        Task { await viewModel.downloadManager.cancelDownload(model) }
+                        Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.caption2)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("sidebar_cancelDownload_\(model.modelFile)")
+                    .accessibilityIdentifier("sidebar_cancelQueued_\(filename)")
                 }
-            }
 
-        case .downloaded(let fileURL):
-            HStack(spacing: AppSpacing.xs) {
-                Circle()
-                    .fill(AppColors.success)
-                    .frame(width: 5, height: 5)
-                    .accessibilityHidden(true)
-                Text("Ready")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
-                Spacer()
-                Button {
-                    downloadableModelToDelete = model
-                    showDownloadableDeleteConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.caption2)
-                        .foregroundStyle(AppColors.danger)
+            case .paused(_, let progress):
+                VStack(alignment: .leading, spacing: 2) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.warning)
+                    HStack {
+                        Text("Paused · \(Int(progress * 100))%")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.warning)
+                        Spacer()
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("sidebar_deleteModel_\(model.modelFile)")
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                selectedSection = .models
-                Task {
-                    await viewModel.handleModelSelection(fileURL)
-                }
-            }
-            .accessibilityHint("Double-tap to load this model")
 
-        case .failed(let message):
-            HStack(spacing: AppSpacing.xs) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(AppColors.danger)
-                    .font(.caption2)
-                Text(message)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.danger)
-                    .lineLimit(1)
-            }
-
-        case .authRequired:
-            Button {
-                viewModel.downloadManager.showTokenPrompt = true
-                viewModel.downloadManager.pendingAuthModel = model
-            } label: {
+            case .pausedDirectory(let progress, let completed, let total):
                 HStack(spacing: AppSpacing.xs) {
-                    Image(systemName: "lock.fill")
-                    Text("Auth required")
-                }
-                .font(AppTypography.caption)
-                .foregroundStyle(AppColors.warning)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("sidebar_auth_\(model.modelFile)")
-
-        case .queued(let position):
-            HStack(spacing: AppSpacing.xs) {
-                Image(systemName: "clock")
-                    .font(.caption2)
-                    .foregroundStyle(AppColors.textTertiary)
-                Text("Queued (#\(position))")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
-                Spacer()
-                Button {
-                    Task { await viewModel.downloadManager.cancelDownload(model) }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("sidebar_cancelQueued_\(model.modelFile)")
-            }
-
-        case .paused(_, let progress):
-            VStack(alignment: .leading, spacing: 2) {
-                ProgressView(value: progress)
-                    .tint(AppColors.warning)
-                HStack {
-                    Text("Paused · \(Int(progress * 100))%")
+                        .foregroundStyle(AppColors.warning)
+                    Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.warning)
-                    Spacer()
-                    Button {
-                        viewModel.downloadManager.resumeDownload(model)
-                    } label: {
-                        Image(systemName: "play.circle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(AppColors.accentCyan)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("sidebar_resumeDownload_\(model.modelFile)")
                 }
-            }
 
-        case .downloadingDirectory(let progress, let completed, let total):
-            VStack(alignment: .leading, spacing: 2) {
-                ProgressView(value: progress)
-                    .tint(AppColors.accentGold)
-                HStack {
-                    Text("\(completed)/\(total) files · \(Int(progress * 100))%")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textTertiary)
-                    Spacer()
-                }
-            }
-
-        case .pausedDirectory(let progress, let completed, let total):
-            HStack(spacing: AppSpacing.xs) {
-                Image(systemName: "pause.fill")
-                    .font(.caption2)
-                    .foregroundStyle(AppColors.warning)
-                Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.warning)
+            default:
+                EmptyView()
             }
         }
+        .padding(.vertical, AppSpacing.xs)
+        .accessibilityIdentifier("sidebar_downloading_\(filename)")
     }
 
     // MARK: - Conversation Row

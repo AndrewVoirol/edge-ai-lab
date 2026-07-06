@@ -1,6 +1,6 @@
 {
   "name": "macOS Community Models Browser",
-  "description": "Tests Community Models Browser: detail column → scroll to browser → verify it exists. Maps to testCommunityModelsBrowserExists.",
+  "description": "Tests Community Models Browser: detail column → scroll to browser → verify it exists. The Getting Started banner only appears when no models are on device.",
   "platform": "macOS",
   "steps": [
     {

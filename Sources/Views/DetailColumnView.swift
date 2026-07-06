@@ -76,10 +76,16 @@ private struct ModelDetailPanel: View {
     @Bindable var viewModel: ConversationViewModel
     @Binding var selectedModelId: String?
 
-    /// Resolved metadata for the selected model ID from the known registry.
+    /// Resolved metadata for the selected model ID — checks the registry first,
+    /// then falls back to discovered models for user-imported files.
     private var selectedMetadata: ModelMetadata? {
         guard let modelId = selectedModelId else { return nil }
-        return ModelRegistry.lookup(filename: modelId)
+        if let registryMatch = ModelRegistry.lookup(filename: modelId) {
+            return registryMatch
+        }
+        return viewModel.discoveredModels
+            .first { $0.filename == modelId }?
+            .metadata
     }
 
     /// Whether the currently active model matches the selected model.
@@ -144,6 +150,36 @@ private struct ModelDetailPanel: View {
                         }
                         .accessibilityIdentifier("modelDetail_status_notLoaded")
                     }
+
+                    // Load / Unload button
+                    if isActiveModel {
+                        Button {
+                            Task { await viewModel.shutdown() }
+                        } label: {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "eject.fill")
+                                Text("Unload Model")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppColors.warning)
+                        .accessibilityIdentifier("modelDetail_unloadButton")
+                    } else if let modelId = selectedModelId,
+                              let discovered = viewModel.discoveredModels.first(where: { $0.filename == modelId }) {
+                        Button {
+                            Task {
+                                await viewModel.handleModelSelection(discovered.url)
+                            }
+                        } label: {
+                            HStack(spacing: AppSpacing.xs) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                Text("Load Model")
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accentCyan)
+                        .accessibilityIdentifier("modelDetail_loadButton")
+                    }
                 }
 
                 // MARK: Capability Badges
@@ -160,8 +196,8 @@ private struct ModelDetailPanel: View {
                 backendInfoCard(for: metadata)
 
                 // MARK: Benchmark Summary
-                if isActiveModel, let benchmarkInfo = viewModel.benchmarkInfo {
-                    BenchmarkSummaryCard(benchmarkInfo: benchmarkInfo)
+                if isActiveModel, let metrics = viewModel.performanceMetrics {
+                    BenchmarkSummaryCard(metrics: metrics)
                 }
 
                 // MARK: One-Tap Benchmark
@@ -241,6 +277,7 @@ private struct ModelDetailPanel: View {
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.md)
         .glassCard(cornerRadius: AppRadius.md)
+        .glassEffect(in: .rect(cornerRadius: AppRadius.md))
         .accessibilityIdentifier("modelDetail_stat_\(label)")
     }
 
@@ -461,10 +498,10 @@ private struct ModelDetailPanel: View {
 /// - Time to first token (TTFT)
 /// - Total decode tokens generated
 private struct BenchmarkSummaryCard: View {
-    let benchmarkInfo: BenchmarkInfo
+    let metrics: EnginePerformanceMetrics
 
     private var decodeTier: PerformanceTier {
-        PerformanceTier(decodeSpeed: benchmarkInfo.lastDecodeTokensPerSecond)
+        PerformanceTier(decodeSpeed: metrics.tokensPerSecond)
     }
 
     var body: some View {
@@ -483,7 +520,7 @@ private struct BenchmarkSummaryCard: View {
             HStack(spacing: AppSpacing.md) {
                 // Decode Speed — hero metric
                 VStack(spacing: AppSpacing.xs) {
-                    Text(String(format: "%.1f", benchmarkInfo.lastDecodeTokensPerSecond))
+                    Text(String(format: "%.1f", metrics.tokensPerSecond))
                         .font(AppTypography.metricLarge)
                         .foregroundStyle(decodeTier.color)
                         .contentTransition(.numericText())
@@ -500,7 +537,7 @@ private struct BenchmarkSummaryCard: View {
 
                 // TTFT
                 VStack(spacing: AppSpacing.xs) {
-                    Text(String(format: "%.3f", benchmarkInfo.timeToFirstTokenInSecond))
+                    Text(String(format: "%.3f", metrics.timeToFirstToken ?? 0))
                         .font(AppTypography.metric)
                         .foregroundStyle(AppColors.accentTeal)
                     Text("TTFT (s)")
@@ -516,7 +553,7 @@ private struct BenchmarkSummaryCard: View {
 
                 // Tokens generated
                 VStack(spacing: AppSpacing.xs) {
-                    Text("\(benchmarkInfo.lastDecodeTokenCount)")
+                    Text("\(metrics.tokenCount ?? 0)")
                         .font(AppTypography.metric)
                         .foregroundStyle(AppColors.accentGold)
                     Text("Tokens")
@@ -830,6 +867,28 @@ private struct CommunityModelsBrowser: View {
                 }
                 .padding(AppSpacing.md)
             } else {
+                // Getting Started banner for users with no local models
+                if viewModel.discoveredModels.isEmpty {
+                    VStack(spacing: AppSpacing.sm) {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "sparkles")
+                                .font(.title3)
+                                .foregroundStyle(AppColors.accentGold)
+                            Text("Getting Started")
+                                .font(AppTypography.sectionHeader)
+                                .foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                        }
+
+                        Text("No models downloaded yet. We recommend starting with **Gemma 4 E2B** — it's lightweight, fast, and supports multimodal input (images + audio).")
+                            .font(AppTypography.listSubtitle)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(AppSpacing.md)
+                    .glassCard(cornerRadius: AppRadius.lg)
+                    .accessibilityIdentifier("browser_gettingStarted")
+                }
                 // Inline URL import — paste a HuggingFace URL to import any model
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "link.badge.plus")
@@ -904,7 +963,7 @@ private struct CommunityModelsBrowser: View {
             }
         }
         .task {
-            if browser.discoveredModels.isEmpty && !browser.isLoading {
+            if browser.discoveredModels.isEmpty {
                 await browser.refreshGemmaModels()
             }
         }

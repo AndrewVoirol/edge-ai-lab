@@ -208,7 +208,10 @@ struct iOSModelHubView: View {
     private var nowRunningSection: some View {
         if let active = activeModel, viewModel.isEngineReady {
             Section {
-                activeModelRow(active)
+                NavigationLink(value: active) {
+                    activeModelRow(active)
+                }
+                .glassEffect(in: .rect(cornerRadius: AppRadius.md))
             } header: {
                 Label("Now Running", systemImage: "bolt.fill")
                     .foregroundStyle(AppColors.accentCyan)
@@ -290,24 +293,22 @@ struct iOSModelHubView: View {
     }
 
     private func availableModelRow(metadata: ModelMetadata) -> some View {
-        NavigationLink(value: metadata) {
-            iOSModelRow(
-                metadata: metadata,
-                downloadState: viewModel.downloadManager.checkState(for: metadata),
-                onDownloadTap: {
-                    confirmDownload(metadata)
-                },
-                onRetryTap: {
-                    confirmDownload(metadata)
-                },
-                onPauseTap: {
-                    Task { await viewModel.downloadManager.pauseDownload(metadata) }
-                },
-                onResumeTap: {
-                    viewModel.downloadManager.resumeDownload(metadata)
-                }
-            )
-        }
+        iOSModelRow(
+            metadata: metadata,
+            downloadState: viewModel.downloadManager.checkState(for: metadata),
+            onDownloadTap: {
+                confirmDownload(metadata)
+            },
+            onRetryTap: {
+                confirmDownload(metadata)
+            },
+            onPauseTap: {
+                Task { await viewModel.downloadManager.pauseDownload(metadata) }
+            },
+            onResumeTap: {
+                viewModel.downloadManager.resumeDownload(metadata)
+            }
+        )
     }
 
     // MARK: - Toolbar
@@ -370,10 +371,10 @@ struct iOSModelHubView: View {
                             .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     }
 
-                    if let info = viewModel.benchmarkInfo {
-                        Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                    if let metrics = viewModel.performanceMetrics {
+                        Text(String(format: "%.1f tok/s", metrics.tokensPerSecond))
                             .font(AppTypography.badge)
-                            .foregroundStyle(PerformanceTier(decodeSpeed: info.lastDecodeTokensPerSecond).color)
+                            .foregroundStyle(PerformanceTier(decodeSpeed: metrics.tokensPerSecond).color)
                     }
                 }
 
@@ -383,11 +384,13 @@ struct iOSModelHubView: View {
                         Label("Vision", systemImage: "eye")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.badgeVision)
+                            .accessibilityIdentifier("activeModel_badge_vision")
                     }
                     if metadata.supportsAudio {
                         Label("Audio", systemImage: "waveform")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.badgeAudio)
+                            .accessibilityIdentifier("activeModel_badge_audio")
                     }
                 }
             }
@@ -418,6 +421,7 @@ struct iOSModelHubView: View {
                         .font(AppTypography.listTertiary)
                         .foregroundStyle(AppColors.textTertiary)
                 }
+                .accessibilityIdentifier("modelHub_storageFooter")
                 .listRowBackground(Color.clear)
             }
         }
