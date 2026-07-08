@@ -117,24 +117,22 @@ struct SidebarView: View {
                         selectedModelId = model.filename
                     }
                     .contextMenu {
-                        if let metadata = model.metadata {
-                            Button {
-                                showcaseModelURL = model.url
-                                showcaseModel = metadata
-                            } label: {
-                                Label("Model Info", systemImage: "info.circle")
-                            }
-                            .accessibilityIdentifier("sidebar_context_info_\(model.filename)")
+                        Button {
+                            showcaseModelURL = model.url
+                            showcaseModel = model.resolvedMetadata
+                        } label: {
+                            Label("Model Info", systemImage: "info.circle")
+                        }
+                        .accessibilityIdentifier("sidebar_context_info_\(model.filename)")
 
-                            if model.source != .edgeGallery {
-                                Button(role: .destructive) {
-                                    modelToDelete = model
-                                    showDeleteConfirmation = true
-                                } label: {
-                                    Label("Delete Model", systemImage: "trash")
-                                }
-                                .accessibilityIdentifier("sidebar_context_delete_\(model.filename)")
+                        if model.source != .edgeGallery {
+                            Button(role: .destructive) {
+                                modelToDelete = model
+                                showDeleteConfirmation = true
+                            } label: {
+                                Label("Delete Model", systemImage: "trash")
                             }
+                            .accessibilityIdentifier("sidebar_context_delete_\(model.filename)")
                         }
                     }
                     .accessibilityIdentifier("sidebar_model_\(model.filename)")
@@ -312,7 +310,7 @@ struct SidebarView: View {
             .accessibilityIdentifier("button_deleteModelConfirm")
         } message: {
             if let model = modelToDelete {
-                Text("\"\(model.metadata?.name ?? model.filename)\" will be permanently removed from disk. This cannot be undone.")
+                Text("\"\(model.resolvedMetadata.name)\" will be permanently removed from disk. This cannot be undone.")
             }
         }
 
@@ -724,7 +722,7 @@ private struct SidebarModelRow: View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             // Name + Gallery badge + trash icon
             HStack(spacing: AppSpacing.xs) {
-                Text(model.metadata?.name ?? model.filename)
+                Text(model.resolvedMetadata.name)
                     .font(AppTypography.subtitle)
                     .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                     .lineLimit(1)
@@ -757,12 +755,10 @@ private struct SidebarModelRow: View {
             }
 
             // Capability badges
-            if let metadata = model.metadata {
-                ModelCapabilityBadges(
-                    metadata: metadata,
-                    runtimeFlags: runtimeFlags
-                )
-            }
+            ModelCapabilityBadges(
+                metadata: model.resolvedMetadata,
+                runtimeFlags: runtimeFlags
+            )
 
             // Status indicator + size
             HStack(spacing: AppSpacing.xs) {

@@ -500,10 +500,11 @@ final class ConversationViewModel {
         }
 
         // Resolve metadata from discoveredModels for community/imported models
-        // that aren't in the static ModelRegistry.
+        // that aren't in the static ModelRegistry. resolvedMetadata synthesizes
+        // from filename heuristics when registry lookup returns nil.
         let discoveredMeta = discoveredModels
             .first { $0.url == url }?
-            .metadata
+            .resolvedMetadata
 
         await sessionController.handleModelSelection(url, metadata: discoveredMeta)
         // Sync sampler config from model defaults that the controller may have applied.

@@ -116,7 +116,7 @@ struct ModelStripView: View {
         } label: {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 HStack(spacing: AppSpacing.xs) {
-                    Text(model.metadata?.name ?? model.filename)
+                    Text(model.resolvedMetadata.name)
                         .font(AppTypography.sectionHeader)
                         .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
                         .lineLimit(1)

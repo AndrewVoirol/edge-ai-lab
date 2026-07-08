@@ -47,6 +47,80 @@ struct DiscoveredModel: Identifiable, Sendable {
     var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: sizeInBytes, countStyle: .file)
     }
+
+    /// Returns registry metadata if available, otherwise synthesizes reasonable
+    /// metadata from the filename, file size, and extension. This ensures the
+    /// detail panel, load/unload buttons, and model card always render —
+    /// even for user-imported GGUF or community models with no registry entry.
+    var resolvedMetadata: ModelMetadata {
+        if let metadata { return metadata }
+        return DiscoveredModel.synthesizeMetadata(
+            filename: filename,
+            sizeInBytes: sizeInBytes
+        )
+    }
+
+    /// Build a synthetic `ModelMetadata` from filename heuristics.
+    /// Parses quantization (Q4_K_M, Q8_0, etc.) and runtime from extension.
+    private static func synthesizeMetadata(
+        filename: String,
+        sizeInBytes: Int64
+    ) -> ModelMetadata {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        let stem = (filename as NSString).deletingPathExtension
+
+        // Infer runtime from extension
+        let runtime: RuntimeType = switch ext {
+        case "gguf": .gguf
+        case "litertlm": .litertlm
+        default: .gguf
+        }
+
+        // Parse quantization from filename (e.g., "Q4_K_M", "Q8_0", "FP16")
+        let quantPattern = stem.components(separatedBy: "-")
+        let quantization = quantPattern.last(where: {
+            $0.hasPrefix("Q") || $0.hasPrefix("F") || $0.hasPrefix("q") || $0.hasPrefix("f")
+        })
+
+        // Estimate min RAM from file size (rough: model needs ~1.2x file size in RAM)
+        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * 1.2))
+
+        // Generate a human-readable name from the stem
+        let displayName = stem
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "--", with: " / ")
+
+        return ModelMetadata(
+            name: displayName,
+            modelId: "local/\(filename)",
+            modelFile: filename,
+            description: "Locally imported \(runtime.displayName) model" +
+                (quantization.map { " (\($0) quantization)" } ?? ""),
+            sizeInBytes: sizeInBytes,
+            minDeviceMemoryGB: estimatedRAM,
+            contextWindowSize: 8192,  // Conservative default
+            architectureType: runtime.displayName,
+            recommendedFor: "Local inference",
+            supportsImage: false,
+            supportsAudio: false,
+            capabilities: [],
+            defaultConfig: ModelDefaultConfig(
+                topK: 40,
+                topP: 0.95,
+                temperature: 0.7,
+                maxContextLength: 8192,
+                maxTokens: 2048,
+                accelerators: "gpu",
+                visionAccelerator: nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuAndCpu,
+                iOSDevice: .gpuAndCpu,
+                iOSSimulator: .cpuOnly
+            ),
+            runtimeType: runtime
+        )
+    }
 }
 
 // MARK: - Gallery Model Discovery

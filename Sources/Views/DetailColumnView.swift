@@ -77,15 +77,17 @@ private struct ModelDetailPanel: View {
     @Binding var selectedModelId: String?
 
     /// Resolved metadata for the selected model ID — checks the registry first,
-    /// then falls back to discovered models for user-imported files.
+    /// then falls back to discovered models (which synthesize metadata from
+    /// filename heuristics for user-imported GGUF/community models).
     private var selectedMetadata: ModelMetadata? {
         guard let modelId = selectedModelId else { return nil }
         if let registryMatch = ModelRegistry.lookup(filename: modelId) {
             return registryMatch
         }
+        // Use resolvedMetadata which always returns non-nil (synthesizes if needed)
         return viewModel.discoveredModels
             .first { $0.filename == modelId }?
-            .metadata
+            .resolvedMetadata
     }
 
     /// Whether the currently active model matches the selected model.

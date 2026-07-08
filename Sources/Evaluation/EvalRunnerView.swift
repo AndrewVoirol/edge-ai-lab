@@ -345,7 +345,7 @@ struct EvalRunnerView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(model.metadata?.name ?? model.filename)
+                    Text(model.resolvedMetadata.name)
                         .font(AppTypography.sectionHeader)
                         .foregroundStyle(AppColors.textPrimary)
                         .lineLimit(1)
