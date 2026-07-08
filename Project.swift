@@ -23,7 +23,11 @@ let project = Project(
         // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
         .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
-        .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0"))
+        .remote(url: "https://github.com/gonzalezreal/swift-markdown-ui.git", requirement: .upToNextMajor(from: "2.0.0")),
+        // LlamaCpp: llama.cpp XCFramework for GGUF model inference (Metal GPU).
+        // Local umbrella package — downloads prebuilt XCFramework from official llama.cpp releases.
+        // See Packages/LlamaCpp/Package.swift for version pinning and update instructions.
+        .local(path: "Packages/LlamaCpp")
     ],
     settings: .settings(
         base: [
@@ -64,7 +68,8 @@ let project = Project(
                 .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
                 .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
                 .package(product: "Hub"),             // HuggingFace Hub download client
-                .package(product: "MarkdownUI")
+                .package(product: "MarkdownUI"),
+                .package(product: "LlamaCpp")          // llama.cpp GGUF inference
             ]
         ),
         .target(
@@ -102,7 +107,8 @@ let project = Project(
                 .package(product: "MLXVLM"),         // Phase 4, add now to avoid re-gen
                 .package(product: "Tokenizers"),     // HuggingFace tokenizer loading
                 .package(product: "Hub"),             // HuggingFace Hub download client
-                .package(product: "MarkdownUI")
+                .package(product: "MarkdownUI"),
+                .package(product: "LlamaCpp")          // llama.cpp GGUF inference
             ],
             settings: .settings(
                 base: [

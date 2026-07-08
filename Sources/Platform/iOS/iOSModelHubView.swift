@@ -727,6 +727,7 @@ struct iOSModelHubView: View {
         switch format {
         case .litertlm: AppColors.success
         case .mlx: AppColors.accentGold
+        case .gguf: AppColors.accentCyan
         case .unknown: AppColors.textTertiary
         }
     }
@@ -736,6 +737,7 @@ struct iOSModelHubView: View {
         switch format {
         case .litertlm: "LiteRT"
         case .mlx: "MLX"
+        case .gguf: "GGUF"
         case .unknown: "Unknown"
         }
     }

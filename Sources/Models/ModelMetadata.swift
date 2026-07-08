@@ -101,7 +101,7 @@ enum RuntimeType: String, Codable, Sendable, CaseIterable, Identifiable {
 
     /// Whether this runtime is currently supported for inference.
     var isSupported: Bool {
-        self == .litertlm || self == .mlx
+        self == .litertlm || self == .mlx || self == .gguf
     }
 
     /// All runtime types that are currently supported for inference.

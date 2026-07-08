@@ -259,6 +259,8 @@ enum HFModelFormat: String, Sendable {
     case litertlm
     /// MLX model directory (contains `config.json` + `*.safetensors` weight shards).
     case mlx
+    /// GGUF quantized model file (llama.cpp compatible).
+    case gguf
     /// Format could not be determined from the repository file listing.
     case unknown
 }

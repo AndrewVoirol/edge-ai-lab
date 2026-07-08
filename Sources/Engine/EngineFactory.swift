@@ -23,7 +23,7 @@ import Foundation
 ///
 /// - `.litertlm` → `LiteRTEngineAdapter` (wraps the existing `InstrumentedEngine`)
 /// - `.mlx` → `MLXEngineAdapter` (wraps mlx-swift-lm, Metal GPU inference)
-/// - `.gguf` → throws `runtimeNotYetAvailable` (recognized but not implemented)
+/// - `.gguf` → `GGUFEngineAdapter` (wraps llama.cpp, Metal GPU inference)
 ///
 /// ## Usage
 ///
@@ -55,7 +55,7 @@ enum EngineFactory {
         case .mlx:
             return MLXEngineAdapter()
         case .gguf:
-            throw EngineError.runtimeNotYetAvailable(.gguf)
+            return GGUFEngineAdapter()
         }
     }
 
@@ -71,6 +71,8 @@ enum EngineFactory {
             return try createEngine(for: RuntimeType.litertlm)
         case .mlx:
             return try createEngine(for: RuntimeType.mlx)
+        case .gguf:
+            return try createEngine(for: RuntimeType.gguf)
         case .unknown:
             throw EngineError.unsupportedFormat("unknown")
         }

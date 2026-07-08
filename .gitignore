@@ -42,7 +42,9 @@ xcuserdata/
 # --- Swift Package Manager ---
 .build/
 .package.resolved
-Packages/
+# Ignore SPM Packages/ directory except our local umbrella packages
+Packages/*
+!Packages/LlamaCpp/
 
 # --- Development Tooling ---
 # Agent-specific configuration (not part of the project)

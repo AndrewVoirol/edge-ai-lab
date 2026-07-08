@@ -175,6 +175,7 @@ struct HFModelCard: View {
         let (text, color): (String, Color) = switch format {
         case .litertlm: ("LiteRT", AppColors.success)
         case .mlx: ("MLX", AppColors.accentGold)
+        case .gguf: ("GGUF", AppColors.accentCyan)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         Text(text)

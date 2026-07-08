@@ -352,6 +352,7 @@ struct CommunityModelsBrowser: View {
         let (text, color): (String, Color) = switch browserFormat {
         case .litertlm: ("LiteRT", AppColors.success)
         case .mlx: ("MLX", AppColors.accentGold)
+        case .gguf: ("GGUF", AppColors.accentCyan)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         HStack(spacing: AppSpacing.xs) {
