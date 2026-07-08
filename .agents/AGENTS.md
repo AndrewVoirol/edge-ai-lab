@@ -49,6 +49,7 @@
 - **Gemma 4 E2B Standard** (`gemma-4-E2B-it.litertlm`) is the default test target for all feature work and benchmarking.
 - Do NOT default to Gemma 4 12B unless specifically testing: (a) ≥16GB memory scenarios, (b) 256K context window behavior, or (c) dense-architecture-specific behavior.
 - All Gemma 4 Standard variants (E2B, E4B, 12B) have identical multimodal capability (image + audio). Web/Mobile variants have no multimodal support.
+- **GGUF test model**: Use `gemma-4-E2B-it-Q4_K_M.gguf` (~3.11 GB) for GGUF backend testing. Available from Unsloth on HuggingFace.
 
 ## Plan Execution Discipline
 - **Never silently drop or rename a plan item.** If a planned deliverable can't be completed or needs to change, update the plan artifact with a `> [!WARNING]` block explaining what changed and why BEFORE marking it done.
@@ -98,6 +99,7 @@
 ## Apple Framework API Verification
 - **Before using any system framework API (Core ML, MapKit, CoreLocation, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
 - **Known non-existent APIs agents have invented:** `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`). When in doubt, verify against SDK headers in Xcode.
+- **Known SDK availability corrections:** Foundation Models `LanguageModel` protocol requires iOS 27.0/macOS 27.0 (not 26). SwiftUI `.glassEffect()` lives in SwiftUICore module. Always verify against `.swiftinterface` files, not documentation alone.
 
 ## Apple Developer Team Limitations
 - **This project uses a FREE personal Apple Developer team** (Team ID: `Y7J7WUK693`, holder: Andrew Voirol).
@@ -123,3 +125,34 @@
 ## Debugging
 - **When debugging a user-reported UI interaction failure, add diagnostic `print()` statements FIRST — before making any code changes.** Place prints at: (a) the UI action handler (button tap, gesture), (b) the function it calls, and (c) the network/filesystem operation. Build, have the user test, and read the output. Fix only after the diagnostic output identifies which layer failed. Remove diagnostic prints after the issue is resolved.
 - **When a user reports "I clicked X and nothing happened," trace the code path from the UI element DOWN to the backend — not from the error message UP to the UI.** Start by identifying which SwiftUI view renders the element, what action handler fires on click, and what function it calls. The bug is more often in the routing/dispatch layer (wrong function called, wrong parameter passed, action not wired) than in the destination function itself.
+
+## Multi-Engine Architecture
+- **Three inference backends**: LiteRT-LM, MLX, GGUF (llama.cpp). Only ONE engine runs at a time — no Metal context coexistence concern.
+- **`InferenceEngine` protocol is the contract.** All engine-specific types stay inside the adapter. Only `Sendable` Swift types cross the boundary (`GenerationEvent`, `EnginePerformanceMetrics`, `ModelLoadConfig`, `GenerationConfig`).
+- **Settings must be engine-agnostic.** Use `FlagDescriptor.supportedEngines` and `FlagDescriptor.isSupported(on:)` to gate features. Never hardcode engine-specific text like "Switch to LiteRT-LM" — use dynamic text from the descriptor.
+- **`import LiteRTLM` should NOT appear in shared UI code.** Settings views, conversation views, and badges should import only the app module. Engine-specific imports belong in adapter files only.
+- **When adding a new engine capability**, update `FlagDescriptor` entries empirically (test the actual behavior), not speculatively. The `supportedEngines` set is a contract — inaccurate values erode user trust.
+
+## SDK Header Verification
+- **Before using any Apple framework API introduced in iOS 26+/macOS 26+, verify against actual SDK headers** — not documentation pages, not AI summaries, not WWDC session descriptions. The canonical source is the `.swiftinterface` files in the SDK:
+  ```
+  /Applications/Xcode-beta.app/.../SDKs/MacOSX.sdk/System/Library/Frameworks/<Framework>.framework/.../arm64e-apple-macos.swiftinterface
+  ```
+- **Known SDK verification corrections:**
+  - Foundation Models `LanguageModel` protocol: Available from **iOS 27.0 / macOS 27.0** (NOT iOS 26 as some documentation implies)
+  - SwiftUI `.glassEffect()`: Lives in **SwiftUICore** module, not SwiftUI
+  - `Glass` struct: `.regular`, `.clear`, `.tint(Color)`, `.interactive(Bool)` — verified July 2026
+  - `GlassEffectContainer`: Real, in SwiftUICore
+  - Core AI framework: Exists at both SubFrameworks and public Frameworks paths
+
+## Liquid Glass Adoption
+- **We are ALL IN on Liquid Glass.** macOS 27 / iOS 27. Support system-managed appearance (both light and dark). Do not force `.preferredColorScheme(.dark)`.
+- **Custom palette stays for CONTENT areas** (chat bubbles, cards, settings panels). Navigation chrome (sidebars, toolbars, tab bars) uses system glass.
+- **Audit `VibrantBackgroundView` usage** before touching navigation structure — opaque backgrounds defeat glass transparency. Known locations: `ContentView.swift`, `iOSChatTabView.swift`, `iOSConversationPickerSheet.swift`, `iOSLabTabView.swift`, `OnboardingView.swift`.
+- **Always test Liquid Glass changes with both light and dark mode**, and with "Reduce Transparency" accessibility setting enabled.
+
+## Instrumentation
+- **All inference engines MUST have OSSignposter intervals** for: model load, token generation loop (full), and time-to-first-token. Use `OSSignposter(subsystem: "com.andrewvoirol.EdgeAILab", category: "<engine>")`.
+- **Use modern `OSSignposter` API** (iOS 16+ / macOS 13+), not legacy `os_signpost()`. The modern API is type-safe and supports structured metadata.
+- **Signpost intervals must nest correctly**: Session > ModelLoad > Inference > TokenGeneration.
+- **MLX engine currently has ZERO signposts** — this must be fixed. LiteRT uses legacy `os_signpost()` in `InstrumentedEngine.swift` — migrate to `OSSignposter`.
