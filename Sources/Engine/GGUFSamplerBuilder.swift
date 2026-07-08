@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#if canImport(LlamaCpp)
-import LlamaCpp
+#if canImport(llama)
+import Foundation
+import llama
 
 // MARK: - GGUFSamplerBuilder
 
@@ -33,8 +34,8 @@ enum GGUFSamplerBuilder {
     /// Build a sampler chain from generation config.
     ///
     /// - Parameter config: Generation parameters (temperature, topP, topK, etc.)
-    /// - Returns: An `OpaquePointer` to the sampler chain. Caller must free with `llama_sampler_free()`.
-    static func build(from config: GenerationConfig) -> OpaquePointer {
+    /// - Returns: A pointer to the sampler chain. Caller must free with `llama_sampler_free()`.
+    static func build(from config: GenerationConfig) -> UnsafeMutablePointer<llama_sampler> {
         var chainParams = llama_sampler_chain_default_params()
         let chain = llama_sampler_chain_init(chainParams)!
 

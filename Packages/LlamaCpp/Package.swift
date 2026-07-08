@@ -22,12 +22,23 @@ let package = Package(
         .iOS(.v16),
     ],
     products: [
+        // Expose the binary framework directly as the product.
+        // The module name is "llama" (from the XCFramework's modulemap).
+        // Use `import llama` in Swift source, `#if canImport(llama)` for guards.
         .library(
             name: "LlamaCpp",
-            targets: ["llama"]
+            targets: ["LlamaCppBridge"]
         )
     ],
     targets: [
+        // Thin bridge target that re-exports the binary framework.
+        // This is needed because SPM doesn't allow a library product
+        // to directly expose a binaryTarget in all configurations.
+        .target(
+            name: "LlamaCppBridge",
+            dependencies: ["llama"],
+            path: "Sources/LlamaCppBridge"
+        ),
         .binaryTarget(
             name: "llama",
             url: "https://github.com/ggml-org/llama.cpp/releases/download/b9929/llama-b9929-xcframework.zip",

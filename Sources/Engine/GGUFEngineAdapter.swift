@@ -15,8 +15,8 @@
 import Foundation
 import os
 
-#if canImport(LlamaCpp)
-import LlamaCpp
+#if canImport(llama)
+import llama
 #endif
 
 // MARK: - GGUFEngineAdapter
@@ -57,7 +57,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     // MARK: - State
 
-    #if canImport(LlamaCpp)
+    #if canImport(llama)
     private var model: OpaquePointer?    // llama_model*
     private var context: OpaquePointer?  // llama_context*
     #endif
@@ -87,7 +87,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     // MARK: - Loading
 
     func loadModel(config: ModelLoadConfig) async throws {
-        #if canImport(LlamaCpp)
+        #if canImport(llama)
         let signpostID = Self.signposter.makeSignpostID()
         let loadState = Self.signposter.beginInterval("ModelLoad", id: signpostID, "path=\(config.modelPath)")
 
@@ -148,9 +148,8 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 self._modelInfo = InferenceModelInfo(
                     name: config.modelPath.components(separatedBy: "/").last ?? "GGUF Model",
                     parameterCount: nil,
-                    contextLength: Int(nCtx),
-                    vocabularySize: Int(vocabSize),
-                    quantization: nil  // Could parse from filename but not reliable
+                    quantization: nil,  // Could parse from filename but not reliable
+                    runtimeType: .gguf
                 )
 
                 self._isLoaded = true
@@ -176,8 +175,8 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         prompt: String,
         config: GenerationConfig
     ) -> AsyncThrowingStream<GenerationEvent, Error> {
-        AsyncThrowingStream { continuation in
-            #if canImport(LlamaCpp)
+        AsyncThrowingStream<GenerationEvent, Error>(bufferingPolicy: .unbounded) { (continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation) in
+            #if canImport(llama)
             llamaQueue.async { [weak self] in
                 guard let self, let model = self.model, let ctx = self.context else {
                     continuation.finish(throwing: EngineError.modelNotLoaded)
@@ -332,9 +331,11 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     promptTokensPerSecond: promptTokPerSec,
                     timeToFirstToken: ttft,
                     peakMemoryBytes: nil,
-                    decodeTokenCount: nGenerated,
+                    tokenCount: nGenerated,
+                    runtimeType: .gguf,
                     promptTokenCount: promptTokens.count,
-                    prefillTimeSeconds: promptTime
+                    promptTimeSeconds: promptTime,
+                    generateTimeSeconds: totalGenTime
                 )
                 self._lastMetrics = metrics
 
@@ -361,7 +362,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     // MARK: - Lifecycle
 
     func shutdown() {
-        #if canImport(LlamaCpp)
+        #if canImport(llama)
         llamaQueue.sync { [weak self] in
             guard let self else { return }
             if let ctx = self.context {
@@ -382,7 +383,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     }
 
     func resetConversation() async throws {
-        #if canImport(LlamaCpp)
+        #if canImport(llama)
         llamaQueue.sync { [weak self] in
             guard let self, let ctx = self.context else { return }
             llama_memory_clear(llama_get_memory(ctx), true)
@@ -409,7 +410,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     // MARK: - Chat Template
 
-    #if canImport(LlamaCpp)
+    #if canImport(llama)
     /// Apply the chat template from GGUF metadata, falling back to hardcoded Gemma template.
     private func applyChatTemplate(model: OpaquePointer) throws -> String {
         let messages = conversationHistory.map { msg -> llama_chat_message in
