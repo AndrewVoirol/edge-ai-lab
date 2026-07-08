@@ -190,9 +190,10 @@ struct ContentView: View {
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
+            let supportedExtensions: Set<String> = ["litertlm", "gguf"]
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url = url,
-                      url.pathExtension == "litertlm" else { return }
+                      supportedExtensions.contains(url.pathExtension.lowercased()) else { return }
                 Task { @MainActor in
                     await viewModel.handleModelSelection(url)
                 }

@@ -334,6 +334,7 @@ final class ModelSessionController {
                 backendResult = engine.lastBackendResult
             }
             let modelLabel = activeModelMetadata?.name
+                ?? engine.modelInfo?.name
                 ?? GalleryModelDiscovery.cleanModelDirectoryName(modelFilename)
 
             if let result = backendResult {
