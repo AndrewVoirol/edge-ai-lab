@@ -343,9 +343,14 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                         break
                     }
 
-                    // Record TTFT
+                    // Record TTFT and emit FirstToken signpost event
                     if firstTokenTime == nil {
                         firstTokenTime = CFAbsoluteTimeGetCurrent()
+                        let ttftMs = (firstTokenTime! - promptStartTime) * 1000
+                        Self.signposter.emitEvent(
+                            "FirstToken",
+                            "TTFT=\(String(format: "%.1f", ttftMs))ms"
+                        )
                     }
 
                     // Convert token to text
