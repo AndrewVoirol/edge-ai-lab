@@ -18,7 +18,6 @@
 // scripts. On iOS, os_log captures validation output without --console.
 
 import SwiftUI
-import LiteRTLM
 import os
 
 private let validationLogger = Logger(subsystem: "com.andrewvoirol.EdgeAILab", category: "validation")

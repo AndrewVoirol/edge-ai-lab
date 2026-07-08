@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import SwiftUI
-import LiteRTLM
 
 // MARK: - Detail Column View
 
@@ -727,7 +726,6 @@ private struct ExperimentDetailView: View {
         selectedSection: .constant(nil),
         selectedModelId: .constant(nil)
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Detail — Models Section") {
@@ -735,7 +733,6 @@ private struct ExperimentDetailView: View {
         selectedSection: .constant(.models),
         selectedModelId: .constant("gemma-4-E2B-it.litertlm")
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Detail — Benchmarks") {
@@ -743,7 +740,6 @@ private struct ExperimentDetailView: View {
         selectedSection: .constant(.benchmarks),
         selectedModelId: .constant(nil)
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Detail — Conversations") {
@@ -751,6 +747,5 @@ private struct ExperimentDetailView: View {
         selectedSection: .constant(.conversations),
         selectedModelId: .constant(nil)
     )
-    .preferredColorScheme(.dark)
 }
 

@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import SwiftUI
-import LiteRTLM
 
 /// Settings view for configuring ExperimentalFlags, inference parameters,
 /// and HuggingFace token management.

@@ -788,7 +788,6 @@ private struct SidebarModelRow: View {
         showcaseModel: .constant(nil),
         showcaseModelURL: .constant(nil)
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Sidebar — Models Section") {
@@ -798,5 +797,4 @@ private struct SidebarModelRow: View {
         showcaseModel: .constant(nil),
         showcaseModelURL: .constant(nil)
     )
-    .preferredColorScheme(.dark)
 }

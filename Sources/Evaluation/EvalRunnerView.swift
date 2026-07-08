@@ -781,6 +781,5 @@ struct EvalRunnerView: View {
 #Preview("Eval Runner") {
     // Preview placeholder — ConversationViewModel requires a real InstrumentedEngine.
     Text("Preview requires ConversationViewModel")
-        .preferredColorScheme(.dark)
 }
 #endif

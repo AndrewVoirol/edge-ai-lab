@@ -694,7 +694,6 @@ struct EvalSuiteEditorView: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("Suite Editor — Edit") {
@@ -703,6 +702,5 @@ struct EvalSuiteEditorView: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .preferredColorScheme(.dark)
 }
 #endif
