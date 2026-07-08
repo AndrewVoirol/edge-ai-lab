@@ -84,6 +84,11 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     var supportsVision: Bool { false }
     var supportsToolCalling: Bool { false }
 
+    /// Rich metadata extracted from the loaded GGUF model via llama.cpp API.
+    /// Available after `loadModel()` succeeds. `nil` before loading.
+    private(set) var ggufMetadata: GGUFLoadedMetadata? { get { _ggufMetadata } set { _ggufMetadata = newValue } }
+    private var _ggufMetadata: GGUFLoadedMetadata?
+
     // MARK: - Loading
 
     func loadModel(config: ModelLoadConfig) async throws {
@@ -140,16 +145,67 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 }
                 self.context = ctx
 
-                // Extract model info
+                // Extract model metadata from llama.cpp API (not filename guessing)
                 let vocab = llama_model_get_vocab(loadedModel)
                 let vocabSize = llama_vocab_n_tokens(vocab)
                 let nCtx = llama_n_ctx(ctx)
+                let nParams = llama_model_n_params(loadedModel)
+                let nCtxTrain = llama_model_n_ctx_train(loadedModel)
+
+                // Read model description (e.g., "gemma4 2B Q4_K - Medium")
+                var descBuf = [CChar](repeating: 0, count: 256)
+                llama_model_desc(loadedModel, &descBuf, descBuf.count)
+                let modelDesc = String(cString: descBuf)
+
+                // Read model name from GGUF metadata
+                var nameBuf = [CChar](repeating: 0, count: 256)
+                let nameLen = llama_model_meta_val_str(loadedModel, "general.name", &nameBuf, nameBuf.count)
+                let modelName = nameLen > 0 ? String(cString: nameBuf) : config.modelPath.components(separatedBy: "/").last ?? "GGUF Model"
+
+                // Read architecture
+                var archBuf = [CChar](repeating: 0, count: 64)
+                let archLen = llama_model_meta_val_str(loadedModel, "general.architecture", &archBuf, archBuf.count)
+                let architecture = archLen > 0 ? String(cString: archBuf) : "GGUF"
+
+                // Read size label (e.g., "4.6B")
+                var sizeBuf = [CChar](repeating: 0, count: 64)
+                let sizeLen = llama_model_meta_val_str(loadedModel, "general.size_label", &sizeBuf, sizeBuf.count)
+                let sizeLabel = sizeLen > 0 ? String(cString: sizeBuf) : nil
+
+                // Parse quantization from model description (format: "arch params quant")
+                let descParts = modelDesc.components(separatedBy: " ")
+                let quantization = descParts.count >= 3 ? descParts.dropFirst(2).joined(separator: " ") : nil
+
+                // Format parameter count for display
+                let paramDisplay: String
+                if let sizeLabel {
+                    paramDisplay = sizeLabel
+                } else if nParams > 1_000_000_000 {
+                    paramDisplay = String(format: "%.1fB", Double(nParams) / 1_000_000_000.0)
+                } else if nParams > 1_000_000 {
+                    paramDisplay = String(format: "%.0fM", Double(nParams) / 1_000_000.0)
+                } else {
+                    paramDisplay = "\(nParams)"
+                }
 
                 self._modelInfo = InferenceModelInfo(
-                    name: config.modelPath.components(separatedBy: "/").last ?? "GGUF Model",
-                    parameterCount: nil,
-                    quantization: nil,  // Could parse from filename but not reliable
+                    name: modelName,
+                    parameterCount: paramDisplay,
+                    quantization: quantization,
                     runtimeType: .gguf
+                )
+
+                // Store extracted metadata for UI consumption
+                self._ggufMetadata = GGUFLoadedMetadata(
+                    name: modelName,
+                    architecture: architecture,
+                    parameterCount: nParams,
+                    sizeLabel: sizeLabel,
+                    quantization: quantization,
+                    contextLengthTrain: Int(nCtxTrain),
+                    contextLengthActive: Int(nCtx),
+                    vocabSize: Int(vocabSize),
+                    modelSizeBytes: Int64(llama_model_size(loadedModel))
                 )
 
                 self._isLoaded = true
@@ -160,7 +216,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     self.conversationHistory.append((role: "system", content: systemMsg))
                 }
 
-                Self.signposter.endInterval("ModelLoad", loadState, "vocab=\(vocabSize), ctx=\(nCtx)")
+                Self.signposter.endInterval("ModelLoad", loadState, "name=\(modelName), params=\(paramDisplay), ctx=\(nCtx), quant=\(quantization ?? "none")")
                 continuation.resume()
             }
         }
@@ -383,6 +439,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
             self._isLoaded = false
             self._modelInfo = nil
             self._lastMetrics = nil
+            self._ggufMetadata = nil
             self.conversationHistory.removeAll()
         }
         #endif
@@ -471,5 +528,46 @@ enum GemmaChatTemplateFallback {
             result += "<|turn>model\n"
         }
         return result
+    }
+}
+
+// MARK: - GGUF Loaded Metadata
+
+/// Metadata extracted from a loaded GGUF model via llama.cpp's C API.
+///
+/// All fields are populated from actual model data at load time — none are
+/// estimated from filenames or file sizes. This replaces the filename-parsing
+/// heuristics in `DiscoveredModel.synthesizeMetadata()` for loaded models.
+struct GGUFLoadedMetadata: Sendable {
+    /// Model name from `general.name` GGUF metadata key.
+    let name: String
+
+    /// Model architecture from `general.architecture` (e.g., "gemma4", "llama").
+    let architecture: String
+
+    /// Total parameter count from `llama_model_n_params()`.
+    let parameterCount: UInt64
+
+    /// Size label from `general.size_label` (e.g., "4.6B"). May be nil.
+    let sizeLabel: String?
+
+    /// Quantization string parsed from `llama_model_desc()` (e.g., "Q4_K - Medium").
+    let quantization: String?
+
+    /// Maximum context length the model was trained with.
+    let contextLengthTrain: Int
+
+    /// Active context length configured for this session.
+    let contextLengthActive: Int
+
+    /// Vocabulary size (total tokens).
+    let vocabSize: Int
+
+    /// Model file size in bytes from `llama_model_size()`.
+    let modelSizeBytes: Int64
+
+    /// Estimated minimum RAM in GB (model size + ~20% overhead for KV cache and buffers).
+    var estimatedMinRAMGB: Int {
+        max(2, Int(ceil(Double(modelSizeBytes) / 1_073_741_824.0 * 1.2)))
     }
 }

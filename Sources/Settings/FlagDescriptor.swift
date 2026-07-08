@@ -98,10 +98,10 @@ enum FlagRegistry {
         id: "thinking",
         displayName: "Thinking",
         symbol: "brain.head.profile",
-        description: "Shows the model's reasoning process before answering. Uses <think> tags (LiteRT) or <|channel>thought (MLX).",
+        description: "Shows the model's reasoning process before answering. Uses <think> tags (LiteRT), <|channel>thought (MLX), or <|think|> tokens (GGUF).",
         impactAreas: [.quality],
         reloadRequirement: .always,
-        supportedEngines: [.litertlm, .mlx]
+        supportedEngines: [.litertlm, .mlx, .gguf]
     )
 
     static let speculative = FlagDescriptor(

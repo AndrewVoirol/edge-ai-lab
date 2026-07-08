@@ -23,28 +23,32 @@ final class FlagDescriptorTests: XCTestCase {
 
     // MARK: - Engine Support (sourced from MLXFeatureVerificationTests)
 
-    func testThinking_SupportedOnBothEngines() {
+    func testThinking_SupportedOnAllEngines() {
         let desc = FlagRegistry.thinking
         XCTAssertTrue(desc.isSupported(on: .litertlm), "Thinking works on LiteRT")
         XCTAssertTrue(desc.isSupported(on: .mlx), "Thinking works on MLX — verified by testMLX_Thinking_Works")
+        XCTAssertTrue(desc.isSupported(on: .gguf), "Thinking works on GGUF — token 98 <|think|> is a control token")
     }
 
     func testMTP_LiteRTOnly() {
         let desc = FlagRegistry.speculative
         XCTAssertTrue(desc.isSupported(on: .litertlm), "MTP works on LiteRT")
         XCTAssertFalse(desc.isSupported(on: .mlx), "MTP NOT supported on MLX — SDK has speculative but adapter doesn't wire it")
+        XCTAssertFalse(desc.isSupported(on: .gguf), "MTP NOT supported on GGUF — no draft model pipeline")
     }
 
     func testCD_LiteRTOnly() {
         let desc = FlagRegistry.constrainedDecoding
         XCTAssertTrue(desc.isSupported(on: .litertlm), "CD works on LiteRT")
         XCTAssertFalse(desc.isSupported(on: .mlx), "CD NOT in MLX — zero SDK hits per testMLX_ConstrainedDecoding_SDKSupport")
+        XCTAssertFalse(desc.isSupported(on: .gguf), "CD NOT in GGUF — no grammar/FST decoder")
     }
 
-    func testToolCalling_SupportedOnBothEngines() {
+    func testToolCalling_SupportedOnLiteRTAndMLX() {
         let desc = FlagRegistry.toolCalling
         XCTAssertTrue(desc.isSupported(on: .litertlm))
         XCTAssertTrue(desc.isSupported(on: .mlx), "Tools on MLX — verified by testMLX_ToolCalling_EndToEnd")
+        XCTAssertFalse(desc.isSupported(on: .gguf), "Tools NOT on GGUF — no structured output pipeline")
     }
 
     func testSamplerFlags_SupportedOnAllEngines() {
