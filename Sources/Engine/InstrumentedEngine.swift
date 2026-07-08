@@ -275,15 +275,19 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
     // MARK: - Signpost Infrastructure
 
-    private static let subsystem = "com.andrewvoirol.EdgeAILab.performance"
-
-    private static let modelLoadLog = OSLog(subsystem: subsystem, category: "model-load")
-    private static let inferenceLog = OSLog(subsystem: subsystem, category: "inference")
-    private static let firstTokenLog = OSLog(subsystem: subsystem, category: "first-token")
+    /// Modern OSSignposter for Instruments visibility (iOS 16+ / macOS 13+).
+    /// Category "litert" groups all LiteRT engine signposts together in the timeline.
+    private static let signposter = OSSignposter(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "litert"
+    )
 
     /// Console logger for runtime diagnostics (visible in Xcode debug console and Console.app).
-    /// Complements os_signpost, which only appears in Instruments.
-    private static let logger = Logger(subsystem: subsystem, category: "engine")
+    /// Complements OSSignposter, which only appears in Instruments.
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "litert"
+    )
 
     // MARK: - State
 
@@ -347,10 +351,11 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         flags.applyToGlobalFlags()
 
         // Begin model load signpost
-        let signpostID = OSSignpostID(log: Self.modelLoadLog)
-        os_signpost(.begin, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
-                    "Loading model from %{public}s with GPU=%{public}d",
-                    (modelPath as NSString).lastPathComponent, useGPU ? 1 : 0)
+        let signpostState = Self.signposter.beginInterval(
+            "ModelLoad",
+            id: Self.signposter.makeSignpostID(),
+            "Loading \((modelPath as NSString).lastPathComponent, privacy: .public) GPU=\(useGPU)"
+        )
 
         do {
             // Initialize vision/audio backends only for models that support them.
@@ -389,12 +394,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
             self.conversation = try await newEngine.createConversation(with: convConfig)
 
             Self.logger.info("✅ Engine ready: \(modelFilename, privacy: .public) backend=\(useGPU ? "GPU" : "CPU", privacy: .public)")
-            os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
-                        "Model loaded successfully")
+            Self.signposter.endInterval("ModelLoad", signpostState, "Model loaded successfully")
         } catch {
             Self.logger.error("❌ Engine init FAILED: \(error.localizedDescription, privacy: .public)")
-            os_signpost(.end, log: Self.modelLoadLog, name: "ModelLoad", signpostID: signpostID,
-                        "Model load FAILED: %{public}s", error.localizedDescription)
+            Self.signposter.endInterval("ModelLoad", signpostState, "FAILED: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
@@ -490,9 +493,11 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         // down to background QoS, which drops performance to zero.
         let task = Task(priority: .userInitiated) { [conversation, weak self] in
             Self.logger.info("🚀 \(label) start: \(promptDescription, privacy: .public)")
-            let signpostID = OSSignpostID(log: Self.inferenceLog)
-            os_signpost(.begin, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                        "Starting %{public}s", promptDescription)
+            let signpostState = Self.signposter.beginInterval(
+                "Inference",
+                id: Self.signposter.makeSignpostID(),
+                "\(promptDescription, privacy: .public)"
+            )
 
             // Capture device metrics at inference start
             let startSnapshot = DeviceMetrics.captureSnapshot()
@@ -515,8 +520,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                         tokenTimestamps.append(CFAbsoluteTimeGetCurrent())
                         if isFirstToken {
                             Self.logger.info("⚡ First token received (thought channel)")
-                            os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
-                                        "First token received (thought)")
+                            Self.signposter.emitEvent("FirstToken", "Thought channel")
                             isFirstToken = false
                         }
                         if !inThoughtChannel {
@@ -540,8 +544,7 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
 
                             if isFirstToken {
                                 Self.logger.info("⚡ First token received")
-                                os_signpost(.event, log: Self.firstTokenLog, name: "FirstToken",
-                                            "First token received")
+                                Self.signposter.emitEvent("FirstToken", "Text channel")
                                 isFirstToken = false
                             }
                             continuation.yield(responseText)
@@ -556,8 +559,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 }
 
                 if Task.isCancelled {
-                    os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                                "%{public}s cancelled early", label)
+                    Self.signposter.endInterval(
+                        "Inference", signpostState,
+                        "\(label, privacy: .public) cancelled"
+                    )
                     continuation.finish()
                     return
                 }
@@ -600,8 +605,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 }
 
                 Self.logger.info("✅ \(label) complete: \(tokenTimestamps.count) tokens, \(thermalTransitions.count) thermal transitions")
-                os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                            "%{public}s completed (%{public}d tokens)", label, tokenTimestamps.count)
+                Self.signposter.endInterval(
+                    "Inference", signpostState,
+                    "\(label, privacy: .public) completed (\(tokenTimestamps.count) tokens)"
+                )
                 continuation.finish()
             } catch {
                 // Still capture metrics on failure for debugging
@@ -620,8 +627,10 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                 }
 
                 Self.logger.error("❌ \(label) FAILED: \(error.localizedDescription, privacy: .public)")
-                os_signpost(.end, log: Self.inferenceLog, name: "Inference", signpostID: signpostID,
-                            "%{public}s FAILED: %{public}s", label, error.localizedDescription)
+                Self.signposter.endInterval(
+                    "Inference", signpostState,
+                    "\(label, privacy: .public) FAILED: \(error.localizedDescription, privacy: .public)"
+                )
                 continuation.finish(throwing: error)
             }
         }

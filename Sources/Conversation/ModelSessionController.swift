@@ -33,8 +33,14 @@ import os
 final class ModelSessionController {
 
     private static let logger = Logger(
-        subsystem: "com.andrewvoirol.EdgeAILab.performance",
-        category: "sessionController"
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "session"
+    )
+
+    /// Session-level signposter wrapping the full engine initialization lifecycle.
+    private static let signposter = OSSignposter(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "session"
     )
 
     // MARK: - State
@@ -215,7 +221,16 @@ final class ModelSessionController {
             visualTokenBudget: nil
         )
 
+        let modelFilename = (modelPath as NSString).lastPathComponent
+        let engineType = engine.runtimeType.rawValue
+        let signpostState = Self.signposter.beginInterval(
+            "Session",
+            id: Self.signposter.makeSignpostID(),
+            "\(modelFilename, privacy: .public) engine=\(engineType, privacy: .public)"
+        )
+
         do {
+
             let fileManager = FileManager.default
             guard let cacheBaseDirectory = fileManager.urls(
                 for: .cachesDirectory, in: .userDomainMask
@@ -227,7 +242,6 @@ final class ModelSessionController {
             }
 
             // Create a unique cache directory per model to prevent collisions
-            let modelFilename = (modelPath as NSString).lastPathComponent
             let modelCacheDirectory = cacheBaseDirectory.appendingPathComponent(modelFilename)
 
             if !fileManager.fileExists(atPath: modelCacheDirectory.path) {
@@ -337,11 +351,15 @@ final class ModelSessionController {
             }
             onEngineReadyChanged?(true)
 
+            Self.signposter.endInterval("Session", signpostState, "Ready")
+
         } catch {
             backendResult = nil
             onStatusMessage("Failed to initialize: \(error.localizedDescription)")
             Self.logger.error("❌ Engine init failed: \(error.localizedDescription, privacy: .public)")
             onEngineReadyChanged?(false)
+
+            Self.signposter.endInterval("Session", signpostState, "FAILED: \(error.localizedDescription, privacy: .public)")
         }
 
         timeoutTask.cancel()

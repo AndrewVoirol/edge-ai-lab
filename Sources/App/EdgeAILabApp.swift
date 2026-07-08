@@ -67,7 +67,6 @@ struct EdgeAILabApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(.dark)
                 .accessibilityIdentifier("mainWindow")
                 .environment(viewModel)
                 .environment(downloadManager)
@@ -92,7 +91,6 @@ struct EdgeAILabApp: App {
                         OnboardingManager().hasCompletedOnboarding = true
                         showOnboarding = false
                     }
-                    .preferredColorScheme(.dark)
                 }
                 #else
                 .sheet(isPresented: $showOnboarding) {
@@ -100,7 +98,6 @@ struct EdgeAILabApp: App {
                         OnboardingManager().hasCompletedOnboarding = true
                         showOnboarding = false
                     }
-                    .preferredColorScheme(.dark)
                     .frame(minWidth: 500, minHeight: 600)
                 }
                 #endif

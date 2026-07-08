@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import Foundation
+import os
 
 // MARK: - MLXEngineAdapter
 
@@ -139,6 +140,21 @@ private struct TokenizerBridge: MLXLMCommon.Tokenizer {
 /// - iOS targets require the `Increased Memory Limit` entitlement for models > 2 GB
 final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
+    // MARK: - Signpost Infrastructure
+
+    /// Modern OSSignposter for Instruments visibility.
+    /// Category "mlx" groups all MLX engine signposts together in the timeline.
+    private static let signposter = OSSignposter(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "mlx"
+    )
+
+    /// Structured logger for runtime diagnostics (visible in Console.app + Xcode debug console).
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "mlx"
+    )
+
     // MARK: - Private State (MLX types contained here — never exposed)
 
     /// The loaded model container. Holds weights, tokenizer, and config.
@@ -187,6 +203,15 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     }
 
     func loadModel(config: ModelLoadConfig) async throws {
+        let modelLabel = config.modelPath.split(separator: "/").last.map(String.init) ?? config.modelPath
+        Self.logger.info("⏳ MLX load: \(modelLabel, privacy: .public)")
+
+        let signpostState = Self.signposter.beginInterval(
+            "ModelLoad",
+            id: Self.signposter.makeSignpostID(),
+            "Loading \(modelLabel, privacy: .public)"
+        )
+
         let container: ModelContainer
 
         // Determine if modelPath is a local directory or a HuggingFace repo ID.
@@ -345,7 +370,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         }
 
         modelInfo = InferenceModelInfo(
-            name: config.modelPath.split(separator: "/").last.map(String.init) ?? config.modelPath,
+            name: modelLabel,
             parameterCount: nil,
             quantization: nil,
             runtimeType: .mlx
@@ -354,6 +379,9 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         // Set vision capability from model config.
         // VLMs (e.g., Gemma 4, Qwen-VL) report supportsVision = true in ModelLoadConfig.
         self.supportsVision = config.supportsVision
+
+        Self.logger.info("✅ MLX ready: \(modelLabel, privacy: .public)")
+        Self.signposter.endInterval("ModelLoad", signpostState, "Model loaded successfully")
     }
 
     // MARK: - Generation
@@ -381,6 +409,11 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
         return AsyncThrowingStream { continuation in
             let task = Task {
+                let signpostState = Self.signposter.beginInterval(
+                    "Inference",
+                    id: Self.signposter.makeSignpostID(),
+                    "prompt=\(prompt.prefix(80), privacy: .public)"
+                )
                 // Capture device state at inference start for delta metrics
                 // (declared outside do/catch so failure path can also use it)
                 let startSnapshot = DeviceMetrics.captureSnapshot()
@@ -417,6 +450,11 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                             tokenTimestamps.append(now)
                             if firstTokenTime == nil {
                                 firstTokenTime = now - startTime
+                                Self.signposter.emitEvent(
+                                    "FirstToken",
+                                    "TTFT=\(String(format: "%.1f", firstTokenTime! * 1000))ms"
+                                )
+                                Self.logger.info("⚡ MLX first token: \(String(format: "%.1f", firstTokenTime! * 1000), privacy: .public)ms")
                             }
                             continuation.yield(.text(text))
 
@@ -489,7 +527,15 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                     continuation.yield(.done)
                     continuation.finish()
+                    Self.signposter.endInterval(
+                        "Inference", signpostState,
+                        "tokens=\(tokenCount) tok/s=\(self.lastPerformanceMetrics?.tokensPerSecond ?? 0, format: .fixed(precision: 1))"
+                    )
                 } catch {
+                    Self.signposter.endInterval(
+                        "Inference", signpostState,
+                        "FAILED: \(error.localizedDescription, privacy: .public)"
+                    )
                     // Still capture failure metrics for debugging
                     let endSnapshot = DeviceMetrics.captureSnapshot()
                     self.lastInferenceMetrics = InferenceMetrics(

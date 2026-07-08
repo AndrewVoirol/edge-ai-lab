@@ -132,8 +132,6 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .foregroundStyle(AppColors.textPrimary)
-        .preferredColorScheme(.dark)
         .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
         .toolbar {
             // Settings — isolated on the left of the primary action area
@@ -291,8 +289,6 @@ struct ContentView: View {
             }
             .tag(AppTab.settings)
         }
-        .foregroundStyle(AppColors.textPrimary)
-        .preferredColorScheme(.dark)
         .tint(AppColors.accentCyan)
         .sheet(item: Binding(
             get: { viewModel.activeCanvasContent },
@@ -304,7 +300,6 @@ struct ContentView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
             .presentationDetents([.medium, .large])
-            .preferredColorScheme(.dark)
         }
         )
     }
@@ -565,12 +560,25 @@ struct ModelCapabilityBadges: View {
 
 // MARK: - Vibrant Background
 
+/// Atmospheric background for content areas (chat, lab, onboarding).
+///
+/// ## Liquid Glass Compatibility
+/// Uses the system background as the base layer instead of an opaque custom color.
+/// This lets navigation chrome (sidebar, toolbar, tab bar) render glass effects
+/// correctly while preserving the forest/moss atmospheric gradient overlays.
+///
+/// In dark mode: visually similar to the original (system dark bg ≈ near-black).
+/// In light mode: gradients tint the system background subtly.
 struct VibrantBackgroundView: View {
     var body: some View {
         ZStack {
-            // Deep forest floor — the darkest layer
-            AppColors.backgroundPrimary
-            
+            // System background — respects light/dark mode, glass-compatible
+            #if os(iOS)
+            Color(.systemBackground)
+            #else
+            Color(.windowBackgroundColor)
+            #endif
+
             // Moonlight through canopy (top left) — subtle moss green
             RadialGradient(
                 gradient: Gradient(colors: [AppColors.accentTeal.opacity(0.10), .clear]),
@@ -578,7 +586,7 @@ struct VibrantBackgroundView: View {
                 startRadius: 0,
                 endRadius: 800
             )
-            
+
             // Distant firelight (bottom right) — warm amber glow
             RadialGradient(
                 gradient: Gradient(colors: [AppColors.accentGold.opacity(0.06), .clear]),
