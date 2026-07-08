@@ -94,7 +94,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             llamaQueue.async { [weak self] in
                 guard let self else {
-                    continuation.resume(throwing: EngineError.engineDeallocated)
+                    continuation.resume(throwing: EngineError.notReady("Engine was deallocated during model load"))
                     return
                 }
 
@@ -219,7 +219,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 let nCtx = Int(llama_n_ctx(ctx))
 
                 // Reset KV cache position tracking for this generation
-                llama_kv_cache_clear(ctx)
+                llama_memory_clear(llama_get_memory(ctx), true)
 
                 // Create batch and process prompt
                 var batch = llama_batch_init(Int32(promptTokens.count), 0, 1)
@@ -250,7 +250,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 }
 
                 // Build sampler chain
-                let sampler = GGUFSamplerBuilder.build(from: config, vocab: vocab)
+                let sampler = GGUFSamplerBuilder.build(from: config)
                 defer { llama_sampler_free(sampler) }
 
                 // Token generation loop
@@ -378,7 +378,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         #if canImport(LlamaCpp)
         llamaQueue.sync { [weak self] in
             guard let self, let ctx = self.context else { return }
-            llama_kv_cache_clear(ctx)
+            llama_memory_clear(llama_get_memory(ctx), true)
             self.conversationHistory.removeAll()
         }
         #endif

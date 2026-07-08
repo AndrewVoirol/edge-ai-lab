@@ -510,6 +510,15 @@ enum EngineError: LocalizedError, Equatable {
     /// For example, an MLX directory model was passed to the LiteRT engine.
     case formatMismatch(engine: String, modelPath: String, hint: String)
 
+    /// Model file could not be loaded (corrupt, wrong format, or filesystem error).
+    case modelLoadFailed(String)
+
+    /// No model is currently loaded — call `loadModel(config:)` first.
+    case modelNotLoaded
+
+    /// Token generation failed mid-stream (decode error, out-of-memory, etc.).
+    case generationFailed(String)
+
     var errorDescription: String? {
         switch self {
         case .runtimeNotYetAvailable(let runtime):
@@ -520,6 +529,12 @@ enum EngineError: LocalizedError, Equatable {
             return "Engine not ready: \(reason)"
         case .formatMismatch(let engine, _, let hint):
             return "\(engine) engine cannot load this model. \(hint)"
+        case .modelLoadFailed(let reason):
+            return "Failed to load model: \(reason)"
+        case .modelNotLoaded:
+            return "No model loaded. Load a model before generating."
+        case .generationFailed(let reason):
+            return "Generation failed: \(reason)"
         }
     }
 }

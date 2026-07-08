@@ -32,26 +32,19 @@ enum GGUFSamplerBuilder {
 
     /// Build a sampler chain from generation config.
     ///
-    /// - Parameters:
-    ///   - config: Generation parameters (temperature, topP, topK, etc.)
-    ///   - vocab: The model's vocabulary (needed for repetition penalty)
+    /// - Parameter config: Generation parameters (temperature, topP, topK, etc.)
     /// - Returns: An `OpaquePointer` to the sampler chain. Caller must free with `llama_sampler_free()`.
-    static func build(from config: GenerationConfig, vocab: OpaquePointer) -> OpaquePointer {
+    static func build(from config: GenerationConfig) -> OpaquePointer {
         var chainParams = llama_sampler_chain_default_params()
         let chain = llama_sampler_chain_init(chainParams)!
 
         // Repetition penalty
         if let penalty = config.repetitionPenalty, penalty > 1.0 {
             llama_sampler_chain_add(chain, llama_sampler_init_penalties(
-                Int32(llama_vocab_n_tokens(vocab)),  // vocab size
-                llama_vocab_eos(vocab),               // EOS token
-                llama_vocab_nl(vocab),                // newline token
-                64,                                    // penalty_last_n (window)
-                Float(penalty),                       // penalty_repeat
-                0.0,                                   // penalty_freq
-                0.0,                                   // penalty_present
-                false,                                 // penalize_nl
-                false                                  // ignore_eos
+                64,                                    // penalty_last_n (window of recent tokens)
+                Float(penalty),                       // penalty_repeat (1.0 = disabled)
+                0.0,                                   // penalty_freq (0.0 = disabled)
+                0.0                                    // penalty_present (0.0 = disabled)
             ))
         }
 
