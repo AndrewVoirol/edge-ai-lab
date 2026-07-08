@@ -292,6 +292,25 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     if length > 0 {
                         buffer[Int(length)] = 0  // Null-terminate
                         let tokenText = String(cString: buffer)
+
+                        // Stop on special tokens that llama.cpp doesn't flag as EOG
+                        // (e.g., Gemma's <end_of_turn>, ChatML's <|im_end|>)
+                        let controlTokens = ["<end_of_turn>", "<|im_end|>", "<|eot_id|>",
+                                             "<|im_end>", "</s>", "<|endoftext|>"]
+                        if controlTokens.contains(where: { tokenText.contains($0) }) {
+                            // Strip the control token from any partial text before it
+                            var cleanText = tokenText
+                            for ct in controlTokens {
+                                cleanText = cleanText.replacingOccurrences(of: ct, with: "")
+                            }
+                            if !cleanText.isEmpty {
+                                generatedText += cleanText
+                                nGenerated += 1
+                                continuation.yield(.text(cleanText))
+                            }
+                            break
+                        }
+
                         generatedText += tokenText
                         nGenerated += 1
 

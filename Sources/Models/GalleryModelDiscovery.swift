@@ -85,10 +85,12 @@ struct DiscoveredModel: Identifiable, Sendable {
         // Estimate min RAM from file size (rough: model needs ~1.2x file size in RAM)
         let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * 1.2))
 
-        // Generate a human-readable name from the stem
+        // Generate a human-readable name from the stem.
+        // GGUF filenames use hyphens as word separators (e.g., "gemma-4-E2B-it-Q4_K_M").
+        // Underscores are meaningful within quantization identifiers — preserve them.
         let displayName = stem
-            .replacingOccurrences(of: "_", with: " ")
             .replacingOccurrences(of: "--", with: " / ")
+            .replacingOccurrences(of: "-", with: " ")
 
         return ModelMetadata(
             name: displayName,
