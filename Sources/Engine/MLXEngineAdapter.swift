@@ -527,9 +527,10 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                     continuation.yield(.done)
                     continuation.finish()
+                    let ttftDisplay = firstTokenTime.map { String(format: "%.0fms", $0 * 1000) } ?? "n/a"
                     Self.signposter.endInterval(
                         "Inference", signpostState,
-                        "tokens=\(tokenCount) tok/s=\(self.lastPerformanceMetrics?.tokensPerSecond ?? 0, format: .fixed(precision: 1))"
+                        "\(tokenCount) tok, \(self.lastPerformanceMetrics?.tokensPerSecond ?? 0, format: .fixed(precision: 1)) tok/s, TTFT=\(ttftDisplay, privacy: .public)"
                     )
                 } catch {
                     Self.signposter.endInterval(

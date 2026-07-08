@@ -604,10 +604,19 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
                     self?.lastBenchmarkInfo = benchmarkInfo
                 }
 
+                // Compute decode tok/s for signpost metadata
+                let totalDurationS = tokenTimestamps.count >= 2
+                    ? tokenTimestamps.last! - tokenTimestamps.first!
+                    : 0.0
+                let decodeTokPerS = totalDurationS > 0
+                    ? Double(tokenTimestamps.count - 1) / totalDurationS
+                    : 0.0
+                let ttftDisplay = ttftMs.map { String(format: "%.0fms", $0) } ?? "n/a"
+
                 Self.logger.info("✅ \(label) complete: \(tokenTimestamps.count) tokens, \(thermalTransitions.count) thermal transitions")
                 Self.signposter.endInterval(
                     "Inference", signpostState,
-                    "\(label, privacy: .public) completed (\(tokenTimestamps.count) tokens)"
+                    "\(tokenTimestamps.count) tok, \(decodeTokPerS, format: .fixed(precision: 1)) tok/s, TTFT=\(ttftDisplay, privacy: .public)"
                 )
                 continuation.finish()
             } catch {

@@ -132,6 +132,7 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
+        .foregroundStyle(AppColors.textPrimary)
         .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
         .toolbar {
             // Settings — isolated on the left of the primary action area
@@ -289,6 +290,7 @@ struct ContentView: View {
             }
             .tag(AppTab.settings)
         }
+        .foregroundStyle(AppColors.textPrimary)
         .tint(AppColors.accentCyan)
         .sheet(item: Binding(
             get: { viewModel.activeCanvasContent },
@@ -572,12 +574,11 @@ struct ModelCapabilityBadges: View {
 struct VibrantBackgroundView: View {
     var body: some View {
         ZStack {
-            // System background — respects light/dark mode, glass-compatible
-            #if os(iOS)
-            Color(.systemBackground)
-            #else
-            Color(.windowBackgroundColor)
-            #endif
+            // Deep forest floor — the darkest layer.
+            // This is intentionally NOT a system color: the custom palette is designed
+            // around this specific near-black base. NSColor.windowBackgroundColor in
+            // dark mode (~0.16) is too light and washes out text/card contrast.
+            AppColors.backgroundPrimary
 
             // Moonlight through canopy (top left) — subtle moss green
             RadialGradient(
