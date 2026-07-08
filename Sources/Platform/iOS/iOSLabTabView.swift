@@ -33,7 +33,7 @@ struct iOSLabTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                VibrantBackgroundView()
+                Color(.systemBackground)
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
 

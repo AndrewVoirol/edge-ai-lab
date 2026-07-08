@@ -49,7 +49,7 @@ struct iOSChatTabView: View {
 
     var body: some View {
         ZStack {
-            VibrantBackgroundView()
+            Color(.systemBackground)
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
 
