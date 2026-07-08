@@ -165,10 +165,11 @@ enum GalleryModelDiscovery {
 
     // MARK: - Directory Scanning
 
-    /// Scan a directory for .litertlm model files.
+    /// Scan a directory for single-file models (.litertlm, .gguf).
     /// Resolves symlinks so linked models are correctly discovered.
     private static func scanDirectory(_ directory: URL, source: DiscoveredModel.DiscoverySource) -> [DiscoveredModel] {
         let fileManager = FileManager.default
+        let supportedExtensions: Set<String> = ["litertlm", "gguf"]
         guard let contents = try? fileManager.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isSymbolicLinkKey],
@@ -178,7 +179,7 @@ enum GalleryModelDiscovery {
         }
 
         return contents.compactMap { url -> DiscoveredModel? in
-            guard url.pathExtension == "litertlm" else { return nil }
+            guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return nil }
 
             // Resolve symlinks so we check the actual target file
             let resolvedURL = url.resolvingSymlinksInPath()
