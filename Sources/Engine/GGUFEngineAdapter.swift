@@ -443,23 +443,32 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
 // MARK: - Gemma Chat Template Fallback
 
-/// Hardcoded Gemma chat template for GGUF files that lack `tokenizer.chat_template` metadata.
+/// Hardcoded Gemma 4 chat template using the vocabulary's actual special token strings.
+///
+/// Gemma 4's GGUF vocabulary defines:
+/// - Token 105: `<|turn>`  — start of turn (control token)
+/// - Token 106: `<turn|>`  — end of turn (EOG token)
+///
+/// This differs from Gemma 2 which used `<start_of_turn>` / `<end_of_turn>`.
+/// Using the exact token strings ensures `llama_tokenize(parse_special: true)` maps
+/// them to their special token IDs, so `llama_vocab_is_eog()` correctly catches
+/// the end-of-turn token during generation.
 ///
 /// Format:
 /// ```
-/// <start_of_turn>user
-/// Hello<end_of_turn>
-/// <start_of_turn>model
+/// <|turn>user
+/// Hello<turn|>
+/// <|turn>model
 /// ```
 enum GemmaChatTemplateFallback {
     static func apply(messages: [(role: String, content: String)], addGenerationPrompt: Bool) -> String {
         var result = ""
         for msg in messages {
             let role = msg.role == "assistant" ? "model" : msg.role
-            result += "<start_of_turn>\(role)\n\(msg.content.trimmingCharacters(in: .whitespaces))<end_of_turn>\n"
+            result += "<|turn>\(role)\n\(msg.content.trimmingCharacters(in: .whitespaces))<turn|>\n"
         }
         if addGenerationPrompt {
-            result += "<start_of_turn>model\n"
+            result += "<|turn>model\n"
         }
         return result
     }
