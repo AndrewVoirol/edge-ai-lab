@@ -281,8 +281,8 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                         break
                     }
 
-                    // Skip control tokens (e.g., <|im_end|>, <end_of_turn>, </s>)
-                    // These are marked in the GGUF vocabulary metadata — no string matching needed.
+                    // Skip control tokens that aren't marked as EOG
+                    // (e.g., <bos>, <pad>, <mask>, <|think|>).
                     if llama_vocab_is_control(vocab, nextToken) {
                         break
                     }
@@ -417,48 +417,18 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     // MARK: - Chat Template
 
     #if canImport(llama)
-    /// Apply the chat template from GGUF metadata, falling back to hardcoded Gemma template.
+    /// Apply the Gemma chat template to format conversation history for inference.
+    ///
+    /// We intentionally bypass `llama_chat_apply_template()` which reads the Jinja
+    /// template embedded in the GGUF metadata. The Unsloth-converted Gemma 4 GGUF
+    /// contains a Jinja template that renders ChatML format with `<|im_end>` — a token
+    /// that does NOT exist as a special token in Gemma 4's vocabulary (EOG tokens are
+    /// `<eos>` (1), `<turn|>` (106), `<|tool_response>` (50)). This causes `<|im_end>`
+    /// to be tokenized as regular BPE pieces and echoed verbatim in the model's output.
+    ///
+    /// The correct Gemma 4 format uses `<start_of_turn>` / `<end_of_turn>` which map to
+    /// `<turn|>` (token 106) — a recognized EOG token that properly terminates generation.
     private func applyChatTemplate(model: OpaquePointer) throws -> String {
-        let messages = conversationHistory.map { msg -> llama_chat_message in
-            // These strings need to live until after the C call completes
-            let role = strdup(msg.role)!
-            let content = strdup(msg.content)!
-            return llama_chat_message(role: role, content: content)
-        }
-        defer {
-            for msg in messages {
-                free(UnsafeMutablePointer(mutating: msg.role))
-                free(UnsafeMutablePointer(mutating: msg.content))
-            }
-        }
-
-        // First pass: determine required buffer size
-        let needed = llama_chat_apply_template(
-            nil,       // NULL → read template from GGUF metadata
-            messages,
-            messages.count,
-            true,      // add assistant turn prompt
-            nil,
-            0
-        )
-
-        if needed > 0 {
-            // Second pass: render into buffer
-            var buffer = [CChar](repeating: 0, count: Int(needed) + 1)
-            let written = llama_chat_apply_template(
-                nil,
-                messages,
-                messages.count,
-                true,
-                &buffer,
-                Int32(buffer.count)
-            )
-            if written > 0 {
-                return String(cString: buffer)
-            }
-        }
-
-        // Fallback: hardcoded Gemma template
         return GemmaChatTemplateFallback.apply(
             messages: conversationHistory,
             addGenerationPrompt: true
