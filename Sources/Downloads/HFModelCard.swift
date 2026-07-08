@@ -196,12 +196,10 @@ struct HFModelCard: View {
             if format == .litertlm, let sibling = litertlmSibling {
                 Button {
                     downloadManager.downloadCommunityModel(model: model, sibling: sibling)
-                    // Set up post-download callback
-                    downloadManager.postDownloadCallback = { filename, url in
-                        if filename == sibling.rfilename {
-                            downloadedURL = url
-                            showLoadPrompt = true
-                        }
+                    // Register post-download callback keyed by filename
+                    downloadManager.postDownloadCallbacks[sibling.rfilename] = { filename, url in
+                        downloadedURL = url
+                        showLoadPrompt = true
                     }
                 } label: {
                     HStack(spacing: AppSpacing.xs) {

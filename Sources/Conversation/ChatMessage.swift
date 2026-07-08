@@ -29,6 +29,9 @@ struct ChatMessage: Identifiable, Sendable, Codable {
     var attachments: [Attachment]
     let timestamp: Date
     var benchmarkInfo: BenchmarkSnapshot?
+    /// Config snapshot capturing exactly what engine/settings produced this response.
+    /// Only present on assistant messages created after Phase 2B.
+    var inferenceConfig: InferenceConfigSnapshot?
     var isStreaming: Bool
     var thinkingWordCount: Int
     var specialResults: [UUID: SpecialResult]
@@ -158,7 +161,8 @@ struct ChatMessage: Identifiable, Sendable, Codable {
     }
     
     /// Create an assistant message (initially empty, filled via streaming).
-    static func assistant() -> ChatMessage {
+    /// - Parameter config: Optional config snapshot captured at inference start.
+    static func assistant(config: InferenceConfigSnapshot? = nil) -> ChatMessage {
         ChatMessage(
             id: UUID(),
             role: .assistant,
@@ -168,6 +172,7 @@ struct ChatMessage: Identifiable, Sendable, Codable {
             attachments: [],
             timestamp: Date(),
             benchmarkInfo: nil,
+            inferenceConfig: config,
             isStreaming: true,
             thinkingWordCount: 0,
             specialResults: [:]

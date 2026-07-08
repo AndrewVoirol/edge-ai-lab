@@ -24,6 +24,7 @@ import Foundation
 import MLX
 import MLXLLM
 import MLXLMCommon
+import MLXVLM
 import Tokenizers
 import Hub
 import CoreImage
@@ -158,6 +159,10 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     /// Performance metrics from the most recent generation.
     private(set) var lastPerformanceMetrics: EnginePerformanceMetrics?
 
+    /// Device-level inference metrics (thermal, memory, per-token latency).
+    /// Matches the instrumentation that InstrumentedEngine provides for LiteRT.
+    private(set) var lastInferenceMetrics: InferenceMetrics?
+
     // MARK: - Download Progress (observable from UI)
 
     /// Download progress (0.0 → 1.0) during `loadModel`. Observable for UI binding.
@@ -174,6 +179,12 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     private(set) var supportsVision: Bool = false
 
     // MARK: - Loading
+
+    /// Detects whether a local model directory is a VLM by checking for vision processor configs.
+    /// Delegates to `MLXVLMDetectionHelper` (a testable enum namespace).
+    private static func isVLMModel(at directory: URL) -> Bool {
+        MLXVLMDetectionHelper.isVLMModel(at: directory)
+    }
 
     func loadModel(config: ModelLoadConfig) async throws {
         let container: ModelContainer
@@ -199,20 +210,64 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                 throw EngineError.notReady(reason)
             }
 
-            container = try await LLMModelFactory.shared.loadContainer(
-                from: modelURL,
-                using: TransformersTokenizerLoader()
-            )
+            // Try VLMModelFactory first for models with vision processor configs.
+            // Fall back to LLMModelFactory if VLM loading fails — this handles the
+            // mlx-swift-lm ≤3.31.4 bug where VLMModelFactory's Gemma4 class doesn't
+            // support KV-shared layers (k_norm/v_norm absent in shared layers).
+            // LLMModelFactory's Gemma4Model has a sanitize(weights:) method that
+            // strips the language_model. prefix and drops vision/audio keys, so it
+            // can load VLM-structured weights for text-only inference.
+            if Self.isVLMModel(at: modelURL) {
+                do {
+                    container = try await VLMModelFactory.shared.loadContainer(
+                        from: modelURL,
+                        using: TransformersTokenizerLoader()
+                    )
+                } catch {
+                    // VLM loading failed (likely KV-shared layer bug) — fall back to LLM.
+                    // This loses multimodal (image/audio) input but preserves text inference.
+                    container = try await LLMModelFactory.shared.loadContainer(
+                        from: modelURL,
+                        using: TransformersTokenizerLoader()
+                    )
+                }
+            } else {
+                container = try await LLMModelFactory.shared.loadContainer(
+                    from: modelURL,
+                    using: TransformersTokenizerLoader()
+                )
+            }
             self.downloadProgress = 1.0
         } else {
             // HuggingFace repo ID — download via Hub API
             let configuration = ModelConfiguration(id: config.modelPath)
-            container = try await LLMModelFactory.shared.loadContainer(
-                from: HubDownloader(),
-                using: TransformersTokenizerLoader(),
-                configuration: configuration
-            ) { [weak self] progress in
-                self?.downloadProgress = progress.fractionCompleted
+            // Same try-VLM-catch-LLM pattern for HF downloads.
+            if config.supportsVision {
+                do {
+                    container = try await VLMModelFactory.shared.loadContainer(
+                        from: HubDownloader(),
+                        using: TransformersTokenizerLoader(),
+                        configuration: configuration
+                    ) { [weak self] progress in
+                        self?.downloadProgress = progress.fractionCompleted
+                    }
+                } catch {
+                    container = try await LLMModelFactory.shared.loadContainer(
+                        from: HubDownloader(),
+                        using: TransformersTokenizerLoader(),
+                        configuration: configuration
+                    ) { [weak self] progress in
+                        self?.downloadProgress = progress.fractionCompleted
+                    }
+                }
+            } else {
+                container = try await LLMModelFactory.shared.loadContainer(
+                    from: HubDownloader(),
+                    using: TransformersTokenizerLoader(),
+                    configuration: configuration
+                ) { [weak self] progress in
+                    self?.downloadProgress = progress.fractionCompleted
+                }
             }
         }
 
@@ -240,11 +295,21 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             mlxTools = MLXToolBridge.convertToMLXFormat(appTools)
         }
 
+        // Build additionalContext for Jinja template variables.
+        // The Gemma 4 chat template checks `enable_thinking` to inject the
+        // thinking prompt (`<|think|>`). Without this, thinking mode silently
+        // produces output without `<think>` tags.
+        var templateContext: [String: any Sendable]?
+        if let flags = config.runtimeFlags, flags.enableThinking {
+            templateContext = ["enable_thinking": true]
+        }
+
         // Create ChatSession with tools, system instructions, and sampling params.
         let session = ChatSession(
             container,
             instructions: config.systemMessage,
             generateParameters: genParams,
+            additionalContext: templateContext,
             tools: mlxTools
         )
 
@@ -316,10 +381,14 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
         return AsyncThrowingStream { continuation in
             let task = Task {
+                // Capture device state at inference start for delta metrics
+                // (declared outside do/catch so failure path can also use it)
+                let startSnapshot = DeviceMetrics.captureSnapshot()
                 do {
                     var tokenCount = 0
                     let startTime = CFAbsoluteTimeGetCurrent()
                     var firstTokenTime: Double?
+                    var tokenTimestamps: [Double] = []
 
                     // Use streamDetails() for native Generation events:
                     // .chunk(String), .toolCall(ToolCall), .info(GenerateCompletionInfo)
@@ -344,8 +413,10 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                         switch generation {
                         case .chunk(let text):
                             tokenCount += 1
+                            let now = CFAbsoluteTimeGetCurrent()
+                            tokenTimestamps.append(now)
                             if firstTokenTime == nil {
-                                firstTokenTime = CFAbsoluteTimeGetCurrent() - startTime
+                                firstTokenTime = now - startTime
                             }
                             continuation.yield(.text(text))
 
@@ -366,18 +437,50 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                             continuation.yield(.toolCall(appToolCall))
 
                         case .info(let completionInfo):
-                            // Build EnginePerformanceMetrics from native
-                            // GenerateCompletionInfo — gives us promptTokensPerSecond
-                            // natively instead of manual timing.
+                            // Capture device state at inference end
+                            let endSnapshot = DeviceMetrics.captureSnapshot()
+
+                            // Build per-token latency arrays matching InstrumentedEngine's format
+                            let ttftMs: Double?
+                            var decodeLatenciesMs: [Double] = []
+                            if !tokenTimestamps.isEmpty {
+                                ttftMs = (tokenTimestamps[0] - startTime) * 1000.0
+                                for i in 1..<tokenTimestamps.count {
+                                    decodeLatenciesMs.append(
+                                        (tokenTimestamps[i] - tokenTimestamps[i - 1]) * 1000.0
+                                    )
+                                }
+                            } else {
+                                ttftMs = nil
+                            }
+
+                            // Build device-level InferenceMetrics
+                            let inferenceMetrics = InferenceMetrics(
+                                startSnapshot: startSnapshot,
+                                endSnapshot: endSnapshot,
+                                ttftMs: ttftMs,
+                                decodeLatenciesMs: decodeLatenciesMs,
+                                totalTokenCount: tokenTimestamps.count
+                            )
+                            self.lastInferenceMetrics = inferenceMetrics
+
+                            // Build enriched EnginePerformanceMetrics from native
+                            // GenerateCompletionInfo + device snapshots
                             let metrics = EnginePerformanceMetrics(
                                 tokensPerSecond: completionInfo.tokensPerSecond,
                                 promptTokensPerSecond: completionInfo.promptTokensPerSecond,
                                 timeToFirstToken: firstTokenTime,
                                 peakMemoryBytes: nil,
                                 tokenCount: completionInfo.generationTokenCount,
-                                memoryDeltaMB: nil,
-                                thermalStateChanged: nil,
-                                runtimeType: .mlx
+                                memoryDeltaMB: inferenceMetrics.memoryDeltaMB,
+                                thermalStateChanged: inferenceMetrics.thermalStateChanged,
+                                runtimeType: .mlx,
+                                promptTokenCount: completionInfo.promptTokenCount,
+                                proposedDraftTokens: completionInfo.proposedDraftTokens,
+                                acceptedDraftTokens: completionInfo.acceptedDraftTokens,
+                                passthroughReason: completionInfo.passthroughReason,
+                                promptTimeSeconds: completionInfo.promptTime,
+                                generateTimeSeconds: completionInfo.generateTime
                             )
                             self.lastPerformanceMetrics = metrics
                             continuation.yield(.metrics(metrics))
@@ -387,6 +490,15 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     continuation.yield(.done)
                     continuation.finish()
                 } catch {
+                    // Still capture failure metrics for debugging
+                    let endSnapshot = DeviceMetrics.captureSnapshot()
+                    self.lastInferenceMetrics = InferenceMetrics(
+                        startSnapshot: startSnapshot,
+                        endSnapshot: endSnapshot,
+                        ttftMs: nil,
+                        decodeLatenciesMs: [],
+                        totalTokenCount: 0
+                    )
                     continuation.finish(throwing: error)
                 }
             }

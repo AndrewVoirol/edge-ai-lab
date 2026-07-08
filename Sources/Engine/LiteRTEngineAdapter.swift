@@ -37,6 +37,14 @@ import LiteRTLM
 /// - **GenerationConfig → SamplerConfig mapping:** LiteRT-LM's `SamplerConfig` supports
 ///   `topK`, `topP`, `temperature`, and `seed`. We map from `GenerationConfig` at load time
 ///   since LiteRT-LM binds sampler config to the conversation, not individual turns.
+///
+/// - **WebGPU sampler warning (expected):** At engine init, the LiteRT-LM SDK logs:
+///   `"libLiteRtTopKWebGpuSampler.dylib not found"`. This is **normal** — the WebGPU sampler
+///   is an optional runtime accelerator that is intentionally excluded from the xcframework
+///   distributed via SPM. (The `prebuilt/` directory in the upstream repo contains Git LFS
+///   pointers, but these are irrelevant — SPM fetches remotely-hosted xcframework ZIPs, not
+///   local dylibs.) The SDK falls back to a statically linked C API sampler with no functional
+///   or performance impact.
 final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     // MARK: - State
@@ -178,7 +186,9 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
                             tokenCount: benchmarkInfo.lastDecodeTokenCount,
                             memoryDeltaMB: self?.engine.lastInferenceMetrics?.memoryDeltaMB,
                             thermalStateChanged: self?.engine.lastInferenceMetrics?.thermalStateChanged,
-                            runtimeType: .litertlm
+                            runtimeType: .litertlm,
+                            promptTokenCount: benchmarkInfo.lastPrefillTokenCount,
+                            initTimeSeconds: benchmarkInfo.initTimeInSecond
                         )
                         self?.lastPerformanceMetrics = metrics
                         continuation.yield(.metrics(metrics))

@@ -43,6 +43,11 @@ extension InferenceSettingsView {
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
 
+            SettingsImpactLabel(
+                descriptor: FlagRegistry.temperature,
+                currentRuntime: viewModel.selectedRuntimeType
+            )
+
             Stepper("Seed: \(viewModel.seed)", value: $viewModel.seed, in: 0...Int.max)
                 .help("Seed for reproducible generation. 0 = non-deterministic (SDK default). Same seed + same prompt = same output.")
                 .accessibilityIdentifier("stepper_seed")

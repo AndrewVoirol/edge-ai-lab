@@ -117,13 +117,13 @@ final class CommunityDownloadTests: XCTestCase {
     func testPostDownloadCallbackConfigurable() {
         let manager = ModelDownloadManager()
         var callbackFired = false
-        manager.postDownloadCallback = { filename, url in
+        manager.postDownloadCallbacks["test.litertlm"] = { filename, url in
             callbackFired = true
             XCTAssertEqual(filename, "test.litertlm")
         }
 
         // Simulate callback
-        manager.postDownloadCallback?("test.litertlm", URL(fileURLWithPath: "/tmp/test.litertlm"))
+        manager.postDownloadCallbacks["test.litertlm"]?("test.litertlm", URL(fileURLWithPath: "/tmp/test.litertlm"))
         XCTAssertTrue(callbackFired)
     }
 

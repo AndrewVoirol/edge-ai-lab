@@ -55,30 +55,44 @@ extension InferenceSettingsView {
     var performanceSection: some View {
         Section(header: Label("Performance", systemImage: "chart.bar")
             .foregroundStyle(AppColors.accentGold)) {
-            if let info = viewModel.benchmarkInfo {
-                LabeledContent("Init Time") {
-                    Text(String(format: "%.3f s", info.initTimeInSecond))
+            if let metrics = viewModel.performanceMetrics {
+                LabeledContent("Runtime") {
+                    Text(metrics.runtimeType == .mlx ? "MLX" : "LiteRT")
                         .monospacedDigit()
                 }
-                LabeledContent("Time to First Token") {
-                    Text(String(format: "%.3f s", info.timeToFirstTokenInSecond))
-                        .monospacedDigit()
+                if let initTime = metrics.initTimeSeconds {
+                    LabeledContent("Init Time") {
+                        Text(String(format: "%.3f s", initTime))
+                            .monospacedDigit()
+                    }
+                }
+                if let ttft = metrics.timeToFirstToken {
+                    LabeledContent("Time to First Token") {
+                        Text(String(format: "%.3f s", ttft))
+                            .monospacedDigit()
+                    }
                 }
                 LabeledContent("Decode Speed") {
-                    Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+                    Text(String(format: "%.1f tok/s", metrics.tokensPerSecond))
                         .monospacedDigit()
                 }
-                LabeledContent("Prefill Speed") {
-                    Text(String(format: "%.1f tok/s", info.lastPrefillTokensPerSecond))
-                        .monospacedDigit()
+                if let prefillSpeed = metrics.promptTokensPerSecond {
+                    LabeledContent("Prefill Speed") {
+                        Text(String(format: "%.1f tok/s", prefillSpeed))
+                            .monospacedDigit()
+                    }
                 }
-                LabeledContent("Prefill Tokens") {
-                    Text("\(info.lastPrefillTokenCount)")
-                        .monospacedDigit()
+                if let prefillCount = metrics.promptTokenCount {
+                    LabeledContent("Prefill Tokens") {
+                        Text("\(prefillCount)")
+                            .monospacedDigit()
+                    }
                 }
-                LabeledContent("Decode Tokens") {
-                    Text("\(info.lastDecodeTokenCount)")
-                        .monospacedDigit()
+                if let decodeCount = metrics.tokenCount {
+                    LabeledContent("Decode Tokens") {
+                        Text("\(decodeCount)")
+                            .monospacedDigit()
+                    }
                 }
 
                 // Device-level instrumentation (from Work Stream 3)

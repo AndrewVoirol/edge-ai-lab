@@ -96,6 +96,10 @@ enum AppColors {
     static let badgeMTP = Color(red: 0.20, green: 0.78, blue: 0.45)
     /// Thinking badge — vivid violet-purple, clearly distinct from greens.
     static let badgeThinking = Color(red: 0.65, green: 0.42, blue: 0.95)
+    /// Constrained Decoding badge — warm amber-orange.
+    static let badgeCD = Color(red: 0.90, green: 0.62, blue: 0.20)
+    /// Tool Calling badge — bright teal.
+    static let badgeTools = Color(red: 0.30, green: 0.75, blue: 0.70)
 }
 
 // MARK: - Gradients

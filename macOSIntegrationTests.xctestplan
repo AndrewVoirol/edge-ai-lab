@@ -20,6 +20,8 @@
       },
       "selectedTests": [
         "InferenceQualityTests",
+        "MLXFeatureVerificationTests",
+        "MLXInvariantTests",
         "SmartFallbackIntegrationTests"
       ]
     }

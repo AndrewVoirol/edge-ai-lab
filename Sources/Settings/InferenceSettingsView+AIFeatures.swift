@@ -31,6 +31,11 @@ extension InferenceSettingsView {
             )
             .font(AppTypography.caption)
             .foregroundStyle(AppColors.textSecondary)
+
+            SettingsImpactLabel(
+                descriptor: FlagRegistry.thinking,
+                currentRuntime: viewModel.selectedRuntimeType
+            )
         } header: {
             Label("Thinking Mode", systemImage: "brain.head.profile")
                 .foregroundStyle(AppColors.thinking)
@@ -118,9 +123,10 @@ extension InferenceSettingsView {
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
                 
-                Text("⚠️ Tool Calling changes auto-apply by reloading the engine.")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                SettingsImpactLabel(
+                    descriptor: FlagRegistry.toolCalling,
+                    currentRuntime: viewModel.selectedRuntimeType
+                )
             }
         } header: {
             Label("Tool Calling", systemImage: "wrench.and.screwdriver")

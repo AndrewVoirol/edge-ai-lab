@@ -83,6 +83,9 @@ final class ModelSessionController {
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
     /// Callback when engine readiness state changes (so the ViewModel can update its tracked property).
     var onEngineReadyChanged: ((Bool) -> Void)?
+    /// Callback when the active model identity changes (metadata and/or URL).
+    /// The ViewModel mirrors these as stored tracked properties so SwiftUI observes changes.
+    var onActiveModelChanged: ((ModelMetadata?, URL?) -> Void)?
     /// Default runtime flags to use when none are explicitly passed.
     var defaultRuntimeFlags: RuntimeFlags?
 
@@ -127,6 +130,7 @@ final class ModelSessionController {
         engine = newEngine
         backendResult = nil
         activeModelMetadata = nil
+        onActiveModelChanged?(nil, activeModelURL)
         onEngineReadyChanged?(false)
 
         onStatusMessage("Switched to \(newEngine.runtimeType.displayName) engine")
@@ -135,7 +139,10 @@ final class ModelSessionController {
     // MARK: - Model Loading
 
     /// Handle a model file selection from the file picker.
-    func handleModelSelection(_ url: URL) async {
+    /// - Parameters:
+    ///   - url: File URL to the model file or directory.
+    ///   - metadata: Pre-resolved metadata from DiscoveredModel (avoids re-lookup for community models).
+    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil) async {
         Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
@@ -143,6 +150,7 @@ final class ModelSessionController {
         // Attempt to access the new file
         let hasAccess = url.startAccessingSecurityScopedResource()
         activeModelURL = url
+        onActiveModelChanged?(activeModelMetadata, url)
 
         if !hasAccess {
             // Even without security scope, try to load (may work for non-sandboxed macOS)
@@ -151,7 +159,7 @@ final class ModelSessionController {
         // Bookmark Gallery models for future auto-discovery
         GalleryModelDiscovery.bookmarkGalleryModel(url)
 
-        await initializeEngine(modelPath: url.path)
+        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata)
     }
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
@@ -163,6 +171,7 @@ final class ModelSessionController {
     ///   - mcpClients: Active MCP clients (macOS only) for tool bridging.
     func initializeEngine(
         modelPath: String,
+        discoveredMetadata: ModelMetadata? = nil,
         runtimeFlags: RuntimeFlags? = nil,
         useGPU: Bool? = nil,
         mcpClients: [UUID: Any] = [:]
@@ -185,8 +194,10 @@ final class ModelSessionController {
         let preferGPU = useGPU ?? true
         Self.logger.info("⏳ initializeEngine: \(modelName, privacy: .public) GPU=\(preferGPU)")
 
-        // Look up model metadata for known models
-        activeModelMetadata = ModelRegistry.lookup(path: modelPath)
+        // Look up model metadata — prefer caller-provided metadata (from DiscoveredModel)
+        // over static registry lookup. Community MLX models aren't in ModelRegistry.
+        activeModelMetadata = ModelRegistry.lookup(path: modelPath) ?? discoveredMetadata
+        onActiveModelChanged?(activeModelMetadata, activeModelURL)
         if let metadata = activeModelMetadata {
             onStatusMessage("Loading \(metadata.name)...")
             // Apply model's default sampler config
@@ -308,7 +319,8 @@ final class ModelSessionController {
                 // Generic engines may populate lastBackendResult via protocol
                 backendResult = engine.lastBackendResult
             }
-            let modelLabel = activeModelMetadata?.name ?? modelFilename
+            let modelLabel = activeModelMetadata?.name
+                ?? GalleryModelDiscovery.cleanModelDirectoryName(modelFilename)
 
             if let result = backendResult {
                 let backendLabel = result.activeBackend == .gpu ? "GPU" : "CPU"
@@ -344,6 +356,25 @@ final class ModelSessionController {
         onStatusMessage("Model load cancelled")
     }
 
+    /// Applies sampler-only changes without a full engine reload when the runtime supports it.
+    ///
+    /// MLX applies sampler parameters per-generation via `ChatSession.generateParameters` —
+    /// `generateStream()` sets temperature/topK/topP from the `GenerationConfig` before each
+    /// call to `streamDetails()`. A full engine reload (shutdown → loadModel → rebuild Metal
+    /// pipelines) is unnecessary and wastes 5-15 seconds per slider adjustment.
+    ///
+    /// LiteRT bakes `SamplerConfig` into the engine at initialization time, so it genuinely
+    /// needs a reload to pick up sampler changes.
+    ///
+    /// - Returns: `true` if the engine handled the change in-place (no reload needed),
+    ///            `false` if a full `reinitializeIfNeeded()` call is required.
+    func applySamplerSettingsInPlace() -> Bool {
+        guard engine.isLoaded else { return false }
+        // MLX applies sampler params per-generation in generateStream() — no reload needed.
+        // LiteRT bakes SamplerConfig at init time — must reload.
+        return engine.runtimeType == .mlx
+    }
+
     /// Reboots the engine to apply new core settings if a model is currently loaded.
     func reinitializeIfNeeded(
         runtimeFlags: RuntimeFlags,
@@ -356,6 +387,7 @@ final class ModelSessionController {
         engine.shutdown()
         await initializeEngine(
             modelPath: url.path,
+            discoveredMetadata: activeModelMetadata,
             runtimeFlags: runtimeFlags,
             useGPU: useGPU,
             mcpClients: mcpClients
@@ -370,6 +402,7 @@ final class ModelSessionController {
         activeModelMetadata = nil
         backendResult = nil
         engine.shutdown()
+        onActiveModelChanged?(nil, nil)
         onEngineReadyChanged?(false)
     }
 

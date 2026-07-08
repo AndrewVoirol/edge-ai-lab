@@ -55,16 +55,19 @@ struct AppToolCall: Sendable, Codable, Equatable {
 /// Runtime-agnostic performance metrics for a completed generation.
 ///
 /// Populated from `BenchmarkInfo` (LiteRT-LM) or `GenerateCompletionInfo` (MLX).
+/// This is the universal metrics type consumed by all views — replaces direct
+/// `BenchmarkInfo` usage to fix SwiftUI observation (`engine` is `@ObservationIgnored`,
+/// so computed properties reading from it never trigger view updates).
 struct EnginePerformanceMetrics: Sendable, Equatable, Codable {
     /// Tokens generated per second (decode speed).
     let tokensPerSecond: Double
-    /// Prompt tokens processed per second (prefill speed). MLX provides this natively.
+    /// Prompt tokens processed per second (prefill speed).
     let promptTokensPerSecond: Double?
     /// Time to first token in seconds.
     let timeToFirstToken: Double?
     /// Peak memory usage in bytes during generation.
     let peakMemoryBytes: UInt64?
-    /// Number of tokens generated.
+    /// Number of tokens generated (decode phase).
     let tokenCount: Int?
     /// Memory delta in MB during inference (footprint change).
     let memoryDeltaMB: Double?
@@ -72,6 +75,76 @@ struct EnginePerformanceMetrics: Sendable, Equatable, Codable {
     let thermalStateChanged: Bool?
     /// The runtime that produced these metrics.
     let runtimeType: RuntimeType
+
+    // MARK: - Enriched Fields (Phase 2)
+
+    /// Number of prompt tokens processed (prefill phase).
+    let promptTokenCount: Int?
+    /// Model/engine initialization time in seconds.
+    let initTimeSeconds: Double?
+
+    // MARK: - MTP Speculation Stats (MLX only)
+
+    /// Total draft tokens proposed by the MTP drafter across all speculation rounds.
+    let proposedDraftTokens: Int?
+    /// Total draft tokens accepted by the target model.
+    let acceptedDraftTokens: Int?
+    /// Reason the MTP iterator engaged sticky-passthrough mode, if applicable.
+    let passthroughReason: String?
+
+    // MARK: - Timing Breakdowns
+
+    /// Time spent processing the prompt (prefill) in seconds.
+    let promptTimeSeconds: Double?
+    /// Time spent generating tokens (decode) in seconds.
+    let generateTimeSeconds: Double?
+
+    // MARK: - Convenience
+
+    /// MTP draft acceptance rate (0.0–1.0), or nil if MTP was not used.
+    var draftAcceptanceRate: Double? {
+        guard let proposed = proposedDraftTokens, proposed > 0,
+              let accepted = acceptedDraftTokens else { return nil }
+        return Double(accepted) / Double(proposed)
+    }
+
+    /// Backward-compatible generation token count accessor.
+    var generationTokenCount: Int? { tokenCount }
+
+    /// Minimal initializer for backward compatibility — fills new fields with nil.
+    init(
+        tokensPerSecond: Double,
+        promptTokensPerSecond: Double? = nil,
+        timeToFirstToken: Double? = nil,
+        peakMemoryBytes: UInt64? = nil,
+        tokenCount: Int? = nil,
+        memoryDeltaMB: Double? = nil,
+        thermalStateChanged: Bool? = nil,
+        runtimeType: RuntimeType,
+        promptTokenCount: Int? = nil,
+        initTimeSeconds: Double? = nil,
+        proposedDraftTokens: Int? = nil,
+        acceptedDraftTokens: Int? = nil,
+        passthroughReason: String? = nil,
+        promptTimeSeconds: Double? = nil,
+        generateTimeSeconds: Double? = nil
+    ) {
+        self.tokensPerSecond = tokensPerSecond
+        self.promptTokensPerSecond = promptTokensPerSecond
+        self.timeToFirstToken = timeToFirstToken
+        self.peakMemoryBytes = peakMemoryBytes
+        self.tokenCount = tokenCount
+        self.memoryDeltaMB = memoryDeltaMB
+        self.thermalStateChanged = thermalStateChanged
+        self.runtimeType = runtimeType
+        self.promptTokenCount = promptTokenCount
+        self.initTimeSeconds = initTimeSeconds
+        self.proposedDraftTokens = proposedDraftTokens
+        self.acceptedDraftTokens = acceptedDraftTokens
+        self.passthroughReason = passthroughReason
+        self.promptTimeSeconds = promptTimeSeconds
+        self.generateTimeSeconds = generateTimeSeconds
+    }
 }
 
 // MARK: - InferenceEngine Protocol

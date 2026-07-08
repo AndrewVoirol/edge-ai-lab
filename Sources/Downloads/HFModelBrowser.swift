@@ -38,7 +38,17 @@ import os
 ///   "siblings": [...]
 /// }
 /// ```
-struct HFModelInfo: Codable, Sendable, Identifiable {
+struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
+
+    // MARK: - Hashable / Equatable (identity = repo ID only)
+
+    static func == (lhs: HFModelInfo, rhs: HFModelInfo) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 
     /// The full repository ID (e.g., "litert-community/gemma-4-E2B-it-litert-lm").
     let id: String

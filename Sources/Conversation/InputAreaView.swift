@@ -83,6 +83,11 @@ struct InputAreaView: View {
                     .padding(.bottom, AppSpacing.sm)
             }
 
+            // Active configuration badges — tappable pills showing enabled features.
+            // Tap to toggle directly. Dimmed + ⚠️ if feature isn't supported on current engine.
+            ActiveConfigBadges(viewModel: viewModel)
+                .padding(.bottom, AppSpacing.xs)
+
             // Main input row
             HStack(spacing: AppSpacing.sm) {
                 // Attachment buttons

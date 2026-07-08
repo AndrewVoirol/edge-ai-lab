@@ -74,6 +74,11 @@ struct ChatBubbleView: View {
                 if message.role == .assistant, let benchmark = message.benchmarkInfo {
                     benchmarkBadge(benchmark)
                 }
+
+                // Config proof disclosure (assistant only, post-Phase 2B messages)
+                if message.role == .assistant, let config = message.inferenceConfig {
+                    ConfigProofView(snapshot: config, messageId: message.id)
+                }
             }
 
             if message.role != .user { Spacer(minLength: 48) }

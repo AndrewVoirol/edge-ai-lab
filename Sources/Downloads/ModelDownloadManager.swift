@@ -630,9 +630,9 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
 
     // MARK: - Community Model Download
 
-    /// Callback invoked after a community model download completes.
-    /// The parameter is the filename of the downloaded model.
-    var postDownloadCallback: ((String, URL) -> Void)?
+    /// Callbacks invoked after community model downloads complete, keyed by filename.
+    /// Each callback fires once for its specific file, then is removed.
+    var postDownloadCallbacks: [String: (String, URL) -> Void] = [:]
 
     /// Callback invoked after ANY model download completes (registry or community).
     /// Used by ConversationViewModel to auto-refresh discoveredModels.
@@ -1289,8 +1289,9 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
                 self.onDownloadCompleted?(modelFile, destinationURL)
 
                 // Fire community model callback
-                if isCommunityModel {
-                    self.postDownloadCallback?(modelFile, destinationURL)
+                if isCommunityModel, let callback = self.postDownloadCallbacks[modelFile] {
+                    callback(modelFile, destinationURL)
+                    self.postDownloadCallbacks.removeValue(forKey: modelFile)
                 }
 
                 // Send local notification (iOS only)

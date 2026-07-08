@@ -1,0 +1,94 @@
+{
+  "name": "MLX Sampler Settings Flow",
+  "description": "Verifies that changing sampler settings (temperature, topK) on an MLX model does NOT trigger a visible engine reload. The status should remain stable after slider changes.",
+  "prerequisites": ["MLX E2B model downloaded and visible in sidebar"],
+  "steps": [
+    {
+      "step": 1,
+      "action": "tap",
+      "description": "Select the MLX E2B model from the sidebar.",
+      "target_element": "Gemma 4 E2B · MLX 4-bit"
+    },
+    {
+      "step": 2,
+      "action": "wait",
+      "description": "Wait for the MLX model to finish loading.",
+      "condition": "element_exists:ready"
+    },
+    {
+      "step": 3,
+      "action": "tap",
+      "description": "Open the Settings sheet.",
+      "target_element": "gearshape"
+    },
+    {
+      "step": 4,
+      "action": "verify_ui",
+      "description": "Verify settings sections are visible.",
+      "expected_elements": ["Sampler Configuration"]
+    },
+    {
+      "step": 5,
+      "action": "tap",
+      "description": "Tap Greedy preset to change topK to 1.",
+      "target_element": "Greedy (Gallery Match)"
+    },
+    {
+      "step": 6,
+      "action": "verify_ui",
+      "description": "Verify greedy values applied without reload message.",
+      "expected_elements": ["Top-K: 1"],
+      "assertion": {
+        "type": "element_exists",
+        "element": "ready"
+      }
+    },
+    {
+      "step": 7,
+      "action": "tap",
+      "description": "Tap Default Sampling preset to reset.",
+      "target_element": "Default Sampling"
+    },
+    {
+      "step": 8,
+      "action": "verify_ui",
+      "description": "Verify default values applied without reload.",
+      "expected_elements": ["Top-K: 64"],
+      "assertion": {
+        "type": "element_exists",
+        "element": "ready"
+      }
+    },
+    {
+      "step": 9,
+      "action": "tap",
+      "description": "Close the settings sheet.",
+      "target_element": "Done"
+    },
+    {
+      "step": 10,
+      "action": "type_text",
+      "description": "Type a prompt to verify inference still works after sampler changes.",
+      "target_element": "Enter your prompt here",
+      "value": "Say hello."
+    },
+    {
+      "step": 11,
+      "action": "tap",
+      "description": "Tap Generate to run inference.",
+      "target_element": "Generate Response"
+    },
+    {
+      "step": 12,
+      "action": "wait",
+      "description": "Wait for generation to complete.",
+      "condition": "element_not_exists:Generating..."
+    },
+    {
+      "step": 13,
+      "action": "verify_ui",
+      "description": "Verify inference completed with metrics.",
+      "expected_elements": ["TTFT", "Decode"]
+    }
+  ]
+}

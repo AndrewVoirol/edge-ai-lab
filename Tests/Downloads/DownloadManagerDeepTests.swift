@@ -564,8 +564,8 @@ struct TestableInitializerTests {
         #expect(manager.maxConcurrentDownloads == 1)
     }
 
-    @Test("postDownloadCallback is initially nil")
-    func postDownloadCallbackNil() {
+    @Test("postDownloadCallbacks is initially empty")
+    func postDownloadCallbacksEmpty() {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("DownloadManagerDeepTests-\(UUID().uuidString)")
         let config = URLSessionConfiguration.ephemeral
@@ -573,7 +573,7 @@ struct TestableInitializerTests {
             configuration: config,
             documentsDirectory: tempDir
         )
-        #expect(manager.postDownloadCallback == nil)
+        #expect(manager.postDownloadCallbacks.isEmpty)
     }
 }
 

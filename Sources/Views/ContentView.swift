@@ -23,8 +23,10 @@ import PhotosUI
 /// The main application view — Edge AI Lab, a premium on-device inference research instrument.
 ///
 /// Architecture:
-/// - **macOS**: 3-column `NavigationSplitView` —
-///   Sidebar (models/benchmarks/conversations) → Detail (model lab/dashboard) → Content (chat).
+/// - **macOS**: 2-column `NavigationSplitView` —
+///   Sidebar (models/benchmarks/conversations) → Detail (model lab/dashboard + chat panel).
+///   The sidebar collapses via the built-in `NavigationSplitView` mechanism.
+///   The chat panel collapses independently via a custom `isChatCollapsed` toggle.
 /// - **iOS**: `TabView` with 3 tabs (Chat, Models, Lab) — adapting the same components
 ///   for a mobile-first layout.
 ///
@@ -57,6 +59,10 @@ struct ContentView: View {
     #if os(macOS)
     /// Whether the chat panel (right column) is collapsed.
     @State private var isChatCollapsed = false
+    /// Persisted chat panel width (macOS only).
+    @AppStorage("chatPanelWidth") private var chatPanelWidth: Double = 420
+    /// Width snapshot at drag start for computing absolute position from gesture deltas.
+    @State private var chatWidthAtDragStart: Double = 420
     #endif
 
 
@@ -69,61 +75,58 @@ struct ContentView: View {
         #endif
     }
 
-    // MARK: - macOS 3-Column Layout
+    // MARK: - macOS 2-Column Layout (Sidebar + Detail/Chat)
 
     #if os(macOS)
     private var macOSLayout: some View {
         appliedSharedModifiers(
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            // Left column: Sidebar
+            // Left column: Sidebar (collapse handled by built-in NavigationSplitView toggle)
             SidebarView(
                 selectedSection: $selectedSection,
                 selectedModelId: $selectedModelId,
                 showcaseModel: $showcaseModel,
                 showcaseModelURL: $showcaseModelURL
             )
-        } content: {
-            // Middle column: Detail (model info / dashboard / comparison)
-            DetailColumnView(
-                selectedSection: $selectedSection,
-                selectedModelId: $selectedModelId
-            )
         } detail: {
-            // Right column: Chat area + optional Canvas panel
-            if isChatCollapsed {
-                // Collapsed: show a minimal expand button
-                VStack {
-                    Spacer()
-                    Button {
-                        withAnimation(AppAnimation.standard) {
-                            isChatCollapsed = false
-                        }
-                    } label: {
-                        VStack(spacing: AppSpacing.md) {
-                            Image(systemName: "sidebar.right")
-                                .font(.title)
-                                .foregroundStyle(AppColors.accentCyan)
-                            Text("Show Chat")
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.textSecondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("button_expandChatPanel")
-                    .accessibilityLabel("Show chat panel")
-                    Spacer()
-                }
-                .frame(width: 80)
-                .background(AppColors.backgroundPrimary)
-            } else {
+            // Detail area: middle panel + chat panel side-by-side
+            GeometryReader { geometry in
                 HStack(spacing: 0) {
-                    chatColumn
-                    // Canvas side panel — trailing, only visible when content is active
-                    if viewModel.activeCanvasContent != nil {
-                        Rectangle()
-                            .fill(AppColors.border)
-                            .frame(width: 0.5)
-                        CanvasPanelView()
+                    // Middle: Detail (model info / dashboard / comparison)
+                    DetailColumnView(
+                        selectedSection: $selectedSection,
+                        selectedModelId: $selectedModelId
+                    )
+                    .frame(minWidth: 300)
+
+                    // Right: Chat panel (collapsible independently)
+                    if !isChatCollapsed {
+                        PanelResizeHandle(
+                            onDragStart: {
+                                chatWidthAtDragStart = chatPanelWidth
+                            },
+                            onDragChanged: { delta in
+                                let availableWidth = geometry.size.width
+                                let minChat: CGFloat = 300
+                                let minDetail: CGFloat = 300
+                                let maxChat = availableWidth - minDetail - 8
+                                // Dragging left (negative delta) grows the chat panel
+                                let newWidth = chatWidthAtDragStart - delta
+                                chatPanelWidth = max(minChat, min(newWidth, maxChat))
+                            }
+                        )
+
+                        HStack(spacing: 0) {
+                            chatColumn
+                            // Canvas side panel — trailing, only visible when content is active
+                            if viewModel.activeCanvasContent != nil {
+                                Rectangle()
+                                    .fill(AppColors.border)
+                                    .frame(width: 0.5)
+                                CanvasPanelView()
+                            }
+                        }
+                        .frame(width: chatPanelWidth)
                     }
                 }
             }
@@ -178,7 +181,7 @@ struct ContentView: View {
                         isChatCollapsed.toggle()
                     }
                 } label: {
-                    Image(systemName: isChatCollapsed ? "sidebar.right" : "sidebar.right.fill")
+                    Image(systemName: "sidebar.right")
                 }
                 .help(isChatCollapsed ? "Show chat panel" : "Hide chat panel")
                 .keyboardShortcut("c", modifiers: [.command, .shift])

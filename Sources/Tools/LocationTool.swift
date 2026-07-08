@@ -132,12 +132,15 @@ struct LocationTool: Tool {
             if let request = MKReverseGeocodingRequest(location: location) {
                 if let mapItems = try? await request.mapItems,
                    let item = mapItems.first {
-                    let placemark = item.placemark
-                    addressDict["street"] = placemark.thoroughfare as Any? ?? NSNull()
-                    addressDict["city"] = placemark.locality as Any? ?? NSNull()
-                    addressDict["state"] = placemark.administrativeArea as Any? ?? NSNull()
-                    addressDict["country"] = placemark.country as Any? ?? NSNull()
-                    addressDict["postal_code"] = placemark.postalCode as Any? ?? NSNull()
+                    // Use the new structured address APIs (MKAddress / MKAddressRepresentations)
+                    // instead of deprecated CLPlacemark string properties.
+                    let addrReps = item.addressRepresentations
+                    addressDict["street"] = item.address?.shortAddress as Any? ?? NSNull()
+                    addressDict["city"] = addrReps?.cityName as Any? ?? NSNull()
+                    addressDict["state"] = NSNull()  // No per-field equivalent in new API
+                    addressDict["country"] = addrReps?.regionName as Any? ?? NSNull()
+                    addressDict["postal_code"] = NSNull()  // No per-field equivalent in new API
+                    addressDict["full_address"] = item.address?.fullAddress as Any? ?? NSNull()
                 }
             }
         } else {

@@ -125,11 +125,11 @@ struct iOSChatTabView: View {
                 .frame(maxHeight: .infinity)
 
             // Benchmark bar (shown when data is available)
-            if viewModel.runtimeFlags.enableBenchmark, let info = viewModel.benchmarkInfo {
+            if viewModel.runtimeFlags.enableBenchmark, let metrics = viewModel.performanceMetrics {
                 Rectangle()
                     .fill(AppColors.border)
                     .frame(height: 0.5)
-                BenchmarkBarView(info: info)
+                BenchmarkBarView(metrics: metrics)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
             }

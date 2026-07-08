@@ -100,6 +100,11 @@ struct InferenceSettingsView: View {
             .tag("tab_data")
             .tabItem { Label("Data", systemImage: "chart.bar") }
             .accessibilityIdentifier("tab_data")
+
+            DiagnosticsView()
+                .tag("tab_diagnostics")
+                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+                .accessibilityIdentifier("tab_diagnostics")
         }
         .frame(minWidth: 480, minHeight: 400)
         #else
@@ -117,6 +122,13 @@ struct InferenceSettingsView: View {
             performanceSection
             hfTokenSection
             kaggleCredentialsSection
+            Section("Diagnostics") {
+                NavigationLink("Engine Diagnostics") {
+                    DiagnosticsView()
+                        .navigationTitle("Diagnostics")
+                }
+                .accessibilityIdentifier("diagnosticsLink")
+            }
         }
         .formStyle(.grouped)
         #endif

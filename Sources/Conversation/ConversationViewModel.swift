@@ -120,10 +120,12 @@ final class ConversationViewModel {
     var isFilePickerPresented = false
 
     /// Result of the last backend initialization (active backend, fallback info).
-    var backendResult: BackendResult? { sessionController.backendResult }
+    var backendResult: BackendResult?
 
     /// Metadata for the currently loaded model, if known.
-    var activeModelMetadata: ModelMetadata? { sessionController.activeModelMetadata }
+    /// Stored (not computed) so that @Observable tracks mutations and SwiftUI re-renders.
+    /// Synced from ModelSessionController via `onActiveModelChanged` callback.
+    var activeModelMetadata: ModelMetadata?
 
     /// Current runtime flags configuration (user-toggleable, default ON).
     var runtimeFlags = RuntimeFlags(
@@ -144,7 +146,9 @@ final class ConversationViewModel {
     var topK: Int = 64 {
         didSet {
             sessionController.topK = topK
-            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+            if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
+                Task { await reinitializeEngineIfNeeded() }
+            }
         }
     }
 
@@ -152,7 +156,9 @@ final class ConversationViewModel {
     var topP: Float = 0.95 {
         didSet {
             sessionController.topP = topP
-            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+            if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
+                Task { await reinitializeEngineIfNeeded() }
+            }
         }
     }
 
@@ -160,13 +166,20 @@ final class ConversationViewModel {
     var temperature: Float = 1.0 {
         didSet {
             sessionController.temperature = temperature
-            if !isSyncingSettings { Task { await reinitializeEngineIfNeeded() } }
+            if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
+                Task { await reinitializeEngineIfNeeded() }
+            }
         }
     }
 
     /// Seed for reproducible generation. 0 = non-deterministic (SDK default).
     var seed: Int = 0 {
-        didSet { sessionController.seed = seed; Task { await reinitializeEngineIfNeeded() } }
+        didSet {
+            sessionController.seed = seed
+            if !sessionController.applySamplerSettingsInPlace() {
+                Task { await reinitializeEngineIfNeeded() }
+            }
+        }
     }
 
     /// Optional system message to set model persona/instructions.
@@ -245,7 +258,9 @@ final class ConversationViewModel {
     // MARK: - Internal State
 
     /// The URL of the currently loaded model file (for security scope management).
-    var activeModelURL: URL? { sessionController.activeModelURL }
+    /// Stored (not computed) so that @Observable tracks mutations and SwiftUI re-renders.
+    /// Synced from ModelSessionController via `onActiveModelChanged` callback.
+    var activeModelURL: URL?
 
     /// Models discovered from local storage and AI Edge Gallery.
     var discoveredModels: [DiscoveredModel] = []
@@ -263,9 +278,8 @@ final class ConversationViewModel {
     let dynamicModelCatalog: DynamicModelCatalog
 
     /// The most recent device-level inference metrics (thermal, memory, per-token latency).
-    var inferenceMetrics: InferenceMetrics? {
-        engine.lastInferenceMetrics
-    }
+    /// Stored property (not computed) because `engine` is `@ObservationIgnored`.
+    var inferenceMetrics: InferenceMetrics?
 
     /// Whether the engine is initialized and ready for inference.
     ///
@@ -373,6 +387,8 @@ final class ConversationViewModel {
         // Wire engine readiness callback so the tracked property stays in sync
         controller.onEngineReadyChanged = { [weak self] ready in
             self?.isEngineReady = ready
+            // Sync backendResult — it's set just before this callback fires
+            self?.backendResult = controller.backendResult
             if ready {
                 // Snapshot current config so we can detect mid-session changes
                 self?.lastInitializedBackend = self?.preferredBackend
@@ -384,6 +400,12 @@ final class ConversationViewModel {
             self?.topK = topK
             self?.topP = topP
             self?.temperature = temperature
+        }
+        // Sync active model identity so SwiftUI observes changes
+        controller.onActiveModelChanged = { [weak self] metadata, url in
+            self?.activeModelMetadata = metadata
+            self?.activeModelURL = url
+            self?.backendResult = controller.backendResult
         }
         // Give the controller access to the VM's experimental flags by default
         controller.defaultRuntimeFlags = runtimeFlags
@@ -477,7 +499,13 @@ final class ConversationViewModel {
             }
         }
 
-        await sessionController.handleModelSelection(url)
+        // Resolve metadata from discoveredModels for community/imported models
+        // that aren't in the static ModelRegistry.
+        let discoveredMeta = discoveredModels
+            .first { $0.url == url }?
+            .metadata
+
+        await sessionController.handleModelSelection(url, metadata: discoveredMeta)
         // Sync sampler config from model defaults that the controller may have applied.
         // Use isSyncingSettings to suppress the didSet → reinitializeEngineIfNeeded() cascade.
         // Without this guard, each property set fires a full engine shutdown + re-init,
@@ -597,6 +625,10 @@ final class ConversationViewModel {
         await sessionController.shutdown()
         isEngineReady = false
         performanceMetrics = nil
+        activeModelMetadata = nil
+        activeModelURL = nil
+        backendResult = nil
+        statusMessage = "Model unloaded. Select a model to get started."
         conversation.clear()
         
         #if os(macOS)

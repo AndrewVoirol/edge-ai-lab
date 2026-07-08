@@ -120,6 +120,17 @@ struct ConversationAreaView: View {
                 }
             }
 
+            // Model capability card — shows what this model can and can't do
+            if viewModel.isEngineReady, let metadata = viewModel.activeModelMetadata {
+                ModelCapabilityCard(
+                    metadata: metadata,
+                    backendResult: viewModel.backendResult,
+                    runtimeFlags: viewModel.runtimeFlags,
+                    runtimeType: viewModel.selectedRuntimeType
+                )
+                .frame(maxWidth: 420)
+            }
+
             // Actionable hint cards — contextual to engine state
             if viewModel.isEngineReady {
                 VStack(spacing: AppSpacing.md) {

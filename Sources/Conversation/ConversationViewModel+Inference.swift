@@ -45,6 +45,7 @@ extension ConversationViewModel {
         inferenceGenerationId += 1
         let currentGenerationId = inferenceGenerationId
         performanceMetrics = nil
+        inferenceMetrics = nil
         currentThinkingText = ""
         isThinking = false
         toolCallEvents = []
@@ -91,8 +92,21 @@ extension ConversationViewModel {
         )
         conversation.append(userMessage)
 
-        // Create placeholder assistant message for streaming
-        conversation.append(.assistant())
+        // Capture config snapshot at inference start — this is the "proof"
+        // of what settings actually produced the response.
+        let configSnapshot = InferenceConfigSnapshot.capture(
+            modelName: activeModelMetadata?.name,
+            runtimeType: selectedRuntimeType,
+            computeBackend: backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)",
+            flags: runtimeFlags,
+            temperature: Float(temperature),
+            topK: topK,
+            topP: Float(topP),
+            seed: seed
+        )
+
+        // Create placeholder assistant message for streaming with config attached
+        conversation.append(.assistant(config: configSnapshot))
 
         // Accumulated text for updating the assistant message
         var accumulatedResponse = ""
@@ -163,6 +177,7 @@ extension ConversationViewModel {
 
                 case .metrics(let metrics):
                     performanceMetrics = metrics
+                    inferenceMetrics = engine.lastInferenceMetrics
 
                 case .done:
                     break
@@ -275,8 +290,20 @@ extension ConversationViewModel {
         let userMessage = ChatMessage.user(currentPrompt)
         conversation.append(userMessage)
 
+        // Capture config snapshot for agent mode responses
+        let configSnapshot = InferenceConfigSnapshot.capture(
+            modelName: activeModelMetadata?.name,
+            runtimeType: selectedRuntimeType,
+            computeBackend: backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)",
+            flags: runtimeFlags,
+            temperature: Float(temperature),
+            topK: topK,
+            topP: Float(topP),
+            seed: seed
+        )
+
         // Create placeholder assistant message for the agent's running output
-        conversation.append(.assistant())
+        conversation.append(.assistant(config: configSnapshot))
 
         await agentHarness.run(
             initialPrompt: currentPrompt,

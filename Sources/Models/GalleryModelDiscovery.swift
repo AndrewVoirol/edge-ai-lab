@@ -59,6 +59,19 @@ struct DiscoveredModel: Identifiable, Sendable {
 /// "Edge Gallery" and stores downloaded models there.
 enum GalleryModelDiscovery {
 
+    /// Convert a HuggingFace-style directory name to a human-readable model name.
+    ///
+    /// Examples:
+    /// - `"lmstudio-community--gemma-4-E2B-it-MLX-4bit"` → `"gemma-4-E2B-it-MLX-4bit"`
+    /// - `"mlx-community--phi-4-4bit"` → `"phi-4-4bit"`
+    /// - `"gemma-4-E2B-it.litertlm"` → `"gemma-4-E2B-it.litertlm"` (no change)
+    static func cleanModelDirectoryName(_ dirName: String) -> String {
+        if dirName.contains("--") {
+            return String(dirName.split(separator: "--", maxSplits: 1).last ?? Substring(dirName))
+        }
+        return dirName
+    }
+
     /// Discover all available models from local and external sources.
     /// - Returns: Array of discovered models, deduplicated by filename.
     static func discoverModels() -> [DiscoveredModel] {

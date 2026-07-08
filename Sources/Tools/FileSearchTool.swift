@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+@preconcurrency import Dispatch
 import Foundation
 import LiteRTLM
 
@@ -101,6 +102,12 @@ struct FileSearchTool: Tool {
 
     #if os(macOS)
     /// Searches Spotlight using NSMetadataQuery with a 5-second timeout.
+    ///
+    /// Isolated to `@MainActor` because `NSMetadataQuery` must run on the main
+    /// thread. This eliminates Sendable warnings — all non-Sendable types
+    /// (`NSMetadataQuery`, `NSObjectProtocol`, `DispatchWorkItem`,
+    /// `ISO8601DateFormatter`) stay within a single isolation domain.
+    @MainActor
     private static func spotlightSearch(
         query: String,
         maxResults: Int,
@@ -117,11 +124,15 @@ struct FileSearchTool: Tool {
                 NSMetadataQueryLocalComputerScope
             ]
 
+            // Guard against double-resume from both timeout and notification paths.
+            var hasResumed = false
             var observer: NSObjectProtocol?
             var timeoutTask: DispatchWorkItem?
 
             // Timeout after 5 seconds
             let timeout = DispatchWorkItem {
+                guard !hasResumed else { return }
+                hasResumed = true
                 metadataQuery.stop()
                 if let obs = observer {
                     NotificationCenter.default.removeObserver(obs)
@@ -142,6 +153,8 @@ struct FileSearchTool: Tool {
                 object: metadataQuery,
                 queue: .main
             ) { _ in
+                guard !hasResumed else { return }
+                hasResumed = true
                 timeoutTask?.cancel()
                 metadataQuery.stop()
                 if let obs = observer {
@@ -156,9 +169,7 @@ struct FileSearchTool: Tool {
                 continuation.resume(returning: results)
             }
 
-            DispatchQueue.main.async {
-                metadataQuery.start()
-            }
+            metadataQuery.start()
         }
     }
 

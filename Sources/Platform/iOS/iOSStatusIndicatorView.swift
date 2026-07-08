@@ -124,9 +124,9 @@ struct iOSStatusIndicatorView: View {
             Spacer()
 
             // Decode speed
-            if let info = viewModel.benchmarkInfo {
-                let tier = PerformanceTier(decodeSpeed: info.lastDecodeTokensPerSecond)
-                Text(String(format: "%.1f tok/s", info.lastDecodeTokensPerSecond))
+            if let metrics = viewModel.performanceMetrics {
+                let tier = PerformanceTier(decodeSpeed: metrics.tokensPerSecond)
+                Text(String(format: "%.1f tok/s", metrics.tokensPerSecond))
                     .font(AppTypography.metric)
                     .foregroundStyle(tier.color)
             }
@@ -158,13 +158,15 @@ struct iOSStatusIndicatorView: View {
                 .overlay(AppColors.border)
                 .padding(.vertical, AppSpacing.xs)
 
-            if let info = viewModel.benchmarkInfo {
+            if let metrics = viewModel.performanceMetrics {
                 // Metrics grid
                 HStack(spacing: AppSpacing.lg) {
-                    expandedMetric(label: "Decode", value: String(format: "%.1f", info.lastDecodeTokensPerSecond), unit: "tok/s")
-                    expandedMetric(label: "Prefill", value: String(format: "%.1f", info.lastPrefillTokensPerSecond), unit: "tok/s")
-                    expandedMetric(label: "TTFT", value: String(format: "%.2f", info.timeToFirstTokenInSecond), unit: "s")
-                    expandedMetric(label: "Init", value: String(format: "%.2f", info.initTimeInSecond), unit: "s")
+                    expandedMetric(label: "Decode", value: String(format: "%.1f", metrics.tokensPerSecond), unit: "tok/s")
+                    expandedMetric(label: "Prefill", value: String(format: "%.1f", metrics.promptTokensPerSecond ?? 0), unit: "tok/s")
+                    expandedMetric(label: "TTFT", value: String(format: "%.2f", metrics.timeToFirstToken ?? 0), unit: "s")
+                    if let initTime = metrics.initTimeSeconds {
+                        expandedMetric(label: "Init", value: String(format: "%.2f", initTime), unit: "s")
+                    }
                 }
             }
 

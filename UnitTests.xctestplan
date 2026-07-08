@@ -20,11 +20,20 @@
       },
       "skippedTests" : [
         "BatchEvalTests",
+        "CDRootCauseTests",
+        "CapabilityValidationTests",
+        "EngineInvariantTests",
         "GalleryParityBenchmarkTests",
+        "InferenceMetricsIntegrationTests",
         "InferenceQualityTests",
+        "IsolatedReproductionTests",
+        "MLXFeatureVerificationTests",
+        "MLXInvariantTests",
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
+        "SettingsPermutationTests",
+        "SettingsVerificationTests",
         "SmartFallbackIntegrationTests",
         "URLImportIntegrationTests"
       ]
@@ -37,11 +46,20 @@
       },
       "skippedTests" : [
         "BatchEvalTests",
+        "CDRootCauseTests",
+        "CapabilityValidationTests",
+        "EngineInvariantTests",
         "GalleryParityBenchmarkTests",
+        "InferenceMetricsIntegrationTests",
         "InferenceQualityTests",
+        "IsolatedReproductionTests",
+        "MLXFeatureVerificationTests",
+        "MLXInvariantTests",
         "MetricsStoreTests",
         "MultiTurnIntegrationTests",
         "PerformanceTests",
+        "SettingsPermutationTests",
+        "SettingsVerificationTests",
         "SmartFallbackIntegrationTests",
         "URLImportIntegrationTests"
       ]

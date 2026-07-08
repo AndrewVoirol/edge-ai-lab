@@ -26,6 +26,10 @@ import Testing
 
 /// Tests for the macOS chat panel collapse/expand toggle logic.
 ///
+/// The macOS layout has two independent collapse behaviors:
+/// - **Sidebar** (left): controlled by `NavigationSplitView`'s built-in `columnVisibility`
+/// - **Chat panel** (right): controlled by a custom `isChatCollapsed` boolean
+///
 /// Since `isChatCollapsed` is a `@State` property inside `ContentView`,
 /// we test the design system tokens and behavioral invariants that the
 /// toggle relies on, rather than attempting to instantiate the view.

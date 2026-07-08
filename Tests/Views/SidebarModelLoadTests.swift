@@ -80,7 +80,7 @@ final class SidebarModelLoadTests: XCTestCase {
         XCTAssertEqual(receivedURL, testURL)
     }
 
-    /// postDownloadCallback and onDownloadCompleted are independent — setting one
+    /// postDownloadCallbacks and onDownloadCompleted are independent — setting one
     /// should not affect the other.
     func testCallbacksAreIndependent() {
         let config = URLSessionConfiguration.ephemeral
@@ -90,7 +90,7 @@ final class SidebarModelLoadTests: XCTestCase {
         var communityFired = false
 
         dm.onDownloadCompleted = { _, _ in generalFired = true }
-        dm.postDownloadCallback = { _, _ in communityFired = true }
+        dm.postDownloadCallbacks["test.litertlm"] = { _, _ in communityFired = true }
 
         let testURL = tempDir.appendingPathComponent("test.litertlm")
 
@@ -99,7 +99,7 @@ final class SidebarModelLoadTests: XCTestCase {
         XCTAssertFalse(communityFired, "Community callback should not fire from general callback")
 
         generalFired = false
-        dm.postDownloadCallback?("test.litertlm", testURL)
+        dm.postDownloadCallbacks["test.litertlm"]?("test.litertlm", testURL)
         XCTAssertFalse(generalFired, "General callback should not fire from community callback")
         XCTAssertTrue(communityFired)
     }

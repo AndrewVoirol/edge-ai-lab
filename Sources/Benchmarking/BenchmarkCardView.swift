@@ -97,6 +97,59 @@ struct BenchmarkCardData: Sendable {
             timestamp: Date()
         )
     }
+
+    /// Create from universal `EnginePerformanceMetrics` — works for all engine types.
+    static func from(
+        performanceMetrics: EnginePerformanceMetrics,
+        inferenceMetrics: InferenceMetrics?,
+        modelMetadata: ModelMetadata?,
+        backendResult: BackendResult?
+    ) -> BenchmarkCardData {
+        let ramGB = Int(ProcessInfo.processInfo.physicalMemory / (1024 * 1024 * 1024))
+
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machine = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) { String(cString: $0) }
+        }
+
+        #if os(macOS)
+        let deviceName = Host.current().localizedName ?? "Mac"
+        let osLabel = "macOS \(ProcessInfo.processInfo.operatingSystemVersionString)"
+        #else
+        let deviceName = UIDevice.current.name
+        let osLabel = "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+        #endif
+
+        let runtimeLabel: String
+        switch performanceMetrics.runtimeType {
+        case .mlx:
+            runtimeLabel = "MLX (Metal)"
+        case .litertlm:
+            runtimeLabel = backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)"
+        case .gguf:
+            runtimeLabel = "GGUF (llama.cpp)"
+        }
+
+        return BenchmarkCardData(
+            modelName: modelMetadata?.name ?? "Unknown Model",
+            modelArchitecture: modelMetadata?.architectureType ?? runtimeLabel,
+            backendLabel: runtimeLabel,
+            deviceName: deviceName,
+            chipName: machine,
+            osVersion: osLabel,
+            ramGB: ramGB,
+            decodeSpeed: performanceMetrics.tokensPerSecond,
+            prefillSpeed: performanceMetrics.promptTokensPerSecond ?? 0,
+            ttft: performanceMetrics.timeToFirstToken ?? 0,
+            p95LatencyMs: inferenceMetrics?.p95TokenLatencyMs ?? 0,
+            medianLatencyMs: inferenceMetrics?.medianTokenLatencyMs ?? 0,
+            memoryDeltaMB: inferenceMetrics?.memoryDeltaMB ?? 0,
+            thermalState: inferenceMetrics?.endSnapshot.thermalLevel ?? .nominal,
+            tokenCount: inferenceMetrics?.totalTokenCount ?? performanceMetrics.tokenCount ?? 0,
+            timestamp: Date()
+        )
+    }
 }
 
 // MARK: - Premium Card Colors

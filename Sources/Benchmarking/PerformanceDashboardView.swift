@@ -140,6 +140,8 @@ struct PerformanceDashboardView: View {
                         .background(AppColors.accentGold.opacity(0.1))
                         .clipShape(Capsule())
                     }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                     .accessibilityIdentifier("menu_modelFilter")
                 }
             }

@@ -101,6 +101,9 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var runtimeFlagsSection: some View {
+        let mtpSupported = FlagRegistry.speculative.isSupported(on: viewModel.selectedRuntimeType)
+        let cdSupported = FlagRegistry.constrainedDecoding.isSupported(on: viewModel.selectedRuntimeType)
+
         Section {
             Toggle("Enable Benchmarking", isOn: $viewModel.runtimeFlags.enableBenchmark)
             .help("Collect TTFT, decode speed, and prefill speed after each inference.")
@@ -111,17 +114,47 @@ extension InferenceSettingsView {
                 set: { viewModel.runtimeFlags.enableSpeculativeDecoding = $0 }
             ))
             .help("Enable speculative decoding (Multi-Token Prediction) for faster decode speeds on GPU backends. Recommended for GPU/Metal.")
+            .disabled(!mtpSupported)
             .accessibilityIdentifier("toggle_enableMTP")
 
-            if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP {
+            if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
                 Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
                     .font(.caption)
                     .foregroundStyle(AppColors.success)
             }
 
+            if !mtpSupported {
+                Label(
+                    "MTP is not available on \(viewModel.selectedRuntimeType.displayName). Switch to LiteRT-LM to enable.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.warning.opacity(0.8))
+            }
+
+            SettingsImpactLabel(
+                descriptor: FlagRegistry.speculative,
+                currentRuntime: viewModel.selectedRuntimeType
+            )
+
             Toggle("Constrained Decoding", isOn: $viewModel.runtimeFlags.enableConversationConstrainedDecoding)
             .help("Enable constrained decoding for structured outputs.")
+            .disabled(!cdSupported)
             .accessibilityIdentifier("toggle_constrainedDecoding")
+
+            if !cdSupported {
+                Label(
+                    "Constrained Decoding is not available on \(viewModel.selectedRuntimeType.displayName). Switch to LiteRT-LM to enable.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.warning.opacity(0.8))
+            }
+
+            SettingsImpactLabel(
+                descriptor: FlagRegistry.constrainedDecoding,
+                currentRuntime: viewModel.selectedRuntimeType
+            )
         } header: {
             Label("Experimental Flags", systemImage: "flask")
                 .foregroundStyle(AppColors.textSecondary)
