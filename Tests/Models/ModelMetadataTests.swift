@@ -135,7 +135,7 @@ struct ModelMetadataSwiftTests {
             let rt = RuntimeType.gguf
             #expect(rt.displayName == "GGUF")
             #expect(rt.fileExtension == "gguf")
-            #expect(rt.isSupported == false)
+            #expect(rt.isSupported == true)
         }
 
         @Test("CaseIterable has exactly 3 cases")

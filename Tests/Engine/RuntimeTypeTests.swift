@@ -82,9 +82,9 @@ struct RuntimeTypeTests {
         #expect(RuntimeType.mlx.isSupported == true)
     }
 
-    @Test("GGUF is not supported")
-    func ggufIsNotSupported() {
-        #expect(RuntimeType.gguf.isSupported == false)
+    @Test("GGUF is supported")
+    func ggufIsSupported() {
+        #expect(RuntimeType.gguf.isSupported == true)
     }
 
     // MARK: - supportedCases
@@ -96,15 +96,15 @@ struct RuntimeTypeTests {
         #expect(supported.contains(.mlx))
     }
 
-    @Test("supportedCases does not contain GGUF")
-    func supportedCasesExcludesGguf() {
+    @Test("supportedCases contains GGUF")
+    func supportedCasesIncludesGguf() {
         let supported = RuntimeType.supportedCases
-        #expect(!supported.contains(.gguf))
+        #expect(supported.contains(.gguf))
     }
 
-    @Test("supportedCases has exactly 2 entries")
-    func supportedCasesHasTwoEntries() {
-        #expect(RuntimeType.supportedCases.count == 2)
+    @Test("supportedCases has exactly 3 entries")
+    func supportedCasesHasThreeEntries() {
+        #expect(RuntimeType.supportedCases.count == 3)
     }
 
     // MARK: - Identifiable

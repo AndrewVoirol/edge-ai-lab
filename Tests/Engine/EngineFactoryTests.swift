@@ -75,11 +75,10 @@ struct EngineFactoryTests {
             #expect(engine.runtimeType == .mlx)
         }
 
-        @Test("gguf throws runtimeNotYetAvailable")
-        func ggufThrows() {
-            #expect(throws: EngineError.runtimeNotYetAvailable(.gguf)) {
-                try EngineFactory.createEngine(for: .gguf as RuntimeType)
-            }
+        @Test("gguf engine has correct runtime type")
+        func ggufHasCorrectRuntime() throws {
+            let engine = try EngineFactory.createEngine(for: .gguf as RuntimeType)
+            #expect(engine.runtimeType == .gguf)
         }
 
         @Test("all RuntimeType cases are handled")
@@ -95,7 +94,7 @@ struct EngineFactoryTests {
                         try EngineFactory.createEngine(for: runtimeType)
                     }
                 case .gguf:
-                    #expect(throws: EngineError.self) {
+                    #expect(throws: Never.self) {
                         try EngineFactory.createEngine(for: runtimeType)
                     }
                 }

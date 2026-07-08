@@ -273,14 +273,14 @@ struct HFModelBrowserLogicTests {
 
         @Test("All cases exist and are distinct")
         func allCasesDistinct() {
-            let cases: [HFModelFormat] = [.litertlm, .mlx, .unknown]
+            let cases: [HFModelFormat] = [.litertlm, .mlx, .gguf, .unknown]
             let rawValues = Set(cases.map(\.rawValue))
-            #expect(rawValues.count == 3)
+            #expect(rawValues.count == 4)
         }
 
         @Test("Invalid raw value returns nil")
         func invalidRawValue() {
-            #expect(HFModelFormat(rawValue: "gguf") == nil)
+            #expect(HFModelFormat(rawValue: "nonexistent") == nil)
             #expect(HFModelFormat(rawValue: "") == nil)
         }
     }

@@ -1065,11 +1065,11 @@ struct DownloadManagerRuntimeTypeTests {
         #expect(RuntimeType.gguf.fileExtension == "gguf")
     }
 
-    @Test("litertlm and mlx are supported runtimes")
+    @Test("all three runtimes are supported")
     func supportedRuntimes() {
         #expect(RuntimeType.litertlm.isSupported == true)
         #expect(RuntimeType.mlx.isSupported == true)
-        #expect(RuntimeType.gguf.isSupported == false)
+        #expect(RuntimeType.gguf.isSupported == true)
     }
 
     @Test("displayName matches rawValue")

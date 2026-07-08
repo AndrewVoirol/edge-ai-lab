@@ -154,20 +154,17 @@ struct EngineSwitchingTests {
         #expect(vm.performanceMetrics == nil)
     }
 
-    // MARK: - Unsupported Runtime
+    // MARK: - GGUF Runtime
 
-    @Test("switchEngine to unsupported .gguf sets error status message")
+    @Test("switchEngine to .gguf succeeds and updates selectedRuntimeType")
     @MainActor
-    func switchEngineToUnsupportedRuntimeSetsError() async {
+    func switchEngineToGgufSucceeds() async {
         let engine = MockInferenceEngine.happyPath(runtimeType: .litertlm)
         let vm = ConversationViewModel(engine: engine)
 
         await vm.switchEngine(to: .gguf)
 
-        // EngineFactory.createEngine(for: .gguf) throws runtimeNotYetAvailable,
-        // which should be caught and set as statusMessage
-        #expect(vm.statusMessage.contains("GGUF") || vm.statusMessage.contains("Failed"))
-        // selectedRuntimeType should NOT have changed since the switch failed
-        #expect(vm.selectedRuntimeType == .litertlm)
+        // EngineFactory.createEngine(for: .gguf) should succeed now
+        #expect(vm.selectedRuntimeType == .gguf)
     }
 }

@@ -154,6 +154,13 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 )
 
                 self._isLoaded = true
+
+                // Seed conversation with system message if provided
+                self.conversationHistory.removeAll()
+                if let systemMsg = config.systemMessage, !systemMsg.isEmpty {
+                    self.conversationHistory.append((role: "system", content: systemMsg))
+                }
+
                 Self.signposter.endInterval("ModelLoad", loadState, "vocab=\(vocabSize), ctx=\(nCtx)")
                 continuation.resume()
             }
