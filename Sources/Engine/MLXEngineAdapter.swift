@@ -21,7 +21,7 @@ import os
 // MLX requires Metal, which is unavailable on iOS Simulator.
 // The real implementation is conditionally compiled; a stub is provided for Simulator.
 
-#if canImport(MLX)
+#if canImport(MLX) && !targetEnvironment(simulator)
 import MLX
 import MLXLLM
 import MLXLMCommon

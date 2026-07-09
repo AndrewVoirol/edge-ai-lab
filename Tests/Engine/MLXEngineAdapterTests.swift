@@ -109,7 +109,7 @@ struct MLXEngineAdapterTests {
             let adapter = MLXEngineAdapter()
             // On macOS (real implementation), supportsToolCalling is true.
             // On iOS Simulator (stub), it's false. Test platform-appropriate value.
-            #if canImport(MLX)
+            #if canImport(MLX) && !targetEnvironment(simulator)
             #expect(adapter.supportsToolCalling == true)
             #else
             #expect(adapter.supportsToolCalling == false)
