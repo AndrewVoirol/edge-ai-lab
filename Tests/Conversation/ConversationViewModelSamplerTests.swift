@@ -47,7 +47,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Verify that setting a non-zero seed on the VM passes it through to the engine's SamplerConfig.
     @MainActor func testSeedPassedToEngine() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.seed = 42
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -59,7 +59,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Verify that the default seed value (0) is passed through when not explicitly changed.
     @MainActor func testDefaultSeedPassedToEngine() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         // seed defaults to 0, don't set it
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -73,7 +73,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     /// Verify that a non-empty system message is passed to the engine.
     /// Note: thinking is enabled by default, so <|think|> is prepended.
     @MainActor func testSystemMessagePassedToEngine() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.systemMessage = "You are a pirate."
         vm.runtimeFlags.enableThinking = false  // Disable to test pure system message
 
@@ -84,7 +84,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Verify that an empty system message is mapped to nil when thinking is disabled.
     @MainActor func testEmptySystemMessagePassedAsNil() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.systemMessage = ""  // default
         vm.runtimeFlags.enableThinking = false  // Disable to test nil behavior
 
@@ -100,7 +100,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// When thinking is enabled, system message should contain <|think|> trigger.
     @MainActor func testThinkingEnabledInjectsThinkToken() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.systemMessage = ""
         vm.runtimeFlags.enableThinking = true
 
@@ -114,7 +114,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// When thinking is enabled AND user has a system message, both should be combined.
     @MainActor func testThinkingEnabledWithUserSystemMessage() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.systemMessage = "You are a pirate."
         vm.runtimeFlags.enableThinking = true
 
@@ -131,7 +131,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
     /// Greedy decoding uses topK=1, topP=1.0, temperature=1.0.
     /// Setting these values on the VM should propagate correctly.
     @MainActor func testGreedyPresetValues() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Apply greedy preset values
         vm.topK = 1
@@ -151,7 +151,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Default sampling uses topK=64, topP=0.95, temperature=1.0.
     @MainActor func testDefaultSamplingPresetValues() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // VM defaults should match the standard sampling preset
         XCTAssertEqual(vm.topK, 64)
@@ -163,7 +163,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Verify that all sampler parameters are forwarded to initializeWithFallback.
     @MainActor func testSamplerConfigConstructedCorrectly() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.topK = 32
         vm.topP = 0.8
         vm.temperature = 0.5
@@ -180,7 +180,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// When loading a known model, the VM should apply the model's default sampler config.
     @MainActor func testKnownModelAppliesDefaultConfig() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Set non-default values first
         vm.topK = 1
@@ -201,7 +201,7 @@ final class ConversationViewModelSamplerTests: XCTestCase {
 
     /// Verify flags and sampler config are both passed in the same initialization call.
     @MainActor func testFlagsAndSamplerBothPassedToEngine() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.topK = 10
         vm.runtimeFlags = RuntimeFlags(
             enableBenchmark: false,

@@ -57,7 +57,7 @@ final class ModelReadinessStateTests: XCTestCase {
     /// When the engine is not ready and no models are discovered, the UI should
     /// show the onboarding/empty state.
     func test_chatTabState_engineNotReady_noModels_emptyState() {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         XCTAssertFalse(vm.isEngineReady, "Engine should not be ready by default")
         XCTAssertTrue(vm.discoveredModels.isEmpty, "No models should be discovered by default")
@@ -70,7 +70,7 @@ final class ModelReadinessStateTests: XCTestCase {
     /// When the engine is ready and the conversation is empty, the UI should
     /// show hint cards (conversation starters).
     func test_chatTabState_engineReady_conversationEmpty_hintsAvailable() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Initialize engine to make it ready
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -90,7 +90,7 @@ final class ModelReadinessStateTests: XCTestCase {
     /// so hint cards should reappear. This was the core observation gap bug —
     /// previously the UI would show "No Model Loaded" after a conversation reset.
     func test_chatTabState_engineReady_afterReset_staysReady() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Initialize and simulate a conversation
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")

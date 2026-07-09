@@ -278,7 +278,7 @@ final class IsolatedReproductionTests: XCTestCase {
         print("[REPRO] [H5]   wall_clock=\(String(format: "%.2f", totalElapsed))s")
         print("[REPRO] [H5]   response_preview=\(String(response.prefix(150)))")
 
-        adapter.shutdown()
+        await adapter.shutdown()
 
         print("[REPRO] [H5] VERDICT: \(response.isEmpty ? "⚠️ EMPTY" : "✅ GOT RESPONSE (\(response.count) chars)")")
     }

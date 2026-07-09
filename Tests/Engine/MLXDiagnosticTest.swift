@@ -70,7 +70,7 @@ struct MLXDiagnosticTest {
         let hasChannelMarker = output.contains("<|channel>")
         print("🧪 [NO SYSTEM] contains channel marker: \(hasChannelMarker)")
 
-        engine.shutdown()
+        await engine.shutdown()
     }
 
     /// Generation WITH thinking token in system message — ThinkingParser separates thinking/response.
@@ -134,7 +134,7 @@ struct MLXDiagnosticTest {
         print("🧪 [THINKING] response contains raw channel markers: \(responseHasMarkers)")
         #expect(!responseHasMarkers, "Response text should not contain raw channel markers after parsing")
 
-        engine.shutdown()
+        await engine.shutdown()
     }
 
     /// Settings take effect — temperature 0 should produce deterministic output.
@@ -178,7 +178,7 @@ struct MLXDiagnosticTest {
         #expect(!output1.isEmpty, "Greedy generation should produce output")
         #expect(output1 == output2, "Greedy (temp=0) generation should be deterministic")
 
-        engine.shutdown()
+        await engine.shutdown()
     }
 }
 #endif

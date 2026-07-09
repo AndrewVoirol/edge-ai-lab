@@ -439,14 +439,9 @@ extension MockInstrumentedEngine: InferenceEngine {
         }
     }
 
-    func shutdown() {
-        // InferenceEngine.shutdown() is sync; apply side effects directly
-        shutdownCallCount += 1
-        isReady = false
-        lastBenchmarkInfo = nil
-        lastInferenceMetrics = nil
-        lastBackendResult = nil
-    }
+    // shutdown() is defined on the class itself (line 318).
+    // Now that both InstrumentedEngineProtocol.shutdown() and InferenceEngine.shutdown()
+    // are `async`, the single class-level implementation satisfies both protocols.
 
     var lastPerformanceMetrics: EnginePerformanceMetrics? {
         guard let info = lastBenchmarkInfo else { return nil }

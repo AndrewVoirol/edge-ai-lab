@@ -237,8 +237,8 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
         // Change a setting that triggers reinitializeIfNeeded via didSet
         vm.preferredBackend = (vm.preferredBackend == .gpu) ? .cpu : .gpu
 
-        // Allow the async reinitialize to execute
-        try? await Task.sleep(for: .milliseconds(100))
+        // Allow the debounced async reinitialize to execute (200ms debounce + margin)
+        try? await Task.sleep(for: .milliseconds(350))
 
         // Engine should have been re-initialized
         XCTAssertGreaterThan(
@@ -256,8 +256,8 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
         // Change a setting WITHOUT loading a model first
         vm.preferredBackend = (vm.preferredBackend == .gpu) ? .cpu : .gpu
-
-        try? await Task.sleep(for: .milliseconds(100))
+        // Allow the debounced async reinitialize to execute (200ms debounce + margin)
+        try? await Task.sleep(for: .milliseconds(350))
 
         XCTAssertEqual(
             engine.loadModelCallCount, initCountBefore,

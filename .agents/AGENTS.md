@@ -156,4 +156,4 @@
 - **All inference engines MUST have OSSignposter intervals** for: model load, token generation loop (full), and time-to-first-token. Use `OSSignposter(subsystem: "com.andrewvoirol.EdgeAILab", category: "<engine>")`.
 - **Use modern `OSSignposter` API** (iOS 16+ / macOS 13+), not legacy `os_signpost()`. The modern API is type-safe and supports structured metadata.
 - **Signpost intervals must nest correctly**: Session > ModelLoad > Inference > TokenGeneration.
-- **MLX engine currently has ZERO signposts** — this must be fixed. LiteRT uses legacy `os_signpost()` in `InstrumentedEngine.swift` — migrate to `OSSignposter`.
+- **All three engines (LiteRT, MLX, GGUF) use modern `OSSignposter`** — verified July 2026. See `InstrumentedEngine.swift:280`, `MLXEngineAdapter.swift:147`, `GGUFEngineAdapter.swift:53`.

@@ -67,7 +67,7 @@ final class ConversationViewModel {
     /// Replaces the raw `useGPU` Bool with a typed option extensible for NPU.
     var preferredBackend: BackendOption = .gpu {
         didSet {
-            Task { await reinitializeEngineIfNeeded() }
+            scheduleReinit()
         }
     }
 
@@ -82,7 +82,7 @@ final class ConversationViewModel {
     var maxNumTokens: Int? = nil {
         didSet {
             sessionController.maxNumTokens = maxNumTokens
-            Task { await reinitializeEngineIfNeeded() }
+            scheduleReinit()
         }
     }
 
@@ -136,7 +136,7 @@ final class ConversationViewModel {
     ) {
         didSet {
             sessionController.defaultRuntimeFlags = runtimeFlags
-            Task { await reinitializeEngineIfNeeded() }
+            scheduleReinit()
         }
     }
 
@@ -147,7 +147,7 @@ final class ConversationViewModel {
         didSet {
             sessionController.topK = topK
             if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
-                Task { await reinitializeEngineIfNeeded() }
+                scheduleReinit()
             }
         }
     }
@@ -157,7 +157,7 @@ final class ConversationViewModel {
         didSet {
             sessionController.topP = topP
             if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
-                Task { await reinitializeEngineIfNeeded() }
+                scheduleReinit()
             }
         }
     }
@@ -167,7 +167,7 @@ final class ConversationViewModel {
         didSet {
             sessionController.temperature = temperature
             if !isSyncingSettings && !sessionController.applySamplerSettingsInPlace() {
-                Task { await reinitializeEngineIfNeeded() }
+                scheduleReinit()
             }
         }
     }
@@ -177,14 +177,14 @@ final class ConversationViewModel {
         didSet {
             sessionController.seed = seed
             if !sessionController.applySamplerSettingsInPlace() {
-                Task { await reinitializeEngineIfNeeded() }
+                scheduleReinit()
             }
         }
     }
 
     /// Optional system message to set model persona/instructions.
     var systemMessage: String = "" {
-        didSet { sessionController.systemMessage = systemMessage; Task { await reinitializeEngineIfNeeded() } }
+        didSet { sessionController.systemMessage = systemMessage; scheduleReinit() }
     }
 
     // MARK: - Multimodal Attachments
@@ -256,6 +256,19 @@ final class ConversationViewModel {
     ]
 
     // MARK: - Internal State
+
+    /// Tracks the active engine switch task to prevent concurrent switches.
+    /// If the user clicks through engines rapidly (LiteRT → MLX → GGUF),
+    /// each switch cancels the previous one so only the final engine is started.
+    private var activeSwitchTask: Task<Void, Never>?
+
+    /// True during an active engine switch. Prevents `reinitializeEngineIfNeeded()`
+    /// from racing with the switch's shutdown → create → load sequence.
+    private var isEngineSwitching = false
+
+    /// Tracks the active reinit task to cancel-and-replace on rapid settings changes.
+    /// Prevents rapid slider changes (temperature, topK) from launching parallel reinit Tasks.
+    private var activeReinitTask: Task<Void, Never>?
 
     /// The URL of the currently loaded model file (for security scope management).
     /// Stored (not computed) so that @Observable tracks mutations and SwiftUI re-renders.
@@ -430,47 +443,90 @@ final class ConversationViewModel {
     /// Switch the active inference engine to a different runtime type.
     ///
     /// This performs a safe engine swap:
-    /// 1. Shut down the current engine (frees Metal memory for MLX)
-    /// 2. Create a new engine via `EngineFactory`
-    /// 3. Update both the ViewModel and SessionController references
-    /// 4. Reset conversation state
+    /// 1. Stop any in-flight generation (prevents dangling async tasks on old engine)
+    /// 2. Cancel any in-flight engine switch (prevents orphan engines on rapid switching)
+    /// 3. Shut down the current engine via session controller (awaits full resource release)
+    /// 4. Create a new engine via `EngineFactory`
+    /// 5. Update both the ViewModel and SessionController references
+    /// 6. Reset stale state (conversation, metrics, config flags)
+    /// 7. Rollback picker binding on failure so UI always matches actual engine
     ///
     /// If a model was loaded, the caller should trigger a reload on the new engine.
     func switchEngine(to runtimeType: RuntimeType) async {
         guard runtimeType != self.engine.runtimeType else { return }
 
-        do {
-            let newEngine = try EngineFactory.createEngine(for: runtimeType)
+        isEngineSwitching = true
+        defer { isEngineSwitching = false }
 
-            // Delegate the safe shutdown + swap to the session controller
-            await sessionController.replaceEngine(newEngine)
+        // Capture for rollback if the switch fails (Defect #4 fix).
+        // The EnginePickerView binding has already updated `selectedRuntimeType`
+        // via the two-way `$viewModel.selectedRuntimeType` binding before this
+        // method runs, so we save the actual engine's type for rollback.
+        let previousRuntime = self.engine.runtimeType
 
-            // Sync the ViewModel's own engine reference
-            engine = newEngine
-            selectedRuntimeType = runtimeType
-            isEngineReady = false
-
-            // Clear conversation state since the new engine has no context
-            conversation.clear()
-            performanceMetrics = nil
-
-            Self.logger.info("✅ Engine switched to \(runtimeType.displayName)")
-
-            // If a model path is available, auto-reload on the new engine
-            if let modelURL = activeModelURL {
-                let detectedType = ModelFormatDetector.detectFormat(at: modelURL)
-                if detectedType == runtimeType {
-                    // Use session controller directly to avoid re-entering handleModelSelection
-                    await sessionController.handleModelSelection(modelURL)
-                    isEngineReady = self.engine.isLoaded
-                } else {
-                    statusMessage = "Model format incompatible with \(runtimeType.displayName) engine"
-                }
-            }
-        } catch {
-            statusMessage = "Failed to create \(runtimeType.displayName) engine: \(error.localizedDescription)"
-            Self.logger.error("❌ Engine switch failed: \(error.localizedDescription, privacy: .public)")
+        // Stop any in-flight generation before switching (Defect #3 fix).
+        // Without this, the generation Task holds a strong reference to the old
+        // engine and may access it after shutdown(), causing use-after-free.
+        if isGenerating {
+            stopGenerating()
         }
+
+        // Cancel any in-flight switch (Defect #5 fix, Phase 2 completion).
+        // Rapid engine picker changes (LiteRT → MLX → GGUF) would otherwise
+        // create multiple engine instances with only the last one assigned.
+        activeSwitchTask?.cancel()
+
+        // Clear stale state from the previous engine (Defect #6 fix).
+        // These values are engine-specific and meaningless after a switch.
+        isEngineReady = false
+        performanceMetrics = nil
+        inferenceMetrics = nil
+        lastInitializedBackend = nil       // Prevent false "Restart Engine" prompt
+        lastInitializedMaxNumTokens = nil  // Prevent false "Restart Engine" prompt
+        conversation.clear()
+
+        // Wrap the expensive async work in a tracked Task so rapid switches
+        // can cancel in-flight work. We await it to preserve the async contract
+        // for callers that depend on switch completion (tests, handleModelSelection).
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                let newEngine = try EngineFactory.createEngine(for: runtimeType)
+
+                // Check cancellation before the expensive shutdown + swap.
+                // If a newer switch arrived while we were creating the engine,
+                // discard this one — the newer switch will handle cleanup.
+                try Task.checkCancellation()
+
+                // Delegate the safe shutdown + swap to the session controller.
+                // This awaits the old engine's shutdown(), ensuring Metal resources
+                // and C++ handles are fully released before the new engine starts.
+                await sessionController.replaceEngine(newEngine)
+
+                try Task.checkCancellation()
+
+                // Sync the ViewModel's own engine reference
+                engine = newEngine
+                selectedRuntimeType = runtimeType
+
+                Self.logger.info("✅ Engine switched to \(runtimeType.displayName)")
+            } catch is CancellationError {
+                // Switch was superseded by a newer switch request — expected behavior.
+                Self.logger.info("⏭️ Engine switch to \(runtimeType.displayName) cancelled (superseded)")
+            } catch {
+                // Rollback the picker binding to match the actual engine state (Defect #4 fix).
+                // Without this, the EnginePickerView shows the requested engine but
+                // the actual engine is still the previous one.
+                selectedRuntimeType = previousRuntime
+                statusMessage = "Failed to create \(runtimeType.displayName) engine: \(error.localizedDescription)"
+                Self.logger.error("❌ Engine switch failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        activeSwitchTask = task
+
+        // Await the task so callers can depend on switch completion.
+        await task.value
     }
 
     // MARK: - Model Loading
@@ -479,6 +535,11 @@ final class ConversationViewModel {
     ///
     /// Auto-detects the model format and switches engines if needed before loading.
     func handleModelSelection(_ url: URL) async {
+        // Cancel any in-flight engine switch — model selection takes priority (Defect #7 fix).
+        // This prevents a race where a switch task is mid-shutdown while we try to load a model.
+        activeSwitchTask?.cancel()
+        activeSwitchTask = nil
+
         // Auto-detect format and switch engines if the model requires a different runtime.
         // Two detection strategies — filesystem-based and registry-based — for robustness.
         let detectedFormat: RuntimeType? = ModelFormatDetector.detectFormat(at: url)
@@ -486,17 +547,9 @@ final class ConversationViewModel {
 
         if let detectedFormat, detectedFormat != self.engine.runtimeType {
             Self.logger.info("🔄 Auto-switching engine: \(self.engine.runtimeType.displayName) → \(detectedFormat.displayName) for \(url.lastPathComponent, privacy: .public)")
-            // Switch the engine but DON'T rely on switchEngine's internal auto-reload
-            // (activeModelURL may be nil on first load or point to a different model).
-            // We always fall through to sessionController.handleModelSelection below.
-            let previousURL = activeModelURL
+            // Switch the engine — it's now purely lifecycle (shutdown old → create new).
+            // Model loading always happens below via sessionController.handleModelSelection.
             await switchEngine(to: detectedFormat)
-            // If switchEngine already loaded this exact model (activeModelURL changed), skip reload
-            if activeModelURL == url, activeModelURL != previousURL, self.engine.isLoaded {
-                isEngineReady = true
-                refreshDiscoveredModels()
-                return
-            }
         }
 
         // Resolve metadata from discoveredModels for community/imported models
@@ -592,6 +645,7 @@ final class ConversationViewModel {
 
     /// Reboots the engine to apply new core settings if a model is currently loaded.
     private func reinitializeEngineIfNeeded() async {
+        guard !isEngineSwitching else { return }
         var mcpClients: [UUID: Any] = [:]
         #if os(macOS)
         mcpClients = activeClients
@@ -601,6 +655,18 @@ final class ConversationViewModel {
             useGPU: useGPU,
             mcpClients: mcpClients
         )
+    }
+
+    /// Debounced reinit scheduler. Cancels any pending reinit and starts a new one
+    /// after 200ms of idle time. This prevents rapid slider changes from triggering
+    /// multiple concurrent engine shutdowns + reinitializations.
+    private func scheduleReinit() {
+        activeReinitTask?.cancel()
+        activeReinitTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            await self?.reinitializeEngineIfNeeded()
+        }
     }
 
     /// Force-restarts the engine with current settings.

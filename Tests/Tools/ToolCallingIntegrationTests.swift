@@ -105,7 +105,7 @@ final class ToolCallingIntegrationTests: XCTestCase {
             )
         )
         try await engine.loadModel(config: config)
-        let viewModel = ConversationViewModel(engine: engine)
+        let viewModel = ConversationViewModel(engine: engine, conversationStore: .inMemory())
         
         // Simulate a tool call being triggered while generateText is executing.
         // We set chunkDelay on MockInferenceEngine to ensure the stream stays active

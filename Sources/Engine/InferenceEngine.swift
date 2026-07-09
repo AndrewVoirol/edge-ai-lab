@@ -230,7 +230,11 @@ protocol InferenceEngine: AnyObject, Sendable {
     // MARK: - Lifecycle
 
     /// Release all model resources (weights, KV cache, Metal buffers).
-    func shutdown()
+    ///
+    /// Callers must await this to ensure resources are fully released before
+    /// creating a new engine. This prevents concurrent Metal contexts and
+    /// C++ handle overlap that cause crashes during engine switching.
+    func shutdown() async
 
     /// Reset conversation state (clear KV cache and history) without unloading the model.
     func resetConversation() async throws

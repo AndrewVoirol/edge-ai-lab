@@ -51,7 +51,7 @@ final class EnvironmentInjectionTests: XCTestCase {
     // MARK: - Default Init
 
     func testViewModelDefaultInit() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
 
         XCTAssertFalse(vm.statusMessage.isEmpty,
             "Default init should set a non-empty status message")
@@ -65,7 +65,7 @@ final class EnvironmentInjectionTests: XCTestCase {
 
     func testViewModelWithMockEngine() {
         let mockEngine = MockInferenceEngine()
-        let vm = ConversationViewModel(engine: mockEngine)
+        let vm = ConversationViewModel(engine: mockEngine, conversationStore: .inMemory())
 
         XCTAssertFalse(vm.isEngineReady,
             "Mock engine should not be ready by default")
@@ -74,8 +74,8 @@ final class EnvironmentInjectionTests: XCTestCase {
     // MARK: - Multiple Independent Instances
 
     func testMultipleIndependentInstances() {
-        let vm1 = ConversationViewModel()
-        let vm2 = ConversationViewModel()
+        let vm1 = ConversationViewModel(conversationStore: .inMemory())
+        let vm2 = ConversationViewModel(conversationStore: .inMemory())
 
         vm1.prompt = "Hello from vm1"
         vm2.prompt = "Hello from vm2"

@@ -59,7 +59,12 @@ import Testing
         let memoryString = parsed["available_memory_mb"] as? String
         #expect(memoryString != nil)
         if let memStr = memoryString, let memValue = Double(memStr) {
+            #if targetEnvironment(simulator)
+            // iOS Simulator may report 0 available memory
+            #expect(memValue >= 0)
+            #else
             #expect(memValue > 0)
+            #endif
         }
     }
 

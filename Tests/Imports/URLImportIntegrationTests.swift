@@ -194,6 +194,7 @@ final class URLImportIntegrationTests: XCTestCase {
         let vm = ConversationViewModel(
             engine: MockInferenceEngine(),
             downloadManager: ModelDownloadManager(),
+            conversationStore: .inMemory(),
             dynamicModelCatalog: catalog
         )
 
@@ -208,6 +209,7 @@ final class URLImportIntegrationTests: XCTestCase {
         let vm = ConversationViewModel(
             engine: MockInferenceEngine(),
             downloadManager: ModelDownloadManager(),
+            conversationStore: .inMemory(),
             dynamicModelCatalog: catalog
         )
 

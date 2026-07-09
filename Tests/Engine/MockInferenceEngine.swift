@@ -291,7 +291,7 @@ final class MockInferenceEngine: InferenceEngine {
 
     // MARK: - Lifecycle
 
-    func shutdown() {
+    func shutdown() async {
         shutdownCallCount += 1
         isLoaded = false
         lastBackendResult = nil

@@ -163,7 +163,7 @@ final class MockMLXEngine: InferenceEngine, @unchecked Sendable {
         return result
     }
 
-    func shutdown() {
+    func shutdown() async {
         shutdownCallCount += 1
         modelInfo = nil
         lastPerformanceMetrics = nil

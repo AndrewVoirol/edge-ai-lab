@@ -538,7 +538,7 @@ final class SettingsVerificationTests: XCTestCase {
         )
         let backendResult = adapter.lastBackendResult
         let (_, _) = try await collectAdapterResponse(from: adapter, prompt: Self.simplePrompt)
-        adapter.shutdown()
+        await adapter.shutdown()
 
         reportResult(
             setting: "backend_GPU",
@@ -614,7 +614,7 @@ final class SettingsVerificationTests: XCTestCase {
             detail: "benchmark=\(flagsState.enableBenchmark) | specDec=\(String(describing: flagsState.enableSpeculativeDecoding)) | constrainedDec=\(flagsState.enableConversationConstrainedDecoding) | visionBudget=\(String(describing: flagsState.visualTokenBudget))"
         )
 
-        adapter.shutdown()
+        await adapter.shutdown()
     }
 
     // MARK: - MLX Engine: Basic Load and Inference
@@ -665,7 +665,7 @@ final class SettingsVerificationTests: XCTestCase {
             detail: "MLX inference succeeded | response_length=\(response.count) | tok/s=\(metrics?.tokensPerSecond ?? -1) | response=\(response.prefix(100))..."
         )
 
-        adapter.shutdown()
+        await adapter.shutdown()
 
         XCTAssertFalse(response.isEmpty, "MLX inference should produce output")
         #endif
@@ -731,7 +731,7 @@ final class SettingsVerificationTests: XCTestCase {
             detail: "greedy vs hot differ=\(different) | greedy=\(greedyResponse.prefix(50))... | hot=\(hotResponse.prefix(50))..."
         )
 
-        adapter.shutdown()
+        await adapter.shutdown()
 
         XCTAssertFalse(greedyResponse.isEmpty, "Greedy MLX inference should produce output")
         XCTAssertFalse(hotResponse.isEmpty, "Hot MLX inference should produce output")

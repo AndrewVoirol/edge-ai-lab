@@ -315,7 +315,7 @@ final class CapabilityValidationTests: XCTestCase {
             detail: "tok/s=\(metrics?.tokensPerSecond ?? -1) | ttft=\(metrics?.timeToFirstToken ?? -1)s"
         )
 
-        adapter.shutdown()
+        await adapter.shutdown()
 
         print("╚════════════════════════════════════════════════════")
 

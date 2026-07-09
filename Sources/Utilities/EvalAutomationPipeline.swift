@@ -286,7 +286,7 @@ struct EvalAutomationPipeline {
         DeveloperAutomationHarness.signalComplete(0, message: "Eval pipeline completed successfully")
         
         // Best-effort engine cleanup (only reached under XCUITest).
-        viewModel.engine.shutdown()
+        await viewModel.engine.shutdown()
         return
     }
     

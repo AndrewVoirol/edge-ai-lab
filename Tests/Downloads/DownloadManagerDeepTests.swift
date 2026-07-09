@@ -1129,8 +1129,10 @@ struct ModelRegistryLookupTests {
     }
 
     @Test("recommendedBackend returns a known recommendation for registry models",
-          arguments: ModelRegistry.knownModels)
+          arguments: ModelRegistry.knownModels.filter { $0.platformSupport.currentPlatform != .unknown })
     func recommendedBackendKnown(model: ModelMetadata) {
+        // Models with .unknown capability on this platform (e.g., MLX on iOS Simulator)
+        // are filtered out of the arguments above, so this assertion is always valid.
         let result = ModelRegistry.recommendedBackend(for: "/any/path/\(model.modelFile)")
         #expect(result != .probeRequired)
     }

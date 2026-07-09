@@ -31,7 +31,7 @@ final class SettingsToggleTests: XCTestCase {
 
     func testEnableBenchmarkDefaultsToTrue() {
         // The ViewModel's experimentalFlags.enableBenchmark is ON by default for research instrument
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         XCTAssertTrue(vm.runtimeFlags.enableBenchmark, "Benchmarking should be enabled by default")
     }
 
@@ -143,7 +143,7 @@ final class SettingsToggleTests: XCTestCase {
     // MARK: - Sampler Configuration
 
     func testSamplerGreedyMatchPreset() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
 
         // Apply greedy preset
         vm.topK = 1
@@ -156,7 +156,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testSamplerDefaultPreset() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
 
         // Apply default preset
         vm.topK = 64
@@ -169,7 +169,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testTemperatureRange() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
 
         // Test boundaries
         vm.temperature = 0.0
@@ -180,7 +180,7 @@ final class SettingsToggleTests: XCTestCase {
     }
 
     func testSeedDefaultIsZero() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         // Seed 0 means non-deterministic
         XCTAssertGreaterThanOrEqual(vm.seed, 0, "Seed should be non-negative")
     }
@@ -206,7 +206,7 @@ final class SettingsToggleTests: XCTestCase {
     // MARK: - System Message
 
     func testSystemMessageCanBeSetAndCleared() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         let originalMessage = vm.systemMessage
 
         vm.systemMessage = "You are a helpful coding assistant."

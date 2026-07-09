@@ -428,25 +428,43 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     // MARK: - Lifecycle
 
-    func shutdown() {
+    func shutdown() async {
         #if canImport(llama)
-        llamaQueue.sync { [weak self] in
-            guard let self else { return }
-            if let ctx = self.context {
-                llama_free(ctx)
-                self.context = nil
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            llamaQueue.async { [weak self] in
+                self?.cleanupLlamaResources()
+                continuation.resume()
             }
-            if let mdl = self.model {
-                llama_model_free(mdl)
-                self.model = nil
-            }
-            llama_backend_free()
-            self._isLoaded = false
-            self._modelInfo = nil
-            self._lastMetrics = nil
-            self._ggufMetadata = nil
-            self.conversationHistory.removeAll()
         }
+        #endif
+    }
+
+    /// Synchronous resource cleanup for use in `deinit` and `shutdown()`.
+    ///
+    /// Swift `deinit` cannot call async methods. This private method provides
+    /// a synchronous cleanup path that both `deinit` (via `llamaQueue.sync`)
+    /// and `shutdown()` (via `llamaQueue.async` + continuation) can share.
+    ///
+    /// Reference: Swift community best practice is to extract cleanup into a
+    /// synchronous helper and call it from both paths. The async `shutdown()`
+    /// moves the work off the calling thread to avoid main-thread beachballs
+    /// when freeing multi-GB models.
+    private func cleanupLlamaResources() {
+        #if canImport(llama)
+        if let ctx = self.context {
+            llama_free(ctx)
+            self.context = nil
+        }
+        if let mdl = self.model {
+            llama_model_free(mdl)
+            self.model = nil
+        }
+        llama_backend_free()
+        self._isLoaded = false
+        self._modelInfo = nil
+        self._lastMetrics = nil
+        self._ggufMetadata = nil
+        self.conversationHistory.removeAll()
         #endif
     }
 
@@ -499,7 +517,14 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     #endif
 
     deinit {
-        shutdown()
+        // Cannot call async shutdown() from deinit.
+        // Use synchronous cleanup as a safety net for the "forgot to call shutdown" case.
+        // This blocks on llamaQueue but deinit should only fire at app teardown.
+        #if canImport(llama)
+        llamaQueue.sync { [weak self] in
+            self?.cleanupLlamaResources()
+        }
+        #endif
     }
 }
 

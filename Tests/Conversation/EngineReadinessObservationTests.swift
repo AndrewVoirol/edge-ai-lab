@@ -55,7 +55,7 @@ final class EngineReadinessObservationTests: XCTestCase {
 
     /// A freshly created ViewModel should report isEngineReady == false.
     func test_isEngineReady_defaultsFalse() {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         XCTAssertFalse(vm.isEngineReady)
     }
 
@@ -63,7 +63,7 @@ final class EngineReadinessObservationTests: XCTestCase {
 
     /// The onEngineReadyChanged callback should set the tracked property to true.
     func test_engineReadyCallback_setsTrackedProperty() {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // The ViewModel wires onEngineReadyChanged during init.
         // Invoke the callback with `true` to simulate engine becoming ready.
@@ -81,7 +81,7 @@ final class EngineReadinessObservationTests: XCTestCase {
     /// This was the core observation gap bug: resetting the conversation should not
     /// make the UI think the engine is unloaded.
     func test_newConversation_keepsEngineReady_true() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Initialize the engine so it becomes ready (via the sessionController path)
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -108,7 +108,7 @@ final class EngineReadinessObservationTests: XCTestCase {
 
     /// shutdown() should set isEngineReady to false since the engine is released.
     func test_shutdown_setsEngineReady_false() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Make the engine ready via the callback
         vm.sessionController.onEngineReadyChanged?(true)

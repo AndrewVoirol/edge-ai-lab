@@ -208,10 +208,8 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     // MARK: - Lifecycle
 
-    func shutdown() {
-        // InstrumentedEngine.shutdown() is async, but InferenceEngine.shutdown() is sync.
-        // Fire-and-forget the async cleanup. The engine manages its own ordering internally.
-        Task { await engine.shutdown() }
+    func shutdown() async {
+        await engine.shutdown()
     }
 
     func resetConversation() async throws {

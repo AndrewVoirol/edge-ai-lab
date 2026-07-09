@@ -129,8 +129,13 @@ final class ModelSessionController {
         modelLoadTask = nil
         isLoadingModel = false
 
+        // Cancel any active generation on the old engine (defense-in-depth).
+        // The ViewModel also calls stopGenerating(), but replaceEngine() may be
+        // called from other paths — this ensures no dangling generation stream.
+        engine.cancelGeneration()
+
         // Shutdown the old engine
-        engine.shutdown()
+        await engine.shutdown()
 
         // Swap
         engine = newEngine
@@ -403,7 +408,7 @@ final class ModelSessionController {
         guard engine.isLoaded, let url = activeModelURL else { return }
         Self.logger.info("♻️ Settings changed, rebooting engine to apply new configuration...")
         onStatusMessage("Applying new settings...")
-        engine.shutdown()
+        await engine.shutdown()
         await initializeEngine(
             modelPath: url.path,
             discoveredMetadata: activeModelMetadata,
@@ -420,7 +425,7 @@ final class ModelSessionController {
         activeModelURL = nil
         activeModelMetadata = nil
         backendResult = nil
-        engine.shutdown()
+        await engine.shutdown()
         onActiveModelChanged?(nil, nil)
         onEngineReadyChanged?(false)
     }

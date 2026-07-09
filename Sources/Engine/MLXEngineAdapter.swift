@@ -592,7 +592,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         chatSession = session
     }
 
-    func shutdown() {
+    func shutdown() async {
         activeTask?.cancel()
         activeTask = nil
         chatSession = nil
@@ -641,7 +641,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         throw EngineError.notReady("MLX requires Metal")
     }
 
-    func shutdown() { }
+    func shutdown() async { }
     func resetConversation() async throws { }
     func cancelGeneration() { }
     func warmup() async throws { /* Metal not available — no-op */ }

@@ -37,7 +37,7 @@ struct ConversationViewModelMCPTests {
         let metricsFileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("test_mcp_metrics_\(UUID().uuidString).json")
         let metricsStore = MetricsStore(fileURL: metricsFileURL)
-        return ConversationViewModel(engine: engine, metricsStore: metricsStore)
+        return ConversationViewModel(engine: engine, metricsStore: metricsStore, conversationStore: .inMemory())
     }
 
     private static func makeConfig(

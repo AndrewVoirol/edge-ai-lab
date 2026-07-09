@@ -88,6 +88,9 @@ final class MCPClientTests: XCTestCase {
     /// Validates that MCPClient can be restarted after entering a failed state with a real error message.
     /// This was a regression where comparing against `.failed(error: "")` prevented restarting
     /// servers that failed with actual error strings.
+    /// Note: macOS-only because MCP subprocesses are not supported on iOS and the iOS stub
+    /// behavior is already tested by `testMCPClientIOSStub()`.
+    #if os(macOS)
     func testMCPClientCanRestartAfterRealError() async {
         let config = MCPServerConfig(name: "FailTest", command: "/nonexistent/path")
         let client = MCPClient(config: config)
@@ -115,6 +118,7 @@ final class MCPClientTests: XCTestCase {
         client.stop()
         XCTAssertEqual(client.state, .stopped)
     }
+    #endif
 
     /// Validates that MCPClient can restart from a stopped state.
     func testMCPClientCanRestartAfterStop() {

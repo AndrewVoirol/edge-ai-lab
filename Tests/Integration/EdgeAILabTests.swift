@@ -49,7 +49,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testInitialState() {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         XCTAssertEqual(vm.statusMessage, "Please select a model file...")
         XCTAssertEqual(vm.responseText, "")
@@ -61,7 +61,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testEngineInitialization() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
 
@@ -81,7 +81,7 @@ final class ConversationViewModelTests: XCTestCase {
             code: -1,
             userInfo: [NSLocalizedDescriptionKey: "Mock init failure"]
         )
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/bad_model.litertlm")
 
@@ -94,7 +94,7 @@ final class ConversationViewModelTests: XCTestCase {
     @MainActor
     func testGenerateTextStreamsResponse() async {
         mockEngine.mockResponseChunks = ["Hello", " ", "World"]
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Initialize first
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -115,7 +115,7 @@ final class ConversationViewModelTests: XCTestCase {
             code: -1,
             userInfo: [NSLocalizedDescriptionKey: "GPU out of memory"]
         )
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         await vm.generateText()
@@ -126,7 +126,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testExperimentalFlagsPassedToEngine() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         vm.runtimeFlags = RuntimeFlags(
             enableBenchmark: true,
             enableSpeculativeDecoding: true,
@@ -145,7 +145,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testShutdownReleasesResources() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         XCTAssertTrue(vm.isEngineReady)
@@ -158,7 +158,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testNewConversation() async {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         
         // Simulate a conversation state
@@ -181,7 +181,7 @@ final class ConversationViewModelTests: XCTestCase {
 
     @MainActor
     func testCancelModelLoad() {
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         // cancelModelLoad should be safe to call even when no load is in progress
         vm.cancelModelLoad()
         
@@ -192,7 +192,7 @@ final class ConversationViewModelTests: XCTestCase {
     @MainActor
     func testMultimodalAttachmentsClearedAfterGenerate() async {
         mockEngine.mockResponseChunks = ["Image", " ", "analyzed"]
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         
         vm.selectedImageData = Data([0x01, 0x02])
@@ -518,7 +518,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
         mockEngine.mockInferenceMetrics = expectedMetrics
         mockEngine.mockResponseChunks = ["Test", " ", "response"]
 
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         // Initialize and generate
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
@@ -537,7 +537,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
     @MainActor
     func testInferenceMetricsNilWhenNotConfigured() async {
         // Don't set mockInferenceMetrics (defaults to nil)
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
 
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         await vm.generateText()
@@ -550,7 +550,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
         mockEngine.mockInferenceMetrics = makeTestInferenceMetrics()
         mockEngine.mockResponseChunks = ["Hello"]
 
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         await vm.generateText()
 
@@ -567,7 +567,7 @@ final class InferenceMetricsIntegrationTests: XCTestCase {
         mockEngine.mockInferenceMetrics = makeTestInferenceMetrics()
         mockEngine.mockResponseChunks = ["Hello"]
 
-        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore)
+        let vm = ConversationViewModel(engine: mockEngine, metricsStore: metricsStore, conversationStore: .inMemory())
         await vm.sessionController.initializeEngine(modelPath: "/path/to/model.litertlm")
         await vm.generateText()
 

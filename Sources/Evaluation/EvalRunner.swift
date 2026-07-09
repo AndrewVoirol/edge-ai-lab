@@ -255,7 +255,7 @@ final class EvalRunner {
 
         // Shut down the engine after eval so it's not left initialized with the last model.
         // The user will need to re-select their model, but the engine won't be in an unexpected state.
-        engine.shutdown()
+        await engine.shutdown()
 
         // Finalize the run
         state = .scoring
@@ -328,7 +328,7 @@ final class EvalRunner {
         let metadata = modelEntry.metadata
 
         // Shut down any existing engine session
-        engine.shutdown()
+        await engine.shutdown()
 
         // Initialize the engine with this model
         // Configure flags for eval: enable benchmarks, enable tool calling for tool suites

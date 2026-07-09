@@ -85,6 +85,14 @@ final class ConversationStore {
         loadIndex()
     }
 
+    /// Creates a ConversationStore backed by a unique temporary directory.
+    /// Use in tests to avoid hitting the production conversation index.
+    static func inMemory() -> ConversationStore {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("EdgeAILab-Tests-\(UUID().uuidString)")
+        return ConversationStore(storageDirectory: tempDir)
+    }
+
     // MARK: - CRUD Operations
 
     /// Save a conversation to disk and update the index.

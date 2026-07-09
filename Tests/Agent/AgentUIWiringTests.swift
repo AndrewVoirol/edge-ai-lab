@@ -32,14 +32,14 @@ struct AgentModeToggleTests {
     @Test("isAgentMode defaults to false")
     @MainActor
     func defaultsToFalse() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         #expect(vm.isAgentMode == false)
     }
 
     @Test("isAgentMode can be toggled on")
     @MainActor
     func toggleOn() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         vm.isAgentMode = true
         #expect(vm.isAgentMode == true)
     }
@@ -47,7 +47,7 @@ struct AgentModeToggleTests {
     @Test("isAgentMode can be toggled off")
     @MainActor
     func toggleOff() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         vm.isAgentMode = true
         vm.isAgentMode = false
         #expect(vm.isAgentMode == false)
@@ -56,7 +56,7 @@ struct AgentModeToggleTests {
     @Test("toggle() flips isAgentMode")
     @MainActor
     func toggleFlips() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         #expect(vm.isAgentMode == false)
         vm.isAgentMode.toggle()
         #expect(vm.isAgentMode == true)
@@ -67,7 +67,7 @@ struct AgentModeToggleTests {
     @Test("agentHarness is initialized with idle status")
     @MainActor
     func harnessStartsIdle() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         #expect(vm.agentHarness.status == .idle)
         #expect(vm.agentHarness.isRunning == false)
     }
@@ -75,7 +75,7 @@ struct AgentModeToggleTests {
     @Test("agentHarness is non-nil regardless of isAgentMode")
     @MainActor
     func harnessAlwaysPresent() {
-        let vm = ConversationViewModel()
+        let vm = ConversationViewModel(conversationStore: .inMemory())
         #expect(vm.agentHarness.isRunning == false) // Access without agent mode
         vm.isAgentMode = true
         #expect(vm.agentHarness.isRunning == false) // Still accessible

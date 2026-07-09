@@ -162,10 +162,10 @@ struct MLXEngineAdapterTests {
     struct LifecycleTests {
 
         @Test("shutdown clears all state")
-        func shutdownClearsState() {
+        func shutdownClearsState() async {
             let adapter = MLXEngineAdapter()
             // Shutdown should not crash even when nothing is loaded.
-            adapter.shutdown()
+            await adapter.shutdown()
             #expect(adapter.isLoaded == false)
             #expect(adapter.modelInfo == nil)
             #expect(adapter.lastPerformanceMetrics == nil)
@@ -186,11 +186,11 @@ struct MLXEngineAdapterTests {
         }
 
         @Test("multiple shutdowns don't crash")
-        func multipleShutdowns() {
+        func multipleShutdowns() async {
             let adapter = MLXEngineAdapter()
-            adapter.shutdown()
-            adapter.shutdown()
-            adapter.shutdown()
+            await adapter.shutdown()
+            await adapter.shutdown()
+            await adapter.shutdown()
             #expect(adapter.isLoaded == false)
         }
     }

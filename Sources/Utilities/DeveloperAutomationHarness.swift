@@ -484,7 +484,7 @@ struct DeveloperAutomationHarness {
                         visualTokenBudget: nil
                     )
                     
-                    viewModel.engine.shutdown()
+                    await viewModel.engine.shutdown()
                     
                     let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile)
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
@@ -503,7 +503,7 @@ struct DeveloperAutomationHarness {
                         )
                     } catch {
                         automationLog("[AUTOMATION] Skipping config: Initialization failed: \(error.localizedDescription)")
-                        viewModel.engine.shutdown()
+                        await viewModel.engine.shutdown()
                         continue
                     }
                     
@@ -517,7 +517,7 @@ struct DeveloperAutomationHarness {
                     }
                     
                     if configIndexToRun == nil {
-                         viewModel.engine.shutdown()
+                         await viewModel.engine.shutdown()
                     }
                 }
                 
