@@ -19,7 +19,7 @@ import SwiftUI
 
 /// A premium 4-page first-run experience for Edge AI Lab.
 ///
-/// Dark Forest / Moss palette with VibrantBackgroundView, smooth entrance
+/// Dark Forest / Moss palette with system background, smooth entrance
 /// animations, and SF Symbol icons. Presented as a fullScreenCover (iOS)
 /// or sheet (macOS) on first launch.
 ///
@@ -34,10 +34,16 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            // Vibrant forest background
-            VibrantBackgroundView()
+            // System background
+            #if os(macOS)
+            Color(nsColor: .windowBackgroundColor)
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
+            #else
+            Color(.systemBackground)
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+            #endif
 
             VStack(spacing: 0) {
                 Spacer()

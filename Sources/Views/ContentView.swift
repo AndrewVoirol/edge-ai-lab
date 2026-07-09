@@ -313,9 +313,15 @@ struct ContentView: View {
     /// Contains the conversation area, benchmark bar, input area, and status bar.
     private var chatColumn: some View {
         ZStack {
-            VibrantBackgroundView()
+            #if os(macOS)
+            Color(nsColor: .windowBackgroundColor)
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
+            #else
+            Color(.systemBackground)
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+            #endif
 
             VStack(spacing: 0) {
                 // Conversation area — chat bubbles
@@ -560,41 +566,3 @@ struct ModelCapabilityBadges: View {
     ContentView()
 }
 
-// MARK: - Vibrant Background
-
-/// Atmospheric background for content areas (chat, lab, onboarding).
-///
-/// ## Liquid Glass Compatibility
-/// Uses the system background as the base layer instead of an opaque custom color.
-/// This lets navigation chrome (sidebar, toolbar, tab bar) render glass effects
-/// correctly while preserving the forest/moss atmospheric gradient overlays.
-///
-/// In dark mode: visually similar to the original (system dark bg ≈ near-black).
-/// In light mode: gradients tint the system background subtly.
-struct VibrantBackgroundView: View {
-    var body: some View {
-        ZStack {
-            // Deep forest floor — the darkest layer.
-            // This is intentionally NOT a system color: the custom palette is designed
-            // around this specific near-black base. NSColor.windowBackgroundColor in
-            // dark mode (~0.16) is too light and washes out text/card contrast.
-            AppColors.backgroundPrimary
-
-            // Moonlight through canopy (top left) — subtle moss green
-            RadialGradient(
-                gradient: Gradient(colors: [AppColors.accentTeal.opacity(0.10), .clear]),
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 800
-            )
-
-            // Distant firelight (bottom right) — warm amber glow
-            RadialGradient(
-                gradient: Gradient(colors: [AppColors.accentGold.opacity(0.06), .clear]),
-                center: .bottomTrailing,
-                startRadius: 0,
-                endRadius: 800
-            )
-        }
-    }
-}
