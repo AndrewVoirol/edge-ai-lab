@@ -14,7 +14,6 @@
 // limitations under the License.
 
 #if os(iOS)
-import LiteRTLM
 import SwiftUI
 
 // MARK: - iOS Model Detail View

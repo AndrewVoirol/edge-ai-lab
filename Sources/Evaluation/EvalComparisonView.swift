@@ -559,6 +559,5 @@ struct EvalComparisonView: View {
         ),
         evalStore: EvalStore()
     )
-    .preferredColorScheme(.dark)
 }
 #endif

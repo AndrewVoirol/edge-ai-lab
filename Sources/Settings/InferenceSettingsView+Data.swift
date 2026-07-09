@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import SwiftUI
-import LiteRTLM
 
 extension InferenceSettingsView {
 

@@ -483,7 +483,6 @@ struct EvalBenchmarkCardShareSheet: View {
         platform: "macOS",
         date: Date()
     ))
-    .preferredColorScheme(.dark)
     .frame(width: 700, height: 400)
 }
 #endif

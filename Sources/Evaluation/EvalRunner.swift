@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import Foundation
-import LiteRTLM
 import Observation
 import os
 
