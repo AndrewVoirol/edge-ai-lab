@@ -313,15 +313,9 @@ struct ContentView: View {
     /// Contains the conversation area, benchmark bar, input area, and status bar.
     private var chatColumn: some View {
         ZStack {
-            #if os(macOS)
-            Color(nsColor: .windowBackgroundColor)
+            AppColors.backgroundPrimary
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
-            #else
-            Color(.systemBackground)
-                .ignoresSafeArea()
-                .accessibilityHidden(true)
-            #endif
 
             VStack(spacing: 0) {
                 // Conversation area — chat bubbles
@@ -515,6 +509,9 @@ extension ContentView {
                     viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
                 }
             }
+            // Force dark mode — palette is dark-only. Adaptive colors are Phase 4.
+            // When the palette supports light mode, remove this and update AGENTS.md.
+            .preferredColorScheme(.dark)
     }
 }
 

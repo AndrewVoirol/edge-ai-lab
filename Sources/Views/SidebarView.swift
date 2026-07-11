@@ -282,6 +282,7 @@ struct SidebarView: View {
         #if os(macOS)
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
+        .background(AppColors.backgroundPrimary)
         #endif
         .accessibilityIdentifier("sidebar_list")
         .alert("Delete Model?", isPresented: $showDeleteConfirmation) {
