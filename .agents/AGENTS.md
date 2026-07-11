@@ -149,7 +149,7 @@
 ## Liquid Glass Adoption
 - **We are ALL IN on Liquid Glass.** macOS 27 / iOS 27. Support system-managed appearance (both light and dark). Do not force `.preferredColorScheme(.dark)`.
 - **Custom palette stays for CONTENT areas** (chat bubbles, cards, settings panels). Navigation chrome (sidebars, toolbars, tab bars) uses system glass.
-- **Audit `VibrantBackgroundView` usage** before touching navigation structure — opaque backgrounds defeat glass transparency. Known locations: `ContentView.swift`, `iOSChatTabView.swift`, `iOSConversationPickerSheet.swift`, `iOSLabTabView.swift`, `OnboardingView.swift`.
+- **`VibrantBackgroundView` has been fully removed** (July 2026). No opaque background views remain in navigation chrome. If re-introducing custom backgrounds in toolbars/sidebars, verify they don't defeat glass transparency.
 - **Always test Liquid Glass changes with both light and dark mode**, and with "Reduce Transparency" accessibility setting enabled.
 
 ## Instrumentation

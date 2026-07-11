@@ -45,7 +45,7 @@ extension InferenceSettingsView {
                 }
             } header: {
                 Label("Model Info", systemImage: "info.circle")
-                    .foregroundStyle(AppColors.accentTeal)
+                    .foregroundStyle(AppColors.moss)
             }
         }
     }
@@ -53,7 +53,7 @@ extension InferenceSettingsView {
     @ViewBuilder
     var performanceSection: some View {
         Section(header: Label("Performance", systemImage: "chart.bar")
-            .foregroundStyle(AppColors.accentGold)) {
+            .foregroundStyle(AppColors.amber)) {
             if let metrics = viewModel.performanceMetrics {
                 LabeledContent("Runtime") {
                     Text(metrics.runtimeType == .mlx ? "MLX" : "LiteRT")
@@ -139,7 +139,7 @@ extension InferenceSettingsView {
             if hfTokenSaved {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColors.success)
+                        .foregroundStyle(AppColors.sprout)
                     Text("Token saved in Keychain")
                         .font(.caption)
                 }
@@ -198,7 +198,7 @@ extension InferenceSettingsView {
             if kaggleCredentialsSaved {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColors.success)
+                        .foregroundStyle(AppColors.sprout)
                     Text("Credentials saved in Keychain")
                         .font(.caption)
                 }

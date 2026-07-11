@@ -170,10 +170,10 @@ struct iOSModelDetailView: View {
             // Large model icon
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.lg)
-                    .fill(isActiveModel ? AppColors.accentCyan.opacity(0.12) : AppColors.backgroundTertiary)
+                    .fill(isActiveModel ? AppColors.moss.opacity(0.12) : AppColors.backgroundTertiary)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .stroke(isActiveModel ? AppColors.accentCyan.opacity(0.3) : AppColors.border, lineWidth: 0.5)
+                            .stroke(isActiveModel ? AppColors.moss.opacity(0.3) : AppColors.border, lineWidth: 0.5)
                     )
 
                 VStack(spacing: AppSpacing.sm) {
@@ -181,12 +181,12 @@ struct iOSModelDetailView: View {
                         ? "square.grid.3x3.topleft.filled"
                         : "square.stack.3d.up.fill")
                         .font(AppIconSize.xxl)
-                        .foregroundStyle(isActiveModel ? AppColors.accentCyan : AppColors.textSecondary)
+                        .foregroundStyle(isActiveModel ? AppColors.moss : AppColors.textSecondary)
 
                     if isActiveModel {
                         Text("Running")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.accentCyan)
+                            .foregroundStyle(AppColors.moss)
                     }
                 }
             }
@@ -243,16 +243,16 @@ struct iOSModelDetailView: View {
                 VStack(spacing: AppSpacing.sm) {
                     HStack(spacing: AppSpacing.sm) {
                         Circle()
-                            .fill(AppColors.success)
+                            .fill(AppColors.sprout)
                             .frame(width: 8, height: 8)
-                            .pulsingGlow(AppColors.success)
+                            .pulsingGlow(AppColors.sprout)
                         Text("Model is running")
                             .font(AppTypography.subtitle)
-                            .foregroundStyle(AppColors.success)
+                            .foregroundStyle(AppColors.sprout)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
-                    .background(AppColors.success.opacity(0.1))
+                    .background(AppColors.sprout.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .accessibilityIdentifier("modelDetail_running")
 
@@ -270,7 +270,7 @@ struct iOSModelDetailView: View {
                         .padding(.vertical, AppSpacing.md)
                         .background(
                             LinearGradient(
-                                colors: [AppColors.accentCyan, AppColors.accentTeal],
+                                colors: [AppColors.moss, AppColors.moss],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -289,12 +289,12 @@ struct iOSModelDetailView: View {
                             Text("Unload Model")
                                 .font(AppTypography.subtitle)
                         }
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.sm)
                     }
                     .buttonStyle(.bordered)
-                    .tint(AppColors.warning)
+                    .tint(AppColors.caution)
                     .accessibilityIdentifier("modelDetail_unloadButton")
                     .accessibilityLabel("Unload model from memory")
                 }
@@ -303,14 +303,14 @@ struct iOSModelDetailView: View {
                 // Loading state
                 HStack(spacing: AppSpacing.sm) {
                     ProgressView()
-                        .tint(AppColors.accentCyan)
+                        .tint(AppColors.moss)
                     Text("Loading…")
                         .font(AppTypography.subtitle)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.md)
-                .background(AppColors.accentCyan.opacity(0.1))
+                .background(AppColors.moss.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
 
             } else if case .downloaded(let url) = downloadState {
@@ -323,7 +323,7 @@ struct iOSModelDetailView: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
-                        .background(AppColors.accentCyan)
+                        .background(AppColors.moss)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .sensoryFeedback(.impact(weight: .medium), trigger: viewModel.isLoadingModel)
@@ -338,10 +338,10 @@ struct iOSModelDetailView: View {
                     } label: {
                         Label("Pause", systemImage: "pause.fill")
                             .font(AppTypography.subtitle)
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(AppColors.caution)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
-                            .background(AppColors.warning.opacity(0.1))
+                            .background(AppColors.caution.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .accessibilityIdentifier("modelDetail_pauseButton")
@@ -351,10 +351,10 @@ struct iOSModelDetailView: View {
                     } label: {
                         Label("Cancel", systemImage: "xmark.circle")
                             .font(AppTypography.subtitle)
-                            .foregroundStyle(AppColors.danger)
+                            .foregroundStyle(AppColors.ember)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
-                            .background(AppColors.danger.opacity(0.1))
+                            .background(AppColors.ember.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .accessibilityIdentifier("modelDetail_cancelButton")
@@ -370,7 +370,7 @@ struct iOSModelDetailView: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
-                        .background(AppColors.accentCyan)
+                        .background(AppColors.moss)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .accessibilityIdentifier("modelDetail_resumeButton")
@@ -387,7 +387,7 @@ struct iOSModelDetailView: View {
                     Button("Cancel") {
                         Task { await viewModel.downloadManager.cancelDownload(metadata) }
                     }
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.ember)
                     .accessibilityIdentifier("modelDetail_cancelQueuedButton")
                 }
                 .frame(maxWidth: .infinity)
@@ -406,7 +406,7 @@ struct iOSModelDetailView: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
-                        .background(AppColors.accentCyan)
+                        .background(AppColors.moss)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .sensoryFeedback(.impact(weight: .medium), trigger: downloadState.isDownloading)
@@ -420,7 +420,7 @@ struct iOSModelDetailView: View {
     private func downloadProgressSection(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.accentCyan)
+                .tint(AppColors.moss)
 
             if let dp = viewModel.downloadManager.downloadProgress[metadata.modelFile] {
                 // Rich progress: percentage + speed + ETA
@@ -486,14 +486,14 @@ struct iOSModelDetailView: View {
     private func pausedSection(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.warning)
+                .tint(AppColors.caution)
 
             HStack {
                 Image(systemName: "pause.fill")
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(AppColors.caution)
                 Text(String(format: "Paused at %.0f%%", progress * 100))
                     .font(AppTypography.listSubtitle)
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(AppColors.caution)
                 Spacer()
                 Text(formattedSize)
                     .font(AppTypography.listSubtitle)
@@ -514,7 +514,7 @@ struct iOSModelDetailView: View {
                 capabilityChip("Vision", icon: "eye", color: AppColors.badgeVision, enabled: metadata.supportsImage)
                 capabilityChip("Audio", icon: "waveform", color: AppColors.badgeAudio, enabled: metadata.supportsAudio)
                 capabilityChip("MTP / Speculative", icon: "bolt.horizontal", color: AppColors.badgeMTP, enabled: metadata.supportsMTP)
-                capabilityChip("Tool Calling", icon: "wrench.and.screwdriver", color: AppColors.toolCall, enabled: metadata.supportsToolCalling)
+                capabilityChip("Tool Calling", icon: "wrench.and.screwdriver", color: AppColors.action, enabled: metadata.supportsToolCalling)
                 capabilityChip("Thinking", icon: "brain", color: AppColors.badgeThinking, enabled: metadata.capabilities.contains("llm_thinking"))
             }
         }
@@ -626,10 +626,10 @@ struct iOSModelDetailView: View {
             } label: {
                 Label("Delete from Device", systemImage: "trash")
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.ember)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
-                    .background(AppColors.danger.opacity(0.08))
+                    .background(AppColors.ember.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             }
             .accessibilityIdentifier("modelDetail_deleteButton")
@@ -672,7 +672,7 @@ struct iOSModelDetailView: View {
     private func platformRow(_ backend: String, supported: Bool) -> some View {
         HStack {
             Image(systemName: supported ? "checkmark.circle.fill" : "xmark.circle")
-                .foregroundStyle(supported ? AppColors.success : AppColors.textTertiary)
+                .foregroundStyle(supported ? AppColors.sprout : AppColors.textTertiary)
             Text(backend)
                 .font(AppTypography.listSubtitle)
                 .foregroundStyle(supported ? AppColors.textPrimary : AppColors.textTertiary)

@@ -99,7 +99,7 @@ struct ChatBubbleView: View {
                 Image(systemName: "person.fill")
                     .accessibilityLabel("User message")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.accentGold)
+                    .foregroundStyle(AppColors.amber)
                 Text("You")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -107,7 +107,7 @@ struct ChatBubbleView: View {
                 Image(systemName: "sparkles")
                     .accessibilityLabel("AI response")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.accentTeal)
+                    .foregroundStyle(AppColors.moss)
                 Text("Gemma")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -123,7 +123,7 @@ struct ChatBubbleView: View {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .accessibilityLabel("Tool result")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.toolCall)
+                    .foregroundStyle(AppColors.action)
                 Text("Tool Result")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -236,9 +236,9 @@ struct ChatBubbleView: View {
                     }
                 case .toolResult:
                     if reduceTransparency {
-                        Rectangle().fill(AppColors.toolCall.opacity(0.85))
+                        Rectangle().fill(AppColors.action.opacity(0.85))
                     } else {
-                        Rectangle().fill(AppColors.toolCall.opacity(0.08)).background(.ultraThinMaterial)
+                        Rectangle().fill(AppColors.action.opacity(0.08)).background(.ultraThinMaterial)
                     }
                 }
             }
@@ -255,8 +255,8 @@ struct ChatBubbleView: View {
         switch message.role {
         case .user:      return AppColors.userBubbleStart.opacity(0.3)
         case .assistant:  return AppColors.border
-        case .system:    return AppColors.warning.opacity(0.15)
-        case .toolResult: return AppColors.toolCall.opacity(0.15)
+        case .system:    return AppColors.caution.opacity(0.15)
+        case .toolResult: return AppColors.action.opacity(0.15)
         }
     }
 
@@ -274,12 +274,12 @@ struct ChatBubbleView: View {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "brain.head.profile")
                         .font(.caption)
-                        .foregroundStyle(AppColors.thinking)
+                        .foregroundStyle(AppColors.sage)
                         .symbolEffect(.pulse, isActive: message.isStreaming)
 
                     Text("Reasoning")
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.thinking)
+                        .foregroundStyle(AppColors.sage)
 
                     Text("·")
                         .foregroundStyle(AppColors.textTertiary)
@@ -298,11 +298,11 @@ struct ChatBubbleView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.thinking.opacity(0.06))
+                .background(AppColors.sage.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.thinking.opacity(0.1), lineWidth: 0.5)
+                        .stroke(AppColors.sage.opacity(0.1), lineWidth: 0.5)
                 )
             }
             .buttonStyle(.plain)
@@ -319,7 +319,7 @@ struct ChatBubbleView: View {
                     .textSelection(.enabled)
                     .padding(AppSpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.thinking.opacity(0.04))
+                    .background(AppColors.sage.opacity(0.04))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
@@ -352,13 +352,13 @@ struct ChatBubbleView: View {
                 HStack(spacing: AppSpacing.sm) {
                     // Status indicator
                     Circle()
-                        .fill(event.succeeded ? AppColors.success : AppColors.danger)
+                        .fill(event.succeeded ? AppColors.sprout : AppColors.ember)
                         .frame(width: 6, height: 6)
-                        .glow(event.succeeded ? AppColors.success : AppColors.danger, radius: 4, opacity: 0.6)
+                        .glow(event.succeeded ? AppColors.sprout : AppColors.ember, radius: 4, opacity: 0.6)
 
                     Image(systemName: "wrench.and.screwdriver")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.toolCall)
+                        .foregroundStyle(AppColors.action)
 
                     Text(event.toolName)
                         .font(AppTypography.badge)
@@ -376,11 +376,11 @@ struct ChatBubbleView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.toolCall.opacity(0.06))
+                .background(AppColors.action.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.toolCall.opacity(0.1), lineWidth: 0.5)
+                        .stroke(AppColors.action.opacity(0.1), lineWidth: 0.5)
                 )
             }
             .buttonStyle(.plain)
@@ -462,18 +462,18 @@ struct ChatBubbleView: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "waveform")
                             .font(.caption)
-                            .foregroundStyle(AppColors.accentTeal)
+                            .foregroundStyle(AppColors.moss)
                         Text("Audio")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)
                     }
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.accentTeal.opacity(0.08))
+                    .background(AppColors.moss.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentTeal.opacity(0.12), lineWidth: 0.5)
+                            .stroke(AppColors.moss.opacity(0.12), lineWidth: 0.5)
                     )
                 }
             }

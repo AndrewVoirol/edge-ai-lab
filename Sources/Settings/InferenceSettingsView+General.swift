@@ -58,7 +58,7 @@ extension InferenceSettingsView {
             if let result = viewModel.backendResult {
                 HStack {
                     Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                        .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                        .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                     Text("Active: \(result.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)")")
                         .font(.caption)
                 }
@@ -67,7 +67,7 @@ extension InferenceSettingsView {
                 if result.didFallback, let reason = result.fallbackReason {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                         .accessibilityIdentifier("backend_fallback_reason")
                 }
             }
@@ -79,7 +79,7 @@ extension InferenceSettingsView {
                     systemImage: "arrow.clockwise.circle.fill"
                 )
                 .font(.caption)
-                .foregroundStyle(AppColors.warning)
+                .foregroundStyle(AppColors.caution)
                 .accessibilityIdentifier("engine_restart_warning")
 
                 Button {
@@ -119,7 +119,7 @@ extension InferenceSettingsView {
             if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
                 Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
                     .font(.caption)
-                    .foregroundStyle(AppColors.success)
+                    .foregroundStyle(AppColors.sprout)
             }
 
             if !mtpSupported {
@@ -128,7 +128,7 @@ extension InferenceSettingsView {
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.warning.opacity(0.8))
+                .foregroundStyle(AppColors.caution.opacity(0.8))
             }
 
             SettingsImpactLabel(
@@ -147,7 +147,7 @@ extension InferenceSettingsView {
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.warning.opacity(0.8))
+                .foregroundStyle(AppColors.caution.opacity(0.8))
             }
 
             SettingsImpactLabel(

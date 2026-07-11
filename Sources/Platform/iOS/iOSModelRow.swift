@@ -79,7 +79,7 @@ struct iOSModelRow: View {
                 // Model name
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
-                    .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
+                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
                     .lineLimit(1)
 
                 // Architecture + size
@@ -130,15 +130,15 @@ struct iOSModelRow: View {
     private var modelIcon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(isActive ? AppColors.accentCyan.opacity(0.15) : AppColors.backgroundTertiary)
+                .fill(isActive ? AppColors.moss.opacity(0.15) : AppColors.backgroundTertiary)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(isActive ? AppColors.accentCyan.opacity(0.3) : AppColors.border, lineWidth: 0.5)
+                        .stroke(isActive ? AppColors.moss.opacity(0.3) : AppColors.border, lineWidth: 0.5)
                 )
 
             Image(systemName: iconName)
                 .font(AppIconSize.lg)
-                .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textSecondary)
+                .foregroundStyle(isActive ? AppColors.moss : AppColors.textSecondary)
         }
     }
 
@@ -183,7 +183,7 @@ struct iOSModelRow: View {
     private func downloadProgressRow(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.accentCyan)
+                .tint(AppColors.moss)
                 .accessibilityIdentifier("modelRow_progress_\(metadata.modelFile)")
 
             // Try to show rich progress (speed + ETA)
@@ -236,14 +236,14 @@ struct iOSModelRow: View {
     private func pausedRow(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.warning)
+                .tint(AppColors.caution)
             HStack(spacing: 4) {
                 Image(systemName: "pause.fill")
                     .font(AppIconSize.xxs)
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(AppColors.caution)
                 Text(String(format: "Paused at %.0f%%", progress * 100))
                     .font(AppTypography.listTertiary)
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(AppColors.caution)
                 Spacer()
             }
         }
@@ -261,7 +261,7 @@ struct iOSModelRow: View {
             } label: {
                 Image(systemName: metadata.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                     .frame(width: 44, height: 44) // HIG: 44pt minimum tap target
             }
             .buttonStyle(.plain)
@@ -277,7 +277,7 @@ struct iOSModelRow: View {
                         .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: 2)
                     Image(systemName: "stop.fill")
                         .font(AppIconSize.xxs)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                 }
                 .frame(width: 28, height: 28)
                 .frame(width: 44, height: 44) // Expanded tap target
@@ -289,7 +289,7 @@ struct iOSModelRow: View {
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
                 .font(AppIconSize.lg)
-                .foregroundStyle(AppColors.success)
+                .foregroundStyle(AppColors.sprout)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Downloaded")
                 .accessibilityIdentifier("modelRow_downloaded_\(metadata.modelFile)")
@@ -301,10 +301,10 @@ struct iOSModelRow: View {
                 VStack(spacing: 2) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .font(AppIconSize.lg)
-                        .foregroundStyle(AppColors.danger)
+                        .foregroundStyle(AppColors.ember)
                     Text("Retry")
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.danger)
+                        .foregroundStyle(AppColors.ember)
                 }
                 .frame(width: 44, height: 44)
             }
@@ -315,7 +315,7 @@ struct iOSModelRow: View {
         case .authRequired:
             Image(systemName: "lock.circle.fill")
                 .font(AppIconSize.lg)
-                .foregroundStyle(AppColors.warning)
+                .foregroundStyle(AppColors.caution)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Authentication required")
                 .accessibilityIdentifier("modelRow_auth_\(metadata.modelFile)")
@@ -336,7 +336,7 @@ struct iOSModelRow: View {
             } label: {
                 Image(systemName: "play.circle.fill")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)

@@ -19,11 +19,11 @@ import SwiftUI
 
 // MARK: - iOS Conversation Picker Sheet
 
-/// A sheet presenting the user's saved conversation history on iOS.
+/// A sheet presenting the user's saved experiment history on iOS.
 ///
-/// Provides parity with the macOS sidebar's Conversations section:
-/// - Lists all saved conversations sorted by last modified date
-/// - Tap to load a conversation
+/// Provides parity with the macOS sidebar's Experiments section:
+/// - Lists all saved experiments sorted by last modified date
+/// - Tap to load an experiment
 /// - Swipe to delete
 /// - Long-press context menu for rename, fork, export, delete
 ///
@@ -63,12 +63,12 @@ struct iOSConversationPickerSheet: View {
                     conversationList
                 }
             }
-            .navigationTitle("Conversations")
+            .navigationTitle("Experiments")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                         .accessibilityIdentifier("conversationPicker_done")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -77,7 +77,7 @@ struct iOSConversationPickerSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "plus.bubble")
-                            .foregroundStyle(AppColors.accentTeal)
+                            .foregroundStyle(AppColors.moss)
                     }
                     .accessibilityIdentifier("conversationPicker_newChat")
                 }
@@ -149,7 +149,7 @@ struct iOSConversationPickerSheet: View {
             }
         }
         .alert(
-            "Delete All Conversations?",
+            "Delete All Experiments?",
             isPresented: $showClearAllConfirmation
         ) {
             Button("Cancel", role: .cancel) {}
@@ -157,7 +157,7 @@ struct iOSConversationPickerSheet: View {
                 viewModel.deleteAllConversations()
             }
         } message: {
-            Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
+            Text("All \(viewModel.conversationStore.indexEntries.count) experiments will be permanently deleted. This cannot be undone.")
         }
     }
 
@@ -217,7 +217,7 @@ struct iOSConversationPickerSheet: View {
                 HStack {
                     Text(entry.title)
                         .font(titleFont)
-                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
                         .lineLimit(2)
 
                     Spacer()
@@ -225,7 +225,7 @@ struct iOSConversationPickerSheet: View {
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.caption)
-                            .foregroundStyle(AppColors.accentTeal)
+                            .foregroundStyle(AppColors.moss)
                     }
                 }
 
@@ -233,19 +233,19 @@ struct iOSConversationPickerSheet: View {
                 HStack(spacing: AppSpacing.xs) {
                     Text(entry.modelShortName)
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, 2)
-                        .background(AppColors.accentCyan.opacity(0.1))
+                        .background(AppColors.moss.opacity(0.1))
                         .clipShape(Capsule())
 
                     ForEach(entry.activeFeatureBadges, id: \.self) { badge in
                         Text(badge)
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.accentTeal)
+                            .foregroundStyle(AppColors.moss)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, 2)
-                            .background(AppColors.accentTeal.opacity(0.1))
+                            .background(AppColors.moss.opacity(0.1))
                             .clipShape(Capsule())
                     }
 

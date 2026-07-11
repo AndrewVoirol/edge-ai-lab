@@ -31,7 +31,7 @@ struct ConfigProofView: View {
 
     /// Config proof uses a muted instrument-panel tone — distinct from
     /// thinking (sage), tools (orange), benchmark (tier-based).
-    private let proofColor = AppColors.accentCyan
+    private let proofColor = AppColors.moss
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {

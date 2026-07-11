@@ -61,8 +61,8 @@ struct OnboardingPage: Identifiable {
         ),
         OnboardingPage(
             iconName: "bubble.left.and.text.bubble.right",
-            title: "Intelligent Conversations",
-            subtitle: "Chat with AI using text, images, and audio — all on-device"
+            title: "Run Experiments",
+            subtitle: "Test AI with text, images, and audio — all on-device"
         ),
         OnboardingPage(
             iconName: "chart.bar.xaxis.ascending",

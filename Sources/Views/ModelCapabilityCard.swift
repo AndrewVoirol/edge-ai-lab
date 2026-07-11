@@ -36,7 +36,7 @@ struct ModelCapabilityCard: View {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "cpu.fill")
                     .font(.title3)
-                    .foregroundStyle(AppColors.accentTeal)
+                    .foregroundStyle(AppColors.moss)
                     .symbolEffect(.pulse, isActive: !appeared)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -48,7 +48,7 @@ struct ModelCapabilityCard: View {
                         if let backend = backendResult {
                             HStack(spacing: 3) {
                                 Circle()
-                                    .fill(backend.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                                    .fill(backend.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                                     .frame(width: 6, height: 6)
                                 Text(backend.activeBackend == .gpu ? "GPU (Metal)" : "CPU")
                                     .font(AppTypography.metric)
@@ -143,7 +143,7 @@ struct ModelCapabilityCard: View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "text.line.first.and.arrowtriangle.forward")
                 .font(.caption2)
-                .foregroundStyle(AppColors.accentGold)
+                .foregroundStyle(AppColors.amber)
             Text(Self.formatContextWindow(metadata.contextWindowSize))
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(AppColors.textSecondary)
@@ -153,7 +153,7 @@ struct ModelCapabilityCard: View {
         .padding(.vertical, AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(AppColors.accentGold.opacity(0.06))
+                .fill(AppColors.amber.opacity(0.06))
         )
         .accessibilityLabel("Context window: \(metadata.contextWindowSize ?? 0) tokens")
     }

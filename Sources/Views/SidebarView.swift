@@ -49,7 +49,7 @@ enum SidebarSection: String, Hashable, Identifiable {
         case .benchmarks:          return "Benchmarks"
         case .benchmarkComparison: return "Compare Models"
         case .evaluations:         return "Evaluations"
-        case .conversations:       return "Conversations"
+        case .conversations:       return "Experiments"
         }
     }
 }
@@ -57,13 +57,12 @@ enum SidebarSection: String, Hashable, Identifiable {
 // MARK: - Sidebar View
 
 /// Vertical sidebar for `NavigationSplitView`, providing model management,
-/// benchmark navigation, and conversation controls.
+/// tool navigation, and experiment controls.
 ///
 /// Layout:
-/// - **Active Model** — always-visible status header (not selectable)
 /// - **Models** — collapsible section with discovered + downloadable model rows
-/// - **Benchmarks** — navigation links to dashboard and comparison
-/// - **Conversations** — new-chat button and future history
+/// - **Tools** — Browse Models, Dashboard, Compare Models, Run Evaluation
+/// - **Experiments** — new-experiment action in header, experiment history list
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
@@ -84,18 +83,6 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: $selectedSection) {
-            // MARK: Active Model (non-selectable header)
-
-            Section {
-                activeModelRow
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .glassEffect(in: .rect(cornerRadius: AppRadius.md))
-            } header: {
-                Text("Active Model")
-                    .font(AppTypography.sectionHeader)
-                    .foregroundStyle(AppColors.textSecondary)
-            }
 
             // MARK: Models (collapsible)
 
@@ -172,9 +159,16 @@ struct SidebarView: View {
                     }
             }
 
-            // MARK: Benchmarks
+            // MARK: Tools
 
             Section {
+                Button {
+                    selectedSection = .models
+                } label: {
+                    Label("Browse Models", systemImage: "magnifyingglass")
+                }
+                .accessibilityIdentifier("sidebar_browseModels")
+
                 NavigationLink(value: SidebarSection.benchmarks) {
                     Label("Dashboard", systemImage: "chart.bar.xaxis")
                 }
@@ -184,42 +178,27 @@ struct SidebarView: View {
                     Label("Compare Models", systemImage: "arrow.left.arrow.right")
                 }
                 .accessibilityIdentifier("sidebar_benchmarks_compare")
-            } header: {
-                Label("Benchmarks", systemImage: SidebarSection.benchmarks.systemImage)
-                    .font(AppTypography.sectionHeader)
-                    .foregroundStyle(AppColors.textSecondary)
-            }
 
-            // MARK: Evaluations
-
-            Section {
                 NavigationLink(value: SidebarSection.evaluations) {
                     Label("Run Evaluation", systemImage: "play.circle")
                 }
                 .tag(SidebarSection.evaluations)
                 .accessibilityIdentifier("sidebar_evaluations_run")
             } header: {
-                Label("Evaluations", systemImage: SidebarSection.evaluations.systemImage)
+                Text("Tools")
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
-            // MARK: Conversations
+            // MARK: Experiments
 
             Section {
-                Button {
-                    Task { await viewModel.newConversation() }
-                } label: {
-                    Label("New Chat", systemImage: "plus.bubble")
-                }
-                .accessibilityIdentifier("sidebar_newChat")
-
                 if viewModel.conversationStore.indexEntries.isEmpty {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "clock")
                             .font(.caption2)
                             .foregroundStyle(AppColors.textTertiary.opacity(0.6))
-                        Text("Conversations will appear here")
+                        Text("Experiments will appear here")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
                     }
@@ -228,20 +207,35 @@ struct SidebarView: View {
                     ForEach(viewModel.conversationStore.indexEntries) { entry in
                         conversationRow(entry)
                             .accessibilityIdentifier("sidebar_conversation_\(entry.id.uuidString.prefix(8))")
-                            .accessibilityHint("Double-tap to open conversation")
+                            .accessibilityHint("Double-tap to open experiment")
                     }
                 }
             } header: {
                 HStack {
-                    Label("Conversations", systemImage: SidebarSection.conversations.systemImage)
+                    Label("Experiments", systemImage: SidebarSection.conversations.systemImage)
                         .font(AppTypography.sectionHeader)
                         .foregroundStyle(AppColors.textSecondary)
+
+                    Spacer()
+
                     if !viewModel.conversationStore.indexEntries.isEmpty {
-                        Spacer()
                         Text("\(viewModel.conversationStore.indexEntries.count)")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.textTertiary)
+                    }
 
+                    // New experiment + button in header
+                    Button {
+                        Task { await viewModel.newConversation() }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier("sidebar_newExperiment")
+
+                    if !viewModel.conversationStore.indexEntries.isEmpty {
                         Menu {
                             Button(role: .destructive) {
                                 showClearAllConfirmation = true
@@ -280,7 +274,7 @@ struct SidebarView: View {
                         .menuStyle(.button)
                         .buttonStyle(.borderless)
                         .fixedSize()
-                        .accessibilityIdentifier("menu_conversationManagement")
+                        .accessibilityIdentifier("menu_experimentManagement")
                     }
                 }
             }
@@ -288,7 +282,6 @@ struct SidebarView: View {
         #if os(macOS)
         .listStyle(.sidebar)
         .scrollContentBackground(.hidden)
-        .background(AppColors.backgroundPrimary)
         #endif
         .accessibilityIdentifier("sidebar_list")
         .alert("Delete Model?", isPresented: $showDeleteConfirmation) {
@@ -315,7 +308,7 @@ struct SidebarView: View {
         }
 
         .alert(
-            "Delete All Conversations?",
+            "Delete All Experiments?",
             isPresented: $showClearAllConfirmation
         ) {
             Button("Cancel", role: .cancel) {}
@@ -325,9 +318,9 @@ struct SidebarView: View {
             }
             .accessibilityIdentifier("button_clearAllConfirm")
         } message: {
-            Text("All \(viewModel.conversationStore.indexEntries.count) conversations will be permanently deleted. This cannot be undone.")
+            Text("All \(viewModel.conversationStore.indexEntries.count) experiments will be permanently deleted. This cannot be undone.")
         }
-        .alert("Rename Conversation", isPresented: $showRenameAlert) {
+        .alert("Rename Experiment", isPresented: $showRenameAlert) {
             TextField("Title", text: $renameText)
                 .accessibilityIdentifier("textField_renameConversation")
             Button("Cancel", role: .cancel) {}
@@ -359,7 +352,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loading…")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loading")
@@ -368,9 +361,9 @@ struct SidebarView: View {
             // Model loaded with known metadata
             HStack(spacing: AppSpacing.sm) {
                 Circle()
-                    .fill(AppColors.success)
+                    .fill(AppColors.sprout)
                     .frame(width: 8, height: 8)
-                    .glow(AppColors.success, radius: 6, opacity: 0.5)
+                    .glow(AppColors.sprout, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(metadata.name)
                         .font(AppTypography.subtitle)
@@ -378,7 +371,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loaded")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.success)
+                        .foregroundStyle(AppColors.sprout)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loaded")
@@ -388,9 +381,9 @@ struct SidebarView: View {
             let modelName = GalleryModelDiscovery.cleanModelDirectoryName(url.lastPathComponent)
             HStack(spacing: AppSpacing.sm) {
                 Circle()
-                    .fill(AppColors.success)
+                    .fill(AppColors.sprout)
                     .frame(width: 8, height: 8)
-                    .glow(AppColors.success, radius: 6, opacity: 0.5)
+                    .glow(AppColors.sprout, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(modelName)
                         .font(AppTypography.subtitle)
@@ -398,7 +391,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loaded")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.success)
+                        .foregroundStyle(AppColors.sprout)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loaded")
@@ -449,7 +442,7 @@ struct SidebarView: View {
             case .downloading(let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.accentTeal)
+                        .tint(AppColors.moss)
                         .accessibilityLabel("Downloading, \(Int(progress * 100)) percent")
                     HStack {
                         Text("\(Int(progress * 100))%")
@@ -471,7 +464,7 @@ struct SidebarView: View {
             case .downloadingDirectory(let progress, let completed, let total):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.accentGold)
+                        .tint(AppColors.amber)
                     HStack {
                         Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                             .font(AppTypography.caption)
@@ -512,11 +505,11 @@ struct SidebarView: View {
             case .paused(_, let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.warning)
+                        .tint(AppColors.caution)
                     HStack {
                         Text("Paused · \(Int(progress * 100))%")
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(AppColors.caution)
                         Spacer()
                     }
                 }
@@ -525,10 +518,10 @@ struct SidebarView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                 }
 
             default:
@@ -539,14 +532,14 @@ struct SidebarView: View {
         .accessibilityIdentifier("sidebar_downloading_\(filename)")
     }
 
-    // MARK: - Conversation Row
+    // MARK: - Experiment Row
 
     /// State for rename alert.
     @State private var renameTarget: ConversationIndexEntry?
     @State private var renameText: String = ""
     @State private var showRenameAlert: Bool = false
 
-    /// Row for a saved conversation in the sidebar.
+    /// Row for a saved experiment in the sidebar.
     @ViewBuilder
     private func conversationRow(_ entry: ConversationIndexEntry) -> some View {
         let isActive = viewModel.activeConversationId == entry.id
@@ -557,9 +550,9 @@ struct SidebarView: View {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 // Title line
                 HStack(spacing: AppSpacing.xs) {
-                    Text(entry.title)
+                    Text(displayTitle(for: entry))
                         .font(isActive ? AppTypography.sectionHeader : AppTypography.subtitle)
-                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
                         .lineLimit(2)
 
                     Spacer()
@@ -567,31 +560,38 @@ struct SidebarView: View {
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.caption2)
-                            .foregroundStyle(AppColors.accentTeal)
+                            .foregroundStyle(AppColors.moss)
                     }
                 }
 
-                // Badges row: model tag + feature badges
+                // Metadata row: model name + feature icons + stats + timestamp
                 HStack(spacing: AppSpacing.xs) {
-                    // Model badge
+                    // Model name as text
                     Text(entry.modelShortName)
-                        .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentCyan)
-                        .padding(.horizontal, AppSpacing.xs)
-                        .padding(.vertical, 1)
-                        .background(AppColors.accentCyan.opacity(0.1))
-                        .clipShape(Capsule())
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
 
-                    // Feature badges
+                    // Feature icons (compact SF Symbols instead of pills)
                     ForEach(entry.activeFeatureBadges, id: \.self) { badge in
-                        Text(badge)
-                            .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.accentTeal)
-                            .padding(.horizontal, AppSpacing.xs)
-                            .padding(.vertical, 1)
-                            .background(AppColors.accentTeal.opacity(0.1))
-                            .clipShape(Capsule())
+                        Image(systemName: badgeIcon(for: badge))
+                            .font(.caption2)
+                            .foregroundStyle(badgeColor(for: badge))
                     }
+
+                    // Benchmark stats inline if available
+                    if let speed = entry.averageDecodeSpeed, speed > 0 {
+                        Text("·")
+                            .foregroundStyle(AppColors.textTertiary)
+                        Text(String(format: "%.0f tok/s", speed))
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+
+                    Text("·")
+                        .foregroundStyle(AppColors.textTertiary)
+                    Text("\(entry.messageCount) msgs")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
 
                     Spacer()
 
@@ -601,22 +601,7 @@ struct SidebarView: View {
                         .foregroundStyle(AppColors.textTertiary)
                 }
 
-                // Benchmark summary if available
-                if let speed = entry.averageDecodeSpeed, speed > 0 {
-                    HStack(spacing: AppSpacing.xs) {
-                        Image(systemName: "speedometer")
-                            .font(.caption2)
-                            .foregroundStyle(AppColors.textTertiary)
-                        Text(String(format: "%.1f tok/s", speed))
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textTertiary)
-                        Text("·")
-                            .foregroundStyle(AppColors.textTertiary)
-                        Text("\(entry.messageCount) msgs")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.textTertiary)
-                    }
-                }
+
             }
             .padding(.vertical, AppSpacing.xs)
         }
@@ -624,7 +609,7 @@ struct SidebarView: View {
         .contentShape(Rectangle())
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .strokeBorder(isActive ? AppColors.accentCyan.opacity(0.4) : .clear, lineWidth: 1)
+                .strokeBorder(isActive ? AppColors.moss.opacity(0.4) : .clear, lineWidth: 1)
         )
         .contextMenu {
             Button {
@@ -699,6 +684,46 @@ struct SidebarView: View {
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
     }
+
+    // MARK: - Experiment Row Helpers
+
+    /// Strips model-name prefix from experiment title for cleaner display.
+    private func displayTitle(for entry: ConversationIndexEntry) -> String {
+        let model = entry.modelShortName
+        let title = entry.title
+        // If title starts with model name + separator, strip it
+        if title.hasPrefix(model + " · ") {
+            return String(title.dropFirst(model.count + 3))
+        }
+        if title.hasPrefix(model + " - ") {
+            return String(title.dropFirst(model.count + 3))
+        }
+        return title
+    }
+
+    /// SF Symbol icon for a feature badge.
+    private func badgeIcon(for badge: String) -> String {
+        switch badge.lowercased() {
+        case "thinking", "think": return "brain.head.profile"
+        case "tools", "tool calling": return "wrench.and.screwdriver"
+        case "mtp": return "arrow.triangle.2.circlepath"
+        case "skills": return "sparkles"
+        case "cd": return "waveform"
+        default: return "questionmark.circle"
+        }
+    }
+
+    /// Color for a feature badge icon.
+    private func badgeColor(for badge: String) -> Color {
+        switch badge.lowercased() {
+        case "thinking", "think": return AppColors.sage
+        case "tools", "tool calling": return AppColors.action
+        case "mtp": return AppColors.badgeMTP
+        case "skills": return AppColors.amber
+        case "cd": return AppColors.badgeCD
+        default: return AppColors.textTertiary
+        }
+    }
 }
 
 // MARK: - Sidebar Model Row
@@ -724,16 +749,16 @@ private struct SidebarModelRow: View {
             HStack(spacing: AppSpacing.xs) {
                 Text(model.resolvedMetadata.name)
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
+                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
                     .lineLimit(1)
 
                 if model.source == .edgeGallery {
                     Text("Gallery")
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, 1)
-                        .background(AppColors.accentCyan.opacity(0.1))
+                        .background(AppColors.moss.opacity(0.1))
                         .clipShape(Capsule())
                 }
 
@@ -746,7 +771,7 @@ private struct SidebarModelRow: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.caption2)
-                            .foregroundStyle(AppColors.danger.opacity(0.7))
+                            .foregroundStyle(AppColors.ember.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .transition(.opacity)
@@ -763,11 +788,11 @@ private struct SidebarModelRow: View {
             // Status indicator + size
             HStack(spacing: AppSpacing.xs) {
                 Circle()
-                    .fill(isActive ? AppColors.accentCyan : AppColors.success)
+                    .fill(isActive ? AppColors.moss : AppColors.sprout)
                     .frame(width: 5, height: 5)
                 Text(isActive ? "Loaded" : "Available")
                     .font(AppTypography.caption)
-                    .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textTertiary)
+                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textTertiary)
             }
         }
         .padding(.vertical, AppSpacing.xs)

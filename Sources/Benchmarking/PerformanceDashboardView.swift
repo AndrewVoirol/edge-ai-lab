@@ -47,7 +47,7 @@ struct PerformanceDashboardView: View {
                 if let error = loadError {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.danger)
+                            .foregroundStyle(AppColors.ember)
                         VStack(alignment: .leading, spacing: AppSpacing.xs) {
                             Text("Failed to load metrics")
                                 .font(AppTypography.subtitle)
@@ -63,7 +63,7 @@ struct PerformanceDashboardView: View {
                             loadData()
                         }
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentGold)
+                        .foregroundStyle(AppColors.amber)
                     }
                     .padding(AppSpacing.md)
                     .glassCard(cornerRadius: AppRadius.md)
@@ -114,7 +114,7 @@ struct PerformanceDashboardView: View {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.title2)
-                    .foregroundStyle(AppColors.accentTeal)
+                    .foregroundStyle(AppColors.moss)
                 Text("Performance Dashboard")
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
@@ -134,10 +134,10 @@ struct PerformanceDashboardView: View {
                             Image(systemName: "chevron.down")
                                 .font(.caption2)
                         }
-                        .foregroundStyle(AppColors.accentGold)
+                        .foregroundStyle(AppColors.amber)
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.sm)
-                        .background(AppColors.accentGold.opacity(0.1))
+                        .background(AppColors.amber.opacity(0.1))
                         .clipShape(Capsule())
                     }
                     .menuStyle(.borderlessButton)
@@ -223,19 +223,19 @@ struct PerformanceDashboardView: View {
                 label: "Best TTFT",
                 value: String(format: "%.3f", bestTTFT),
                 unit: "sec",
-                color: AppColors.accentTeal
+                color: AppColors.moss
             )
             statCard(
                 label: "Peak Decode",
                 value: String(format: "%.1f", peakDecodeSpeed),
                 unit: "tok/s",
-                color: AppColors.accentCyan
+                color: AppColors.moss
             )
             statCard(
                 label: "Total Runs",
                 value: "\(entries.count)",
                 unit: "",
-                color: AppColors.accentGold
+                color: AppColors.amber
             )
         }
     }
@@ -294,7 +294,7 @@ struct PerformanceDashboardView: View {
                                     yStart: .value("Start", end),
                                     yEnd: .value("End", start)
                                 )
-                                .foregroundStyle(AppColors.warning.opacity(0.6))
+                                .foregroundStyle(AppColors.caution.opacity(0.6))
                             }
                         }
                     }

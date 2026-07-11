@@ -138,9 +138,9 @@ struct InferenceSettingsView: View {
     func statusColor(for state: MCPClientState) -> Color {
         switch state {
         case .stopped: return AppColors.textTertiary
-        case .starting: return AppColors.warning
-        case .connected: return AppColors.success
-        case .failed: return AppColors.danger
+        case .starting: return AppColors.caution
+        case .connected: return AppColors.sprout
+        case .failed: return AppColors.ember
         }
     }
 

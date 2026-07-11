@@ -239,11 +239,11 @@ struct iOSModelHubView: View {
                     } label: {
                         Label("Unload", systemImage: "eject")
                     }
-                    .tint(AppColors.warning)
+                    .tint(AppColors.caution)
                 }
             } header: {
                 Label("Now Running", systemImage: "bolt.fill")
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
             }
         }
     }
@@ -299,7 +299,7 @@ struct iOSModelHubView: View {
             } label: {
                 Label("Load", systemImage: "bolt")
             }
-            .tint(AppColors.accentCyan)
+            .tint(AppColors.moss)
         }
     }
 
@@ -325,7 +325,7 @@ struct iOSModelHubView: View {
                 if isCommunitySearching {
                     ProgressView()
                         .controlSize(.mini)
-                        .tint(AppColors.accentTeal)
+                        .tint(AppColors.moss)
                 }
                 if !communitySearchQuery.isEmpty {
                     Button {
@@ -345,7 +345,7 @@ struct iOSModelHubView: View {
             if let error = browser.lastError {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text(error)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -375,7 +375,7 @@ struct iOSModelHubView: View {
                 if browser.isLoading {
                     ProgressView()
                         .controlSize(.mini)
-                        .tint(AppColors.accentTeal)
+                        .tint(AppColors.moss)
                 }
                 Button {
                     Task { await browser.refreshGemmaModels() }
@@ -477,18 +477,18 @@ struct iOSModelHubView: View {
 
         case .downloading(let progress):
             ProgressView(value: progress)
-                .tint(AppColors.accentTeal)
+                .tint(AppColors.moss)
                 .frame(width: 36)
 
         case .downloadingDirectory(let progress, _, _):
             ProgressView(value: progress)
-                .tint(AppColors.accentGold)
+                .tint(AppColors.amber)
                 .frame(width: 36)
 
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundStyle(AppColors.success)
+                .foregroundStyle(AppColors.sprout)
 
         case .failed:
             Button {
@@ -496,7 +496,7 @@ struct iOSModelHubView: View {
             } label: {
                 Image(systemName: "arrow.clockwise.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.ember)
             }
             .buttonStyle(.plain)
 
@@ -540,29 +540,29 @@ struct iOSModelHubView: View {
             // Leading: Pulsing indicator
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(AppColors.accentCyan.opacity(0.15))
+                    .fill(AppColors.moss.opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentCyan.opacity(0.3), lineWidth: 0.5)
+                            .stroke(AppColors.moss.opacity(0.3), lineWidth: 0.5)
                     )
                 Image(systemName: "bolt.fill")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
             }
             .frame(width: 40, height: 40)
-            .pulsingGlow(AppColors.accentCyan)
+            .pulsingGlow(AppColors.moss)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                     .lineLimit(1)
 
                 HStack(spacing: AppSpacing.xs) {
                     if let result = viewModel.backendResult {
                         Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                             .font(AppTypography.badge)
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                     }
 
                     if let metrics = viewModel.performanceMetrics {
@@ -593,9 +593,9 @@ struct iOSModelHubView: View {
 
             // Ready indicator
             Circle()
-                .fill(AppColors.success)
+                .fill(AppColors.sprout)
                 .frame(width: 8, height: 8)
-                .pulsingGlow(AppColors.success)
+                .pulsingGlow(AppColors.sprout)
         }
         .padding(.vertical, AppSpacing.listRowVertical)
         .accessibilityIdentifier("modelHub_activeModel")
@@ -725,9 +725,9 @@ struct iOSModelHubView: View {
     /// Format color for a model format.
     private func formatColor(_ format: HFModelFormat) -> Color {
         switch format {
-        case .litertlm: AppColors.success
-        case .mlx: AppColors.accentGold
-        case .gguf: AppColors.accentCyan
+        case .litertlm: AppColors.sprout
+        case .mlx: AppColors.amber
+        case .gguf: AppColors.moss
         case .unknown: AppColors.textTertiary
         }
     }

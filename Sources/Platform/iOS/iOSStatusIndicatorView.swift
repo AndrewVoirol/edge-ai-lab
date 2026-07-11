@@ -87,12 +87,12 @@ struct iOSStatusIndicatorView: View {
             if viewModel.isLoadingModel {
                 ProgressView()
                     .controlSize(.mini)
-                    .tint(AppColors.accentCyan)
+                    .tint(AppColors.moss)
             } else {
                 Circle()
-                    .fill(AppColors.success)
+                    .fill(AppColors.sprout)
                     .frame(width: 6, height: 6)
-                    .pulsingGlow(AppColors.success)
+                    .pulsingGlow(AppColors.sprout)
             }
 
             // Model name
@@ -111,11 +111,11 @@ struct iOSStatusIndicatorView: View {
             if let result = viewModel.backendResult, viewModel.isEngineReady {
                 Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                     .font(AppTypography.badge)
-                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(
-                        (result.activeBackend == .gpu ? AppColors.success : AppColors.warning).opacity(0.12)
+                        (result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution).opacity(0.12)
                     )
                     .clipShape(Capsule())
             }
@@ -198,7 +198,7 @@ struct iOSStatusIndicatorView: View {
                         Text("MTP").badge(AppColors.badgeMTP)
                     }
                     if metadata.supportsToolCalling {
-                        Text("Tools").badge(AppColors.toolCall)
+                        Text("Tools").badge(AppColors.action)
                     }
                     Spacer()
                 }
@@ -228,10 +228,10 @@ struct iOSStatusIndicatorView: View {
 
     private func thermalColor(for state: ThermalLevel) -> Color {
         switch state {
-        case .nominal: return AppColors.success
-        case .fair: return AppColors.warning
-        case .serious: return AppColors.danger
-        case .critical: return AppColors.danger
+        case .nominal: return AppColors.sprout
+        case .fair: return AppColors.caution
+        case .serious: return AppColors.ember
+        case .critical: return AppColors.ember
         }
     }
 }

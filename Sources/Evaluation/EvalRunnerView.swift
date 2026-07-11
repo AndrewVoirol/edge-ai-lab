@@ -148,10 +148,10 @@ struct EvalRunnerView: View {
                     Text("New Suite")
                         .font(AppTypography.sectionHeader)
                 }
-                .foregroundStyle(AppColors.accentCyan)
+                .foregroundStyle(AppColors.moss)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentCyan.opacity(0.1))
+                .background(AppColors.moss.opacity(0.1))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -194,12 +194,12 @@ struct EvalRunnerView: View {
                     .font(AppIconSize.xl)
                     .foregroundStyle(
                         isSelected
-                            ? AppColors.accentCyan
+                            ? AppColors.moss
                             : AppColors.textSecondary
                     )
                     .frame(width: 40, height: 40)
                     .background(
-                        (isSelected ? AppColors.accentCyan : AppColors.textTertiary)
+                        (isSelected ? AppColors.moss : AppColors.textTertiary)
                             .opacity(0.1)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
@@ -214,7 +214,7 @@ struct EvalRunnerView: View {
 
                 // Prompt count badge
                 Text("\(suite.promptCount) prompts")
-                    .badge(isSelected ? AppColors.accentCyan : AppColors.textTertiary)
+                    .badge(isSelected ? AppColors.moss : AppColors.textTertiary)
             }
             .frame(width: 120)
             .padding(AppSpacing.md)
@@ -222,12 +222,12 @@ struct EvalRunnerView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.lg)
                     .stroke(
-                        isSelected ? AppColors.accentCyan.opacity(0.6) : Color.clear,
+                        isSelected ? AppColors.moss.opacity(0.6) : Color.clear,
                         lineWidth: 1.5
                     )
             )
             .glow(
-                isSelected ? AppColors.accentCyan : .clear,
+                isSelected ? AppColors.moss : .clear,
                 radius: isSelected ? 8 : 0,
                 opacity: isSelected ? 0.3 : 0
             )
@@ -288,7 +288,7 @@ struct EvalRunnerView: View {
                             )
                         )
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("evalRunner_selectAllModels")
@@ -299,7 +299,7 @@ struct EvalRunnerView: View {
                 // Empty state
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text("No models on disk. Download a model first to run evaluations.")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -341,7 +341,7 @@ struct EvalRunnerView: View {
                 )
                 .font(AppIconSize.lg)
                 .foregroundStyle(
-                    isSelected ? AppColors.accentCyan : AppColors.textTertiary
+                    isSelected ? AppColors.moss : AppColors.textTertiary
                 )
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -375,7 +375,7 @@ struct EvalRunnerView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.md)
                     .stroke(
-                        isSelected ? AppColors.accentCyan.opacity(0.4) : Color.clear,
+                        isSelected ? AppColors.moss.opacity(0.4) : Color.clear,
                         lineWidth: 1
                     )
             )
@@ -402,7 +402,7 @@ struct EvalRunnerView: View {
             .background(
                 LinearGradient(
                     colors: canRun
-                        ? [AppColors.accentTeal, AppColors.accentCyan]
+                        ? [AppColors.moss, AppColors.moss]
                         : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)],
                     startPoint: .leading,
                     endPoint: .trailing
@@ -410,7 +410,7 @@ struct EvalRunnerView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             .glow(
-                canRun ? AppColors.accentCyan : .clear,
+                canRun ? AppColors.moss : .clear,
                 radius: canRun ? 8 : 0,
                 opacity: canRun ? 0.3 : 0
             )
@@ -439,7 +439,7 @@ struct EvalRunnerView: View {
             .background(
                 LinearGradient(
                     colors: (!isRunning && !isBatchRunning && !viewModel.discoveredModels.isEmpty)
-                        ? [AppColors.accentGold, AppColors.accentTeal]
+                        ? [AppColors.amber, AppColors.moss]
                         : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)],
                     startPoint: .leading,
                     endPoint: .trailing
@@ -484,7 +484,7 @@ struct EvalRunnerView: View {
                         Text("Cancel")
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.ember)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("evalRunner_cancelButton")
@@ -493,7 +493,7 @@ struct EvalRunnerView: View {
             // Overall progress bar
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 ProgressView(value: runner.overallProgress)
-                    .tint(AppColors.accentCyan)
+                    .tint(AppColors.moss)
                     .accessibilityIdentifier("evalRunner_progressBar")
 
                 HStack {
@@ -528,7 +528,7 @@ struct EvalRunnerView: View {
                             Image(systemName: result.score.symbolName)
                                 .font(.caption)
                                 .foregroundStyle(
-                                    result.passed ? AppColors.success : AppColors.danger
+                                    result.passed ? AppColors.sprout : AppColors.ember
                                 )
 
                             Text(result.promptText)
@@ -611,7 +611,7 @@ struct EvalRunnerView: View {
                             .foregroundStyle(AppColors.textPrimary)
 
                         Text("\(entry.modelCount) model\(entry.modelCount == 1 ? "" : "s")")
-                            .badge(AppColors.accentTeal)
+                            .badge(AppColors.moss)
                     }
 
                     // Date + platform

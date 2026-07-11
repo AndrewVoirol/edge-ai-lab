@@ -23,7 +23,7 @@ import SwiftUI
 /// Architecture:
 /// - Reuses the existing `chatColumn` content (ConversationAreaView, InputAreaView)
 /// - Adds the `iOSStatusIndicatorView` above the input area
-/// - Provides iOS-specific toolbar buttons (New Chat, History, Models)
+/// - Provides iOS-specific toolbar buttons (New Experiment, History, Models)
 /// - Shows a premium empty state when no model is loaded, guiding users
 ///   to the Models tab to select and load a model.
 ///
@@ -70,7 +70,7 @@ struct iOSChatTabView: View {
                         Image(systemName: "plus.bubble")
                             .foregroundStyle(AppColors.textSecondary)
                     }
-                    .accessibilityLabel("New conversation")
+                    .accessibilityLabel("New experiment")
                     .accessibilityIdentifier("chatTab_newChat")
 
                     Button {
@@ -79,7 +79,7 @@ struct iOSChatTabView: View {
                         Image(systemName: "clock.arrow.circlepath")
                             .foregroundStyle(AppColors.textSecondary)
                     }
-                    .accessibilityLabel("Conversation history")
+                    .accessibilityLabel("Experiment history")
                     .accessibilityIdentifier("chatTab_conversationHistory")
                 }
             }
@@ -203,8 +203,8 @@ struct iOSChatTabView: View {
                     .fill(
                         RadialGradient(
                             gradient: Gradient(colors: [
-                                AppColors.accentCyan.opacity(0.15),
-                                AppColors.accentCyan.opacity(0.02),
+                                AppColors.moss.opacity(0.15),
+                                AppColors.moss.opacity(0.02),
                                 .clear
                             ]),
                             center: .center,
@@ -222,21 +222,21 @@ struct iOSChatTabView: View {
                         Circle()
                             .stroke(
                                 LinearGradient(
-                                    colors: [AppColors.accentCyan.opacity(0.4), AppColors.accentTeal.opacity(0.1)],
+                                    colors: [AppColors.moss.opacity(0.4), AppColors.moss.opacity(0.1)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 1
                             )
                     )
-                    .shadow(color: AppColors.accentCyan.opacity(0.2), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.moss.opacity(0.2), radius: 20, x: 0, y: 4)
 
                 // CPU icon
                 Image(systemName: "cpu")
                     .font(AppIconSize.xxl)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [AppColors.accentCyan, AppColors.accentTeal],
+                            colors: [AppColors.moss, AppColors.moss],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -274,13 +274,13 @@ struct iOSChatTabView: View {
                 .padding(.vertical, AppSpacing.md)
                 .background(
                     LinearGradient(
-                        colors: [AppColors.accentCyan, AppColors.accentTeal],
+                        colors: [AppColors.moss, AppColors.moss],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
                 .clipShape(Capsule())
-                .shadow(color: AppColors.accentCyan.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: AppColors.moss.opacity(0.3), radius: 12, x: 0, y: 4)
             }
             .sensoryFeedback(.impact(weight: .light), trigger: router.selectedTab)
             .accessibilityLabel("Browse models to load one for chat")

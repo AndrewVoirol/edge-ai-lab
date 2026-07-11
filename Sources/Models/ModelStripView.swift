@@ -118,15 +118,15 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Text(model.resolvedMetadata.name)
                         .font(AppTypography.sectionHeader)
-                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
                         .lineLimit(1)
                     if model.source == .edgeGallery {
                         Text("Gallery")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.accentCyan)
+                            .foregroundStyle(AppColors.moss)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, 1)
-                            .background(AppColors.accentCyan.opacity(0.1))
+                            .background(AppColors.moss.opacity(0.1))
                             .clipShape(Capsule())
                     }
                 }
@@ -137,11 +137,11 @@ struct ModelStripView: View {
                 
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
-                        .fill(isActive ? AppColors.accentCyan : AppColors.success)
+                        .fill(isActive ? AppColors.moss : AppColors.sprout)
                         .frame(width: 5, height: 5)
                     Text(isActive ? "Loaded Engine" : "Click to Load Engine")
                         .font(AppTypography.caption)
-                        .foregroundStyle(isActive ? AppColors.accentCyan : AppColors.textTertiary)
+                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textTertiary)
                 }
             }
             .padding(.horizontal, AppSpacing.md)
@@ -151,7 +151,7 @@ struct ModelStripView: View {
             .interactiveHover()
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.md)
-                    .stroke(isActive ? AppColors.accentCyan : Color.clear, lineWidth: 1)
+                    .stroke(isActive ? AppColors.moss : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -207,7 +207,7 @@ struct ModelStripView: View {
                             .font(AppTypography.caption)
                     }
                     .font(AppTypography.caption)
-                    .foregroundStyle(model.isMLXDirectoryModel ? AppColors.accentGold : AppColors.accentCyan)
+                    .foregroundStyle(model.isMLXDirectoryModel ? AppColors.amber : AppColors.moss)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("download_\(model.modelFile)")
@@ -215,7 +215,7 @@ struct ModelStripView: View {
             case .downloading(let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.accentTeal)
+                        .tint(AppColors.moss)
                         .frame(width: 80)
                     HStack {
                         Text("\(Int(progress * 100))%")
@@ -237,7 +237,7 @@ struct ModelStripView: View {
             case .downloaded:
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
-                        .fill(AppColors.success)
+                        .fill(AppColors.sprout)
                         .frame(width: 5, height: 5)
                     Text("Ready")
                         .font(AppTypography.caption)
@@ -251,7 +251,7 @@ struct ModelStripView: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.caption2)
-                            .foregroundStyle(AppColors.danger)
+                            .foregroundStyle(AppColors.ember)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("button_deleteModel_\(model.modelFile)")
@@ -260,11 +260,11 @@ struct ModelStripView: View {
             case .failed(let message):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(AppColors.danger)
+                        .foregroundStyle(AppColors.ember)
                         .font(.caption2)
                     Text(message)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.danger)
+                        .foregroundStyle(AppColors.ember)
                         .lineLimit(1)
                 }
 
@@ -278,7 +278,7 @@ struct ModelStripView: View {
                         Text("Auth required")
                     }
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(AppColors.caution)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("auth_\(model.modelFile)")
@@ -297,16 +297,16 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text("Paused · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                 }
 
             case .downloadingDirectory(let progress, let completed, let total):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.accentGold)
+                        .tint(AppColors.amber)
                         .frame(width: 80)
                     Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
@@ -317,10 +317,10 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text("Paused · \(completed)/\(total) · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                 }
             }
         }

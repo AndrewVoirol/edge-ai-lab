@@ -65,10 +65,10 @@ struct ModelShowcaseView: View {
             // Architecture badge
             Text(metadata.architectureType)
                 .font(AppTypography.badge)
-                .foregroundStyle(AppColors.accentTeal)
+                .foregroundStyle(AppColors.moss)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.xs)
-                .background(AppColors.accentTeal.opacity(0.1))
+                .background(AppColors.moss.opacity(0.1))
                 .clipShape(Capsule())
 
             // Model name
@@ -88,10 +88,10 @@ struct ModelShowcaseView: View {
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "star.fill")
                     .font(.caption2)
-                    .foregroundStyle(AppColors.accentGold)
+                    .foregroundStyle(AppColors.amber)
                 Text(metadata.recommendedFor)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.accentGold)
+                    .foregroundStyle(AppColors.amber)
             }
         }
         .padding(AppSpacing.xl)
@@ -112,12 +112,12 @@ struct ModelShowcaseView: View {
                 GridItem(.flexible()),
                 GridItem(.flexible())
             ], spacing: AppSpacing.md) {
-                capabilityCard(icon: "text.bubble.fill", label: "Text", enabled: true, color: AppColors.accentCyan)
-                capabilityCard(icon: "eye.fill", label: "Vision", enabled: metadata.supportsImage, color: AppColors.accentGold)
-                capabilityCard(icon: "waveform", label: "Audio", enabled: metadata.supportsAudio, color: AppColors.accentTeal)
-                capabilityCard(icon: "brain.head.profile", label: "Thinking", enabled: metadata.capabilities.contains("llm_thinking"), color: AppColors.thinking)
-                capabilityCard(icon: "hare.fill", label: "MTP", enabled: metadata.supportsMTP, color: AppColors.success)
-                capabilityCard(icon: "wrench.and.screwdriver", label: "Tools", enabled: true, color: AppColors.toolCall)
+                capabilityCard(icon: "text.bubble.fill", label: "Text", enabled: true, color: AppColors.moss)
+                capabilityCard(icon: "eye.fill", label: "Vision", enabled: metadata.supportsImage, color: AppColors.amber)
+                capabilityCard(icon: "waveform", label: "Audio", enabled: metadata.supportsAudio, color: AppColors.moss)
+                capabilityCard(icon: "brain.head.profile", label: "Thinking", enabled: metadata.capabilities.contains("llm_thinking"), color: AppColors.sage)
+                capabilityCard(icon: "hare.fill", label: "MTP", enabled: metadata.supportsMTP, color: AppColors.sprout)
+                capabilityCard(icon: "wrench.and.screwdriver", label: "Tools", enabled: true, color: AppColors.action)
             }
         }
     }
@@ -193,7 +193,7 @@ struct ModelShowcaseView: View {
                 HStack(spacing: AppSpacing.md) {
                     Image(systemName: fits ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(.title2)
-                        .foregroundStyle(fits ? AppColors.success : AppColors.warning)
+                        .foregroundStyle(fits ? AppColors.sprout : AppColors.caution)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(fits ? "This model should fit your device" : "This model may not fit — limited memory")
                             .font(AppTypography.subtitle)
@@ -235,9 +235,9 @@ struct ModelShowcaseView: View {
 
     private func capabilityColor(_ capability: BackendCapability) -> Color {
         switch capability {
-        case .gpuAndCpu: return AppColors.success
-        case .gpuOnly:   return AppColors.accentCyan
-        case .cpuOnly:   return AppColors.warning
+        case .gpuAndCpu: return AppColors.sprout
+        case .gpuOnly:   return AppColors.moss
+        case .cpuOnly:   return AppColors.caution
         case .unknown:   return AppColors.textTertiary
         }
     }

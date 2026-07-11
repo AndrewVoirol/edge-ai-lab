@@ -19,15 +19,15 @@ import MarkdownUI
 // MARK: - Edge AI Lab Design System
 //
 // Centralized design tokens for the EdgeAILab app.
-// "Dark Forest / Moss" palette — a cabin with a terminal.
-// Deep charcoals, muted greens, warm wood tones, soft cream text.
-// Glass overlays let the forest palette bleed through frosted surfaces.
+// "Petrichor" palette — blue-slate stone, rain-fresh greens, cabin light through fog.
+// Inspired by PNW rain on glass: vivid greens, cool slate, warm wood tones.
+// Glass overlays let the petrichor palette breathe through frosted surfaces.
 
 // MARK: - Color Palette
 
-/// Curated color palette — Dark Forest / Moss.
-/// Deep charcoals as the dominant base, warm cream for text,
-/// moss green and amber as restrained accents.
+/// Curated color palette — Petrichor.
+/// Blue-slate stone as the dominant base, bright overcast light for text,
+/// rain-fresh green and warm amber as restrained accents.
 /// No generic primary colors. Every color is intentional.
 enum AppColors {
 
@@ -40,28 +40,28 @@ enum AppColors {
     static let backgroundTertiary = Color(red: 0.13, green: 0.17, blue: 0.14)
 
     // MARK: Accent Colors
-    /// Warm amber/wood for user actions and highlights — firelight.
-    static let accentGold = Color(red: 0.76, green: 0.59, blue: 0.33)
-    /// Living moss green for system/model indicators — the Lab's signature.
+    /// Warm amber for user actions and highlights — cabin light through fog.
+    static let amber = Color(red: 0.85, green: 0.67, blue: 0.35)
+    /// Rain-fresh moss green — the Lab's signature accent.
+    /// Interactive elements, buttons, highlights, active states, decorative emphasis.
     /// Boosted for ≥ 4.5:1 on dark backgrounds with Liquid Glass.
-    static let accentTeal = Color(red: 0.44, green: 0.73, blue: 0.52)
-    /// Spring leaf green for active/interactive elements — brighter than moss.
-    /// Boosted for ≥ 4.5:1 on dark backgrounds with Liquid Glass.
-    static let accentCyan = Color(red: 0.43, green: 0.76, blue: 0.54)
+    static let moss = Color(red: 0.31, green: 0.78, blue: 0.55)
 
     // MARK: Semantic
-    /// Success / ready / healthy — spring leaf.
-    /// Matches accentCyan; boosted for Liquid Glass contrast compliance.
-    static let success = Color(red: 0.43, green: 0.76, blue: 0.54)
-    /// Warning / caution — autumn amber.
-    static let warning = Color(red: 0.77, green: 0.58, blue: 0.23)
-    /// Error / critical / danger — clay terracotta.
+    /// New growth — success, ready, healthy, downloaded, verified.
+    /// Shares dark-mode value with `moss`; diverges in light-mode (Phase 4).
+    /// Boosted for Liquid Glass contrast compliance.
+    static let sprout = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// Autumn caution — warning, attention needed.
+    static let caution = Color(red: 0.88, green: 0.67, blue: 0.24)
+    /// Dying ember — error, critical, danger, urgent.
     /// Boosted for ≥ 3:1 large-text contrast with Liquid Glass.
-    static let danger = Color(red: 0.78, green: 0.39, blue: 0.31)
-    /// Thinking / reasoning mode — sage green.
-    static let thinking = Color(red: 0.36, green: 0.54, blue: 0.45)
-    /// Tool calling / function execution — vivid amber.
-    static let toolCall = Color(red: 0.95, green: 0.60, blue: 0.15)
+    static let ember = Color(red: 0.86, green: 0.39, blue: 0.31)
+    /// Mountain sage — thinking / reasoning mode, contemplative.
+    static let sage = Color(red: 0.39, green: 0.65, blue: 0.55)
+    /// Glacial action — tool calling / function execution.
+    /// Cool indigo, unmistakable from amber caution.
+    static let action = Color(red: 0.42, green: 0.54, blue: 1.0)
 
     // MARK: Text
     /// Primary text — warm cream, high contrast on dark.
@@ -124,7 +124,7 @@ enum AppGradients {
 
     /// Accent shimmer for loading states — moss light filtering through canopy.
     static let shimmer = LinearGradient(
-        colors: [AppColors.accentTeal, AppColors.accentCyan, AppColors.accentTeal],
+        colors: [AppColors.moss, AppColors.moss.opacity(0.7), AppColors.moss],
         startPoint: .leading,
         endPoint: .trailing
     )
@@ -132,9 +132,9 @@ enum AppGradients {
     /// Thinking mode glow — sage mist.
     static let thinking = LinearGradient(
         colors: [
-            AppColors.thinking.opacity(0.3),
-            AppColors.thinking.opacity(0.1),
-            AppColors.thinking.opacity(0.3)
+            AppColors.sage.opacity(0.3),
+            AppColors.sage.opacity(0.1),
+            AppColors.sage.opacity(0.3)
         ],
         startPoint: .leading,
         endPoint: .trailing
@@ -182,12 +182,12 @@ enum AppShadow {
 
     /// Glow shadow for active elements — moss-tinted.
     static let activeGlow: (color: Color, radius: CGFloat) = (
-        AppColors.accentTeal.opacity(0.25), 12
+        AppColors.moss.opacity(0.25), 12
     )
 
     /// Warm glow for user interaction elements.
     static let warmGlow: (color: Color, radius: CGFloat) = (
-        AppColors.accentGold.opacity(0.2), 10
+        AppColors.amber.opacity(0.2), 10
     )
 }
 
@@ -532,11 +532,11 @@ enum PerformanceTier {
 
     var color: Color {
         switch self {
-        case .excellent: return AppColors.accentCyan     // Spring leaf — peak performance
-        case .great:     return AppColors.success        // Living green
-        case .good:      return AppColors.accentTeal     // Moss — solid
-        case .fair:      return AppColors.warning        // Autumn amber — slowing
-        case .slow:      return AppColors.danger         // Clay terracotta — needs attention
+        case .excellent: return AppColors.moss       // Rain-fresh — peak performance
+        case .great:     return AppColors.moss       // Still healthy — label differentiates
+        case .good:      return AppColors.amber      // Warming — performance is fading
+        case .fair:      return AppColors.caution    // Autumn amber — slowing
+        case .slow:      return AppColors.ember      // Dying ember — needs attention
         }
     }
 
@@ -571,9 +571,9 @@ enum PassRateTier {
 
     var color: Color {
         switch self {
-        case .excellent: return AppColors.success
-        case .moderate:  return AppColors.accentGold
-        case .poor:      return AppColors.danger
+        case .excellent: return AppColors.sprout
+        case .moderate:  return AppColors.amber
+        case .poor:      return AppColors.ember
         }
     }
 
@@ -605,10 +605,10 @@ enum ConfidenceTier {
 
     var color: Color {
         switch self {
-        case .verified: return AppColors.success
-        case .high:     return AppColors.success
-        case .medium:   return AppColors.warning
-        case .low:      return AppColors.danger
+        case .verified: return AppColors.sprout
+        case .high:     return AppColors.sprout
+        case .medium:   return AppColors.caution
+        case .low:      return AppColors.ember
         }
     }
 
@@ -630,14 +630,14 @@ extension Theme {
             }
             .code {
                 FontFamilyVariant(.monospaced)
-                ForegroundColor(AppColors.accentCyan)
+                ForegroundColor(AppColors.moss)
                 BackgroundColor(AppColors.backgroundTertiary.opacity(0.5))
             }
             .strong {
                 FontWeight(.semibold)
             }
             .link {
-                ForegroundColor(AppColors.accentGold)
+                ForegroundColor(AppColors.amber)
             }
             .heading1 { configuration in
                 VStack(alignment: .leading, spacing: 0) {
@@ -668,7 +668,7 @@ extension Theme {
             .blockquote { configuration in
                 HStack(spacing: 0) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(AppColors.accentTeal)
+                        .fill(AppColors.moss)
                         .frame(width: 4)
                     configuration.label
                         .padding(.horizontal, AppSpacing.md)

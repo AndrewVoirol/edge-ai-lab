@@ -109,7 +109,7 @@ struct EdgeAILabApp: App {
         .defaultLaunchBehavior(.presented)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("New Chat") {
+                Button("New Experiment") {
                     NotificationCenter.default.post(name: .newChatRequested, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: .command)
@@ -156,7 +156,7 @@ struct EdgeAILabApp: App {
             
             CommandGroup(replacing: .help) {
                 Section("Keyboard Shortcuts") {
-                    Button("⌘N  New Chat") {}
+                    Button("⌘N  New Experiment") {}
                         .disabled(true)
                     Button("⌘O  Load Model") {}
                         .disabled(true)

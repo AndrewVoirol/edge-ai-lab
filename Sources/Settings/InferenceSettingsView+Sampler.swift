@@ -72,7 +72,7 @@ extension InferenceSettingsView {
             .accessibilityIdentifier("button_defaultSampling")
         } header: {
             Label("Sampler Configuration", systemImage: "slider.horizontal.3")
-                .foregroundStyle(AppColors.accentGold)
+                .foregroundStyle(AppColors.amber)
         }
     }
 

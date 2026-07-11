@@ -200,14 +200,14 @@ struct iOSURLImportSheet: View {
         case .complete(let meta):
             Section("Complete") {
                 Label(meta.metadata.name, systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.success)
+                    .foregroundStyle(AppColors.sprout)
                     .accessibilityIdentifier("urlImport_complete")
             }
 
         case .failed(let error):
             Section("Error") {
                 Text(error)
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.ember)
                     .font(AppTypography.listSubtitle)
                     .accessibilityIdentifier("urlImport_error")
             }

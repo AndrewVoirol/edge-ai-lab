@@ -291,7 +291,7 @@ struct ContentView: View {
             .tag(AppTab.settings)
         }
         .foregroundStyle(AppColors.textPrimary)
-        .tint(AppColors.accentCyan)
+        .tint(AppColors.moss)
         .sheet(item: Binding(
             get: { viewModel.activeCanvasContent },
             set: { viewModel.activeCanvasContent = $0 }
@@ -546,7 +546,7 @@ struct ModelCapabilityBadges: View {
             }
             if runtimeFlags.enableToolCalling {
                 Text("Tools")
-                    .badge(AppColors.toolCall)
+                    .badge(AppColors.action)
                     .accessibilityIdentifier("badge_tools")
                     .accessibilityLabel("Tool calling capability")
             }

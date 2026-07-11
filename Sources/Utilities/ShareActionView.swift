@@ -37,7 +37,7 @@ struct ShareActionView: View {
             HStack {
                 Image(systemName: "square.and.arrow.up")
                     .font(AppIconSize.md)
-                    .foregroundStyle(AppColors.accentTeal)
+                    .foregroundStyle(AppColors.moss)
                 Text("Share Benchmark")
                     .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
@@ -104,7 +104,7 @@ struct ShareActionView: View {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "photo")
                             .font(AppIconSize.lg)
-                            .foregroundStyle(AppColors.accentCyan)
+                            .foregroundStyle(AppColors.moss)
                             .frame(width: 32)
 
                         VStack(alignment: .leading, spacing: 2) {
@@ -126,7 +126,7 @@ struct ShareActionView: View {
                     .padding(.horizontal, AppSpacing.md)
                     .background(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .fill(AppColors.accentCyan.opacity(0.08))
+                            .fill(AppColors.moss.opacity(0.08))
                     )
                 }
                 .buttonStyle(.plain)
@@ -163,7 +163,7 @@ struct ShareActionView: View {
             HStack(spacing: AppSpacing.md) {
                 Image(systemName: copiedItem == copiedKey ? "checkmark.circle.fill" : icon)
                     .font(AppIconSize.lg)
-                    .foregroundStyle(copiedItem == copiedKey ? AppColors.success : AppColors.textSecondary)
+                    .foregroundStyle(copiedItem == copiedKey ? AppColors.sprout : AppColors.textSecondary)
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 2) {

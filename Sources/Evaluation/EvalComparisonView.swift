@@ -149,7 +149,7 @@ struct EvalComparisonView: View {
                         Text("Share")
                             .font(AppTypography.sectionHeader)
                     }
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("evalComparison_shareButton")
@@ -158,7 +158,7 @@ struct EvalComparisonView: View {
                     dismiss()
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(AppColors.accentTeal)
+                .foregroundStyle(AppColors.moss)
                 .accessibilityIdentifier("evalComparison_doneButton")
             }
         }
@@ -189,7 +189,7 @@ struct EvalComparisonView: View {
                 title: "Prompts",
                 value: "\(totalPromptCount)",
                 icon: "text.bubble.fill",
-                color: AppColors.accentCyan,
+                color: AppColors.moss,
                 identifier: "evalComparison_totalPrompts"
             )
 
@@ -199,7 +199,7 @@ struct EvalComparisonView: View {
                     title: "Avg tok/s",
                     value: EvalComparisonLogic.speedValue(avgSpeed),
                     icon: "speedometer",
-                    color: AppColors.accentTeal,
+                    color: AppColors.moss,
                     identifier: "evalComparison_avgSpeed"
                 )
             }
@@ -209,7 +209,7 @@ struct EvalComparisonView: View {
                 title: "Duration",
                 value: EvalComparisonLogic.formatDuration(evalRun.duration ?? 0),
                 icon: "clock.fill",
-                color: AppColors.accentGold,
+                color: AppColors.amber,
                 identifier: "evalComparison_duration"
             )
         }
@@ -275,12 +275,12 @@ struct EvalComparisonView: View {
                         .padding(.vertical, AppSpacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: AppRadius.md)
-                                .fill(isActive ? AppColors.accentCyan.opacity(0.1) : Color.clear)
+                                .fill(isActive ? AppColors.moss.opacity(0.1) : Color.clear)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: AppRadius.md)
                                 .stroke(
-                                    isActive ? AppColors.accentCyan.opacity(0.4) : AppColors.border.opacity(0.3),
+                                    isActive ? AppColors.moss.opacity(0.4) : AppColors.border.opacity(0.3),
                                     lineWidth: 1
                                 )
                         )
@@ -317,12 +317,12 @@ struct EvalComparisonView: View {
                     .padding(.vertical, AppSpacing.xs)
                     .background(
                         Capsule()
-                            .fill(isActive ? AppColors.accentCyan.opacity(0.15) : Color.clear)
+                            .fill(isActive ? AppColors.moss.opacity(0.15) : Color.clear)
                     )
                     .overlay(
                         Capsule()
                             .stroke(
-                                isActive ? AppColors.accentCyan.opacity(0.3) : AppColors.border.opacity(0.2),
+                                isActive ? AppColors.moss.opacity(0.3) : AppColors.border.opacity(0.2),
                                 lineWidth: 0.5
                             )
                     )
@@ -381,7 +381,7 @@ struct EvalComparisonView: View {
         HStack(alignment: .top, spacing: AppSpacing.sm) {
             Image(systemName: result.score.symbolName)
                 .font(.body)
-                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .foregroundStyle(result.passed ? AppColors.sprout : AppColors.ember)
                 .frame(width: 24, alignment: .center)
                 .padding(.top, 2)
 
@@ -393,7 +393,7 @@ struct EvalComparisonView: View {
                 if let reason = result.score.reason {
                     Text(reason)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.danger.opacity(0.8))
+                        .foregroundStyle(AppColors.ember.opacity(0.8))
                         .lineLimit(3)
                 }
 
@@ -406,7 +406,7 @@ struct EvalComparisonView: View {
                     Spacer()
                     Text(result.score.displayLabel)
                         .font(AppTypography.badge)
-                        .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                        .foregroundStyle(result.passed ? AppColors.sprout : AppColors.ember)
                 }
             }
         }
@@ -414,7 +414,7 @@ struct EvalComparisonView: View {
         .padding(.vertical, AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+                .fill(result.passed ? Color.clear : AppColors.ember.opacity(0.03))
         )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
         #else
@@ -422,7 +422,7 @@ struct EvalComparisonView: View {
         HStack(spacing: 0) {
             Image(systemName: result.score.symbolName)
                 .font(.caption)
-                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .foregroundStyle(result.passed ? AppColors.sprout : AppColors.ember)
                 .frame(width: 60, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -434,7 +434,7 @@ struct EvalComparisonView: View {
                 if let reason = result.score.reason {
                     Text(reason)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.danger.opacity(0.8))
+                        .foregroundStyle(AppColors.ember.opacity(0.8))
                         .lineLimit(1)
                 }
             }
@@ -454,14 +454,14 @@ struct EvalComparisonView: View {
 
             Text(result.score.displayLabel)
                 .font(AppTypography.badge)
-                .foregroundStyle(result.passed ? AppColors.success : AppColors.danger)
+                .foregroundStyle(result.passed ? AppColors.sprout : AppColors.ember)
                 .frame(width: 60, alignment: .trailing)
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(result.passed ? Color.clear : AppColors.danger.opacity(0.03))
+                .fill(result.passed ? Color.clear : AppColors.ember.opacity(0.03))
         )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
         #endif
@@ -481,10 +481,10 @@ struct EvalComparisonView: View {
                     Text("Export JSON")
                         .font(AppTypography.sectionHeader)
                 }
-                .foregroundStyle(AppColors.accentCyan)
+                .foregroundStyle(AppColors.moss)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentCyan.opacity(0.1))
+                .background(AppColors.moss.opacity(0.1))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -498,10 +498,10 @@ struct EvalComparisonView: View {
                     Text("Delete Run")
                         .font(AppTypography.sectionHeader)
                 }
-                .foregroundStyle(AppColors.danger)
+                .foregroundStyle(AppColors.ember)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.danger.opacity(0.1))
+                .background(AppColors.ember.opacity(0.1))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)

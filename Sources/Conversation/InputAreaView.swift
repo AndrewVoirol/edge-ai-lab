@@ -42,7 +42,7 @@ struct InputAreaView: View {
             if viewModel.isViewingArchivedConversation {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "archivebox.fill")
-                        .foregroundStyle(AppColors.accentGold)
+                        .foregroundStyle(AppColors.amber)
                     Text("Viewing archived experiment")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -57,7 +57,7 @@ struct InputAreaView: View {
                             Text("Fork")
                                 .font(AppTypography.caption)
                         }
-                        .foregroundStyle(AppColors.accentTeal)
+                        .foregroundStyle(AppColors.moss)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("button_forkArchive")
@@ -65,7 +65,7 @@ struct InputAreaView: View {
                     .accessibilityHint("Double-tap to create a new experiment from this archive")
                 }
                 .padding(AppSpacing.sm)
-                .background(AppColors.accentGold.opacity(0.08))
+                .background(AppColors.amber.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .padding(.bottom, AppSpacing.sm)
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -100,7 +100,7 @@ struct InputAreaView: View {
                         ) {
                             Image(systemName: "photo.badge.plus")
                                 .foregroundStyle(
-                                    selectedPhotoItem != nil ? AppColors.accentCyan : AppColors.textTertiary
+                                    selectedPhotoItem != nil ? AppColors.moss : AppColors.textTertiary
                                 )
                         }
                         .buttonStyle(.plain)
@@ -129,7 +129,7 @@ struct InputAreaView: View {
                         } label: {
                             Image(systemName: "waveform.badge.plus")
                                 .foregroundStyle(
-                                    viewModel.selectedAudioData != nil ? AppColors.accentTeal : AppColors.textTertiary
+                                    viewModel.selectedAudioData != nil ? AppColors.moss : AppColors.textTertiary
                                 )
                         }
                         .buttonStyle(.plain)
@@ -211,7 +211,7 @@ struct InputAreaView: View {
                     } label: {
                         HStack(spacing: AppSpacing.xs) {
                             Image(systemName: "plus.bubble")
-                            Text("New Chat")
+                            Text("New Experiment")
                                 .font(AppTypography.caption)
                         }
                         .foregroundStyle(AppColors.textSecondary)
@@ -236,7 +236,7 @@ struct InputAreaView: View {
                             .font(AppTypography.caption)
                     }
                     .foregroundStyle(
-                        viewModel.isAgentMode ? AppColors.accentCyan : AppColors.textTertiary
+                        viewModel.isAgentMode ? AppColors.moss : AppColors.textTertiary
                     )
                 }
                 .buttonStyle(.plain)
@@ -252,10 +252,10 @@ struct InputAreaView: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "brain.head.profile")
                             .symbolEffect(.pulse)
-                            .foregroundStyle(AppColors.thinking)
+                            .foregroundStyle(AppColors.sage)
                         Text("Reasoning...")
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.thinking)
+                            .foregroundStyle(AppColors.sage)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("Thinking mode enabled")
@@ -378,17 +378,17 @@ struct InputAreaView: View {
         )
         .modifier(ConditionalGlowModifier(
             isActive: !viewModel.prompt.isEmpty && viewModel.isEngineReady,
-            color: AppColors.accentGold
+            color: AppColors.amber
         ))
     }
 
     /// Send button color adapts to state: gold when ready, muted when disabled/generating.
     private var sendButtonColor: Color {
         if viewModel.isGenerating {
-            return AppColors.danger
+            return AppColors.ember
         }
         if viewModel.isEngineReady && !viewModel.prompt.isEmpty {
-            return AppColors.accentGold
+            return AppColors.amber
         }
         return AppColors.textTertiary
     }
@@ -406,7 +406,7 @@ struct InputAreaView: View {
     /// Border color changes when thinking mode is active.
     private var inputBorderColor: Color {
         if viewModel.runtimeFlags.enableThinking && viewModel.isThinking {
-            return AppColors.thinking
+            return AppColors.sage
         }
         return AppColors.borderActive
     }
@@ -425,7 +425,7 @@ struct InputAreaView: View {
         HStack(spacing: AppSpacing.sm) {
             ProgressView()
                 .controlSize(.small)
-                .tint(AppColors.accentTeal)
+                .tint(AppColors.moss)
             Text(viewModel.statusMessage)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
@@ -485,7 +485,7 @@ struct InputAreaView: View {
             if viewModel.selectedAudioData != nil {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "waveform")
-                        .foregroundStyle(AppColors.accentTeal)
+                        .foregroundStyle(AppColors.moss)
                         .font(.caption)
                     Text("Audio attached")
                         .font(AppTypography.caption)

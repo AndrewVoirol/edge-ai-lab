@@ -22,7 +22,7 @@ import SwiftUI
 /// Switches content based on the selected sidebar section:
 /// - **Models** (or nil) → `ModelDetailPanel` showing the selected model's info or an empty state.
 /// - **Benchmarks** → The existing `PerformanceDashboardView` embedded directly.
-/// - **Conversations** → A placeholder prompting the user to start a conversation.
+/// - **Experiments** → A placeholder prompting the user to start an experiment.
 ///
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`
 /// for agent discoverability and UI testing.
@@ -136,7 +136,7 @@ private struct ModelDetailPanel: View {
                             Text("Models")
                         }
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("modelDetail_backButton")
@@ -156,12 +156,12 @@ private struct ModelDetailPanel: View {
                     if isActiveModel {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
-                                .fill(AppColors.success)
+                                .fill(AppColors.sprout)
                                 .frame(width: 8, height: 8)
-                                .glow(AppColors.success, radius: 6, opacity: 0.5)
+                                .glow(AppColors.sprout, radius: 6, opacity: 0.5)
                             Text("Loaded")
                                 .font(AppTypography.badge)
-                                .foregroundStyle(AppColors.success)
+                                .foregroundStyle(AppColors.sprout)
                         }
                         .accessibilityIdentifier("modelDetail_status_loaded")
                     } else {
@@ -187,7 +187,7 @@ private struct ModelDetailPanel: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                        .tint(AppColors.warning)
+                        .tint(AppColors.caution)
                         .accessibilityIdentifier("modelDetail_unloadButton")
                     } else if let modelId = selectedModelId,
                               let discovered = viewModel.discoveredModels.first(where: { $0.filename == modelId }) {
@@ -202,7 +202,7 @@ private struct ModelDetailPanel: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(AppColors.accentCyan)
+                        .tint(AppColors.moss)
                         .accessibilityIdentifier("modelDetail_loadButton")
                     }
                 }
@@ -257,7 +257,7 @@ private struct ModelDetailPanel: View {
                         countStyle: .file
                     ),
                     icon: "doc.zipper",
-                    color: AppColors.accentGold
+                    color: AppColors.amber
                 )
 
                 // Min RAM
@@ -265,7 +265,7 @@ private struct ModelDetailPanel: View {
                     label: "Min RAM",
                     value: "\(metadata.minDeviceMemoryGB) GB",
                     icon: "memorychip",
-                    color: AppColors.accentTeal
+                    color: AppColors.moss
                 )
 
                 // Context Window
@@ -273,7 +273,7 @@ private struct ModelDetailPanel: View {
                     label: "Context",
                     value: formatTokenCount(metadata.contextWindowSize),
                     icon: "text.alignleft",
-                    color: AppColors.accentCyan
+                    color: AppColors.moss
                 )
             }
         }
@@ -337,11 +337,11 @@ private struct ModelDetailPanel: View {
                         let capability = metadata.platformSupport.currentPlatform
                         if capability.supportsGPU {
                             Text("GPU")
-                                .badge(AppColors.accentCyan)
+                                .badge(AppColors.moss)
                         }
                         if capability.supportsCPU {
                             Text("CPU")
-                                .badge(AppColors.accentTeal)
+                                .badge(AppColors.moss)
                         }
                     }
                 }
@@ -353,7 +353,7 @@ private struct ModelDetailPanel: View {
                         .foregroundStyle(AppColors.textTertiary)
                     Text(metadata.recommendedFor)
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.accentGold)
+                        .foregroundStyle(AppColors.amber)
                 }
             }
             .padding(AppSpacing.md)
@@ -373,7 +373,7 @@ private struct ModelDetailPanel: View {
                         .font(AppIconSize.hero)
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [AppColors.accentTeal, AppColors.accentCyan],
+                                colors: [AppColors.moss, AppColors.moss],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -403,7 +403,7 @@ private struct ModelDetailPanel: View {
                         // Card 1: Browse community models
                         gettingStartedCard(
                             icon: "arrow.down.circle",
-                            iconColor: AppColors.accentCyan,
+                            iconColor: AppColors.moss,
                             title: "Browse Models",
                             subtitle: "Download Gemma models from HuggingFace below"
                         )
@@ -411,7 +411,7 @@ private struct ModelDetailPanel: View {
                         // Card 2: Load from disk
                         gettingStartedCard(
                             icon: "folder",
-                            iconColor: AppColors.accentGold,
+                            iconColor: AppColors.amber,
                             title: "Load from Disk",
                             subtitle: "Open a .litertlm file (⌘O)"
                         )
@@ -419,7 +419,7 @@ private struct ModelDetailPanel: View {
                         // Card 3: Drag & Drop
                         gettingStartedCard(
                             icon: "arrow.down.doc",
-                            iconColor: AppColors.accentTeal,
+                            iconColor: AppColors.moss,
                             title: "Drag & Drop",
                             subtitle: "Drop a .litertlm file onto the window"
                         )
@@ -435,9 +435,9 @@ private struct ModelDetailPanel: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.sm) {
-                        featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.accentGold)
+                        featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.amber)
                         featureHighlight(icon: "brain.head.profile", title: "Thinking Mode", subtitle: "See the model reason step-by-step", iconColor: AppColors.badgeThinking)
-                        featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.toolCall)
+                        featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.action)
                         featureHighlight(icon: "photo.on.rectangle", title: "Multimodal", subtitle: "Images and audio with vision models", iconColor: AppColors.badgeVision)
                     }
                 }
@@ -484,7 +484,7 @@ private struct ModelDetailPanel: View {
         icon: String,
         title: String,
         subtitle: String,
-        iconColor: Color = AppColors.accentCyan
+        iconColor: Color = AppColors.moss
     ) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
@@ -518,10 +518,10 @@ private struct ModelDetailPanel: View {
 // with full EnginePerformanceMetrics + InferenceMetrics support.
 
 
-// MARK: - Conversation Detail Placeholder
+// MARK: - Experiment Detail Placeholder
 
-/// Placeholder view shown when the Conversations section is selected in the sidebar.
-/// Prompts the user to start or select a conversation.
+/// Placeholder view shown when the Experiments section is selected in the sidebar.
+/// Prompts the user to start or select an experiment.
 private struct ConversationDetailPlaceholder: View {
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
@@ -529,19 +529,19 @@ private struct ConversationDetailPlaceholder: View {
                 .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [AppColors.accentGold, AppColors.accentGold.opacity(0.6)],
+                        colors: [AppColors.amber, AppColors.amber.opacity(0.6)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .accessibilityIdentifier("conversationPlaceholder_icon")
 
-            Text("Select a conversation")
+            Text("Select an experiment")
                 .font(AppTypography.sectionTitle)
                 .foregroundStyle(AppColors.textSecondary)
 
-            Text("Start a new chat or pick one from the sidebar")
-                .font(.subheadline)
+            Text("Start a new experiment or pick one from the sidebar")
+                .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textTertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, AppSpacing.xxl)
@@ -575,7 +575,7 @@ private struct ExperimentDetailView: View {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "archivebox.fill")
                         .font(.title2)
-                        .foregroundStyle(AppColors.accentGold)
+                        .foregroundStyle(AppColors.amber)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(activeEntry?.title ?? "Archived Experiment")
                             .font(AppTypography.sectionTitle)
@@ -611,11 +611,11 @@ private struct ExperimentDetailView: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(AppSpacing.md)
-                    .background(AppColors.accentTeal.opacity(0.2))
+                    .background(AppColors.moss.opacity(0.2))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.accentTeal.opacity(0.4), lineWidth: 1)
+                            .stroke(AppColors.moss.opacity(0.4), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -661,7 +661,7 @@ private struct ExperimentDetailView: View {
             Spacer()
             Text(value)
                 .font(AppTypography.metric)
-                .foregroundStyle(AppColors.accentCyan)
+                .foregroundStyle(AppColors.moss)
         }
         .padding(.vertical, AppSpacing.xs)
     }

@@ -205,7 +205,7 @@ struct iOSSuiteEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveSuite() }
-                        .foregroundStyle(isValid ? AppColors.accentCyan : AppColors.textTertiary)
+                        .foregroundStyle(isValid ? AppColors.moss : AppColors.textTertiary)
                         .fontWeight(.semibold)
                         .disabled(!isValid)
                         .accessibilityIdentifier("suiteEditor_saveButton")
@@ -288,12 +288,12 @@ struct iOSSuiteEditorSheet: View {
                             .padding(.vertical, AppSpacing.sm)
                             .background(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .fill(isSelected ? AppColors.accentCyan.opacity(0.15) : Color.clear)
+                                    .fill(isSelected ? AppColors.moss.opacity(0.15) : Color.clear)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
-                                        isSelected ? AppColors.accentCyan.opacity(0.4) : AppColors.border,
+                                        isSelected ? AppColors.moss.opacity(0.4) : AppColors.border,
                                         lineWidth: 1
                                     )
                             )
@@ -330,7 +330,7 @@ struct iOSSuiteEditorSheet: View {
                         Text("Add Prompt")
                             .font(AppTypography.sectionHeader)
                     }
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                 }
                 .accessibilityIdentifier("suiteEditor_addPromptButton")
             }
@@ -368,10 +368,10 @@ struct iOSSuiteEditorSheet: View {
                     Text("Add First Prompt")
                         .font(AppTypography.sectionHeader)
                 }
-                .foregroundStyle(AppColors.accentCyan)
+                .foregroundStyle(AppColors.moss)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentCyan.opacity(0.1))
+                .background(AppColors.moss.opacity(0.1))
                 .clipShape(Capsule())
             }
             .accessibilityIdentifier("suiteEditor_addFirstPrompt")
@@ -389,10 +389,10 @@ struct iOSSuiteEditorSheet: View {
             HStack {
                 Text("#\(index + 1)")
                     .font(AppTypography.metric)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
 
                 Text(prompt.expectedBehavior.displayName)
-                    .badge(AppColors.accentTeal)
+                    .badge(AppColors.moss)
 
                 Text("\(prompt.timeoutSeconds)s")
                     .font(AppTypography.caption)
@@ -408,7 +408,7 @@ struct iOSSuiteEditorSheet: View {
                 } label: {
                     Image(systemName: isEditing ? "chevron.up" : "pencil")
                         .font(.caption)
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                 }
                 .accessibilityIdentifier("suiteEditor_editPrompt_\(index)")
 
@@ -427,7 +427,7 @@ struct iOSSuiteEditorSheet: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.caption)
-                        .foregroundStyle(AppColors.danger)
+                        .foregroundStyle(AppColors.ember)
                 }
                 .accessibilityIdentifier("suiteEditor_deletePrompt_\(index)")
             }
@@ -449,7 +449,7 @@ struct iOSSuiteEditorSheet: View {
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
-                    isEditing ? AppColors.accentCyan.opacity(0.3) : Color.clear,
+                    isEditing ? AppColors.moss.opacity(0.3) : Color.clear,
                     lineWidth: 1
                 )
         )
@@ -532,12 +532,12 @@ struct iOSSuiteEditorSheet: View {
                             .padding(.vertical, 4)
                             .background(
                                 Capsule()
-                                    .fill(isActive ? AppColors.accentCyan.opacity(0.15) : Color.clear)
+                                    .fill(isActive ? AppColors.moss.opacity(0.15) : Color.clear)
                             )
                             .overlay(
                                 Capsule()
                                     .stroke(
-                                        isActive ? AppColors.accentCyan.opacity(0.3) : AppColors.border,
+                                        isActive ? AppColors.moss.opacity(0.3) : AppColors.border,
                                         lineWidth: 0.5
                                     )
                             )

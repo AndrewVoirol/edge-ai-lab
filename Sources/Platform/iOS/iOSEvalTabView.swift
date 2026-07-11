@@ -77,7 +77,7 @@ struct iOSEvalTabView: View {
                 if let suite = selectedSuite {
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: suite.category.symbolName)
-                            .foregroundStyle(AppColors.accentCyan)
+                            .foregroundStyle(AppColors.moss)
                         Text(suite.displaySummary)
                             .font(AppTypography.listSubtitle)
                             .foregroundStyle(AppColors.textSecondary)
@@ -126,7 +126,7 @@ struct iOSEvalTabView: View {
                     showSuiteEditor = true
                 } label: {
                     Label("New Custom Suite", systemImage: "plus.circle")
-                        .foregroundStyle(AppColors.accentCyan)
+                        .foregroundStyle(AppColors.moss)
                 }
                 .accessibilityIdentifier("evalTab_newSuiteButton")
             } header: {
@@ -152,7 +152,7 @@ struct iOSEvalTabView: View {
                                 Spacer()
                                 if selectedModelFiles.contains(discovered.filename) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(AppColors.accentCyan)
+                                        .foregroundStyle(AppColors.moss)
                                 } else {
                                     Image(systemName: "circle")
                                         .foregroundStyle(AppColors.textTertiary)
@@ -183,7 +183,7 @@ struct iOSEvalTabView: View {
                         .font(AppTypography.subtitle)
                 }
                 .disabled(!canRun)
-                .listRowBackground(canRun ? AppColors.accentCyan : AppColors.backgroundTertiary)
+                .listRowBackground(canRun ? AppColors.moss : AppColors.backgroundTertiary)
                 .accessibilityIdentifier("evalTab_runButton")
             }
 
@@ -192,7 +192,7 @@ struct iOSEvalTabView: View {
                 Section("Progress") {
                     VStack(alignment: .leading, spacing: AppSpacing.sm) {
                         ProgressView(value: runProgress)
-                            .tint(AppColors.accentCyan)
+                            .tint(AppColors.moss)
                             .accessibilityIdentifier("evalTab_progressBar")
                         Text(runStatusText)
                             .font(AppTypography.listSubtitle)
@@ -205,7 +205,7 @@ struct iOSEvalTabView: View {
                         isRunning = false
                     } label: {
                         Label("Cancel", systemImage: "xmark.circle")
-                            .foregroundStyle(AppColors.danger)
+                            .foregroundStyle(AppColors.ember)
                     }
                     .accessibilityIdentifier("evalTab_cancelButton")
                 }
@@ -229,10 +229,10 @@ struct iOSEvalTabView: View {
                                 .font(AppTypography.mono)
                                 .foregroundStyle(
                                     entry.overallPassRate > 0.8
-                                        ? AppColors.success
+                                        ? AppColors.sprout
                                         : entry.overallPassRate > 0.5
-                                            ? AppColors.warning
-                                            : AppColors.danger
+                                            ? AppColors.caution
+                                            : AppColors.ember
                                 )
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -278,7 +278,7 @@ struct iOSEvalTabView: View {
                     .accessibilityIdentifier("evalTab_exportCSV")
                 } label: {
                     Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(AppColors.accentTeal)
+                        .foregroundStyle(AppColors.moss)
                         .font(AppTypography.body)
                 }
                 .disabled(evalStore.indexEntries.isEmpty)

@@ -330,9 +330,9 @@ final class SettingsToggleTests: XCTestCase {
     func testFeatureCardColorsAreDistinct() {
         // The 4 "What You Can Do" cards should use different colors
         let cardColors = [
-            AppColors.accentGold,      // Benchmark
+            AppColors.amber,      // Benchmark
             AppColors.badgeThinking,   // Thinking Mode
-            AppColors.toolCall,        // Tool Calling
+            AppColors.action,        // Tool Calling
             AppColors.badgeVision      // Multimodal
         ]
 

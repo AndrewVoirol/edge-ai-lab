@@ -46,7 +46,7 @@ struct BenchmarkCardShareSheet: View {
                     dismiss()
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(AppColors.accentTeal)
+                .foregroundStyle(AppColors.moss)
                 .accessibilityIdentifier("shareSheetDoneButton")
             }
             .padding(.horizontal, AppSpacing.xl)
@@ -85,7 +85,7 @@ struct BenchmarkCardShareSheet: View {
                         actionButton(
                             icon: isCopied ? "checkmark.circle.fill" : "doc.on.doc",
                             label: isCopied ? "Copied!" : "Copy Image",
-                            color: isCopied ? AppColors.success : AppColors.accentCyan
+                            color: isCopied ? AppColors.sprout : AppColors.moss
                         ) {
                             copyToClipboard()
                         }
@@ -95,7 +95,7 @@ struct BenchmarkCardShareSheet: View {
                         actionButton(
                             icon: isSaved ? "checkmark.circle.fill" : "arrow.down.circle",
                             label: isSaved ? "Saved!" : "Save PNG",
-                            color: isSaved ? AppColors.success : AppColors.accentGold
+                            color: isSaved ? AppColors.sprout : AppColors.amber
                         ) {
                             saveToDisk()
                         }
@@ -114,7 +114,7 @@ struct BenchmarkCardShareSheet: View {
                                 actionButtonLabel(
                                     icon: "square.and.arrow.up",
                                     label: "Share",
-                                    color: AppColors.accentTeal
+                                    color: AppColors.moss
                                 )
                             }
                             .buttonStyle(.plain)
@@ -125,7 +125,7 @@ struct BenchmarkCardShareSheet: View {
                         actionButton(
                             icon: "doc.text",
                             label: "Markdown",
-                            color: AppColors.accentGold
+                            color: AppColors.amber
                         ) {
                             copyMarkdown()
                         }
@@ -137,7 +137,7 @@ struct BenchmarkCardShareSheet: View {
                     if let error = saveError {
                         Text(error)
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.danger)
+                            .foregroundStyle(AppColors.ember)
                             .padding(.horizontal, AppSpacing.xl)
                     }
 

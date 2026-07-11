@@ -102,7 +102,7 @@ struct BenchmarkBarView: View {
                     isShowingBenchmarkCard = true
                 } label: {
                     Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(AppColors.accentTeal)
+                        .foregroundStyle(AppColors.moss)
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
@@ -128,7 +128,7 @@ struct BenchmarkBarView: View {
             if let result = viewModel.backendResult, result.didFallback, let reason = result.fallbackReason {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(AppColors.warning)
+                        .foregroundStyle(AppColors.caution)
                     Text(reason)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -178,7 +178,7 @@ struct BenchmarkBarView: View {
                     isShowingBenchmarkCard = true
                 } label: {
                     Image(systemName: "square.and.arrow.up")
-                        .foregroundStyle(AppColors.accentTeal)
+                        .foregroundStyle(AppColors.moss)
                         .font(.caption)
                 }
                 .buttonStyle(.plain)
@@ -227,16 +227,16 @@ struct BenchmarkBarView: View {
         HStack(spacing: AppSpacing.xs) {
             if metrics.runtimeType == .mlx {
                 Image(systemName: "bolt.fill")
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
                 Text("MLX")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.accentCyan)
+                    .foregroundStyle(AppColors.moss)
             } else if let result = viewModel.backendResult {
                 Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
-                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                 Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                     .font(AppTypography.badge)
-                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
             } else {
                 Image(systemName: "cpu")
                     .foregroundStyle(AppColors.textSecondary)
@@ -263,10 +263,10 @@ struct BenchmarkBarView: View {
 
     private func thermalColor(for level: ThermalLevel) -> Color {
         switch level {
-        case .nominal:  return AppColors.success
-        case .fair:     return AppColors.warning
-        case .serious:  return AppColors.toolCall
-        case .critical: return AppColors.danger
+        case .nominal:  return AppColors.sprout
+        case .fair:     return AppColors.caution
+        case .serious:  return AppColors.action
+        case .critical: return AppColors.ember
         }
     }
 
@@ -299,10 +299,10 @@ struct BenchmarkBarView: View {
                !inferenceMetrics.decodeLatenciesMs.isEmpty {
                 expandedSection(title: "LATENCY") {
                     LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.moss)
                     }
                 }
             }
@@ -312,16 +312,16 @@ struct BenchmarkBarView: View {
                 expandedSection(title: "MEMORY") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.accentTeal)
-                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.accentTeal)
-                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.warning : AppColors.accentTeal)
+                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.moss)
+                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.moss)
+                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.caution : AppColors.moss)
                         }
 
                         // Thermal transition
                         if inferenceMetrics.thermalStateChanged {
                             HStack(spacing: AppSpacing.xs) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(AppColors.warning)
+                                    .foregroundStyle(AppColors.caution)
                                 Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
                                     .foregroundStyle(AppColors.textSecondary)
                             }
@@ -333,12 +333,12 @@ struct BenchmarkBarView: View {
             // Token counts and timing
             expandedSection(title: "TOKENS") {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.accentGold)
+                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.amber)
                     if let initTime = metrics.initTimeSeconds {
-                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.accentGold)
+                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.amber)
                     }
                     if let prefillCount = metrics.promptTokenCount {
-                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.accentGold)
+                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.amber)
                     }
                 }
             }
@@ -348,9 +348,9 @@ struct BenchmarkBarView: View {
                 expandedSection(title: "MTP SPECULATION") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
-                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
-                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.warning)
-                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.warning)
+                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.caution)
+                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.caution)
+                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.caution)
                         }
                         if let reason = metrics.passthroughReason {
                             HStack(spacing: AppSpacing.xs) {
@@ -383,10 +383,10 @@ struct BenchmarkBarView: View {
                !inferenceMetrics.decodeLatenciesMs.isEmpty {
                 expandedSection(title: "LATENCY") {
                     HStack(spacing: AppSpacing.lg) {
-                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.accentCyan)
-                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.accentCyan)
+                        coloredStatItem(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.moss)
+                        coloredStatItem(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.moss)
                         Spacer()
                     }
                 }
@@ -397,9 +397,9 @@ struct BenchmarkBarView: View {
                 expandedSection(title: "MEMORY") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         HStack(spacing: AppSpacing.lg) {
-                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.accentTeal)
-                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.accentTeal)
-                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.warning : AppColors.accentTeal)
+                            coloredStatItem(label: "Start", value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB), color: AppColors.moss)
+                            coloredStatItem(label: "End", value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB), color: AppColors.moss)
+                            coloredStatItem(label: "Δ Memory", value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB), color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.caution : AppColors.moss)
                             Spacer()
                         }
 
@@ -407,7 +407,7 @@ struct BenchmarkBarView: View {
                         if inferenceMetrics.thermalStateChanged {
                             HStack(spacing: AppSpacing.xs) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(AppColors.warning)
+                                    .foregroundStyle(AppColors.caution)
                                 Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
                                     .foregroundStyle(AppColors.textSecondary)
                             }
@@ -419,12 +419,12 @@ struct BenchmarkBarView: View {
             // Token counts and timing
             expandedSection(title: "TOKENS") {
                 HStack(spacing: AppSpacing.lg) {
-                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.accentGold)
+                    coloredStatItem(label: "Decode", value: "\(metrics.tokenCount ?? 0) tok", color: AppColors.amber)
                     if let initTime = metrics.initTimeSeconds {
-                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.accentGold)
+                        coloredStatItem(label: "Init", value: String(format: "%.2fs", initTime), color: AppColors.amber)
                     }
                     if let prefillCount = metrics.promptTokenCount {
-                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.accentGold)
+                        coloredStatItem(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.amber)
                     }
                     Spacer()
                 }
@@ -435,11 +435,11 @@ struct BenchmarkBarView: View {
                 expandedSection(title: "MTP SPECULATION") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         HStack(spacing: AppSpacing.lg) {
-                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
-                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.warning)
-                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.warning)
+                            coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.caution)
+                            coloredStatItem(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.caution)
+                            coloredStatItem(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.caution)
                             if let reason = metrics.passthroughReason {
-                                coloredStatItem(label: "Passthrough", value: reason, color: AppColors.warning)
+                                coloredStatItem(label: "Passthrough", value: reason, color: AppColors.caution)
                             }
                             Spacer()
                         }

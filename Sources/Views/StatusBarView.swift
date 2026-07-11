@@ -42,13 +42,13 @@ struct StatusBarView: View {
             if let result = viewModel.backendResult, viewModel.isEngineReady {
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
-                        .fill(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                        .fill(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                         .frame(width: 6, height: 6)
-                        .glow(result.activeBackend == .gpu ? AppColors.success : AppColors.warning,
+                        .glow(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution,
                               radius: 3, opacity: 0.5)
                     Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                         .font(AppTypography.badge)
-                        .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
+                        .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
                 }
                 .accessibilityIdentifier("statusBar_backend")
                 .accessibilityLabel(result.activeBackend == .gpu ? "Backend: loaded on GPU" : "Backend: loaded on CPU")
@@ -59,7 +59,7 @@ struct StatusBarView: View {
                     if metadata.supportsMTP { Text("MTP").badge(AppColors.badgeMTP) }
                     if metadata.supportsImage { Text("Vision").badge(AppColors.badgeVision) }
                     if metadata.supportsAudio { Text("Audio").badge(AppColors.badgeAudio) }
-                    if metadata.supportsToolCalling { Text("Tools").badge(AppColors.toolCall) }
+                    if metadata.supportsToolCalling { Text("Tools").badge(AppColors.action) }
                 }
             }
 
@@ -90,10 +90,10 @@ struct StatusBarView: View {
 
     private func thermalColor(for state: ThermalLevel) -> Color {
         switch state {
-        case .nominal: return AppColors.success
-        case .fair: return AppColors.warning
-        case .serious: return AppColors.danger
-        case .critical: return AppColors.danger
+        case .nominal: return AppColors.sprout
+        case .fair: return AppColors.caution
+        case .serious: return AppColors.ember
+        case .critical: return AppColors.ember
         }
     }
 }
