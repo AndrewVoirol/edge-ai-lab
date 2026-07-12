@@ -45,7 +45,7 @@ struct OnboardingView: View {
                 .accessibilityHidden(true)
             #endif
 
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 Spacer()
 
                 // Page content

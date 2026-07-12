@@ -151,7 +151,7 @@ struct ModelStripView: View {
             .interactiveHover()
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.md)
-                    .stroke(isActive ? AppColors.accentPrimary : Color.clear, lineWidth: 1)
+                    .stroke(isActive ? AppColors.accentPrimary : Color.clear, lineWidth: AppLineWidth.regular)
             )
         }
         .buttonStyle(.plain)
@@ -213,7 +213,7 @@ struct ModelStripView: View {
                 .accessibilityIdentifier("download_\(model.modelFile)")
 
             case .downloading(let progress):
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     ProgressView(value: progress)
                         .tint(AppColors.accentPrimary)
                         .frame(width: 80)
@@ -304,7 +304,7 @@ struct ModelStripView: View {
                 }
 
             case .downloadingDirectory(let progress, let completed, let total):
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     ProgressView(value: progress)
                         .tint(AppColors.accentSecondary)
                         .frame(width: 80)

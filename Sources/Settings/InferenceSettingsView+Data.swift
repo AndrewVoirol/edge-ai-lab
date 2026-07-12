@@ -97,14 +97,14 @@ extension InferenceSettingsView {
                 // Device-level instrumentation (from Work Stream 3)
                 if let metrics = viewModel.inferenceMetrics {
                     LabeledContent("Thermal (Start)") {
-                        HStack(spacing: 4) {
+                        HStack(spacing: AppSpacing.xs) {
                             Image(systemName: metrics.startSnapshot.thermalLevel.symbolName)
                             Text(metrics.startSnapshot.thermalLevel.label)
                         }
                     }
                     if metrics.thermalStateChanged {
                         LabeledContent("Thermal (End)") {
-                            HStack(spacing: 4) {
+                            HStack(spacing: AppSpacing.xs) {
                                 Image(systemName: metrics.endSnapshot.thermalLevel.symbolName)
                                 Text(metrics.endSnapshot.thermalLevel.label)
                             }

@@ -71,7 +71,7 @@ struct BenchmarkBarView: View {
                     .frame(width: 0.5, height: 18)
 
                 // Hero metric: decode speed with tier color
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text("Decode")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
@@ -199,7 +199,7 @@ struct BenchmarkBarView: View {
 
             // Row 2: Decode (hero), Prefill, Memory
             HStack(spacing: AppSpacing.sm) {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text("Decode")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
@@ -273,7 +273,7 @@ struct BenchmarkBarView: View {
     // MARK: - Memory Indicator
 
     private var memoryIndicator: some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text("Memory")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
@@ -464,7 +464,7 @@ struct BenchmarkBarView: View {
     }
 
     private func statItem(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
@@ -475,7 +475,7 @@ struct BenchmarkBarView: View {
     }
 
     private func benchmarkItem(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
@@ -503,7 +503,7 @@ struct BenchmarkBarView: View {
 
     /// Stat item with custom value color for visual category grouping.
     private func coloredStatItem(label: String, value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)

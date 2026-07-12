@@ -30,7 +30,7 @@ struct StreamingIndicator: View {
     var body: some View {
         if Self.isRunningTests {
             // Static dots — no animation cycle to saturate the runloop
-            HStack(spacing: 5) {
+            HStack(spacing: AppSpacing.xs) {
                 ForEach(0..<3, id: \.self) { _ in
                     Circle()
                         .fill(AppColors.accentPrimary.opacity(0.7))
@@ -40,7 +40,7 @@ struct StreamingIndicator: View {
             .accessibilityIdentifier("streamingIndicator")
             .accessibilityLabel("Generating response")
         } else {
-            HStack(spacing: 5) {
+            HStack(spacing: AppSpacing.xs) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
                         .fill(AppColors.accentPrimary.opacity(0.7))
@@ -98,7 +98,7 @@ struct WikipediaSummaryCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     HStack {
                         Text(title)
                             .font(AppTypography.cardTitle)
@@ -137,7 +137,7 @@ struct WikipediaSummaryCard: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(AppColors.border, lineWidth: AppLineWidth.regular)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Wikipedia article: \(title)")
@@ -173,7 +173,7 @@ struct SimpleMapView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.border, lineWidth: 1)
+                .stroke(AppColors.border, lineWidth: AppLineWidth.regular)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Map showing \(title)")
@@ -196,7 +196,7 @@ struct CodeBlockView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Header bar
             HStack {
                 if let lang = language, !lang.isEmpty {
@@ -220,7 +220,7 @@ struct CodeBlockView: View {
                         )
                         viewModel.activeCanvasContent = content
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: AppSpacing.xs) {
                             Image(systemName: "paintbrush.pointed")
                                 .font(AppIconSize.xxs)
                             Text("Open in Canvas")
@@ -245,7 +245,7 @@ struct CodeBlockView: View {
                         copied = false
                     }
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: AppSpacing.xs) {
                         Image(systemName: copied ? "checkmark" : "doc.on.doc")
                             .font(AppIconSize.xxs)
                         Text(copied ? "Copied" : "Copy")
@@ -267,9 +267,9 @@ struct CodeBlockView: View {
 
             // Code with line numbers
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 0) {
+                HStack(alignment: .top, spacing: 0) { // design-system-exempt: zero spacing for tight packing
                     // Line numbers gutter
-                    VStack(alignment: .trailing, spacing: 0) {
+                    VStack(alignment: .trailing, spacing: 0) { // design-system-exempt: zero spacing for tight packing
                         ForEach(Array(codeLines.enumerated()), id: \.offset) { index, _ in
                             Text("\(index + 1)")
                                 .font(AppTypography.mono)
@@ -288,7 +288,7 @@ struct CodeBlockView: View {
                         .frame(width: 0.5)
 
                     // Code content
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 0) { // design-system-exempt: zero spacing for tight packing
                         ForEach(Array(codeLines.enumerated()), id: \.offset) { _, line in
                             Text(line.isEmpty ? " " : line)
                                 .font(AppTypography.mono)
@@ -306,7 +306,7 @@ struct CodeBlockView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.border, lineWidth: 0.5)
+                .stroke(AppColors.border, lineWidth: AppLineWidth.hairline)
         )
         .padding(.vertical, AppSpacing.xs)
     }

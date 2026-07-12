@@ -246,7 +246,7 @@ struct HFModelCard: View {
             }
 
         case .downloading(let progress):
-            VStack(spacing: 2) {
+            VStack(spacing: AppSpacing.xxs) {
                 ProgressView(value: progress)
                     .tint(AppColors.accentPrimary)
                 HStack {
@@ -315,7 +315,7 @@ struct HFModelCard: View {
             }
 
         case .downloadingDirectory(let progress, let completed, let total):
-            VStack(spacing: 2) {
+            VStack(spacing: AppSpacing.xxs) {
                 ProgressView(value: progress)
                     .tint(AppColors.accentSecondary)
                 HStack {

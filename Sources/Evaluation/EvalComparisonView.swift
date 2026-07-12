@@ -58,7 +58,7 @@ struct EvalComparisonView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Title bar
             titleBar
 
@@ -281,7 +281,7 @@ struct EvalComparisonView: View {
                             RoundedRectangle(cornerRadius: AppRadius.md)
                                 .stroke(
                                     isActive ? AppColors.accentPrimary.opacity(0.4) : AppColors.border.opacity(0.3),
-                                    lineWidth: 1
+                                    lineWidth: AppLineWidth.regular
                                 )
                         )
                     }
@@ -323,7 +323,7 @@ struct EvalComparisonView: View {
                         Capsule()
                             .stroke(
                                 isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border.opacity(0.2),
-                                lineWidth: 0.5
+                                lineWidth: AppLineWidth.hairline
                             )
                     )
                 }
@@ -341,7 +341,7 @@ struct EvalComparisonView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             // Column headers — only useful on macOS wide table layout
             #if os(macOS)
-            HStack(spacing: 0) {
+            HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 Text("Status")
                     .frame(width: 60, alignment: .leading)
                 Text("Prompt")
@@ -419,13 +419,13 @@ struct EvalComparisonView: View {
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
         #else
         // macOS: Wide table row with fixed-width columns
-        HStack(spacing: 0) {
+        HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             Image(systemName: result.score.symbolName)
                 .font(AppIconSize.xs)
                 .foregroundStyle(result.passed ? AppColors.success : AppColors.destructive)
                 .frame(width: 60, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(result.promptText)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textPrimary)

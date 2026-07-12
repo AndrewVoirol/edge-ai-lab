@@ -67,7 +67,7 @@ struct PanelResizeHandle: View {
 
             // Grip dots — shown on hover/drag for discoverability
             if isHovering || isDragging {
-                VStack(spacing: 3) {
+                VStack(spacing: AppSpacing.xxs) {
                     ForEach(0..<3, id: \.self) { _ in
                         Circle()
                             .fill(AppColors.textTertiary.opacity(0.6))

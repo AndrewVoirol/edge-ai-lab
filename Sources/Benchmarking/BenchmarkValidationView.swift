@@ -252,7 +252,7 @@ struct BenchmarkValidationView: View {
     @State private var runner = BenchmarkValidationRunner()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("Edge AI Lab — Benchmark Validation")
                 .font(AppTypography.cardTitle)
             Text(runner.status)
@@ -261,7 +261,7 @@ struct BenchmarkValidationView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     ForEach(runner.results) { result in
                         Text(result.text)
                             .font(AppTypography.mono)

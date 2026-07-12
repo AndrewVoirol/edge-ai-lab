@@ -51,7 +51,7 @@ struct macOSURLImportSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 urlInputBar
                     .padding(.horizontal, AppSpacing.xl)
                     .padding(.top, AppSpacing.lg)

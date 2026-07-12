@@ -144,7 +144,7 @@ struct BlinkingCursor: View {
     ZStack {
         Color(red: 0.06, green: 0.07, blue: 0.10)
             .ignoresSafeArea()
-        HStack(spacing: 0) {
+        HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             Text("Hello, how can I help")
                 .foregroundStyle(AppColors.textPrimary)
             BlinkingCursor()

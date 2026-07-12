@@ -305,7 +305,7 @@ struct BenchmarkSummaryCard: View {
 
     /// Individual metric cell in the detail grid.
     private func detailCell(label: String, value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)

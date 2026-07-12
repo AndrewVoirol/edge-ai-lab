@@ -32,7 +32,7 @@ struct ConversationAreaView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 2) {
+                        LazyVStack(spacing: AppSpacing.xxs) {
                             ForEach(viewModel.conversation.messages) { message in
                                 ChatBubbleView(
                                     message: message,
@@ -226,7 +226,7 @@ struct ConversationAreaView: View {
                     .font(AppIconSize.sm)
                     .foregroundStyle(color)
                     .frame(width: 28)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(title)
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
@@ -302,7 +302,7 @@ struct ConversationAreaView: View {
         .glassCard(cornerRadius: AppRadius.md)
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
+                .stroke(AppColors.destructive.opacity(0.3), lineWidth: AppLineWidth.regular)
         )
         .messageEntrance()
         .accessibilityLabel("Inference error: \(errorMessage). Tap Retry to resend your last message.")

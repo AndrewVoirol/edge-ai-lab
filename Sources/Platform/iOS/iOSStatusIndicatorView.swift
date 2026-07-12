@@ -38,7 +38,7 @@ struct iOSStatusIndicatorView: View {
 
     var body: some View {
         if viewModel.isEngineReady || viewModel.isLoadingModel {
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 // Divider
                 Rectangle()
                     .fill(AppColors.border)
@@ -50,7 +50,7 @@ struct iOSStatusIndicatorView: View {
                         isExpanded.toggle()
                     }
                 } label: {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                         // Collapsed: Single row
                         collapsedRow
 
@@ -209,11 +209,11 @@ struct iOSStatusIndicatorView: View {
     // MARK: - Helpers
 
     private func expandedMetric(label: String, value: String, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.badge)
                 .foregroundStyle(AppColors.textTertiary)
-            HStack(alignment: .firstTextBaseline, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xxs) {
                 Text(value)
                     .font(AppTypography.metric)
                     .foregroundStyle(AppColors.textPrimary)

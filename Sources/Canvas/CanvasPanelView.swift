@@ -55,7 +55,7 @@ struct CanvasPanelView: View {
 
     @ViewBuilder
     private func panelContent(_ content: CanvasContent) -> some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Header
             headerBar(content)
 
@@ -119,7 +119,7 @@ struct CanvasPanelView: View {
                     copied = false
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: AppSpacing.xs) {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                         .font(AppIconSize.xxs)
                     Text(copied ? "Copied" : "Copy HTML")

@@ -90,7 +90,7 @@ struct ContentView: View {
         } detail: {
             // Detail area: middle panel + chat panel side-by-side
             GeometryReader { geometry in
-                HStack(spacing: 0) {
+                HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                     // Middle: Detail (model info / dashboard / comparison)
                     DetailColumnView(
                         selectedSection: $selectedSection,
@@ -115,7 +115,7 @@ struct ContentView: View {
                             }
                         )
 
-                        HStack(spacing: 0) {
+                        HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                             chatColumn
                             // Canvas side panel — trailing, only visible when content is active
                             if viewModel.activeCanvasContent != nil {
@@ -317,7 +317,7 @@ struct ContentView: View {
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
 
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 // Conversation area — chat bubbles
                 ConversationAreaView()
                     .frame(maxHeight: .infinity)

@@ -237,12 +237,12 @@ private struct ModelBenchmarkCard: View {
         unit: String,
         valueColor: Color
     ) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xxs) {
                 Text(value)
                     .font(AppTypography.metricLarge)
                     .foregroundStyle(valueColor)

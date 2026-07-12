@@ -190,7 +190,7 @@ struct PerformanceDashboardView: View {
                     )
                     .foregroundStyle(by: .value("Model", entry.model))
                     .interpolationMethod(.catmullRom)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .lineStyle(StrokeStyle(lineWidth: AppLineWidth.thick))
 
                     PointMark(
                         x: .value("Run", index),
@@ -332,7 +332,7 @@ struct PerformanceDashboardView: View {
                 .frame(width: 8, height: 8)
                 .glow(tier.color, radius: 4, opacity: 0.6)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(entry.model)
                     .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textPrimary)
@@ -344,7 +344,7 @@ struct PerformanceDashboardView: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: AppSpacing.xxs) {
                 Text(String(format: "%.1f tok/s", entry.metrics.decodeTokensPerSecond))
                     .font(AppTypography.metric)
                     .foregroundStyle(tier.color)

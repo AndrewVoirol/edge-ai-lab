@@ -190,7 +190,7 @@ struct EvalSuiteEditorView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Title bar
             titleBar
 
@@ -323,7 +323,7 @@ struct EvalSuiteEditorView: View {
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
                                         isSelected ? AppColors.accentPrimary.opacity(0.4) : AppColors.border,
-                                        lineWidth: 1
+                                        lineWidth: AppLineWidth.regular
                                     )
                             )
                         }
@@ -483,7 +483,7 @@ struct EvalSuiteEditorView: View {
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
                     isEditing ? AppColors.accentPrimary.opacity(0.3) : Color.clear,
-                    lineWidth: 1
+                    lineWidth: AppLineWidth.regular
                 )
         )
         .accessibilityIdentifier("evalSuiteEditor_promptRow_\(index)")

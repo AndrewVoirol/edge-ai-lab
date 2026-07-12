@@ -223,7 +223,7 @@ struct EvalRunnerView: View {
                 RoundedRectangle(cornerRadius: AppRadius.lg)
                     .stroke(
                         isSelected ? AppColors.accentPrimary.opacity(0.6) : Color.clear,
-                        lineWidth: 1.5
+                        lineWidth: AppLineWidth.medium
                     )
             )
             .glow(
@@ -344,7 +344,7 @@ struct EvalRunnerView: View {
                     isSelected ? AppColors.accentPrimary : AppColors.textTertiary
                 )
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(model.resolvedMetadata.name)
                         .font(AppTypography.sectionHeader)
                         .foregroundStyle(AppColors.textPrimary)
@@ -376,7 +376,7 @@ struct EvalRunnerView: View {
                 RoundedRectangle(cornerRadius: AppRadius.md)
                     .stroke(
                         isSelected ? AppColors.accentPrimary.opacity(0.4) : Color.clear,
-                        lineWidth: 1
+                        lineWidth: AppLineWidth.regular
                     )
             )
         }
@@ -654,12 +654,12 @@ struct EvalRunnerView: View {
 
         return ZStack {
             Circle()
-                .stroke(color.opacity(0.2), lineWidth: 3)
+                .stroke(color.opacity(0.2), lineWidth: AppLineWidth.heavy)
                 .frame(width: 44, height: 44)
 
             Circle()
                 .trim(from: 0, to: rate)
-                .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: AppLineWidth.heavy, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .frame(width: 44, height: 44)
 

@@ -146,7 +146,7 @@ struct ChatBubbleView: View {
 
     @ViewBuilder
     private var contentBubble: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) { // design-system-exempt: zero spacing for tight packing
             Group {
                 if message.content.isEmpty && message.isStreaming {
                     // Shimmer loading placeholder while waiting for first token
@@ -154,7 +154,7 @@ struct ChatBubbleView: View {
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.md)
                 } else {
-                    HStack(alignment: .bottom, spacing: 0) {
+                    HStack(alignment: .bottom, spacing: 0) { // design-system-exempt: zero spacing for tight packing
                         Markdown(message.content)
                             .markdownTheme(.appDefault(isUser: message.role == .user))
                         
@@ -246,7 +246,7 @@ struct ChatBubbleView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.bubble, style: .continuous)
-                .stroke(bubbleBorderColor, lineWidth: 0.5)
+                .stroke(bubbleBorderColor, lineWidth: AppLineWidth.hairline)
         )
         .accessibilityIdentifier("messageBubble_\(message.role)")
     }
@@ -302,7 +302,7 @@ struct ChatBubbleView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.reasoning.opacity(0.1), lineWidth: 0.5)
+                        .stroke(AppColors.reasoning.opacity(0.1), lineWidth: AppLineWidth.hairline)
                 )
             }
             .buttonStyle(.plain)
@@ -380,7 +380,7 @@ struct ChatBubbleView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.toolAction.opacity(0.1), lineWidth: 0.5)
+                        .stroke(AppColors.toolAction.opacity(0.1), lineWidth: AppLineWidth.hairline)
                 )
             }
             .buttonStyle(.plain)
@@ -392,7 +392,7 @@ struct ChatBubbleView: View {
             if expandedToolCall == event.id {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
                     if !event.arguments.isEmpty {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text("Input")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.textTertiary)
@@ -402,7 +402,7 @@ struct ChatBubbleView: View {
                                 .textSelection(.enabled)
                         }
                     }
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                         Text("Output")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
@@ -442,7 +442,7 @@ struct ChatBubbleView: View {
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .stroke(AppColors.border, lineWidth: 0.5)
+                                    .stroke(AppColors.border, lineWidth: AppLineWidth.hairline)
                             )
                     }
                     #elseif os(macOS)
@@ -454,7 +454,7 @@ struct ChatBubbleView: View {
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .stroke(AppColors.border, lineWidth: 0.5)
+                                    .stroke(AppColors.border, lineWidth: AppLineWidth.hairline)
                             )
                     }
                     #endif
@@ -473,7 +473,7 @@ struct ChatBubbleView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentPrimary.opacity(0.12), lineWidth: 0.5)
+                            .stroke(AppColors.accentPrimary.opacity(0.12), lineWidth: AppLineWidth.hairline)
                     )
                 }
             }
@@ -488,7 +488,7 @@ struct ChatBubbleView: View {
 
         HStack(spacing: AppSpacing.md) {
             // Decode speed — the hero metric
-            HStack(spacing: 3) {
+            HStack(spacing: AppSpacing.xxs) {
                 Image(systemName: "bolt.fill")
                     .font(AppIconSize.xxs)
                     .foregroundStyle(tier.color)
@@ -498,7 +498,7 @@ struct ChatBubbleView: View {
             }
 
             // TTFT
-            HStack(spacing: 3) {
+            HStack(spacing: AppSpacing.xxs) {
                 Image(systemName: "timer")
                     .font(AppIconSize.xxs)
                 Text(String(format: "%.2fs", benchmark.timeToFirstToken))
@@ -507,7 +507,7 @@ struct ChatBubbleView: View {
             .foregroundStyle(AppColors.textTertiary)
 
             // Token count
-            HStack(spacing: 3) {
+            HStack(spacing: AppSpacing.xxs) {
                 Text("\(benchmark.tokenCount)")
                     .font(AppTypography.metric)
                 Text("tok")
@@ -521,7 +521,7 @@ struct ChatBubbleView: View {
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .stroke(tier.color.opacity(0.1), lineWidth: 0.5)
+                .stroke(tier.color.opacity(0.1), lineWidth: AppLineWidth.hairline)
         )
         .accessibilityIdentifier("benchmarkBadge_\(message.id)")
         .accessibilityLabel("Performance: \(String(format: "%.1f", benchmark.decodeTokensPerSecond)) tokens per second, \(tier.label)")

@@ -188,7 +188,7 @@ private struct BadgePill: View {
                         badge.isSupported
                             ? badge.color.opacity(0.3)
                             : badge.color.opacity(0.1),
-                        lineWidth: 0.5
+                        lineWidth: AppLineWidth.hairline
                     )
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)

@@ -346,7 +346,7 @@ struct SidebarView: View {
                 ProgressView()
                     .controlSize(.small)
                     .accessibilityIdentifier("sidebar_activeModel_spinner")
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(viewModel.activeModelMetadata?.name ?? "Loading model…")
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
@@ -365,7 +365,7 @@ struct SidebarView: View {
                     .fill(AppColors.success)
                     .frame(width: 8, height: 8)
                     .glow(AppColors.success, radius: 6, opacity: 0.5)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(metadata.name)
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
@@ -385,7 +385,7 @@ struct SidebarView: View {
                     .fill(AppColors.success)
                     .frame(width: 8, height: 8)
                     .glow(AppColors.success, radius: 6, opacity: 0.5)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(modelName)
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
@@ -441,7 +441,7 @@ struct SidebarView: View {
 
             switch state {
             case .downloading(let progress):
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     ProgressView(value: progress)
                         .tint(AppColors.accentPrimary)
                         .accessibilityLabel("Downloading, \(Int(progress * 100)) percent")
@@ -463,7 +463,7 @@ struct SidebarView: View {
                 }
 
             case .downloadingDirectory(let progress, let completed, let total):
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     ProgressView(value: progress)
                         .tint(AppColors.accentSecondary)
                     HStack {
@@ -504,7 +504,7 @@ struct SidebarView: View {
                 }
 
             case .paused(_, let progress):
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     ProgressView(value: progress)
                         .tint(AppColors.warning)
                     HStack {
@@ -610,7 +610,7 @@ struct SidebarView: View {
         .contentShape(Rectangle())
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .strokeBorder(isActive ? AppColors.accentPrimary.opacity(0.4) : .clear, lineWidth: 1)
+                .strokeBorder(isActive ? AppColors.accentPrimary.opacity(0.4) : .clear, lineWidth: AppLineWidth.regular)
         )
         .contextMenu {
             Button {

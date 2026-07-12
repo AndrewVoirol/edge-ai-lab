@@ -146,7 +146,7 @@ struct ModelShowcaseView: View {
                 .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textSecondary)
 
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
                 if let url = fileURL {
                     specRow(label: "Location", value: url.path)
                 }
@@ -194,7 +194,7 @@ struct ModelShowcaseView: View {
                     Image(systemName: fits ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .font(AppIconSize.lg)
                         .foregroundStyle(fits ? AppColors.success : AppColors.warning)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                         Text(fits ? "This model should fit your device" : "This model may not fit — limited memory")
                             .font(AppTypography.subtitle)
                             .foregroundStyle(AppColors.textPrimary)

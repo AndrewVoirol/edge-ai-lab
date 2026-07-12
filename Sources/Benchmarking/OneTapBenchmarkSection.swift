@@ -65,7 +65,7 @@ struct OneTapBenchmarkSection: View {
                     .fill(AppColors.accentPrimary.opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .strokeBorder(AppColors.accentPrimary.opacity(0.3), lineWidth: 1)
+                            .strokeBorder(AppColors.accentPrimary.opacity(0.3), lineWidth: AppLineWidth.regular)
                     )
             )
             .foregroundStyle(AppColors.accentPrimary)

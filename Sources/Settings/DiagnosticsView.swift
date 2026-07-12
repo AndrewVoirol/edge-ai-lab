@@ -31,7 +31,7 @@ struct DiagnosticsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
                 headerSection
                 engineStateSection
                 runtimeFlagsSection
@@ -57,7 +57,7 @@ struct DiagnosticsView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text("Engine Diagnostics")
                 .font(AppTypography.sectionTitle)
                 .accessibilityIdentifier("diagnosticsTitle")
@@ -71,7 +71,7 @@ struct DiagnosticsView: View {
 
     private var engineStateSection: some View {
         GroupBox("Engine State") {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 diagnosticRow("Status", value: viewModel.isGenerating ? "Generating…" : (viewModel.isLoadingModel ? "Loading Model…" : (viewModel.isEngineReady ? "Ready" : "Not Loaded")),
                               status: viewModel.isEngineReady ? .ok : .warning)
 
@@ -99,7 +99,7 @@ struct DiagnosticsView: View {
     private var runtimeFlagsSection: some View {
         GroupBox("Runtime Flags (as sent to engine)") {
             let flags = viewModel.runtimeFlags
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                 flagRow("Thinking Mode", enabled: flags.enableThinking, key: "enableThinking")
                 flagRow("Speculative Decoding (MTP)", enabled: flags.enableSpeculativeDecoding == true, key: "enableSpeculativeDecoding",
                         detail: flags.enableSpeculativeDecoding == nil ? "(nil → engine default)" : nil)
@@ -120,7 +120,7 @@ struct DiagnosticsView: View {
 
     private var samplerSection: some View {
         GroupBox("Sampler Configuration") {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                 diagnosticRow("Temperature", value: String(format: "%.2f", viewModel.temperature))
                 diagnosticRow("Top-K", value: "\(viewModel.topK)")
                 diagnosticRow("Top-P", value: String(format: "%.2f", viewModel.topP))
@@ -138,7 +138,7 @@ struct DiagnosticsView: View {
     private var modelCapabilitiesSection: some View {
         GroupBox("Model Capabilities (from metadata)") {
             if let metadata = viewModel.activeModelMetadata {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                     capabilityRow("Vision", supported: metadata.supportsImage)
                     capabilityRow("Audio", supported: metadata.supportsAudio)
                     capabilityRow("Thinking", supported: metadata.capabilities.contains("llm_thinking"))
@@ -162,7 +162,7 @@ struct DiagnosticsView: View {
 
     private var compatibilitySection: some View {
         GroupBox("Configuration Compatibility") {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                 let flags = viewModel.runtimeFlags
                 let metadata = viewModel.activeModelMetadata
 
@@ -209,7 +209,7 @@ struct DiagnosticsView: View {
 
     private var diagnosticTestSection: some View {
         GroupBox("Run Diagnostic") {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text("Send a test prompt and observe engine behavior. Results show what actually happened during inference.")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -236,7 +236,7 @@ struct DiagnosticsView: View {
 
     private func diagnosticResultSection(_ result: DiagnosticResult) -> some View {
         GroupBox("Diagnostic Result") {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                 diagnosticRow("Prompt", value: result.prompt)
                 diagnosticRow("Response Length", value: "\(result.responseLength) chars")
                 diagnosticRow("Think Tags Present", value: result.hasThinkTags ? "Yes" : "No",
@@ -328,7 +328,7 @@ struct DiagnosticsView: View {
     }
 
     private func conflictRow(_ title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(title)
                 .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.warning)

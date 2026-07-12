@@ -21,7 +21,7 @@ struct AgentStatusView: View {
     let harness: AgentHarness
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
             statusHeader
 
             if harness.isRunning {
@@ -38,7 +38,7 @@ struct AgentStatusView: View {
         }
         .padding(AppSpacing.lg)
         .background(AppColors.backgroundSecondary.opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.standard))
         .accessibilityIdentifier("agentStatusView")
     }
 
@@ -46,7 +46,7 @@ struct AgentStatusView: View {
 
     @ViewBuilder
     private var statusHeader: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: AppSpacing.sm) {
             statusIcon
             statusText
             Spacer()
@@ -133,9 +133,9 @@ struct AgentStatusView: View {
             "Reasoning trace (\(harness.steps.count) steps)",
             isExpanded: $isTraceExpanded
         ) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 ForEach(harness.steps) { step in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         HStack {
                             Text("Step \(step.iteration + 1)")
                                 .font(AppTypography.sectionHeader)

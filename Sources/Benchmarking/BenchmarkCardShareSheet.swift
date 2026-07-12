@@ -33,7 +33,7 @@ struct BenchmarkCardShareSheet: View {
     @State private var showShareActions = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Title bar
             HStack {
                 Text("Share Benchmark")
@@ -74,7 +74,7 @@ struct BenchmarkCardShareSheet: View {
                             width: selectedSize.width * cardScale,
                             height: selectedSize.height * cardScale
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
                         .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
                         .padding(.top, AppSpacing.md)
 
@@ -303,7 +303,7 @@ struct BenchmarkCardShareSheet: View {
                 .fill(color.opacity(0.08))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.md)
-                        .stroke(color.opacity(0.15), lineWidth: 0.5)
+                        .stroke(color.opacity(0.15), lineWidth: AppLineWidth.hairline)
                 )
         )
     }

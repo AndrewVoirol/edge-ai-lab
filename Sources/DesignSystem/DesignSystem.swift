@@ -251,8 +251,12 @@ enum AppSpacing {
 // MARK: - Corner Radius
 
 enum AppRadius {
+    /// Extra-small corners (inline chips, tight controls).
+    static let xs: CGFloat = 4
     static let sm: CGFloat = 6
     static let md: CGFloat = 10
+    /// Standard panel/card corners.
+    static let standard: CGFloat = 12
     static let lg: CGFloat = 16
     static let xl: CGFloat = 20
     /// Shareable image cards (Open Graph export, benchmark cards).
@@ -261,6 +265,22 @@ enum AppRadius {
     static let bubble: CGFloat = 18
     /// Full pill shape.
     static let pill: CGFloat = 100
+}
+
+// MARK: - Line Width
+
+/// Semantic stroke widths for borders, dividers, and outlines.
+enum AppLineWidth {
+    /// Hairline dividers and subtle separators.
+    static let hairline: CGFloat = 0.5
+    /// Standard borders and outlines.
+    static let regular: CGFloat = 1
+    /// Slightly emphasized borders (e.g., active states).
+    static let medium: CGFloat = 1.5
+    /// Thick borders for strong emphasis.
+    static let thick: CGFloat = 2
+    /// Heavy strokes (e.g., progress ring tracks).
+    static let heavy: CGFloat = 3
 }
 
 /// Dynamic Type–aware icon sizing for SF Symbols.

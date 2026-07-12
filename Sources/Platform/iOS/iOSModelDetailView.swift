@@ -173,7 +173,7 @@ struct iOSModelDetailView: View {
                     .fill(isActiveModel ? AppColors.accentPrimary.opacity(0.12) : AppColors.backgroundTertiary)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .stroke(isActiveModel ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: 0.5)
+                            .stroke(isActiveModel ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: AppLineWidth.hairline)
                     )
 
                 VStack(spacing: AppSpacing.sm) {
@@ -653,7 +653,7 @@ struct iOSModelDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.lg)
-                .stroke(AppColors.border, lineWidth: 0.5)
+                .stroke(AppColors.border, lineWidth: AppLineWidth.hairline)
         )
     }
 
@@ -692,11 +692,11 @@ struct iOSModelDetailView: View {
     }
 
     private func metricDisplay(label: String, value: String, unit: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(label)
                 .font(AppTypography.badge)
                 .foregroundStyle(AppColors.textTertiary)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xxs) {
                 Text(value)
                     .font(AppTypography.metricLarge)
                     .foregroundStyle(color)

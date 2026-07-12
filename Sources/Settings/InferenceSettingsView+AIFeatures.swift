@@ -94,13 +94,13 @@ extension InferenceSettingsView {
                 .help("Enable built-in agent skills: Wikipedia search and Apple Maps rendering. Requires internet connection.")
                 .accessibilityIdentifier("toggle_enableAgentSkills")
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text("Available Tools (\(toolDisplayItems.count))")
                         .font(AppTypography.caption)
                         .fontWeight(.semibold)
 
                     ForEach(toolDisplayItems, id: \.name) { item in
-                        HStack(spacing: 6) {
+                        HStack(spacing: AppSpacing.listRowVertical) {
                             Image(systemName: "wrench.fill")
                                 .font(AppIconSize.xxs)
                                 .foregroundStyle(AppColors.toolAction)
@@ -139,9 +139,9 @@ extension InferenceSettingsView {
         if viewModel.runtimeFlags.enableToolCalling {
             Section {
                 ForEach(viewModel.mcpServers) { config in
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                                 Text(config.name)
                                     .fontWeight(.medium)
                                 if expandedServerID != config.id {
@@ -156,7 +156,7 @@ extension InferenceSettingsView {
 
                             // State Indicator
                             let state = viewModel.getMCPClientState(for: config.id)
-                            HStack(spacing: 4) {
+                            HStack(spacing: AppSpacing.xs) {
                                 Circle()
                                     .frame(width: 8, height: 8)
                                     .foregroundStyle(statusColor(for: state))
@@ -179,7 +179,7 @@ extension InferenceSettingsView {
 
                         if expandedServerID == config.id {
                             // Inline Editor
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                                 TextField("Name", text: Binding(
                                     get: { config.name },
                                     set: { var new = config; new.name = $0; viewModel.updateMCPServerConfig(new) }
@@ -219,7 +219,7 @@ extension InferenceSettingsView {
                                     ))
                                     .frame(minHeight: 60)
                                     .font(AppTypography.mono)
-                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(AppColors.textSecondary.opacity(0.5), lineWidth: 0.5))
+                                    .overlay(RoundedRectangle(cornerRadius: AppRadius.xs).stroke(AppColors.textSecondary.opacity(0.5), lineWidth: AppLineWidth.hairline))
                                 }
 
                                 HStack {
@@ -238,13 +238,13 @@ extension InferenceSettingsView {
                             // Tools list if connected
                             let tools = viewModel.getMCPTools(for: config.id)
                             if !tools.isEmpty {
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                     Text("Registered Tools:")
                                         .font(AppTypography.badge)
                                         .fontWeight(.semibold)
                                         .foregroundStyle(AppColors.textSecondary)
                                     ForEach(tools, id: \.name) { tool in
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: AppSpacing.xs) {
                                             Image(systemName: "circle.grid.cross.fill")
                                                 .font(AppIconSize.xxs)
                                                 .foregroundStyle(AppColors.accentPrimary)

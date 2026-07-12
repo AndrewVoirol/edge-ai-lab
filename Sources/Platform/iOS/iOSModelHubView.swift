@@ -406,7 +406,7 @@ struct iOSModelHubView: View {
                     .fill(formatColor(format).opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(formatColor(format).opacity(0.3), lineWidth: 0.5)
+                            .stroke(formatColor(format).opacity(0.3), lineWidth: AppLineWidth.hairline)
                     )
                 Image(systemName: format == .mlx ? "cpu" : "shippingbox")
                     .font(AppIconSize.md)
@@ -415,7 +415,7 @@ struct iOSModelHubView: View {
             .frame(width: 36, height: 36)
 
             // Model info
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(model.displayName)
                     .font(AppTypography.listTitle)
                     .foregroundStyle(AppColors.textPrimary)
@@ -543,7 +543,7 @@ struct iOSModelHubView: View {
                     .fill(AppColors.accentPrimary.opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentPrimary.opacity(0.3), lineWidth: 0.5)
+                            .stroke(AppColors.accentPrimary.opacity(0.3), lineWidth: AppLineWidth.hairline)
                     )
                 Image(systemName: "bolt.fill")
                     .font(AppIconSize.lg)
@@ -552,7 +552,7 @@ struct iOSModelHubView: View {
             .frame(width: 40, height: 40)
             .pulsingGlow(AppColors.accentPrimary)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
                     .foregroundStyle(AppColors.accentPrimary)

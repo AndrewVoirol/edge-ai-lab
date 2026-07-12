@@ -107,7 +107,7 @@ struct ShareActionView: View {
                             .foregroundStyle(AppColors.accentPrimary)
                             .frame(width: 32)
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text("Share Image")
                                 .font(AppTypography.subtitle)
                                 .foregroundStyle(AppColors.textPrimary)
@@ -166,7 +166,7 @@ struct ShareActionView: View {
                     .foregroundStyle(copiedItem == copiedKey ? AppColors.success : AppColors.textSecondary)
                     .frame(width: 32)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(copiedItem == copiedKey ? "Copied!" : label)
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)

@@ -49,7 +49,7 @@ struct EvalBenchmarkCard: View {
     var body: some View {
         ZStack {
             // Background — same layered dark forest as BenchmarkCardView
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 24) // design-system-exempt: image export card
                 .fill(
                     LinearGradient(
                         colors: [
@@ -63,7 +63,7 @@ struct EvalBenchmarkCard: View {
                 )
 
             // Subtle gradient overlay
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 24) // design-system-exempt: image export card
                 .fill(
                     RadialGradient(
                         colors: [
@@ -77,7 +77,7 @@ struct EvalBenchmarkCard: View {
                 )
 
             // Card content
-            VStack(spacing: 0) {
+            VStack(spacing: 0) { // design-system-exempt: image export card
                 topSection
                 Spacer()
                 centerSection
@@ -87,7 +87,7 @@ struct EvalBenchmarkCard: View {
             .padding(40) // design-system-exempt: large card export padding
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: 24)) // design-system-exempt: image export card
         .accessibilityIdentifier("evalBenchmarkCard_root")
     }
 
@@ -95,14 +95,14 @@ struct EvalBenchmarkCard: View {
 
     private var topSection: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) { // design-system-exempt: image export card
                 // Suite name
                 Text(data.suiteName)
                     .font(.system(size: 32, weight: .bold)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(AppColors.textPrimary)
 
                 // Category badge
-                HStack(spacing: 8) {
+                HStack(spacing: 8) { // design-system-exempt: image export card
                     Image(systemName: data.category.symbolName)
                         .font(AppIconSize.sm)
                     Text(data.category.displayName)
@@ -130,12 +130,12 @@ struct EvalBenchmarkCard: View {
     // MARK: - Center Section
 
     private var centerSection: some View {
-        HStack(spacing: 48) {
+        HStack(spacing: 48) { // design-system-exempt: image export card
             // Pass rate ring
             passRateRing
 
             // Model results summary
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) { // design-system-exempt: image export card
                 ForEach(data.modelSummaries) { summary in
                     modelSummaryRow(summary)
                 }
@@ -149,16 +149,16 @@ struct EvalBenchmarkCard: View {
 
         return ZStack {
             Circle()
-                .stroke(color.opacity(0.15), lineWidth: 10)
+                .stroke(color.opacity(0.15), lineWidth: 10) // design-system-exempt: progress ring track
                 .frame(width: 160, height: 160)
 
             Circle()
                 .trim(from: 0, to: data.overallPassRate)
-                .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: 10, lineCap: .round)) // design-system-exempt: progress ring track
                 .rotationEffect(.degrees(-90))
                 .frame(width: 160, height: 160)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 4) { // design-system-exempt: image export card
                 Text("\(percent)")
                     .font(.system(size: 48, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(color)
@@ -172,13 +172,13 @@ struct EvalBenchmarkCard: View {
     }
 
     private func modelSummaryRow(_ summary: EvalBenchmarkCardData.ModelSummary) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) { // design-system-exempt: image export card
             Text(summary.modelName)
                 .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(1)
 
-            HStack(spacing: 20) {
+            HStack(spacing: 20) { // design-system-exempt: image export card
                 metricPill(
                     label: "Pass",
                     value: String(format: "%.0f%%", summary.passRate * 100),
@@ -202,13 +202,13 @@ struct EvalBenchmarkCard: View {
 
     // design-system-exempt — fixed-size font for image-export card
     private func metricPill(label: String, value: String, unit: String = "", color: Color) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 2) { // design-system-exempt: image export card
             if unit.isEmpty {
                 Text(value)
                     .font(AppTypography.metricLarge)
                     .foregroundStyle(color)
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) { // design-system-exempt: image export card
                     Text(value)
                         .font(AppTypography.metricLarge)
                         .foregroundStyle(color)
@@ -228,7 +228,7 @@ struct EvalBenchmarkCard: View {
     private var bottomSection: some View {
         HStack {
             // Device info
-            HStack(spacing: 12) {
+            HStack(spacing: 12) { // design-system-exempt: image export card
                 Image(systemName: "desktopcomputer")
                     .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.textTertiary)
@@ -245,7 +245,7 @@ struct EvalBenchmarkCard: View {
             Spacer()
 
             // Branding
-            HStack(spacing: 8) {
+            HStack(spacing: 8) { // design-system-exempt: image export card
                 Image(systemName: "flask.fill")
                     .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.accentPrimary)
@@ -319,7 +319,7 @@ struct EvalBenchmarkCardShareSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Title bar
             HStack {
                 Text("Share Eval Results")
@@ -347,7 +347,7 @@ struct EvalBenchmarkCardShareSheet: View {
                             width: EvalBenchmarkCard.cardWidth * 0.5,
                             height: EvalBenchmarkCard.cardHeight * 0.5
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
                         .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
                         .padding(.top, AppSpacing.xl)
 
@@ -414,7 +414,7 @@ struct EvalBenchmarkCardShareSheet: View {
                     .fill(color.opacity(0.08))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(color.opacity(0.15), lineWidth: 0.5)
+                            .stroke(color.opacity(0.15), lineWidth: AppLineWidth.hairline)
                     )
             )
         }

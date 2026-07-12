@@ -25,9 +25,9 @@ struct AgentApprovalView: View {
     @Binding var autoApproveAll: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
             // Header
-            HStack(spacing: 10) {
+            HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "exclamationmark.shield.fill")
                     .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.warning)
@@ -40,7 +40,7 @@ struct AgentApprovalView: View {
             Divider()
 
             // Tool info
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack {
                     Text("Tool:")
                         .font(AppTypography.sectionHeader)
@@ -89,7 +89,7 @@ struct AgentApprovalView: View {
             Divider()
 
             // Action buttons
-            HStack(spacing: 12) {
+            HStack(spacing: AppSpacing.md) {
                 Button(action: onDeny) {
                     Text("Deny")
                         .frame(maxWidth: .infinity)
@@ -112,7 +112,7 @@ struct AgentApprovalView: View {
         .padding(AppSpacing.xl)
         .frame(minWidth: 320)
         .background(AppColors.backgroundSecondary)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
         .accessibilityIdentifier("agentApprovalView")
     }
 }

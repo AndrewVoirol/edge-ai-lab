@@ -492,7 +492,7 @@ private struct ModelDetailPanel: View {
                 .foregroundStyle(iconColor)
                 .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(title)
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textPrimary)
@@ -576,7 +576,7 @@ private struct ExperimentDetailView: View {
                     Image(systemName: "archivebox.fill")
                         .font(AppIconSize.lg)
                         .foregroundStyle(AppColors.accentSecondary)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                         Text(activeEntry?.title ?? "Archived Experiment")
                             .font(AppTypography.sectionTitle)
                             .foregroundStyle(AppColors.textPrimary)
@@ -615,7 +615,7 @@ private struct ExperimentDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.accentPrimary.opacity(0.4), lineWidth: 1)
+                            .stroke(AppColors.accentPrimary.opacity(0.4), lineWidth: AppLineWidth.regular)
                     )
                 }
                 .buttonStyle(.plain)

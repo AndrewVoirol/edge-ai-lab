@@ -77,7 +77,7 @@ struct ConfigProofView: View {
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .stroke(proofColor.opacity(0.1), lineWidth: 0.5)
+                    .stroke(proofColor.opacity(0.1), lineWidth: AppLineWidth.hairline)
             )
         }
         .buttonStyle(.plain)
@@ -90,7 +90,7 @@ struct ConfigProofView: View {
     /// Compact feature pills — only shows what's ON, keeping visual noise minimal.
     @ViewBuilder
     private var featurePills: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xs) {
             if let engine = snapshot.runtimeType {
                 configChip(engine, color: AppColors.textTertiary)
             }
@@ -181,7 +181,7 @@ struct ConfigProofView: View {
 
     @ViewBuilder
     private func configSection(_ title: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .bold, design: .rounded)) // design-system-exempt: fixed for compact section headers
                 .foregroundStyle(proofColor.opacity(0.5))

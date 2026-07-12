@@ -294,7 +294,7 @@ struct iOSSuiteEditorSheet: View {
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
                                         isSelected ? AppColors.accentPrimary.opacity(0.4) : AppColors.border,
-                                        lineWidth: 1
+                                        lineWidth: AppLineWidth.regular
                                     )
                             )
                         }
@@ -450,7 +450,7 @@ struct iOSSuiteEditorSheet: View {
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
                     isEditing ? AppColors.accentPrimary.opacity(0.3) : Color.clear,
-                    lineWidth: 1
+                    lineWidth: AppLineWidth.regular
                 )
         )
         .accessibilityIdentifier("suiteEditor_promptRow_\(index)")
@@ -538,7 +538,7 @@ struct iOSSuiteEditorSheet: View {
                                 Capsule()
                                     .stroke(
                                         isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border,
-                                        lineWidth: 0.5
+                                        lineWidth: AppLineWidth.hairline
                                     )
                             )
                     }

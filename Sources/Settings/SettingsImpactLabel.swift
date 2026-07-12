@@ -83,7 +83,7 @@ private struct ImpactPill: View {
     let area: ImpactArea
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: AppSpacing.xxs) {
             Image(systemName: area.symbolName)
                 .font(AppIconSize.xxs)
             Text(area.rawValue)

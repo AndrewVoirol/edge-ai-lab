@@ -119,7 +119,7 @@ struct iOSChatTabView: View {
 
     /// The full chat interface shown when a model is loaded or loading.
     private var activeChatContent: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Conversation area — chat bubbles
             ConversationAreaView()
                 .frame(maxHeight: .infinity)
@@ -226,7 +226,7 @@ struct iOSChatTabView: View {
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1
+                                lineWidth: AppLineWidth.regular
                             )
                     )
                     .shadow(color: AppColors.accentPrimary.opacity(0.2), radius: 20, x: 0, y: 4)

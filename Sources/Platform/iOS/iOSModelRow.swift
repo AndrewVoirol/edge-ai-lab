@@ -75,7 +75,7 @@ struct iOSModelRow: View {
                 .accessibilityIdentifier("modelRow_icon_\(metadata.modelFile)")
 
             // Center: Title, subtitle, capabilities
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 // Model name
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
@@ -133,7 +133,7 @@ struct iOSModelRow: View {
                 .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : AppColors.backgroundTertiary)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: 0.5)
+                        .stroke(isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: AppLineWidth.hairline)
                 )
 
             Image(systemName: iconName)
@@ -181,7 +181,7 @@ struct iOSModelRow: View {
     // MARK: - Download Progress
 
     private func downloadProgressRow(progress: Double) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             ProgressView(value: progress, total: 1.0)
                 .tint(AppColors.accentPrimary)
                 .accessibilityIdentifier("modelRow_progress_\(metadata.modelFile)")
@@ -221,7 +221,7 @@ struct iOSModelRow: View {
     // MARK: - Queued Row
 
     private func queuedRow(position: Int) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppSpacing.xs) {
             Image(systemName: "clock")
                 .font(AppIconSize.xxs)
                 .foregroundStyle(AppColors.textTertiary)
@@ -234,10 +234,10 @@ struct iOSModelRow: View {
     // MARK: - Paused Row
 
     private func pausedRow(progress: Double) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             ProgressView(value: progress, total: 1.0)
                 .tint(AppColors.warning)
-            HStack(spacing: 4) {
+            HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "pause.fill")
                     .font(AppIconSize.xxs)
                     .foregroundStyle(AppColors.warning)
@@ -274,7 +274,7 @@ struct iOSModelRow: View {
             } label: {
                 ZStack {
                     Circle()
-                        .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: 2)
+                        .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: AppLineWidth.thick)
                     Image(systemName: "stop.fill")
                         .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.accentPrimary)
@@ -298,7 +298,7 @@ struct iOSModelRow: View {
             Button {
                 onRetryTap?()
             } label: {
-                VStack(spacing: 2) {
+                VStack(spacing: AppSpacing.xxs) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .font(AppIconSize.lg)
                         .foregroundStyle(AppColors.destructive)

@@ -37,7 +37,7 @@ struct InputAreaView: View {
 
     var body: some View {
         @Bindable var viewModel = viewModel
-        VStack(spacing: 0) {
+        VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             // Archive mode banner
             if viewModel.isViewingArchivedConversation {
                 HStack(spacing: AppSpacing.sm) {
@@ -279,7 +279,7 @@ struct InputAreaView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.lg)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
+                .stroke(AppColors.border.opacity(0.3), lineWidth: AppLineWidth.hairline)
         )
         .shadow(color: AppColors.backgroundPrimary.opacity(0.5), radius: 8, y: -2)
         .onAppear {

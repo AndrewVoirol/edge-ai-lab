@@ -39,14 +39,14 @@ struct ModelCapabilityCard: View {
                     .foregroundStyle(AppColors.accentPrimary)
                     .symbolEffect(.pulse, isActive: !appeared)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(metadata.name)
                         .font(AppTypography.cardTitle)
                         .foregroundStyle(AppColors.textPrimary)
 
                     HStack(spacing: AppSpacing.xs) {
                         if let backend = backendResult {
-                            HStack(spacing: 3) {
+                            HStack(spacing: AppSpacing.xxs) {
                                 Circle()
                                     .fill(backend.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                                     .frame(width: 6, height: 6)
