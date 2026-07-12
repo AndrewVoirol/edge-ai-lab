@@ -90,8 +90,8 @@ private struct ImpactPill: View {
                 .font(AppTypography.badge)
         }
         .foregroundStyle(pillColor)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
+        .padding(.horizontal, AppSpacing.xs)
+        .padding(.vertical, AppSpacing.xxs)
         .background(
             Capsule()
                 .fill(pillColor.opacity(0.1))

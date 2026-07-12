@@ -383,7 +383,7 @@ struct EvalComparisonView: View {
                 .font(AppIconSize.md)
                 .foregroundStyle(result.passed ? AppColors.success : AppColors.destructive)
                 .frame(width: 24, alignment: .center)
-                .padding(.top, 2)
+                .padding(.top, AppSpacing.xxs)
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(result.promptText)

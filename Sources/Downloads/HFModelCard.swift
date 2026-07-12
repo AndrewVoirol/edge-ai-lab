@@ -138,7 +138,7 @@ struct HFModelCard: View {
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.accentPrimary)
                     .padding(.horizontal, AppSpacing.sm)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, AppSpacing.xxs)
                     .background(AppColors.accentPrimary.opacity(0.15))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             }
@@ -182,7 +182,7 @@ struct HFModelCard: View {
             .font(AppTypography.badge)
             .foregroundStyle(color)
             .padding(.horizontal, AppSpacing.sm)
-            .padding(.vertical, 2)
+            .padding(.vertical, AppSpacing.xxs)
             .background(color.opacity(0.15))
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
     }

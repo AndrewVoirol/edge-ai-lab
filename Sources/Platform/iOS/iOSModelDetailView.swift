@@ -662,7 +662,7 @@ struct iOSModelDetailView: View {
             .font(AppTypography.badge)
             .foregroundStyle(enabled ? color : AppColors.textTertiary)
             .padding(.horizontal, AppSpacing.sm)
-            .padding(.vertical, 5)
+            .padding(.vertical, AppSpacing.xs)
             .background(enabled ? color.opacity(0.12) : AppColors.backgroundTertiary)
             .clipShape(Capsule())
             .opacity(enabled ? 1.0 : 0.5)

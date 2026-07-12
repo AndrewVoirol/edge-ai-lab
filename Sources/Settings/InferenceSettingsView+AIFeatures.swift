@@ -86,7 +86,7 @@ extension InferenceSettingsView {
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.warning)
                             .padding(.horizontal, AppSpacing.xs)
-                            .padding(.vertical, 1)
+                            .padding(.vertical, AppSpacing.xxs)
                             .background(AppColors.warning.opacity(0.15))
                             .clipShape(Capsule())
                     }
@@ -258,7 +258,7 @@ extension InferenceSettingsView {
                                         }
                                     }
                                 }
-                                .padding(.leading, 8)
+                                .padding(.leading, AppSpacing.sm)
                             }
 
                             // Edit & Delete button
@@ -282,7 +282,7 @@ extension InferenceSettingsView {
                             }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, AppSpacing.xs)
                 }
 
                 Button(action: {

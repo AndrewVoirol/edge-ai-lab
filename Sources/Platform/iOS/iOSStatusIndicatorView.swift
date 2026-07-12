@@ -112,8 +112,8 @@ struct iOSStatusIndicatorView: View {
                 Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                     .font(AppTypography.badge)
                     .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, AppSpacing.xs)
+                    .padding(.vertical, AppSpacing.xxs)
                     .background(
                         (result.activeBackend == .gpu ? AppColors.success : AppColors.warning).opacity(0.12)
                     )

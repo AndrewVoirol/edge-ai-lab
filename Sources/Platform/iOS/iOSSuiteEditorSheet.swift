@@ -493,7 +493,7 @@ struct iOSSuiteEditorSheet: View {
                     .keyboardType(.numberPad)
                     .frame(width: 60)
                     .padding(.horizontal, AppSpacing.xs)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, AppSpacing.xs)
                     .background(AppColors.backgroundTertiary)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     .accessibilityIdentifier("suiteEditor_timeoutField_\(index)")
@@ -529,7 +529,7 @@ struct iOSSuiteEditorSheet: View {
                             .font(AppTypography.badge)
                             .foregroundStyle(isActive ? AppColors.textPrimary : AppColors.textTertiary)
                             .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, 4)
+                            .padding(.vertical, AppSpacing.xs)
                             .background(
                                 Capsule()
                                     .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)

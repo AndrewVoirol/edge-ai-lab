@@ -94,8 +94,8 @@ struct CanvasPanelView: View {
                 Text(lang.uppercased())
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.accentSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, AppSpacing.sm)
+                    .padding(.vertical, AppSpacing.xxs)
                     .background(AppColors.accentSecondary.opacity(0.12))
                     .clipShape(Capsule())
             }

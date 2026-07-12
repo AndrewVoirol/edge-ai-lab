@@ -758,7 +758,7 @@ private struct SidebarModelRow: View {
                         .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, AppSpacing.xxs)
                         .background(AppColors.accentPrimary.opacity(0.1))
                         .clipShape(Capsule())
                 }

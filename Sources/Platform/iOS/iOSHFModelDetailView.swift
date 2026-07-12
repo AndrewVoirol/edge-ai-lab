@@ -196,7 +196,7 @@ struct iOSHFModelDetailView: View {
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.textSecondary)
                             .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, 3)
+                            .padding(.vertical, AppSpacing.xxs)
                             .background(AppColors.backgroundTertiary.opacity(0.6))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                             .accessibilityIdentifier("hfDetail_tag_\(tag)")

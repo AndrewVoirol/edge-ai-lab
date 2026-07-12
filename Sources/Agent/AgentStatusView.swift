@@ -36,7 +36,7 @@ struct AgentStatusView: View {
                 cancelButton
             }
         }
-        .padding(16)
+        .padding(AppSpacing.lg)
         .background(AppColors.backgroundSecondary.opacity(0.8))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityIdentifier("agentStatusView")
@@ -152,7 +152,7 @@ struct AgentStatusView: View {
                                 .lineLimit(3)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, AppSpacing.xxs)
                 }
             }
         }

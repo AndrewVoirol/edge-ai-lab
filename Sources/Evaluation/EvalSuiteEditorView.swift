@@ -527,7 +527,7 @@ struct EvalSuiteEditorView: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(width: 50)
                     .padding(.horizontal, AppSpacing.xs)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, AppSpacing.xxs)
                     .background(AppColors.backgroundTertiary)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
@@ -561,7 +561,7 @@ struct EvalSuiteEditorView: View {
                         .font(AppTypography.badge)
                         .foregroundStyle(isActive ? AppColors.textPrimary : AppColors.textTertiary)
                         .padding(.horizontal, AppSpacing.sm)
-                        .padding(.vertical, 3)
+                        .padding(.vertical, AppSpacing.xxs)
                         .background(
                             Capsule()
                                 .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)

@@ -336,7 +336,7 @@ struct DiagnosticsView: View {
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSpacing.xs)
     }
 
     // MARK: - Logic

@@ -174,7 +174,7 @@ struct EvalRunnerView: View {
                     }
                 }
                 .padding(.vertical, AppSpacing.xs)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, AppSpacing.xxs)
             }
         }
         .accessibilityIdentifier("evalRunner_suitePicker")
@@ -544,7 +544,7 @@ struct EvalRunnerView: View {
                                     .foregroundStyle(AppColors.textTertiary)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, AppSpacing.xxs)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }

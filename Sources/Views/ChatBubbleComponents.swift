@@ -203,8 +203,8 @@ struct CodeBlockView: View {
                     Text(lang.uppercased())
                         .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, AppSpacing.xxs)
                         .background(AppColors.accentSecondary.opacity(0.12))
                         .clipShape(Capsule())
                 }
@@ -257,7 +257,7 @@ struct CodeBlockView: View {
                 .animation(.easeInOut(duration: 0.2), value: copied)
             }
             .padding(.horizontal, AppSpacing.md)
-            .padding(.vertical, 6)
+            .padding(.vertical, AppSpacing.listRowVertical)
             .background(Color.black.opacity(0.25)) // design-system-exempt: alpha overlay for code block header
 
             // Divider
@@ -275,7 +275,7 @@ struct CodeBlockView: View {
                                 .font(AppTypography.mono)
                                 .foregroundStyle(AppColors.textSecondary.opacity(0.7))
                                 .frame(minWidth: 28, alignment: .trailing)
-                                .padding(.vertical, 0.5)
+                                .padding(.vertical, 0.5) // design-system-exempt: sub-pixel hairline separator
                         }
                     }
                     .padding(.leading, AppSpacing.sm)
@@ -294,7 +294,7 @@ struct CodeBlockView: View {
                                 .font(AppTypography.mono)
                                 .foregroundStyle(AppColors.textPrimary)
                                 .textSelection(.enabled)
-                                .padding(.vertical, 0.5)
+                                .padding(.vertical, 0.5) // design-system-exempt: sub-pixel hairline separator
                         }
                     }
                     .padding(.horizontal, AppSpacing.md)

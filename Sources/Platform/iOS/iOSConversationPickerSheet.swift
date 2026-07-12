@@ -235,7 +235,7 @@ struct iOSConversationPickerSheet: View {
                         .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, AppSpacing.xxs)
                         .background(AppColors.accentPrimary.opacity(0.1))
                         .clipShape(Capsule())
 
@@ -244,7 +244,7 @@ struct iOSConversationPickerSheet: View {
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.accentPrimary)
                             .padding(.horizontal, AppSpacing.xs)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, AppSpacing.xxs)
                             .background(AppColors.accentPrimary.opacity(0.1))
                             .clipShape(Capsule())
                     }

@@ -64,7 +64,7 @@ struct AgentApprovalView: View {
                             .font(AppTypography.mono)
                             .foregroundStyle(AppColors.textPrimary)
                     }
-                    .padding(.leading, 8)
+                    .padding(.leading, AppSpacing.sm)
                 }
             }
             .accessibilityIdentifier("approvalToolDetails")
@@ -73,7 +73,7 @@ struct AgentApprovalView: View {
             Text("This tool may access sensitive device data. The agent needs your permission to proceed.")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
-                .padding(.vertical, 4)
+                .padding(.vertical, AppSpacing.xs)
 
             // Auto-approve toggle
             Toggle(isOn: $autoApproveAll) {
@@ -93,7 +93,7 @@ struct AgentApprovalView: View {
                 Button(action: onDeny) {
                     Text("Deny")
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppSpacing.sm)
                 }
                 .buttonStyle(.bordered)
                 .tint(AppColors.destructive)
@@ -102,14 +102,14 @@ struct AgentApprovalView: View {
                 Button(action: onApprove) {
                     Text("Approve")
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, AppSpacing.sm)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppColors.success)
                 .accessibilityIdentifier("approvalApproveButton")
             }
         }
-        .padding(20)
+        .padding(AppSpacing.xl)
         .frame(minWidth: 320)
         .background(AppColors.backgroundSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 16))

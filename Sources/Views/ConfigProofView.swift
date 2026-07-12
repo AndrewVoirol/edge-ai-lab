@@ -113,8 +113,8 @@ struct ConfigProofView: View {
         Text(text)
             .font(.system(size: 9, weight: .semibold, design: .rounded)) // design-system-exempt: fixed for compact config chips
             .foregroundStyle(color)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1)
+            .padding(.horizontal, AppSpacing.xs)
+            .padding(.vertical, AppSpacing.xxs)
             .background(color.opacity(0.1))
             .clipShape(Capsule())
     }

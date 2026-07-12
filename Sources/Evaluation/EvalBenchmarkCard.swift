@@ -84,7 +84,7 @@ struct EvalBenchmarkCard: View {
                 Spacer()
                 bottomSection
             }
-            .padding(40)
+            .padding(40) // design-system-exempt: large card export padding
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -109,8 +109,8 @@ struct EvalBenchmarkCard: View {
                         .font(AppTypography.badge)
                 }
                 .foregroundStyle(AppColors.accentPrimary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.xs)
                 .background(AppColors.accentPrimary.opacity(0.12))
                 .clipShape(Capsule())
             }
