@@ -124,3 +124,34 @@ When creating a new SwiftUI view:
 7. Layout `.frame()` values (column widths, panel sizes) stay as literals
 
 If you need a value that doesn't exist in the token catalog, add a new token to the appropriate enum in `DesignSystem.swift` with a doc comment — don't use a raw literal.
+
+## Light/Dark Palette Verification
+
+When authoring or modifying colorset values, verify WCAG AA contrast for BOTH modes:
+
+**Thresholds:**
+- Text colors (`textPrimary`, `textSecondary`, `textTertiary`): ≥ 4.5:1 ratio
+- UI components (accents, status, borders, capabilities): ≥ 3.0:1 ratio
+
+**Verify against both background tiers** per mode:
+- Light: `backgroundPrimary` (0.965, 0.960, 0.950) and `backgroundSecondary` (0.930, 0.925, 0.910)
+- Dark: `backgroundPrimary` (0.05, 0.07, 0.06) and `backgroundSecondary` (0.09, 0.12, 0.10)
+
+**Asset Catalog JSON structure:**
+```json
+{
+  "colors": [
+    {
+      "color": { "components": { "red": "0.110", "green": "0.120", "blue": "0.130", "alpha": "1.000" }, "color-space": "srgb" },
+      "idiom": "universal"
+    },
+    {
+      "appearances": [{ "appearance": "luminosity", "value": "dark" }],
+      "color": { "components": { "red": "0.910", "green": "0.870", "blue": "0.820", "alpha": "1.000" }, "color-space": "srgb" },
+      "idiom": "universal"
+    }
+  ]
+}
+```
+
+The **first entry** (no `appearances` key) is the light/universal value. The **second entry** (with `appearances: luminosity: dark`) is the dark value. Never set identical values in both — that defeats light/dark theming.
