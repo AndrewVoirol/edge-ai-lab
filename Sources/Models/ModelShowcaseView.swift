@@ -87,7 +87,7 @@ struct ModelShowcaseView: View {
             // Recommended for
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "star.fill")
-                    .font(.caption2)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.accentSecondary)
                 Text(metadata.recommendedFor)
                     .font(AppTypography.caption)
@@ -125,7 +125,7 @@ struct ModelShowcaseView: View {
     private func capabilityCard(icon: String, label: String, enabled: Bool, color: Color) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppIconSize.lg)
                 .foregroundStyle(enabled ? color : AppColors.textTertiary)
             Text(label)
                 .font(AppTypography.badge)
@@ -192,7 +192,7 @@ struct ModelShowcaseView: View {
 
                 HStack(spacing: AppSpacing.md) {
                     Image(systemName: fits ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.title2)
+                        .font(AppIconSize.lg)
                         .foregroundStyle(fits ? AppColors.success : AppColors.warning)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(fits ? "This model should fit your device" : "This model may not fit — limited memory")

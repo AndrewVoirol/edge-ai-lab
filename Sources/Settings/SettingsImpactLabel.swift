@@ -39,9 +39,9 @@ struct SettingsImpactLabel: View {
             if descriptor.reloadRequirement.requiresReload(for: currentRuntime) {
                 HStack(spacing: AppSpacing.xxs) {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 9))
+                        .font(AppIconSize.xxs)
                     Text("Reload")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(AppTypography.badge)
                 }
                 .foregroundStyle(AppColors.warning.opacity(0.8))
                 .accessibilityLabel("Requires engine reload")
@@ -56,11 +56,11 @@ struct SettingsImpactLabel: View {
         HStack(spacing: AppSpacing.xxs) {
             if !supported {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 9))
+                    .font(AppIconSize.xxs)
                     .foregroundStyle(.orange)
             }
             Text(engineNames)
-                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .font(AppTypography.badge)
                 .foregroundStyle(supported ? AppColors.textTertiary : .orange.opacity(0.8))
         }
         .accessibilityLabel(supported
@@ -85,9 +85,9 @@ private struct ImpactPill: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: area.symbolName)
-                .font(.system(size: 8))
+                .font(AppIconSize.xxs)
             Text(area.rawValue)
-                .font(.system(size: 9, weight: .medium, design: .rounded))
+                .font(AppTypography.badge)
         }
         .foregroundStyle(pillColor)
         .padding(.horizontal, 5)

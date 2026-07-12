@@ -113,7 +113,7 @@ struct PerformanceDashboardView: View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.title2)
+                    .font(AppIconSize.xl)
                     .foregroundStyle(AppColors.accentPrimary)
                 Text("Performance Dashboard")
                     .font(AppTypography.sectionTitle)
@@ -132,7 +132,7 @@ struct PerformanceDashboardView: View {
                             Text(selectedModel ?? "All Models")
                                 .font(AppTypography.badge)
                             Image(systemName: "chevron.down")
-                                .font(.caption2)
+                                .font(AppIconSize.xxs)
                         }
                         .foregroundStyle(AppColors.accentSecondary)
                         .padding(.horizontal, AppSpacing.md)

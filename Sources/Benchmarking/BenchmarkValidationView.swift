@@ -254,7 +254,7 @@ struct BenchmarkValidationView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Edge AI Lab — Benchmark Validation")
-                .font(.headline)
+                .font(AppTypography.cardTitle)
             Text(runner.status)
                 .foregroundColor(.gray)
 

@@ -83,7 +83,7 @@ struct WikipediaSummaryCard: View {
                                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                         default:
                             Image(systemName: "book.pages")
-                                .font(.largeTitle)
+                                .font(AppIconSize.hero)
                                 .frame(width: 80, height: 80)
                                 .background(AppColors.backgroundSecondary)
                                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
@@ -91,7 +91,7 @@ struct WikipediaSummaryCard: View {
                     }
                 } else {
                     Image(systemName: "book.pages.fill")
-                        .font(.largeTitle)
+                        .font(AppIconSize.hero)
                         .foregroundStyle(AppColors.accentPrimary)
                         .frame(width: 80, height: 80)
                         .background(AppColors.accentPrimary.opacity(0.1))
@@ -101,19 +101,19 @@ struct WikipediaSummaryCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(title)
-                            .font(.headline)
+                            .font(AppTypography.cardTitle)
                             .foregroundStyle(AppColors.textPrimary)
                             .lineLimit(2)
                         
                         Spacer()
                         
                         Image(systemName: "arrow.up.forward.app")
-                            .font(.subheadline)
+                            .font(AppIconSize.sm)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     
                     Text(extract)
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(4)
                 }
@@ -123,10 +123,10 @@ struct WikipediaSummaryCard: View {
                 Link(destination: url) {
                     HStack {
                         Text("Read full Wikipedia article")
-                            .font(.caption)
+                            .font(AppTypography.caption)
                             .fontWeight(.medium)
                         Image(systemName: "chevron.right")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                     }
                     .foregroundStyle(AppColors.accentPrimary)
                 }

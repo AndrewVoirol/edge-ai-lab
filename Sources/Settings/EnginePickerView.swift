@@ -52,7 +52,7 @@ struct EnginePickerView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(AppColors.success)
                     Text("\(viewModel.selectedRuntimeType.displayName) engine ready")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
                 }
                 .accessibilityIdentifier("engine_status_ready")
@@ -79,7 +79,7 @@ struct EnginePickerView: View {
                     Image(systemName: only.iconName)
                         .foregroundStyle(AppColors.textSecondary)
                     Text("\(only.displayName) only")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                 }
                 .accessibilityIdentifier("backend_single_option")
@@ -91,7 +91,7 @@ struct EnginePickerView: View {
                 if detectedType != viewModel.selectedRuntimeType {
                     Label {
                         Text("This model uses \(detectedType.displayName) — switch to match?")
-                            .font(.caption)
+                            .font(AppTypography.caption)
                     } icon: {
                         Image(systemName: "wand.and.stars")
                             .foregroundStyle(AppColors.accentPrimary)
@@ -101,7 +101,7 @@ struct EnginePickerView: View {
                 } else {
                     Label {
                         Text("Engine matches model format")
-                            .font(.caption)
+                            .font(AppTypography.caption)
                     } icon: {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(AppColors.success)

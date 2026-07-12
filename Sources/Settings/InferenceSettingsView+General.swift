@@ -50,7 +50,7 @@ extension InferenceSettingsView {
                 tokenCount: viewModel.maxNumTokens,
                 modelDefault: modelContextLength
             ))
-            .font(.caption)
+            .font(AppTypography.caption)
             .foregroundStyle(AppColors.textTertiary)
             .accessibilityIdentifier("kvcache_display_label")
 
@@ -60,13 +60,13 @@ extension InferenceSettingsView {
                     Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
                         .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     Text("Active: \(result.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)")")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                 }
                 .accessibilityIdentifier("backend_active_status")
 
                 if result.didFallback, let reason = result.fallbackReason {
                     Label(reason, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.warning)
                         .accessibilityIdentifier("backend_fallback_reason")
                 }
@@ -78,7 +78,7 @@ extension InferenceSettingsView {
                     "Settings changed — restart engine to apply",
                     systemImage: "arrow.clockwise.circle.fill"
                 )
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.warning)
                 .accessibilityIdentifier("engine_restart_warning")
 
@@ -118,7 +118,7 @@ extension InferenceSettingsView {
 
             if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
                 Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.success)
             }
 

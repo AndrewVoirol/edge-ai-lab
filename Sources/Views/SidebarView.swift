@@ -135,7 +135,7 @@ struct SidebarView: View {
                 if viewModel.discoveredModels.isEmpty && activeDownloads.isEmpty {
                     VStack(spacing: AppSpacing.sm) {
                         Image(systemName: "shippingbox")
-                            .font(.largeTitle)
+                            .font(AppIconSize.hero)
                             .foregroundStyle(AppColors.textTertiary.opacity(0.5))
                         Text("No Models")
                             .font(AppTypography.sectionHeader)
@@ -196,7 +196,7 @@ struct SidebarView: View {
                 if viewModel.conversationStore.indexEntries.isEmpty {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "clock")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary.opacity(0.6))
                         Text("Experiments will appear here")
                             .font(AppTypography.caption)
@@ -229,7 +229,7 @@ struct SidebarView: View {
                         Task { await viewModel.newConversation() }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.borderless)
@@ -268,7 +268,7 @@ struct SidebarView: View {
                             .accessibilityIdentifier("sidebar_deleteOlderThan90")
                         } label: {
                             Image(systemName: "ellipsis.circle")
-                                .font(.caption)
+                                .font(AppIconSize.xs)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .menuStyle(.button)
@@ -454,7 +454,7 @@ struct SidebarView: View {
                             Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.caption2)
+                                .font(AppIconSize.xxs)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .buttonStyle(.plain)
@@ -475,7 +475,7 @@ struct SidebarView: View {
                             Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.caption2)
+                                .font(AppIconSize.xxs)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .buttonStyle(.plain)
@@ -486,7 +486,7 @@ struct SidebarView: View {
             case .queued(let position):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "clock")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.textTertiary)
                     Text("Queued (#\(position))")
                         .font(AppTypography.caption)
@@ -496,7 +496,7 @@ struct SidebarView: View {
                         Task { await viewModel.downloadManager.cancelDownload(filename: filename) }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)
@@ -518,7 +518,7 @@ struct SidebarView: View {
             case .pausedDirectory(let progress, let completed, let total):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.warning)
                     Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
@@ -560,7 +560,7 @@ struct SidebarView: View {
 
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.accentPrimary)
                     }
                 }
@@ -575,7 +575,7 @@ struct SidebarView: View {
                     // Feature icons (compact SF Symbols instead of pills)
                     ForEach(entry.activeFeatureBadges, id: \.self) { badge in
                         Image(systemName: badgeIcon(for: badge))
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(badgeColor(for: badge))
                     }
 
@@ -771,7 +771,7 @@ private struct SidebarModelRow: View {
                         onDelete?()
                     } label: {
                         Image(systemName: "trash")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.destructive.opacity(0.7))
                     }
                     .buttonStyle(.plain)

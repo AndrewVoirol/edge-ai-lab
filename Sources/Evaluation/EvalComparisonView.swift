@@ -380,7 +380,7 @@ struct EvalComparisonView: View {
         // iOS: Card-based row with top-aligned icon and text
         HStack(alignment: .top, spacing: AppSpacing.sm) {
             Image(systemName: result.score.symbolName)
-                .font(.body)
+                .font(AppIconSize.md)
                 .foregroundStyle(result.passed ? AppColors.success : AppColors.destructive)
                 .frame(width: 24, alignment: .center)
                 .padding(.top, 2)
@@ -421,7 +421,7 @@ struct EvalComparisonView: View {
         // macOS: Wide table row with fixed-width columns
         HStack(spacing: 0) {
             Image(systemName: result.score.symbolName)
-                .font(.caption)
+                .font(AppIconSize.xs)
                 .foregroundStyle(result.passed ? AppColors.success : AppColors.destructive)
                 .frame(width: 60, alignment: .leading)
 

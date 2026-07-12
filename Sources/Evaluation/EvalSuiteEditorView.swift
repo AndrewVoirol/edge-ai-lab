@@ -306,7 +306,7 @@ struct EvalSuiteEditorView: View {
                         } label: {
                             HStack(spacing: AppSpacing.xs) {
                                 Image(systemName: cat.symbolName)
-                                    .font(.caption)
+                                    .font(AppIconSize.xs)
                                 Text(cat.displayName)
                                     .font(AppTypography.sectionHeader)
                             }
@@ -438,7 +438,7 @@ struct EvalSuiteEditorView: View {
                     }
                 } label: {
                     Image(systemName: isEditing ? "chevron.up" : "pencil")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.accentPrimary)
                 }
                 .buttonStyle(.plain)
@@ -458,7 +458,7 @@ struct EvalSuiteEditorView: View {
                     }
                 } label: {
                     Image(systemName: "trash")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.destructive)
                 }
                 .buttonStyle(.plain)

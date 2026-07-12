@@ -68,7 +68,7 @@ struct ConfigProofView: View {
                 Spacer()
 
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption2)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .padding(.horizontal, AppSpacing.md)
@@ -111,7 +111,7 @@ struct ConfigProofView: View {
 
     private func configChip(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .semibold, design: .rounded))
+            .font(.system(size: 9, weight: .semibold, design: .rounded)) // design-system-exempt: fixed for compact config chips
             .foregroundStyle(color)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
@@ -183,7 +183,7 @@ struct ConfigProofView: View {
     private func configSection(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title.uppercased())
-                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .font(.system(size: 9, weight: .bold, design: .rounded)) // design-system-exempt: fixed for compact section headers
                 .foregroundStyle(proofColor.opacity(0.5))
                 .tracking(0.8)
 

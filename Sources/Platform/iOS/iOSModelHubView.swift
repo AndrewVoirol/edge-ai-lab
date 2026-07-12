@@ -312,7 +312,7 @@ struct iOSModelHubView: View {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppColors.textTertiary)
-                    .font(.caption)
+                    .font(AppIconSize.xs)
                 TextField("Search HuggingFace models…", text: $communitySearchQuery)
                     .textFieldStyle(.plain)
                     .font(AppTypography.listSubtitle)
@@ -334,7 +334,7 @@ struct iOSModelHubView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(AppColors.textTertiary)
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("communityModels_iOS_clearSearch")
@@ -381,7 +381,7 @@ struct iOSModelHubView: View {
                     Task { await browser.refreshGemmaModels() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.textTertiary)
                 }
                 .buttonStyle(.plain)
@@ -469,7 +469,7 @@ struct iOSModelHubView: View {
                 triggerCommunityDownload(model: model, format: format)
             } label: {
                 Image(systemName: "arrow.down.circle.fill")
-                    .font(.title2)
+                    .font(AppIconSize.lg)
                     .foregroundStyle(formatColor(format))
             }
             .buttonStyle(.plain)
@@ -487,7 +487,7 @@ struct iOSModelHubView: View {
 
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
-                .font(.title2)
+                .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.success)
 
         case .failed:
@@ -495,7 +495,7 @@ struct iOSModelHubView: View {
                 triggerCommunityDownload(model: model, format: format)
             } label: {
                 Image(systemName: "arrow.clockwise.circle.fill")
-                    .font(.title2)
+                    .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.destructive)
             }
             .buttonStyle(.plain)

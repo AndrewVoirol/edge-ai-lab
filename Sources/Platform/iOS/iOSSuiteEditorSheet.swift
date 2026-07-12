@@ -277,7 +277,7 @@ struct iOSSuiteEditorSheet: View {
                         } label: {
                             HStack(spacing: AppSpacing.xs) {
                                 Image(systemName: cat.symbolName)
-                                    .font(.caption)
+                                    .font(AppIconSize.xs)
                                 Text(cat.displayName)
                                     .font(AppTypography.sectionHeader)
                             }
@@ -407,7 +407,7 @@ struct iOSSuiteEditorSheet: View {
                     }
                 } label: {
                     Image(systemName: isEditing ? "chevron.up" : "pencil")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.accentPrimary)
                 }
                 .accessibilityIdentifier("suiteEditor_editPrompt_\(index)")
@@ -426,7 +426,7 @@ struct iOSSuiteEditorSheet: View {
                     }
                 } label: {
                     Image(systemName: "trash")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.destructive)
                 }
                 .accessibilityIdentifier("suiteEditor_deletePrompt_\(index)")

@@ -226,7 +226,7 @@ struct ModelStripView: View {
                             Task { await viewModel.downloadManager.cancelDownload(model) }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.caption2)
+                                .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .buttonStyle(.plain)
@@ -250,7 +250,7 @@ struct ModelStripView: View {
                         showDeleteConfirmation = true
                     } label: {
                         Image(systemName: "trash")
-                            .font(.caption2)
+                            .font(AppTypography.caption)
                             .foregroundStyle(AppColors.destructive)
                     }
                     .buttonStyle(.plain)
@@ -261,7 +261,7 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(AppColors.destructive)
-                        .font(.caption2)
+                        .font(AppTypography.caption)
                     Text(message)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.destructive)
@@ -286,7 +286,7 @@ struct ModelStripView: View {
             case .queued(let position):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "clock")
-                        .font(.caption2)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                     Text("Queued (#\(position))")
                         .font(AppTypography.caption)
@@ -296,7 +296,7 @@ struct ModelStripView: View {
             case .paused(_, let progress):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
-                        .font(.caption2)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.warning)
                     Text("Paused · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
@@ -316,7 +316,7 @@ struct ModelStripView: View {
             case .pausedDirectory(let progress, let completed, let total):
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
-                        .font(.caption2)
+                        .font(AppTypography.caption)
                         .foregroundStyle(AppColors.warning)
                     Text("Paused · \(completed)/\(total) · \(Int(progress * 100))%")
                         .font(AppTypography.caption)

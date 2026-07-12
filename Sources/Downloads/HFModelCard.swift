@@ -260,7 +260,7 @@ struct HFModelCard: View {
                         }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)
@@ -281,7 +281,7 @@ struct HFModelCard: View {
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(AppColors.destructive)
-                    .font(.caption2)
+                    .font(AppIconSize.xxs)
                 Text(message)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.destructive)
@@ -327,7 +327,7 @@ struct HFModelCard: View {
                         downloadManager.cancelDirectoryDownload(modelId: model.id)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                     }
                     .buttonStyle(.plain)

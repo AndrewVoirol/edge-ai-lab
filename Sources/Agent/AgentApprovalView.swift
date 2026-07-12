@@ -29,10 +29,10 @@ struct AgentApprovalView: View {
             // Header
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.shield.fill")
-                    .font(.title2)
+                    .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.warning)
                 Text("Tool Approval Required")
-                    .font(.headline)
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
             }
             .accessibilityIdentifier("approvalHeader")
@@ -43,25 +43,25 @@ struct AgentApprovalView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Tool:")
-                        .font(.subheadline.bold())
+                        .font(AppTypography.sectionHeader)
                         .foregroundStyle(AppColors.textSecondary)
                     Text(toolName)
-                        .font(.subheadline.monospaced())
+                        .font(AppTypography.mono)
                         .foregroundStyle(AppColors.toolAction)
                 }
                 .accessibilityIdentifier("approvalToolName")
 
                 Text("Arguments:")
-                    .font(.subheadline.bold())
+                    .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
 
                 ForEach(arguments.keys.sorted(), id: \.self) { key in
                     HStack(alignment: .top) {
                         Text("\(key):")
-                            .font(.caption.monospaced())
+                            .font(AppTypography.mono)
                             .foregroundStyle(AppColors.textTertiary)
                         Text(arguments[key] ?? "")
-                            .font(.caption.monospaced())
+                            .font(AppTypography.mono)
                             .foregroundStyle(AppColors.textPrimary)
                     }
                     .padding(.leading, 8)
@@ -71,14 +71,14 @@ struct AgentApprovalView: View {
 
             // Risk explanation
             Text("This tool may access sensitive device data. The agent needs your permission to proceed.")
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
                 .padding(.vertical, 4)
 
             // Auto-approve toggle
             Toggle(isOn: $autoApproveAll) {
                 Text("Approve all remaining tools")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }
             #if os(macOS)

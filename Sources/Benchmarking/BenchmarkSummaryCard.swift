@@ -189,7 +189,7 @@ struct BenchmarkSummaryCard: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(AppColors.warning)
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                         Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)
@@ -243,7 +243,7 @@ struct BenchmarkSummaryCard: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "info.circle")
                             .foregroundStyle(AppColors.textTertiary)
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                         Text("Passthrough: \(reason)")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)

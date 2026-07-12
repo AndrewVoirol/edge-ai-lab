@@ -133,7 +133,7 @@ struct EvalRunnerView: View {
                     .accessibilityIdentifier("evalRunner_title")
 
                 Text("Run structured eval suites against on-device models and compare results.")
-                    .font(.subheadline)
+                    .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
             }
 
@@ -526,7 +526,7 @@ struct EvalRunnerView: View {
                     ForEach(liveResults.suffix(6)) { result in
                         HStack(spacing: AppSpacing.sm) {
                             Image(systemName: result.score.symbolName)
-                                .font(.caption)
+                                .font(AppIconSize.xs)
                                 .foregroundStyle(
                                     result.passed ? AppColors.success : AppColors.destructive
                                 )
@@ -635,7 +635,7 @@ struct EvalRunnerView: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(AppIconSize.xs)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .padding(AppSpacing.md)

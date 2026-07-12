@@ -147,7 +147,7 @@ private struct ModelDetailPanel: View {
                         .accessibilityIdentifier("modelDetail_name")
 
                     Text(metadata.description)
-                        .font(.subheadline)
+                        .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("modelDetail_description")
@@ -288,7 +288,7 @@ private struct ModelDetailPanel: View {
     ) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppIconSize.lg)
                 .foregroundStyle(color)
 
             Text(value)
@@ -385,7 +385,7 @@ private struct ModelDetailPanel: View {
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text("A research instrument for running Gemma models entirely on-device.\nNo cloud. No API keys. Full control.")
-                        .font(.subheadline)
+                        .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, AppSpacing.xxl)
@@ -574,7 +574,7 @@ private struct ExperimentDetailView: View {
                 // Header
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "archivebox.fill")
-                        .font(.title2)
+                        .font(AppIconSize.lg)
                         .foregroundStyle(AppColors.accentSecondary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(activeEntry?.title ?? "Archived Experiment")

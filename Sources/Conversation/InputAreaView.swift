@@ -155,7 +155,7 @@ struct InputAreaView: View {
                 #endif
                 TextField(placeholder, text: $viewModel.prompt, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(AppTypography.body)
                     .lineLimit(1...8)
                     .focused($isPromptFocused)
                     #if os(iOS)
@@ -354,7 +354,7 @@ struct InputAreaView: View {
             submitPrompt()
         } label: {
             Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up.circle.fill")
-                .font(.title2)
+                .font(AppIconSize.lg)
                 .foregroundStyle(sendButtonColor)
                 .contentTransition(.symbolEffect(.replace))
                 .scaleEffect(isSendPressed ? 0.85 : 1.0)
@@ -470,7 +470,7 @@ struct InputAreaView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(AppColors.textTertiary)
-                            .font(.caption)
+                            .font(AppTypography.caption)
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44) // HIG: 44pt minimum tap target
@@ -486,7 +486,7 @@ struct InputAreaView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "waveform")
                         .foregroundStyle(AppColors.accentPrimary)
-                        .font(.caption)
+                        .font(AppTypography.caption)
                     Text("Audio attached")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -495,7 +495,7 @@ struct InputAreaView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(AppColors.textTertiary)
-                            .font(.caption)
+                            .font(AppTypography.caption)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("button_removeAudio")

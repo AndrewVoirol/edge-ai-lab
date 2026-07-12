@@ -92,11 +92,11 @@ struct ConversationAreaView: View {
 
                 if viewModel.isEngineReady, let metadata = viewModel.activeModelMetadata {
                     Text("\(metadata.name) loaded · on-device inference")
-                        .font(.subheadline)
+                        .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                 } else {
                     Text("On-device Gemma inference")
-                        .font(.subheadline)
+                        .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                 }
 
@@ -105,14 +105,14 @@ struct ConversationAreaView: View {
                     HStack(spacing: AppSpacing.xs) {
                         #if os(macOS)
                         Image(systemName: "arrow.left")
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                         Text("Select a model from the sidebar to get started")
-                            .font(.caption)
+                            .font(AppTypography.caption)
                         #else
                         Image(systemName: "arrow.up")
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                         Text("Load a model above to get started")
-                            .font(.caption)
+                            .font(AppTypography.caption)
                         #endif
                     }
                     .foregroundStyle(AppColors.textTertiary)
@@ -223,7 +223,7 @@ struct ConversationAreaView: View {
         Button(action: action) {
             HStack(spacing: AppSpacing.md) {
                 Image(systemName: icon)
-                    .font(.body)
+                    .font(AppIconSize.sm)
                     .foregroundStyle(color)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
@@ -236,7 +236,7 @@ struct ConversationAreaView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption2)
+                    .font(AppIconSize.xxs)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .padding(.horizontal, AppSpacing.lg)
@@ -266,7 +266,7 @@ struct ConversationAreaView: View {
     private func inferenceErrorBanner(_ errorMessage: String) -> some View {
         HStack(spacing: AppSpacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.body)
+                .font(AppIconSize.sm)
                 .foregroundStyle(AppColors.destructive)
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {

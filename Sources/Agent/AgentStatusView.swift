@@ -119,7 +119,7 @@ struct AgentStatusView: View {
 
     private var stepCounter: some View {
         Text("Step \(harness.currentIteration + 1) of \(harness.maxIterations)")
-            .font(.caption)
+            .font(AppTypography.caption)
             .foregroundStyle(AppColors.textTertiary)
             .accessibilityIdentifier("agentStepCounter")
     }
@@ -138,16 +138,16 @@ struct AgentStatusView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text("Step \(step.iteration + 1)")
-                                .font(.caption.bold())
+                                .font(AppTypography.sectionHeader)
                             if let tool = step.toolCall {
                                 Text("→ \(tool.toolName)")
-                                    .font(.caption)
+                                    .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.toolAction)
                             }
                         }
                         if let reasoning = step.reasoning {
                             Text(reasoning)
-                                .font(.caption2)
+                                .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.textSecondary)
                                 .lineLimit(3)
                         }
@@ -156,7 +156,7 @@ struct AgentStatusView: View {
                 }
             }
         }
-        .font(.caption)
+        .font(AppTypography.caption)
         .foregroundStyle(AppColors.textSecondary)
         .accessibilityIdentifier("agentReasoningTrace")
     }
@@ -166,7 +166,7 @@ struct AgentStatusView: View {
     private var cancelButton: some View {
         Button(action: { harness.cancel() }) {
             Label("Cancel Agent", systemImage: "stop.fill")
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.destructive)
         }
         .buttonStyle(.plain)

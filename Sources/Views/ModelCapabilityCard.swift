@@ -35,7 +35,7 @@ struct ModelCapabilityCard: View {
             // Header: Model identity
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "cpu.fill")
-                    .font(.title3)
+                    .font(AppIconSize.md)
                     .foregroundStyle(AppColors.accentPrimary)
                     .symbolEffect(.pulse, isActive: !appeared)
 
@@ -73,7 +73,7 @@ struct ModelCapabilityCard: View {
             if !negativeCapabilities.isEmpty {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "info.circle")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.textTertiary)
                     Text(negativeCapabilities.joined(separator: " · "))
                         .font(AppTypography.caption)
@@ -119,14 +119,14 @@ struct ModelCapabilityCard: View {
     private func capabilityBadge(_ label: String, icon: String, supported: Bool, color: Color) -> some View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: icon)
-                .font(.caption2)
+                .font(AppIconSize.xxs)
                 .foregroundStyle(supported ? color : AppColors.textTertiary.opacity(0.4))
             Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(AppTypography.badge)
                 .foregroundStyle(supported ? AppColors.textSecondary : AppColors.textTertiary.opacity(0.4))
             Spacer()
             Image(systemName: supported ? "checkmark.circle.fill" : "minus.circle")
-                .font(.caption2)
+                .font(AppIconSize.xxs)
                 .foregroundStyle(supported ? color.opacity(0.6) : AppColors.textTertiary.opacity(0.3))
         }
         .padding(.horizontal, AppSpacing.sm)
@@ -142,10 +142,10 @@ struct ModelCapabilityCard: View {
     private var contextWindowBadge: some View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "text.line.first.and.arrowtriangle.forward")
-                .font(.caption2)
+                .font(AppIconSize.xxs)
                 .foregroundStyle(AppColors.accentSecondary)
             Text(Self.formatContextWindow(metadata.contextWindowSize))
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(AppTypography.badge)
                 .foregroundStyle(AppColors.textSecondary)
             Spacer()
         }

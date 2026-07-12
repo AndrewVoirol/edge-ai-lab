@@ -59,10 +59,10 @@ struct DiagnosticsView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Engine Diagnostics")
-                .font(.title2.bold())
+                .font(AppTypography.sectionTitle)
                 .accessibilityIdentifier("diagnosticsTitle")
             Text("Live snapshot of the engine's actual configuration. This shows what the engine received, not what the UI displays.")
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -151,7 +151,7 @@ struct DiagnosticsView: View {
                 }
             } else {
                 Text("No model loaded — capabilities unknown")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -190,14 +190,14 @@ struct DiagnosticsView: View {
 
                 if metadata == nil {
                     Text("Load a model to check compatibility")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                         .foregroundStyle(.secondary)
                 } else if !hasConflicts(flags: flags, metadata: metadata) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                         Text("No known conflicts detected")
-                            .font(.callout)
+                            .font(AppTypography.listSubtitle)
                     }
                 }
             }
@@ -211,7 +211,7 @@ struct DiagnosticsView: View {
         GroupBox("Run Diagnostic") {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Send a test prompt and observe engine behavior. Results show what actually happened during inference.")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
 
                 TextField("Test prompt", text: $diagnosticPrompt)
@@ -285,11 +285,11 @@ struct DiagnosticsView: View {
     private func diagnosticRow(_ label: String, value: String, status: DiagnosticStatus = .neutral) -> some View {
         HStack {
             Text(label)
-                .font(.callout)
+                .font(AppTypography.listSubtitle)
                 .foregroundStyle(.secondary)
                 .frame(width: 160, alignment: .leading)
             Text(value)
-                .font(.callout.monospaced())
+                .font(AppTypography.mono)
                 .foregroundStyle(status.color)
             Spacer()
         }
@@ -300,14 +300,14 @@ struct DiagnosticsView: View {
             Image(systemName: enabled ? "checkmark.circle.fill" : "xmark.circle")
                 .foregroundStyle(enabled ? .green : .secondary)
             Text(label)
-                .font(.callout)
+                .font(AppTypography.listSubtitle)
             Spacer()
             Text(key)
-                .font(.caption.monospaced())
+                .font(AppTypography.mono)
                 .foregroundStyle(.tertiary)
             if let detail = detail {
                 Text(detail)
-                    .font(.caption2)
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -319,10 +319,10 @@ struct DiagnosticsView: View {
             Image(systemName: supported ? "checkmark.circle.fill" : "minus.circle")
                 .foregroundStyle(supported ? .green : .secondary)
             Text(label)
-                .font(.callout)
+                .font(AppTypography.listSubtitle)
             Spacer()
             Text(supported ? "Supported" : "Not supported")
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(supported ? .primary : .secondary)
         }
     }
@@ -330,10 +330,10 @@ struct DiagnosticsView: View {
     private func conflictRow(_ title: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.callout.bold())
+                .font(AppTypography.cardTitle)
                 .foregroundStyle(.orange)
             Text(detail)
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)

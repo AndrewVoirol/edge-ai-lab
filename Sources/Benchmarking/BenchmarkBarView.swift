@@ -103,7 +103,7 @@ struct BenchmarkBarView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundStyle(AppColors.accentPrimary)
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_benchmarkShare")
@@ -117,7 +117,7 @@ struct BenchmarkBarView: View {
                 } label: {
                     Image(systemName: isBenchmarkExpanded ? "chevron.down" : "chevron.up")
                         .foregroundStyle(AppColors.textTertiary)
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_benchmarkExpand")
@@ -179,7 +179,7 @@ struct BenchmarkBarView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundStyle(AppColors.accentPrimary)
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_benchmarkShare")
@@ -191,7 +191,7 @@ struct BenchmarkBarView: View {
                 } label: {
                     Image(systemName: isBenchmarkExpanded ? "chevron.down" : "chevron.up")
                         .foregroundStyle(AppColors.textTertiary)
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("button_benchmarkExpand")

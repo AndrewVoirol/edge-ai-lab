@@ -224,7 +224,7 @@ struct iOSConversationPickerSheet: View {
 
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                             .foregroundStyle(AppColors.accentPrimary)
                     }
                 }
@@ -260,7 +260,7 @@ struct iOSConversationPickerSheet: View {
                 if entry.messageCount > 0 {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "bubble.left.and.text.bubble.right")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                         Text("\(entry.messageCount) messages")
                             .font(AppTypography.caption)

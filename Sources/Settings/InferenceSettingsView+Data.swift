@@ -26,7 +26,7 @@ extension InferenceSettingsView {
                 if let path = viewModel.activeModelURL?.path {
                     LabeledContent("Path") {
                         Text(path)
-                            .font(.caption)
+                            .font(AppTypography.caption)
                             .textSelection(.enabled)
                             .lineLimit(3)
                     }
@@ -37,11 +37,11 @@ extension InferenceSettingsView {
                 LabeledContent("Min Memory") { Text("\(metadata.minDeviceMemoryGB) GB") }
                 if metadata.supportsImage {
                     Label("Image input supported", systemImage: "photo")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                 }
                 if metadata.supportsAudio {
                     Label("Audio input supported", systemImage: "waveform")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                 }
             } header: {
                 Label("Model Info", systemImage: "info.circle")
@@ -141,7 +141,7 @@ extension InferenceSettingsView {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(AppColors.success)
                     Text("Token saved in Keychain")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                 }
 
                 Button(role: .destructive) {
@@ -154,7 +154,7 @@ extension InferenceSettingsView {
                 .accessibilityIdentifier("button_clearToken")
             } else {
                 Text("Required for downloading gated models from HuggingFace (e.g., google/* repos). Public models (litert-community/*) don't need a token.")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
 
                 SecureField("hf_...", text: $hfTokenInput)
@@ -185,7 +185,7 @@ extension InferenceSettingsView {
 
             if !hfTokenMessage.isEmpty {
                 Text(hfTokenMessage)
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }
         }
@@ -200,7 +200,7 @@ extension InferenceSettingsView {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(AppColors.success)
                     Text("Credentials saved in Keychain")
-                        .font(.caption)
+                        .font(AppTypography.caption)
                 }
 
                 Button(role: .destructive) {
@@ -213,7 +213,7 @@ extension InferenceSettingsView {
                 .accessibilityIdentifier("button_clearKaggle")
             } else {
                 Text("Required for downloading models from Kaggle. Get your credentials from kaggle.com/settings → API section.")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
 
                 TextField("Username", text: $kaggleUsername)
@@ -247,7 +247,7 @@ extension InferenceSettingsView {
 
             if !kaggleMessage.isEmpty {
                 Text(kaggleMessage)
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }
         }

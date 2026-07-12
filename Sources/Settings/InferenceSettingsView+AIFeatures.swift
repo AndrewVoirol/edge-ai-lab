@@ -102,13 +102,13 @@ extension InferenceSettingsView {
                     ForEach(toolDisplayItems, id: \.name) { item in
                         HStack(spacing: 6) {
                             Image(systemName: "wrench.fill")
-                                .font(.caption2)
+                                .font(AppIconSize.xxs)
                                 .foregroundStyle(AppColors.toolAction)
                             Text(item.name)
                                 .font(AppTypography.caption)
                                 .fontDesign(.monospaced)
                             Text("— \(item.desc)")
-                                .font(.caption2)
+                                .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.textSecondary)
                                 .lineLimit(1)
                         }
@@ -146,7 +146,7 @@ extension InferenceSettingsView {
                                     .fontWeight(.medium)
                                 if expandedServerID != config.id {
                                     Text("\(config.command) \(config.args.joined(separator: " "))")
-                                        .font(.caption2)
+                                        .font(AppTypography.caption)
                                         .foregroundStyle(AppColors.textSecondary)
                                         .lineLimit(1)
                                 }
@@ -161,7 +161,7 @@ extension InferenceSettingsView {
                                     .frame(width: 8, height: 8)
                                     .foregroundStyle(statusColor(for: state))
                                 Text(statusText(for: state))
-                                    .font(.caption2)
+                                    .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.textSecondary)
                             }
 
@@ -240,19 +240,19 @@ extension InferenceSettingsView {
                             if !tools.isEmpty {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Registered Tools:")
-                                        .font(.caption2)
+                                        .font(AppTypography.badge)
                                         .fontWeight(.semibold)
                                         .foregroundStyle(AppColors.textSecondary)
                                     ForEach(tools, id: \.name) { tool in
                                         HStack(spacing: 4) {
                                             Image(systemName: "circle.grid.cross.fill")
-                                                .font(.caption2)
+                                                .font(AppIconSize.xxs)
                                                 .foregroundStyle(AppColors.accentPrimary)
                                             Text(tool.name)
-                                                .font(.caption2)
+                                                .font(AppTypography.caption)
                                                 .monospaced()
                                             Text("— \(tool.description)")
-                                                .font(.caption2)
+                                                .font(AppTypography.caption)
                                                 .foregroundStyle(AppColors.textSecondary)
                                                 .lineLimit(1)
                                         }
@@ -267,7 +267,7 @@ extension InferenceSettingsView {
                                     expandedServerID = config.id
                                 }
                                 .buttonStyle(.borderless)
-                                .font(.caption2)
+                                .font(AppTypography.caption)
                                 .accessibilityIdentifier("button_edit_mcp_\(config.name)")
 
                                 Spacer()
@@ -276,7 +276,7 @@ extension InferenceSettingsView {
                                     viewModel.deleteMCPServerConfig(id: config.id)
                                 }
                                 .buttonStyle(.borderless)
-                                .font(.caption2)
+                                .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.destructive)
                                 .accessibilityIdentifier("button_delete_mcp_\(config.name)")
                             }

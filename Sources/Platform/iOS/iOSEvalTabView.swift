@@ -104,7 +104,7 @@ struct iOSEvalTabView: View {
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(AppIconSize.xs)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .contentShape(Rectangle())
@@ -235,7 +235,7 @@ struct iOSEvalTabView: View {
                                             : AppColors.destructive
                                 )
                             Image(systemName: "chevron.right")
-                                .font(.caption)
+                                .font(AppIconSize.xs)
                                 .foregroundStyle(AppColors.textTertiary)
                         }
                         .contentShape(Rectangle())

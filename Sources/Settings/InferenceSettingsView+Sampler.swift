@@ -81,7 +81,7 @@ extension InferenceSettingsView {
         Section {
             TextEditor(text: $viewModel.systemMessage)
                 .frame(minHeight: 60, maxHeight: 120)
-                .font(.body)
+                .font(AppTypography.body)
                 .help("Set the model's persona or instructions. Changes auto-apply by reloading the engine.")
                 .accessibilityIdentifier("textEditor_systemMessage")
 
@@ -95,7 +95,7 @@ extension InferenceSettingsView {
             }
 
             Text("Examples: \"You are a helpful coding assistant.\", \"Respond only in JSON format.\"")
-                .font(.caption)
+                .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
         } header: {
             Label("System Message", systemImage: "text.bubble")

@@ -135,7 +135,7 @@ struct iOSStatusIndicatorView: View {
                metrics.endSnapshot.thermalLevel != .nominal {
                 let thermal = metrics.endSnapshot.thermalLevel
                 Image(systemName: thermal.symbolName)
-                    .font(.caption2)
+                    .font(AppIconSize.xxs)
                     .foregroundStyle(thermalColor(for: thermal))
                     .accessibilityIdentifier("statusIndicator_thermal")
             }

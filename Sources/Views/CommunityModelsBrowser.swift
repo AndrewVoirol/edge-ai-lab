@@ -75,7 +75,7 @@ struct CommunityModelsBrowser: View {
                 Task { await browser.refreshGemmaModels() }
             } label: {
                 Image(systemName: "arrow.clockwise")
-                    .font(.caption)
+                    .font(AppIconSize.xs)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .buttonStyle(.plain)
@@ -87,7 +87,7 @@ struct CommunityModelsBrowser: View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(AppColors.textTertiary)
-                .font(.caption)
+                .font(AppIconSize.xs)
             TextField("Search all HuggingFace models…", text: $searchQuery)
                 .textFieldStyle(.plain)
                 .font(AppTypography.listSubtitle)
@@ -109,7 +109,7 @@ struct CommunityModelsBrowser: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(AppColors.textTertiary)
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("communityModels_clearSearch")
@@ -147,7 +147,7 @@ struct CommunityModelsBrowser: View {
                 VStack(spacing: AppSpacing.sm) {
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "sparkles")
-                            .font(.title3)
+                            .font(AppIconSize.md)
                             .foregroundStyle(AppColors.accentSecondary)
                         Text("Getting Started")
                             .font(AppTypography.sectionHeader)
@@ -274,7 +274,7 @@ struct CommunityModelsBrowser: View {
                         // Organization
                         HStack(spacing: AppSpacing.xs) {
                             Image(systemName: "building.2")
-                                .font(.caption)
+                                .font(AppIconSize.xs)
                                 .foregroundStyle(AppColors.textTertiary)
                             Text(model.orgName)
                                 .font(AppTypography.subtitle)
@@ -357,7 +357,7 @@ struct CommunityModelsBrowser: View {
         }
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "gearshape.2")
-                .font(.caption)
+                .font(AppIconSize.xs)
             Text(text)
                 .font(AppTypography.badge)
         }
@@ -378,7 +378,7 @@ struct CommunityModelsBrowser: View {
     ) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppIconSize.md)
                 .foregroundStyle(color)
             Text(value)
                 .font(AppTypography.metric)

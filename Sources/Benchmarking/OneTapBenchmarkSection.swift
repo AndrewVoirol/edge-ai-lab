@@ -54,7 +54,7 @@ struct OneTapBenchmarkSection: View {
         } label: {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "gauge.with.dots.needle.33percent")
-                    .font(.title3)
+                    .font(AppIconSize.lg)
                 Text("Run Benchmark")
                     .font(AppTypography.subtitle)
             }

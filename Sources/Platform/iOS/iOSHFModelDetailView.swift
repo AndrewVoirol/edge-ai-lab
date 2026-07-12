@@ -85,7 +85,7 @@ struct iOSHFModelDetailView: View {
             // Organization
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "building.2")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
                 Text(model.orgName)
                     .font(AppTypography.subtitle)
@@ -109,7 +109,7 @@ struct iOSHFModelDetailView: View {
         }
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "gearshape.2")
-                .font(.caption)
+                .font(AppTypography.caption)
             Text(text)
                 .font(AppTypography.badge)
         }
@@ -159,7 +159,7 @@ struct iOSHFModelDetailView: View {
     ) -> some View {
         VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(AppIconSize.lg)
                 .foregroundStyle(color)
             Text(value)
                 .font(AppTypography.metric)
@@ -421,7 +421,7 @@ struct iOSHFModelDetailView: View {
                     .foregroundStyle(AppColors.accentPrimary)
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
             }
             .padding(AppSpacing.md)

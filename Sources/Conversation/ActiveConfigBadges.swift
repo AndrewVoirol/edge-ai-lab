@@ -165,11 +165,11 @@ private struct BadgePill: View {
             HStack(spacing: AppSpacing.xxs) {
                 if !badge.isSupported {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 8))
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(.orange)
                 }
                 Image(systemName: badge.symbol)
-                    .font(.system(size: 10))
+                    .font(AppIconSize.xs)
                 Text(badge.label)
                     .font(AppTypography.badge)
             }

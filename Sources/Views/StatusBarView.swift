@@ -69,7 +69,7 @@ struct StatusBarView: View {
                 let thermal = metrics.endSnapshot.thermalLevel
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: thermal.symbolName)
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(thermalColor(for: thermal))
                     Text(thermal.label)
                         .font(AppTypography.badge)

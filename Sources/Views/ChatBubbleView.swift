@@ -181,7 +181,7 @@ struct ChatBubbleView: View {
                         }
                     } label: {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                             .padding(AppSpacing.xs)
                             .background(AppColors.backgroundTertiary.opacity(0.3))
@@ -202,7 +202,7 @@ struct ChatBubbleView: View {
                         #endif
                     } label: {
                         Image(systemName: "doc.on.doc")
-                            .font(.caption2)
+                            .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                             .padding(AppSpacing.xs)
                             .background(AppColors.backgroundTertiary.opacity(0.3))
@@ -273,7 +273,7 @@ struct ChatBubbleView: View {
             } label: {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "brain.head.profile")
-                        .font(.caption)
+                        .font(AppIconSize.xs)
                         .foregroundStyle(AppColors.reasoning)
                         .symbolEffect(.pulse, isActive: message.isStreaming)
 
@@ -292,7 +292,7 @@ struct ChatBubbleView: View {
                     Spacer()
 
                     Image(systemName: showThinking ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.textTertiary)
                         .rotationEffect(.degrees(showThinking ? 90 : 0))
                 }
@@ -314,7 +314,7 @@ struct ChatBubbleView: View {
             // Expanded thinking content
             if showThinking {
                 Text(thinking)
-                    .font(.caption)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
                     .textSelection(.enabled)
                     .padding(AppSpacing.md)
@@ -357,7 +357,7 @@ struct ChatBubbleView: View {
                         .glow(event.succeeded ? AppColors.success : AppColors.destructive, radius: 4, opacity: 0.6)
 
                     Image(systemName: "wrench.and.screwdriver")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.toolAction)
 
                     Text(event.toolName)
@@ -371,7 +371,7 @@ struct ChatBubbleView: View {
                         .foregroundStyle(AppColors.textTertiary)
 
                     Image(systemName: expandedToolCall == event.id ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
+                        .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.textTertiary)
                 }
                 .padding(.horizontal, AppSpacing.md)
@@ -461,7 +461,7 @@ struct ChatBubbleView: View {
                 case .audio:
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "waveform")
-                            .font(.caption)
+                            .font(AppIconSize.xs)
                             .foregroundStyle(AppColors.accentPrimary)
                         Text("Audio")
                             .font(AppTypography.caption)
