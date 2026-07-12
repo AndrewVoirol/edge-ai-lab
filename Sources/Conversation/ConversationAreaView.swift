@@ -254,58 +254,5 @@ struct ConversationAreaView: View {
         .animation(AppAnimation.messageEntrance.delay(delay), value: cardsAppeared)
     }
 
-    // MARK: - Error Banner
-
-    /// Inline error banner for failed inference, styled as a danger chat bubble.
-    ///
-    /// - Note: The ConversationViewModel currently embeds errors in the assistant
-    ///   message content rather than exposing a dedicated `inferenceError: String?`
-    ///   property. To wire this banner, add `var inferenceError: String?` to
-    ///   ConversationViewModel and set it in the `generateText()` catch block.
-    ///   Then display the banner when `viewModel.inferenceError` is non-nil.
-    private func inferenceErrorBanner(_ errorMessage: String) -> some View {
-        HStack(spacing: AppSpacing.md) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppIconSize.sm)
-                .foregroundStyle(AppColors.destructive)
-
-            VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("Inference Failed")
-                    .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.textPrimary)
-                Text(errorMessage)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textSecondary)
-                    .lineLimit(3)
-            }
-
-            Spacer()
-
-            Button {
-                // Resend the last user prompt
-                if let lastUserMessage = viewModel.conversation.messages.last(where: { $0.role == .user }) {
-                    viewModel.prompt = lastUserMessage.content
-                    Task { await viewModel.generateText() }
-                }
-            } label: {
-                Text("Retry")
-                    .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.accentSecondary)
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.accentSecondary.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(AppSpacing.md)
-        .glassCard(cornerRadius: AppRadius.md)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.destructive.opacity(0.3), lineWidth: AppLineWidth.regular)
-        )
-        .messageEntrance()
-        .accessibilityLabel("Inference error: \(errorMessage). Tap Retry to resend your last message.")
-        .accessibilityIdentifier("error_inferenceFailedBanner")
-    }
 }
+

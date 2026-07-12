@@ -242,38 +242,3 @@ class BenchmarkValidationRunner {
     }
 }
 
-// MARK: - Validation View
-
-/// Displays benchmark validation results in a monospaced scrollable list.
-/// Launched via the `-RunValidation` launch argument.
-///
-/// Ported from IO 2026 Concierge E2EValidationView pattern.
-struct BenchmarkValidationView: View {
-    @State private var runner = BenchmarkValidationRunner()
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("Edge AI Lab — Benchmark Validation")
-                .font(AppTypography.cardTitle)
-            Text(runner.status)
-                .foregroundStyle(AppColors.textSecondary)
-
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    ForEach(runner.results) { result in
-                        Text(result.text)
-                            .font(AppTypography.mono)
-                            .foregroundStyle(result.text.contains("PASS") ? AppColors.success : AppColors.destructive)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding()
-        .task {
-            await runner.runAll()
-        }
-    }
-}

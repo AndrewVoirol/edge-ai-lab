@@ -335,84 +335,9 @@ struct SidebarView: View {
         }
     }
 
-    // MARK: - Active Model Row
-
-    /// Non-selectable row displaying the currently loaded model's status.
-    @ViewBuilder
-    private var activeModelRow: some View {
-        if viewModel.isLoadingModel {
-            // Loading state
-            HStack(spacing: AppSpacing.sm) {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityIdentifier("sidebar_activeModel_spinner")
-                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(viewModel.activeModelMetadata?.name ?? "Loading model…")
-                        .font(AppTypography.subtitle)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
-                    Text("Loading…")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.warning)
-                }
-            }
-            .accessibilityIdentifier("sidebar_activeModel_loading")
-            .accessibilityLabel("Loading model")
-        } else if let metadata = viewModel.activeModelMetadata {
-            // Model loaded with known metadata
-            HStack(spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(AppColors.success)
-                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
-                    .glow(AppColors.success, radius: 6, opacity: 0.5)
-                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(metadata.name)
-                        .font(AppTypography.subtitle)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
-                    Text("Loaded")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.success)
-                }
-            }
-            .accessibilityIdentifier("sidebar_activeModel_loaded")
-            .accessibilityLabel("Active model: \(metadata.name), loaded")
-        } else if viewModel.isEngineReady, let url = viewModel.activeModelURL {
-            // Engine loaded but metadata unknown — community/imported model fallback
-            let modelName = GalleryModelDiscovery.cleanModelDirectoryName(url.lastPathComponent)
-            HStack(spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(AppColors.success)
-                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
-                    .glow(AppColors.success, radius: 6, opacity: 0.5)
-                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(modelName)
-                        .font(AppTypography.subtitle)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
-                    Text("Loaded")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.success)
-                }
-            }
-            .accessibilityIdentifier("sidebar_activeModel_loaded")
-            .accessibilityLabel("Active model: \(modelName), loaded")
-        } else {
-            // No model
-            HStack(spacing: AppSpacing.sm) {
-                Circle()
-                    .fill(AppColors.textQuaternary)
-                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
-                Text("No model loaded")
-                    .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.textTertiary)
-            }
-            .accessibilityIdentifier("sidebar_activeModel_empty")
-            .accessibilityLabel("No model loaded")
-        }
-    }
 
     // MARK: - Active Downloads
+
 
     /// Download states that represent in-progress activity (downloading, queued, paused).
     private var activeDownloads: [(key: String, value: ModelDownloadManager.DownloadState)] {

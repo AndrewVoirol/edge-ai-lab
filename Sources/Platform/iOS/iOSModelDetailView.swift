@@ -568,47 +568,9 @@ struct iOSModelDetailView: View {
         }
     }
 
-    // MARK: - Benchmark Section
-
-    private func benchmarkSection(metrics: EnginePerformanceMetrics) -> some View {
-        detailCard(title: "Last Benchmark", icon: "speedometer") {
-            VStack(spacing: AppSpacing.sm) {
-                HStack {
-                    metricDisplay(
-                        label: "Decode",
-                        value: String(format: "%.1f", metrics.tokensPerSecond),
-                        unit: "tok/s",
-                        color: PerformanceTier(decodeSpeed: metrics.tokensPerSecond).color
-                    )
-                    Spacer()
-                    metricDisplay(
-                        label: "Prefill",
-                        value: String(format: "%.1f", metrics.promptTokensPerSecond ?? 0),
-                        unit: "tok/s",
-                        color: AppColors.textSecondary
-                    )
-                }
-
-                HStack {
-                    metricDisplay(
-                        label: "TTFT",
-                        value: String(format: "%.2f", metrics.timeToFirstToken ?? 0),
-                        unit: "s",
-                        color: AppColors.textSecondary
-                    )
-                    Spacer()
-                    metricDisplay(
-                        label: "Init",
-                        value: String(format: "%.2f", metrics.initTimeSeconds ?? 0),
-                        unit: "s",
-                        color: AppColors.textSecondary
-                    )
-                }
-            }
-        }
-    }
 
     // MARK: - Danger Zone
+
 
     private var dangerZoneSection: some View {
         VStack(spacing: AppSpacing.sm) {

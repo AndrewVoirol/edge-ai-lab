@@ -47,7 +47,6 @@ struct ContentView: View {
     @Environment(iOSNavigationRouter.self) private var navigationRouter
     #endif
     @State private var showSettings = false
-    @State private var showDashboard = false
     @State private var showcaseModel: ModelMetadata?
     @State private var showcaseModelURL: URL?
 
@@ -430,20 +429,7 @@ extension ContentView {
                         }
                 }
             }
-            .sheet(isPresented: $showDashboard) {
-                NavigationStack {
-                    PerformanceDashboardView()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showDashboard = false }
-                                    .accessibilityIdentifier("button_doneDashboard")
-                            }
-                        }
-                }
-                #if os(macOS)
-                .frame(minWidth: 600, minHeight: 500)
-                #endif
-            }
+
             .sheet(item: $showcaseModel) { model in
                 NavigationStack {
                     ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)

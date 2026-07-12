@@ -41,9 +41,7 @@ struct iOSModelHubView: View {
     @State private var modelToDelete: ModelMetadata?
     @State private var showDeleteConfirmation = false
     @State private var sortOrder: ModelSortOrder = .recommended
-    @State private var modelToDownload: ModelMetadata?
-    @State private var showDownloadConfirmation = false
-    @State private var storageCheck: ModelDownloadManager.StorageCheck?
+
     @State private var showURLImport = false
     @State private var browser = HFModelBrowser()
     @State private var communitySearchQuery = ""
@@ -170,31 +168,7 @@ struct iOSModelHubView: View {
             } message: { model in
                 Text("This will remove \"\(model.name)\" from your device. You can re-download it later.")
             }
-            .confirmationDialog(
-                "Download \(modelToDownload?.name ?? "")?",
-                isPresented: $showDownloadConfirmation,
-                presenting: modelToDownload
-            ) { model in
-                if let check = storageCheck, check.hasEnoughSpace {
-                    Button("Download (\(check.formattedModelSize))") {
-                        viewModel.downloadManager.download(model)
-                    }
-                    .accessibilityIdentifier("button_downloadConfirmDialog")
-                } else {
-                    Button("Not Enough Storage", role: .cancel) {}
-                        .accessibilityIdentifier("button_notEnoughStorage")
-                }
-                Button("Cancel", role: .cancel) {}
-                    .accessibilityIdentifier("button_downloadCancelDialog")
-            } message: { model in
-                if let check = storageCheck {
-                    if check.hasEnoughSpace {
-                        Text("This will use \(check.formattedModelSize). You have \(check.formattedAvailableSpace) available.")
-                    } else {
-                        Text("This model requires \(check.formattedModelSize) but you only have \(check.formattedAvailableSpace) available. Free up space and try again.")
-                    }
-                }
-            }
+
             .sheet(isPresented: $showURLImport) {
                 iOSURLImportSheet()
             }
@@ -267,8 +241,14 @@ struct iOSModelHubView: View {
             iOSModelRow(
                 metadata: item.metadata,
                 downloadState: item.state,
+                onDownloadTap: {
+                    viewModel.downloadManager.download(item.metadata)
+                },
                 onCancelTap: {
                     Task { await viewModel.downloadManager.cancelDownload(item.metadata) }
+                },
+                onRetryTap: {
+                    viewModel.downloadManager.download(item.metadata)
                 },
                 onPauseTap: {
                     Task { await viewModel.downloadManager.pauseDownload(item.metadata) }
@@ -642,12 +622,7 @@ struct iOSModelHubView: View {
         }
     }
 
-    /// Confirm download with storage check dialog.
-    private func confirmDownload(_ metadata: ModelMetadata) {
-        storageCheck = viewModel.downloadManager.checkStorage(for: metadata)
-        modelToDownload = metadata
-        showDownloadConfirmation = true
-    }
+
 
     /// Delete a model using the centralized download manager.
     private func deleteModel(_ metadata: ModelMetadata) {
