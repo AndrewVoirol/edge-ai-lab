@@ -258,7 +258,7 @@ struct CodeBlockView: View {
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, 6)
-            .background(Color.black.opacity(0.25))
+            .background(Color.black.opacity(0.25)) // design-system-exempt: alpha overlay for code block header
 
             // Divider
             Rectangle()

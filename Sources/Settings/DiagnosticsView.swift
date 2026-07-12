@@ -63,7 +63,7 @@ struct DiagnosticsView: View {
                 .accessibilityIdentifier("diagnosticsTitle")
             Text("Live snapshot of the engine's actual configuration. This shows what the engine received, not what the UI displays.")
                 .font(AppTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
     }
 
@@ -152,7 +152,7 @@ struct DiagnosticsView: View {
             } else {
                 Text("No model loaded — capabilities unknown")
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
         .accessibilityIdentifier("modelCapabilitiesSection")
@@ -191,11 +191,11 @@ struct DiagnosticsView: View {
                 if metadata == nil {
                     Text("Load a model to check compatibility")
                         .font(AppTypography.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppColors.textSecondary)
                 } else if !hasConflicts(flags: flags, metadata: metadata) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(AppColors.success)
                         Text("No known conflicts detected")
                             .font(AppTypography.listSubtitle)
                     }
@@ -212,7 +212,7 @@ struct DiagnosticsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Send a test prompt and observe engine behavior. Results show what actually happened during inference.")
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.textSecondary)
 
                 TextField("Test prompt", text: $diagnosticPrompt)
                     .textFieldStyle(.roundedBorder)
@@ -286,7 +286,7 @@ struct DiagnosticsView: View {
         HStack {
             Text(label)
                 .font(AppTypography.listSubtitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.textSecondary)
                 .frame(width: 160, alignment: .leading)
             Text(value)
                 .font(AppTypography.mono)
@@ -308,7 +308,7 @@ struct DiagnosticsView: View {
             if let detail = detail {
                 Text(detail)
                     .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
         }
         .accessibilityIdentifier("flag_\(key)")
@@ -331,10 +331,10 @@ struct DiagnosticsView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(AppTypography.cardTitle)
-                .foregroundStyle(.orange)
+                .foregroundStyle(AppColors.warning)
             Text(detail)
                 .font(AppTypography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColors.textSecondary)
         }
         .padding(.vertical, 4)
     }
@@ -480,11 +480,11 @@ private enum DiagnosticStatus {
 
     var color: Color {
         switch self {
-        case .ok: return .primary
-        case .warning: return .orange
-        case .error: return .red
-        case .info: return .blue
-        case .neutral: return .primary
+        case .ok: return AppColors.success
+        case .warning: return AppColors.warning
+        case .error: return AppColors.destructive
+        case .info: return AppColors.accentPrimary
+        case .neutral: return AppColors.textPrimary
         }
     }
 }

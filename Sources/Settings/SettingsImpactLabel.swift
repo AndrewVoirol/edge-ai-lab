@@ -57,7 +57,7 @@ struct SettingsImpactLabel: View {
             if !supported {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(AppIconSize.xxs)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(AppColors.warning)
             }
             Text(engineNames)
                 .font(AppTypography.badge)

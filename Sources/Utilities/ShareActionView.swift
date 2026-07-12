@@ -181,7 +181,7 @@ struct ShareActionView: View {
             .padding(.horizontal, AppSpacing.md)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md)
-                    .fill(Color.white.opacity(0.03))
+                    .fill(Color.white.opacity(0.03)) // design-system-exempt: alpha overlay for subtle surface tint
             )
         }
         .buttonStyle(.plain)

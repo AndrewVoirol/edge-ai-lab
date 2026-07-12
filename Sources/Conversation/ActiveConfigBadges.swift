@@ -166,7 +166,7 @@ private struct BadgePill: View {
                 if !badge.isSupported {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(AppIconSize.xxs)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppColors.warning)
                 }
                 Image(systemName: badge.symbol)
                     .font(AppIconSize.xs)
