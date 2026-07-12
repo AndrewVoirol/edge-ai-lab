@@ -317,7 +317,7 @@ struct EvalSuiteEditorView: View {
                             .padding(.vertical, AppSpacing.sm)
                             .background(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .fill(isSelected ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
+                                    .fill(isSelected ? AppColors.accentPrimaryTint : Color.clear)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
@@ -380,7 +380,7 @@ struct EvalSuiteEditorView: View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "text.bubble")
                 .font(AppIconSize.xxl)
-                .foregroundStyle(AppColors.textTertiary.opacity(0.5))
+                .foregroundStyle(AppColors.textQuaternary)
 
             Text("No prompts yet")
                 .font(AppTypography.subtitle)
@@ -401,7 +401,7 @@ struct EvalSuiteEditorView: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -482,7 +482,7 @@ struct EvalSuiteEditorView: View {
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
-                    isEditing ? AppColors.accentPrimary.opacity(0.3) : Color.clear,
+                    isEditing ? AppColors.accentPrimaryBorder : Color.clear,
                     lineWidth: AppLineWidth.regular
                 )
         )
@@ -564,7 +564,7 @@ struct EvalSuiteEditorView: View {
                         .padding(.vertical, AppSpacing.xxs)
                         .background(
                             Capsule()
-                                .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
+                                .fill(isActive ? AppColors.accentPrimaryTint : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)

@@ -53,7 +53,7 @@ struct iOSConversationPickerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemBackground)
+                AppColors.backgroundPrimary
                     .ignoresSafeArea()
                     .accessibilityHidden(true)
 
@@ -236,7 +236,7 @@ struct iOSConversationPickerSheet: View {
                         .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, AppSpacing.xxs)
-                        .background(AppColors.accentPrimary.opacity(0.1))
+                        .background(AppColors.accentPrimaryFaint)
                         .clipShape(Capsule())
 
                     ForEach(entry.activeFeatureBadges, id: \.self) { badge in
@@ -245,7 +245,7 @@ struct iOSConversationPickerSheet: View {
                             .foregroundStyle(AppColors.accentPrimary)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColors.accentPrimary.opacity(0.1))
+                            .background(AppColors.accentPrimaryFaint)
                             .clipShape(Capsule())
                     }
 

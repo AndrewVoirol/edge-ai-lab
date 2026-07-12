@@ -275,7 +275,7 @@ struct EvalComparisonView: View {
                         .padding(.vertical, AppSpacing.sm)
                         .background(
                             RoundedRectangle(cornerRadius: AppRadius.md)
-                                .fill(isActive ? AppColors.accentPrimary.opacity(0.1) : Color.clear)
+                                .fill(isActive ? AppColors.accentPrimaryFaint : Color.clear)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: AppRadius.md)
@@ -317,12 +317,12 @@ struct EvalComparisonView: View {
                     .padding(.vertical, AppSpacing.xs)
                     .background(
                         Capsule()
-                            .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
+                            .fill(isActive ? AppColors.accentPrimaryTint : Color.clear)
                     )
                     .overlay(
                         Capsule()
                             .stroke(
-                                isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border.opacity(0.2),
+                                isActive ? AppColors.accentPrimaryBorder : AppColors.border.opacity(0.2),
                                 lineWidth: AppLineWidth.hairline
                             )
                     )
@@ -484,7 +484,7 @@ struct EvalComparisonView: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)

@@ -153,7 +153,7 @@ struct BenchmarkSummaryCard: View {
                 }
             }
             .padding(AppSpacing.sm)
-            .background(AppColors.backgroundTertiary.opacity(0.3))
+            .background(AppColors.backgroundTertiarySubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         }
     }
@@ -198,7 +198,7 @@ struct BenchmarkSummaryCard: View {
                 }
             }
             .padding(AppSpacing.sm)
-            .background(AppColors.backgroundTertiary.opacity(0.3))
+            .background(AppColors.backgroundTertiarySubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         }
     }
@@ -220,7 +220,7 @@ struct BenchmarkSummaryCard: View {
                 }
             }
             .padding(AppSpacing.sm)
-            .background(AppColors.backgroundTertiary.opacity(0.3))
+            .background(AppColors.backgroundTertiarySubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         }
     }
@@ -252,7 +252,7 @@ struct BenchmarkSummaryCard: View {
                 }
             }
             .padding(AppSpacing.sm)
-            .background(AppColors.backgroundTertiary.opacity(0.3))
+            .background(AppColors.backgroundTertiarySubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         }
     }
@@ -271,7 +271,7 @@ struct BenchmarkSummaryCard: View {
                 }
             }
             .padding(AppSpacing.sm)
-            .background(AppColors.backgroundTertiary.opacity(0.3))
+            .background(AppColors.backgroundTertiarySubtle)
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         }
     }

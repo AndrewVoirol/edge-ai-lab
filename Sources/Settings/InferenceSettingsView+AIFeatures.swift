@@ -96,8 +96,7 @@ extension InferenceSettingsView {
 
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text("Available Tools (\(toolDisplayItems.count))")
-                        .font(AppTypography.caption)
-                        .fontWeight(.semibold)
+                        .font(AppTypography.captionSemibold)
 
                     ForEach(toolDisplayItems, id: \.name) { item in
                         HStack(spacing: AppSpacing.listRowVertical) {
@@ -241,7 +240,6 @@ extension InferenceSettingsView {
                                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                                     Text("Registered Tools:")
                                         .font(AppTypography.badge)
-                                        .fontWeight(.semibold)
                                         .foregroundStyle(AppColors.textSecondary)
                                     ForEach(tools, id: \.name) { tool in
                                         HStack(spacing: AppSpacing.xs) {

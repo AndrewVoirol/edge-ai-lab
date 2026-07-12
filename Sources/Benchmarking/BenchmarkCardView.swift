@@ -19,12 +19,12 @@ import SwiftUI
 
 // MARK: - Benchmark Card Data
 
-// MARK: Design System Exemption Policy
+// MARK: Design System Notes
 // This file renders image-export benchmark cards via ImageRenderer.
-// Labels, badges, and section headers use AppTypography tokens.
-// Hero metric numbers (96pt, 28pt) use fixed point sizes for
-// pixel-perfect image export. These are marked with:
-//   // design-system-exempt: image export requires fixed point sizes
+// Colors use AppColors tokens. Corner radii use AppRadius tokens.
+// Font sizes remain fixed (not AppTypography) because ImageRenderer
+// requires deterministic point sizes for pixel-perfect export.
+// Fixed sizes are marked: // design-system-exempt: image export requires fixed point sizes
 
 /// All the data needed to render a shareable benchmark card.
 /// Constructed from BenchmarkInfo + InferenceMetrics + model/device context.
@@ -152,23 +152,7 @@ struct BenchmarkCardData: Sendable {
     }
 }
 
-// MARK: - Premium Card Colors
 
-/// Dark/sleek tech aesthetic colors for the benchmark card.
-/// These are card-specific — not part of the main design system.
-private enum CardColors {
-    // design-system-exempt: fixed colors for image export card
-    static let backgroundDark = Color(red: 0.039, green: 0.039, blue: 0.059)       // #0A0A0F
-    static let backgroundGradient = Color(red: 0.078, green: 0.078, blue: 0.157)   // #141428
-    static let neonBlue = Color(red: 0.0, green: 0.831, blue: 1.0)                 // #00D4FF
-    static let neonGreen = Color(red: 0.0, green: 1.0, blue: 0.580)                // #00FF94
-    static let cardBorder = Color(red: 0.102, green: 0.102, blue: 0.180)           // #1a1a2e
-    static let textPrimary = Color(red: 0.95, green: 0.95, blue: 0.97)
-    static let textSecondary = Color(red: 0.65, green: 0.65, blue: 0.72)
-    static let textTertiary = Color(red: 0.45, green: 0.45, blue: 0.52)
-    static let dividerGradientStart = Color(red: 0.0, green: 0.831, blue: 1.0).opacity(0.3)
-    static let dividerGradientEnd = Color(red: 0.0, green: 1.0, blue: 0.580).opacity(0.3)
-}
 
 // MARK: - Benchmark Card View
 
@@ -233,7 +217,7 @@ struct BenchmarkCardView: View {
             }
         }
         .frame(width: cardSize.width, height: cardSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.card))
     }
 
     // MARK: - Adaptive Sizing
@@ -300,7 +284,7 @@ struct BenchmarkCardView: View {
         ZStack {
             // Base dark gradient
             LinearGradient(
-                colors: [CardColors.backgroundDark, CardColors.backgroundGradient],
+                colors: [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -308,7 +292,7 @@ struct BenchmarkCardView: View {
             // Neon blue glow — top right
             RadialGradient(
                 colors: [
-                    CardColors.neonBlue.opacity(0.12),
+                    AppColors.accentPrimary.opacity(0.12),
                     Color.clear
                 ],
                 center: .topTrailing,
@@ -319,7 +303,7 @@ struct BenchmarkCardView: View {
             // Neon green glow — bottom left (subtle)
             RadialGradient(
                 colors: [
-                    CardColors.neonGreen.opacity(0.06),
+                    AppColors.success.opacity(0.06),
                     Color.clear
                 ],
                 center: .bottomLeading,
@@ -328,8 +312,8 @@ struct BenchmarkCardView: View {
             )
 
             // 1px border
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(CardColors.cardBorder, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppRadius.card)
+                .stroke(AppColors.border, lineWidth: 1)
         }
     }
 
@@ -341,8 +325,8 @@ struct BenchmarkCardView: View {
                 LinearGradient(
                     colors: [
                         Color.clear,
-                        CardColors.dividerGradientStart,
-                        CardColors.dividerGradientEnd,
+                        AppColors.accentPrimary.opacity(0.3),
+                        AppColors.success.opacity(0.3),
                         Color.clear
                     ],
                     startPoint: .leading,
@@ -361,17 +345,17 @@ struct BenchmarkCardView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "cpu")
                         .font(.system(size: labelSize + 6, weight: .medium)) // design-system-exempt: image export requires fixed point sizes
-                        .foregroundStyle(CardColors.neonBlue)
+                        .foregroundStyle(AppColors.accentPrimary)
 
                     Text(data.deviceName)
                         .font(.system(size: labelSize + 7, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                        .foregroundStyle(CardColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                 }
 
                 // Model info
                 Text(data.modelName)
                     .font(.system(size: labelSize + 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(CardColors.textSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
 
             Spacer()
@@ -381,21 +365,21 @@ struct BenchmarkCardView: View {
                 HStack(spacing: 8) {
                     Text(data.modelArchitecture)
                         .font(.system(size: labelSize, weight: .medium, design: .rounded)) // design-system-exempt: image export requires fixed point sizes
-                        .foregroundStyle(CardColors.neonBlue)
+                        .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(CardColors.neonBlue.opacity(0.12))
+                        .background(AppColors.accentPrimary.opacity(0.12))
                         .clipShape(Capsule())
 
                     Text(data.backendLabel)
                         .font(.system(size: labelSize, weight: .medium, design: .rounded)) // design-system-exempt: image export requires fixed point sizes
                         .foregroundStyle(
-                            data.backendLabel.contains("GPU") ? CardColors.neonGreen : CardColors.textSecondary
+                            data.backendLabel.contains("GPU") ? AppColors.success : AppColors.textSecondary
                         )
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
-                            (data.backendLabel.contains("GPU") ? CardColors.neonGreen : CardColors.textSecondary)
+                            (data.backendLabel.contains("GPU") ? AppColors.success : AppColors.textSecondary)
                                 .opacity(0.12)
                         )
                         .clipShape(Capsule())
@@ -413,7 +397,7 @@ struct BenchmarkCardView: View {
                 value: BenchmarkCardLogic.formatDecodeSpeed(data.decodeSpeed),
                 unit: "tok/s",
                 label: "DECODE",
-                color: CardColors.neonBlue,
+                color: AppColors.accentPrimary,
                 isHero: true
             )
 
@@ -425,7 +409,7 @@ struct BenchmarkCardView: View {
                 value: BenchmarkCardLogic.formatTTFT(data.ttft),
                 unit: "",
                 label: "TTFT",
-                color: CardColors.neonGreen,
+                color: AppColors.success,
                 isHero: false
             )
 
@@ -437,7 +421,7 @@ struct BenchmarkCardView: View {
                 value: BenchmarkCardLogic.formatMemory(abs(data.memoryDeltaMB)),
                 unit: "",
                 label: "MEMORY",
-                color: CardColors.neonGreen,
+                color: AppColors.success,
                 isHero: false
             )
         }
@@ -471,7 +455,7 @@ struct BenchmarkCardView: View {
 
             Text(label)
                 .font(.system(size: labelSize, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                .foregroundStyle(CardColors.textTertiary)
+                .foregroundStyle(AppColors.textTertiary)
                 .tracking(2)
         }
         .frame(maxWidth: .infinity)
@@ -481,7 +465,7 @@ struct BenchmarkCardView: View {
         Rectangle()
             .fill(
                 LinearGradient(
-                    colors: [Color.clear, CardColors.cardBorder, Color.clear],
+                    colors: [Color.clear, AppColors.border, Color.clear],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -499,7 +483,7 @@ struct BenchmarkCardView: View {
                         x: .value("Run", index),
                         y: .value("Speed", speed)
                     )
-                    .foregroundStyle(CardColors.neonBlue.opacity(0.8))
+                    .foregroundStyle(AppColors.accentPrimary.opacity(0.8))
                     .lineStyle(StrokeStyle(lineWidth: 2))
 
                     AreaMark(
@@ -508,7 +492,7 @@ struct BenchmarkCardView: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [CardColors.neonBlue.opacity(0.2), Color.clear],
+                            colors: [AppColors.accentPrimary.opacity(0.2), Color.clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -521,7 +505,7 @@ struct BenchmarkCardView: View {
 
             Text("PERFORMANCE TREND · LAST \(data.sparklineHistory.count) RUNS")
                 .font(.system(size: labelSize - 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                .foregroundStyle(CardColors.textTertiary)
+                .foregroundStyle(AppColors.textTertiary)
                 .tracking(1)
         }
         .padding(.vertical, 8)
@@ -531,7 +515,7 @@ struct BenchmarkCardView: View {
                 .fill(Color.white.opacity(0.02))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(CardColors.cardBorder.opacity(0.5), lineWidth: 0.5)
+                        .stroke(AppColors.border.opacity(0.5), lineWidth: 0.5)
                 )
         )
     }
@@ -577,7 +561,7 @@ struct BenchmarkCardView: View {
                 .fill(Color.white.opacity(0.03))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(CardColors.cardBorder.opacity(0.5), lineWidth: 0.5)
+                        .stroke(AppColors.border.opacity(0.5), lineWidth: 0.5)
                 )
         )
     }
@@ -586,15 +570,15 @@ struct BenchmarkCardView: View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: labelSize, weight: .medium)) // design-system-exempt: image export requires fixed point sizes
-                .foregroundStyle(CardColors.textTertiary)
+                .foregroundStyle(AppColors.textTertiary)
 
             Text(value)
                 .font(.system(size: labelSize + 2, weight: .semibold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                .foregroundStyle(CardColors.textPrimary)
+                .foregroundStyle(AppColors.textPrimary)
 
             Text(label)
                 .font(.system(size: labelSize - 2, weight: .medium, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                .foregroundStyle(CardColors.textTertiary)
+                .foregroundStyle(AppColors.textTertiary)
                 .tracking(1)
         }
         .frame(maxWidth: .infinity)
@@ -602,7 +586,7 @@ struct BenchmarkCardView: View {
 
     private var secondaryDivider: some View {
         Rectangle()
-            .fill(CardColors.cardBorder.opacity(0.5))
+            .fill(AppColors.border.opacity(0.5))
             .frame(width: 0.5, height: 40)
     }
 
@@ -639,16 +623,16 @@ struct BenchmarkCardView: View {
                         .font(.system(size: labelSize + 4)) // design-system-exempt: image export requires fixed point sizes
                     Text("Edge AI Lab")
                         .font(.system(size: labelSize + 2, weight: .semibold, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                        .foregroundStyle(CardColors.textPrimary)
+                        .foregroundStyle(AppColors.textPrimary)
                 }
 
                 Text("github.com/AndrewVoirol/edge-ai-lab")
                     .font(.system(size: labelSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(CardColors.neonBlue.opacity(0.7))
+                    .foregroundStyle(AppColors.accentPrimary.opacity(0.7))
 
                 Text(data.timestamp, format: .dateTime.year().month(.abbreviated).day().hour().minute())
                     .font(.system(size: labelSize - 1, weight: .regular, design: .default)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(CardColors.textTertiary)
+                    .foregroundStyle(AppColors.textTertiary)
             }
         }
     }
@@ -660,7 +644,7 @@ struct BenchmarkCardView: View {
             Text(text)
                 .font(.system(size: labelSize - 1, weight: .regular, design: .default)) // design-system-exempt: image export requires fixed point sizes
         }
-        .foregroundStyle(CardColors.textSecondary)
+        .foregroundStyle(AppColors.textSecondary)
     }
 }
 

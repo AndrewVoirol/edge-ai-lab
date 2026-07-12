@@ -184,7 +184,7 @@ struct ChatBubbleView: View {
                             .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                             .padding(AppSpacing.xs)
-                            .background(AppColors.backgroundTertiary.opacity(0.3))
+                            .background(AppColors.backgroundTertiarySubtle)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     }
                     .buttonStyle(.plain)
@@ -205,7 +205,7 @@ struct ChatBubbleView: View {
                             .font(AppIconSize.xxs)
                             .foregroundStyle(AppColors.textTertiary)
                             .padding(AppSpacing.xs)
-                            .background(AppColors.backgroundTertiary.opacity(0.3))
+                            .background(AppColors.backgroundTertiarySubtle)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     }
                     .buttonStyle(.plain)

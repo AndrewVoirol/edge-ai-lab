@@ -77,7 +77,7 @@ struct LoadingShimmerView: View {
                         LinearGradient(
                             colors: [
                                 .clear,
-                                AppColors.textTertiary.opacity(0.15),
+                                AppColors.textTertiary.opacity(0.15), // design-system-exempt: shimmer animation gradient stop
                                 .clear
                             ],
                             startPoint: .leading,
@@ -134,7 +134,7 @@ struct BlinkingCursor: View {
 
 #Preview("Shimmer Loading") {
     ZStack {
-        Color(red: 0.06, green: 0.07, blue: 0.10)
+        AppColors.backgroundPrimary
             .ignoresSafeArea()
         LoadingShimmerView()
     }
@@ -142,7 +142,7 @@ struct BlinkingCursor: View {
 
 #Preview("Blinking Cursor") {
     ZStack {
-        Color(red: 0.06, green: 0.07, blue: 0.10)
+        AppColors.backgroundPrimary
             .ignoresSafeArea()
         HStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
             Text("Hello, how can I help")

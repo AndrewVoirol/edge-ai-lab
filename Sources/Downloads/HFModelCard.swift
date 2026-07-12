@@ -139,7 +139,7 @@ struct HFModelCard: View {
                     .foregroundStyle(AppColors.accentPrimary)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.xxs)
-                    .background(AppColors.accentPrimary.opacity(0.15))
+                    .background(AppColors.accentPrimaryTint)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             }
 
@@ -211,7 +211,7 @@ struct HFModelCard: View {
                     .foregroundStyle(AppColors.accentPrimary)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
-                    .background(AppColors.accentPrimary.opacity(0.1))
+                    .background(AppColors.accentPrimaryFaint)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .buttonStyle(.plain)
@@ -241,7 +241,7 @@ struct HFModelCard: View {
                     .foregroundStyle(AppColors.textTertiary)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
-                    .background(AppColors.textTertiary.opacity(0.1))
+                    .background(AppColors.accentPrimaryFaint)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             }
 

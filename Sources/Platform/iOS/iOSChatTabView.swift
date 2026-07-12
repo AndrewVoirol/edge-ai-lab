@@ -49,7 +49,7 @@ struct iOSChatTabView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            AppColors.backgroundPrimary
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
 
@@ -203,7 +203,7 @@ struct iOSChatTabView: View {
                     .fill(
                         RadialGradient(
                             gradient: Gradient(colors: [
-                                AppColors.accentPrimary.opacity(0.15),
+                                AppColors.accentPrimaryTint,
                                 AppColors.accentPrimary.opacity(0.02),
                                 .clear
                             ]),
@@ -234,13 +234,7 @@ struct iOSChatTabView: View {
                 // CPU icon
                 Image(systemName: "cpu")
                     .font(AppIconSize.xxl)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [AppColors.accentPrimary, AppColors.accentPrimary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .foregroundStyle(AppColors.accentPrimary)
             }
             .accessibilityHidden(true)
 
@@ -272,15 +266,9 @@ struct iOSChatTabView: View {
                 .foregroundStyle(AppColors.textPrimary)
                 .padding(.horizontal, AppSpacing.xl)
                 .padding(.vertical, AppSpacing.md)
-                .background(
-                    LinearGradient(
-                        colors: [AppColors.accentPrimary, AppColors.accentPrimary],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .background(AppColors.accentPrimary)
                 .clipShape(Capsule())
-                .shadow(color: AppColors.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: AppColors.accentPrimaryBorder, radius: 12, x: 0, y: 4)
             }
             .sensoryFeedback(.impact(weight: .light), trigger: router.selectedTab)
             .accessibilityLabel("Browse models to load one for chat")

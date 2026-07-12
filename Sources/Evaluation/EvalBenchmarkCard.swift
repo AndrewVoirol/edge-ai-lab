@@ -21,8 +21,7 @@ import SwiftUI
 // This file renders image-export eval benchmark cards via ImageRenderer.
 // Labels, badges, and section headers use AppTypography tokens.
 // Hero display numbers (48pt pass rate, 32pt suite name) use fixed point
-// sizes for pixel-perfect image export. These are marked with:
-//   // design-system-exempt: image export requires fixed point sizes
+// sizes for pixel-perfect image export.
 
 /// Shareable eval result card, modeled after the existing `BenchmarkCardView`.
 ///
@@ -49,13 +48,13 @@ struct EvalBenchmarkCard: View {
     var body: some View {
         ZStack {
             // Background — same layered dark forest as BenchmarkCardView
-            RoundedRectangle(cornerRadius: 24) // design-system-exempt: image export card
+            RoundedRectangle(cornerRadius: AppRadius.card) // design-system-exempt: image export card
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.04, green: 0.06, blue: 0.05),
-                            Color(red: 0.08, green: 0.11, blue: 0.09),
-                            Color(red: 0.05, green: 0.08, blue: 0.06),
+                            AppColors.backgroundPrimary,
+                            AppColors.backgroundSecondary,
+                            AppColors.backgroundTertiary,
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -63,7 +62,7 @@ struct EvalBenchmarkCard: View {
                 )
 
             // Subtle gradient overlay
-            RoundedRectangle(cornerRadius: 24) // design-system-exempt: image export card
+            RoundedRectangle(cornerRadius: AppRadius.card) // design-system-exempt: image export card
                 .fill(
                     RadialGradient(
                         colors: [
@@ -87,7 +86,7 @@ struct EvalBenchmarkCard: View {
             .padding(40) // design-system-exempt: large card export padding
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 24)) // design-system-exempt: image export card
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.card)) // design-system-exempt: image export card
         .accessibilityIdentifier("evalBenchmarkCard_root")
     }
 
@@ -95,14 +94,14 @@ struct EvalBenchmarkCard: View {
 
     private var topSection: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 8) { // design-system-exempt: image export card
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 // Suite name
                 Text(data.suiteName)
                     .font(.system(size: 32, weight: .bold)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(AppColors.textPrimary)
 
                 // Category badge
-                HStack(spacing: 8) { // design-system-exempt: image export card
+                HStack(spacing: AppSpacing.sm) {
                     Image(systemName: data.category.symbolName)
                         .font(AppIconSize.sm)
                     Text(data.category.displayName)
@@ -135,7 +134,7 @@ struct EvalBenchmarkCard: View {
             passRateRing
 
             // Model results summary
-            VStack(alignment: .leading, spacing: 16) { // design-system-exempt: image export card
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
                 ForEach(data.modelSummaries) { summary in
                     modelSummaryRow(summary)
                 }
@@ -158,7 +157,7 @@ struct EvalBenchmarkCard: View {
                 .rotationEffect(.degrees(-90))
                 .frame(width: 160, height: 160)
 
-            VStack(spacing: 4) { // design-system-exempt: image export card
+            VStack(spacing: AppSpacing.xs) {
                 Text("\(percent)")
                     .font(.system(size: 48, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(color)
@@ -202,13 +201,13 @@ struct EvalBenchmarkCard: View {
 
     // design-system-exempt — fixed-size font for image-export card
     private func metricPill(label: String, value: String, unit: String = "", color: Color) -> some View {
-        VStack(spacing: 2) { // design-system-exempt: image export card
+        VStack(spacing: AppSpacing.xxs) {
             if unit.isEmpty {
                 Text(value)
                     .font(AppTypography.metricLarge)
                     .foregroundStyle(color)
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: 2) { // design-system-exempt: image export card
+                HStack(alignment: .firstTextBaseline, spacing: AppSpacing.xxs) {
                     Text(value)
                         .font(AppTypography.metricLarge)
                         .foregroundStyle(color)
@@ -228,7 +227,7 @@ struct EvalBenchmarkCard: View {
     private var bottomSection: some View {
         HStack {
             // Device info
-            HStack(spacing: 12) { // design-system-exempt: image export card
+            HStack(spacing: AppSpacing.md) {
                 Image(systemName: "desktopcomputer")
                     .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.textTertiary)
@@ -245,7 +244,7 @@ struct EvalBenchmarkCard: View {
             Spacer()
 
             // Branding
-            HStack(spacing: 8) { // design-system-exempt: image export card
+            HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "flask.fill")
                     .font(AppIconSize.sm)
                     .foregroundStyle(AppColors.accentPrimary)

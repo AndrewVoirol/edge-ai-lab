@@ -68,7 +68,7 @@ struct ModelShowcaseView: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.xs)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(Capsule())
 
             // Model name

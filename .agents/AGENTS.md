@@ -60,6 +60,7 @@
 - **Subagent outputs must be build-and-test verified.** Don't forward subagent completion claims without: (a) confirming files exist via `git status`, (b) running `xcodebuild build` on both platforms, (c) running `xcodebuild test` with the full test plan, (d) grepping test output for `✘` and `Issue recorded`. Spot-checking source code alone is insufficient — tests catch validation ordering bugs and integration conflicts that code review misses.
 - **Subagent file operations require directory-level verification.** When subagents copy directories, verify the complete tree (not just the primary file). Use `find <dir> -type f | wc -l` to confirm file counts match the source. Subagents commonly miss companion directories (e.g., `scripts/`, `examples/`) and file permissions.
 - **Large subagent file batches should be split into groups of ≤15 files.** Subagents that process more than ~15 files in a single task are prone to context overflow, incomplete work, and silent failures. Split into multiple subagents with non-overlapping file lists and verify each independently.
+- **After subagent "replace all X with Y" work, verify the outcome, not just the report.** Run `grep -rn "X" Sources/` yourself and confirm zero results (or only exempt instances). Subagents accurately report what they changed but cannot report what they missed. Build success does not prove completeness — only a post-hoc grep does.
 
 ## Strategic Recommendations
 - **Never project numeric outcomes without evidence.** If you haven't measured it, say "unknown — requires measurement" instead of estimating a range. Fabricated projections (e.g., "expected 50-80%") erode trust when reality doesn't match.
@@ -178,15 +179,22 @@ All visual values are centralized in `Sources/DesignSystem/DesignSystem.swift`. 
 ### Token Usage Rules
 - **No hardcoded `spacing:`, `lineWidth:`, or `cornerRadius:` values** in view code without an exempt comment.
 - **No hardcoded `Color(red:green:blue:)` or `.font(.system(size:))`** — use `AppColors` and `AppTypography`.
-- **`Color(.systemBackground)` is allowed on iOS** — it's an Apple system-adaptive color that correctly handles light/dark mode. Do not wrap it in an AppColors token.
+- **Do NOT use `Color(.systemBackground)`** — use `AppColors.backgroundPrimary` instead. All background colors go through the design system's Asset Catalog for palette consistency.
 - **Layout `.frame()` values (column widths, panel sizes, window constraints) stay inline** — these are context-dependent layout decisions, not design system concepts.
 - **Exemptions:** Mark with `// design-system-exempt: <reason>`. Valid reasons include: zero spacing for tight packing, image-export pixel-exact rendering, progress ring tracks, structural layout dimensions.
 
 ### Changing the Palette
-To change the entire app's color palette, edit ONLY the color values in `AppColors` within `DesignSystem.swift`. Every view in the app references these tokens — no other files need to change. This is the design system's primary value proposition.
+To change the entire app's color palette, edit the color values in the Asset Catalog (`Sources/Assets.xcassets/*.colorset/Contents.json`). Each color set has `Any` (fallback) and `Dark` appearance variants. Every view in the app references `AppColors` tokens which resolve to these catalog entries — no Swift code changes needed. This is the design system's primary value proposition.
 
 ### Adding New Tokens
 When adding a new UI element that needs a visual value:
 1. Check if an existing token fits. `grep -rn "static let" Sources/DesignSystem/DesignSystem.swift`
 2. If no existing token fits, add a new one to the appropriate enum with a doc comment.
 3. Never add tokens for one-off layout values (e.g., `AppSize.settingsPanel = 600`).
+
+### Token Migration Safety
+- **When replacing `someColor.opacity(X)` with a pre-composed token, verify the token's opacity value matches the original.** A token defined as `opacity(0.3)` must NOT replace a site that was `opacity(0.5)` — that's a silent visual regression, not a refactor. If the values don't match: (a) don't replace, (b) create a separate token, or (c) consciously decide to unify and document why.
+- **Before delegating "replace all pattern X" to a subagent, grep for the total count and include it in the prompt.** After the subagent reports, verify the replacement count matches. Missing instances are the most common subagent failure mode.
+- **After any commit that changes design system architecture, grep all `.agents/` and `.agents/skills/` files for terms referencing the old architecture.** Minimum sweep terms: old function names, old file paths, old patterns (e.g., `Color(red:`, `Color(.systemBackground)`). Stale rules cause future agents to undo the change.
+- **Opacity changes need visual verification, not just contrast math.** WCAG tests verify ratios but don't catch "this background is too transparent." Flag opacity modifications for visual spot-check.
+

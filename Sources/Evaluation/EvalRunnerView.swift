@@ -151,7 +151,7 @@ struct EvalRunnerView: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -402,8 +402,8 @@ struct EvalRunnerView: View {
             .background(
                 LinearGradient(
                     colors: canRun
-                        ? [AppColors.accentPrimary, AppColors.accentPrimary]
-                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)],
+                        ? [AppColors.accentPrimary, AppColors.accentPrimary] // design-system-exempt: gradient structure needed for ternary branch parity
+                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)], // design-system-exempt: gradient stops for disabled button
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -440,7 +440,7 @@ struct EvalRunnerView: View {
                 LinearGradient(
                     colors: (!isRunning && !isBatchRunning && !viewModel.discoveredModels.isEmpty)
                         ? [AppColors.accentSecondary, AppColors.accentPrimary]
-                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)],
+                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)], // design-system-exempt: gradient stops for disabled button
                     startPoint: .leading,
                     endPoint: .trailing
                 )

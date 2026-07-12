@@ -120,14 +120,14 @@ struct ModelCapabilityCard: View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: icon)
                 .font(AppIconSize.xxs)
-                .foregroundStyle(supported ? color : AppColors.textTertiary.opacity(0.4))
+                .foregroundStyle(supported ? color : AppColors.textQuaternary)
             Text(label)
                 .font(AppTypography.badge)
-                .foregroundStyle(supported ? AppColors.textSecondary : AppColors.textTertiary.opacity(0.4))
+                .foregroundStyle(supported ? AppColors.textSecondary : AppColors.textQuaternary)
             Spacer()
             Image(systemName: supported ? "checkmark.circle.fill" : "minus.circle")
                 .font(AppIconSize.xxs)
-                .foregroundStyle(supported ? color.opacity(0.6) : AppColors.textTertiary.opacity(0.3))
+                .foregroundStyle(supported ? color.opacity(0.6) : AppColors.textQuaternary)
         }
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, AppSpacing.xs)

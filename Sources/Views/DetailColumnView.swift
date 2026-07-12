@@ -167,7 +167,7 @@ private struct ModelDetailPanel: View {
                     } else {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
-                                .fill(AppColors.textTertiary.opacity(0.4))
+                                .fill(AppColors.textQuaternary)
                                 .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                             Text("Not Loaded")
                                 .font(AppTypography.badge)
@@ -301,7 +301,6 @@ private struct ModelDetailPanel: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.md)
-        .glassCard(cornerRadius: AppRadius.md)
         .glassEffect(in: .rect(cornerRadius: AppRadius.md))
         .accessibilityIdentifier("modelDetail_stat_\(label)")
     }
@@ -371,13 +370,7 @@ private struct ModelDetailPanel: View {
                 VStack(spacing: AppSpacing.md) {
                     Image(systemName: "tree")
                         .font(AppIconSize.hero)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [AppColors.accentPrimary, AppColors.accentPrimary],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .foregroundStyle(AppColors.accentPrimary)
                         .accessibilityIdentifier("modelDetail_emptyIcon")
 
                     Text("Welcome to Edge AI Lab")

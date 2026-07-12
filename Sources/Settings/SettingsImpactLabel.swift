@@ -61,7 +61,7 @@ struct SettingsImpactLabel: View {
             }
             Text(engineNames)
                 .font(AppTypography.badge)
-                .foregroundStyle(supported ? AppColors.textTertiary : .orange.opacity(0.8))
+                .foregroundStyle(supported ? AppColors.textTertiary : AppColors.warning.opacity(0.8))
         }
         .accessibilityLabel(supported
             ? "Supported on \(engineNames)"

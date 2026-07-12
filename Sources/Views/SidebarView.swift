@@ -136,7 +136,7 @@ struct SidebarView: View {
                     VStack(spacing: AppSpacing.sm) {
                         Image(systemName: "shippingbox")
                             .font(AppIconSize.hero)
-                            .foregroundStyle(AppColors.textTertiary.opacity(0.5))
+                            .foregroundStyle(AppColors.textQuaternary)
                         Text("No Models")
                             .font(AppTypography.sectionHeader)
                             .foregroundStyle(AppColors.textSecondary)
@@ -197,7 +197,7 @@ struct SidebarView: View {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "clock")
                             .font(AppIconSize.xxs)
-                            .foregroundStyle(AppColors.textTertiary.opacity(0.6))
+                            .foregroundStyle(AppColors.textTertiary)
                         Text("Experiments will appear here")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
@@ -401,7 +401,7 @@ struct SidebarView: View {
             // No model
             HStack(spacing: AppSpacing.sm) {
                 Circle()
-                    .fill(AppColors.textTertiary.opacity(0.4))
+                    .fill(AppColors.textQuaternary)
                     .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                 Text("No model loaded")
                     .font(AppTypography.subtitle)
@@ -759,7 +759,7 @@ private struct SidebarModelRow: View {
                         .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, AppSpacing.xxs)
-                        .background(AppColors.accentPrimary.opacity(0.1))
+                        .background(AppColors.accentPrimaryFaint)
                         .clipShape(Capsule())
                 }
 

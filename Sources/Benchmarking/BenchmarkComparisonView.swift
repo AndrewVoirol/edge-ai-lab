@@ -178,7 +178,7 @@ private struct ModelBenchmarkCard: View {
             // Model name + run count
             HStack(alignment: .firstTextBaseline) {
                 Text(summary.modelName)
-                    .font(AppTypography.body.weight(.semibold))
+                    .font(AppTypography.bodySemibold)
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
 

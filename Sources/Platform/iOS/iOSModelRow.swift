@@ -130,10 +130,10 @@ struct iOSModelRow: View {
     private var modelIcon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : AppColors.backgroundTertiary)
+                .fill(isActive ? AppColors.accentPrimaryTint : AppColors.backgroundTertiary)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: AppLineWidth.hairline)
+                        .stroke(isActive ? AppColors.accentPrimaryBorder : AppColors.border, lineWidth: AppLineWidth.hairline)
                 )
 
             Image(systemName: iconName)
@@ -274,7 +274,7 @@ struct iOSModelRow: View {
             } label: {
                 ZStack {
                     Circle()
-                        .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: AppLineWidth.thick)
+                        .stroke(AppColors.textQuaternary, lineWidth: AppLineWidth.thick)
                     Image(systemName: "stop.fill")
                         .font(AppIconSize.xxs)
                         .foregroundStyle(AppColors.accentPrimary)

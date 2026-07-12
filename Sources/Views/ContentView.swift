@@ -509,9 +509,7 @@ extension ContentView {
                     viewModel.statusMessage = "Error selecting file: \(error.localizedDescription)"
                 }
             }
-            // Force dark mode — palette is dark-only. Adaptive colors are Phase 4.
-            // When the palette supports light mode, remove this and update AGENTS.md.
-            .preferredColorScheme(.dark)
+
     }
 }
 

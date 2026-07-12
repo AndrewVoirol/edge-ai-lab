@@ -256,7 +256,7 @@ struct BenchmarkValidationView: View {
             Text("Edge AI Lab — Benchmark Validation")
                 .font(AppTypography.cardTitle)
             Text(runner.status)
-                .foregroundColor(.gray)
+                .foregroundStyle(AppColors.textSecondary)
 
             Divider()
 
@@ -265,7 +265,7 @@ struct BenchmarkValidationView: View {
                     ForEach(runner.results) { result in
                         Text(result.text)
                             .font(AppTypography.mono)
-                            .foregroundColor(result.text.contains("PASS") ? .green : .red)
+                            .foregroundStyle(result.text.contains("PASS") ? AppColors.success : AppColors.destructive)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

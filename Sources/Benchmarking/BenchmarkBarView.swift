@@ -497,7 +497,7 @@ struct BenchmarkBarView: View {
             content()
         }
         .padding(AppSpacing.sm)
-        .background(AppColors.backgroundTertiary.opacity(0.3))
+        .background(AppColors.backgroundTertiarySubtle)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
     }
 

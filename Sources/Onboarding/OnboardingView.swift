@@ -40,7 +40,7 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
             #else
-            Color(.systemBackground)
+            AppColors.backgroundPrimary
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
             #endif
@@ -161,13 +161,7 @@ struct OnboardingView: View {
                 .padding(.vertical, AppSpacing.md)
                 .background {
                     RoundedRectangle(cornerRadius: AppRadius.xl)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppColors.accentPrimary, AppColors.accentPrimary],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(AppColors.accentPrimary)
                 }
         }
         .buttonStyle(.plain)

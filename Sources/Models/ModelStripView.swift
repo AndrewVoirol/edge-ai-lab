@@ -126,7 +126,7 @@ struct ModelStripView: View {
                             .foregroundStyle(AppColors.accentPrimary)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColors.accentPrimary.opacity(0.1))
+                            .background(AppColors.accentPrimaryFaint)
                             .clipShape(Capsule())
                     }
                 }

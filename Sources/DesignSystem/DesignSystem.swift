@@ -26,79 +26,123 @@ import MarkdownUI
 // MARK: - Color Palette
 
 /// Curated color palette — Petrichor.
-/// Blue-slate stone as the dominant base, bright overcast light for text,
+/// Blue-slate stone as the dominant base, bright overcast light for text.
 /// Semantic color tokens — names describe PURPOSE, not appearance.
-/// To theme the app, change values here. No view file references a color directly.
+///
+/// **Architecture:** All color values live in the Asset Catalog (`Assets.xcassets`).
+/// Each color set has Any (fallback) and Dark appearance variants.
+/// Light-mode variants are TODO — currently both resolve to the dark palette.
+///
+/// **Theming:** To change the app's palette, edit color values in the Asset Catalog.
+/// No view file references a color directly — all go through these tokens.
+///
+/// **WCAG AA targets:** Body text ≥ 4.5:1, large text / UI components ≥ 3:1.
 enum AppColors {
 
     // MARK: Backgrounds
     /// Deepest background layer.
-    static let backgroundPrimary = Color(red: 0.05, green: 0.07, blue: 0.06)
+    static let backgroundPrimary = Color("backgroundPrimary")
     /// Elevated surface (cards, panels).
-    static let backgroundSecondary = Color(red: 0.09, green: 0.12, blue: 0.10)
+    static let backgroundSecondary = Color("backgroundSecondary")
     /// Inset surface (input fields, wells).
-    static let backgroundTertiary = Color(red: 0.13, green: 0.17, blue: 0.14)
+    static let backgroundTertiary = Color("backgroundTertiary")
 
     // MARK: Accent Colors
     /// Primary brand accent — interactive elements, buttons, active states, progress indicators.
-    static let accentPrimary = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// Never use for: binary status indicators (use `success`), warnings/errors, thinking mode.
+    /// Distinct from: `success` (same hue family but different saturation and intent — style vs. status).
+    /// History: Merged from `accentTeal` + `accentCyan`, which were used interchangeably.
+    static let accentPrimary = Color("accentPrimary")
     /// Secondary accent — user-side actions, role labels, send button, code language tags.
-    static let accentSecondary = Color(red: 0.85, green: 0.67, blue: 0.35)
+    /// Never use for: warnings (use `warning`), machine actions (use `toolAction`).
+    /// Distinct from: `warning` (gold is warmer; warning is more orange with higher saturation).
+    static let accentSecondary = Color("accentSecondary")
 
     // MARK: Semantic State
     /// Success / ready / healthy / downloaded / verified / passed.
     /// 91° lime-green — visually distinct from accentPrimary (151° green).
-    static let success = Color(red: 0.54, green: 0.75, blue: 0.34)
+    /// Never use for: interactive buttons (use `accentPrimary`), navigation text.
+    static let success = Color("success")
     /// Warning / attention needed / loading / paused / beta / restart required.
     /// 22° orange — distinct from accentSecondary (38° gold) by higher saturation and lower hue.
-    static let warning = Color(red: 0.90, green: 0.49, blue: 0.25)
+    /// Distinct from: `destructive` (warning = something MIGHT go wrong; destructive = something IS wrong).
+    static let warning = Color("warning")
     /// Error / critical / danger / delete / cancel / failed.
     /// Boosted for ≥ 3:1 large-text contrast with Liquid Glass.
-    static let destructive = Color(red: 0.86, green: 0.39, blue: 0.31)
+    /// Never use for: decorative red, attention-getting non-errors.
+    static let destructive = Color("destructive")
     /// Thinking / reasoning mode — active contemplation state.
     /// 195° slate-blue — moved out of green family entirely.
-    static let reasoning = Color(red: 0.40, green: 0.64, blue: 0.72)
+    /// Never use for: general success (use `success`), primary accent (use `accentPrimary`).
+    static let reasoning = Color("reasoning")
     /// Tool calling / function execution / agent actions.
-    static let toolAction = Color(red: 0.42, green: 0.54, blue: 1.0)
+    /// Never use for: user actions (use `accentPrimary` or `accentSecondary`), warnings.
+    /// Distinct from: `warning` (toolAction is cool/blue, warning is warm/amber — unmistakable).
+    static let toolAction = Color("toolAction")
 
     // MARK: Text
     /// Primary content text — headings, interactive labels.
-    static let textPrimary = Color(red: 0.91, green: 0.87, blue: 0.82)
+    static let textPrimary = Color("textPrimary")
     /// Secondary text — descriptions, section labels.
     /// Tuned to ≥ 4.5:1 on backgroundPrimary/Secondary even with Liquid Glass.
-    static let textSecondary = Color(red: 0.71, green: 0.66, blue: 0.59)
+    static let textSecondary = Color("textSecondary")
     /// Tertiary text — timestamps, hints, metadata, disabled states.
     /// 5.4:1 contrast on backgroundPrimary. Gap from textSecondary: 4× wider than before.
-    static let textTertiary = Color(red: 0.58, green: 0.53, blue: 0.48)
+    /// Never apply .opacity() to this — already the dimmest readable text. Use as-is.
+    static let textTertiary = Color("textTertiary")
 
     // MARK: Chat Bubbles
     /// User message bubble gradient start.
-    static let userBubbleStart = Color(red: 0.28, green: 0.22, blue: 0.14)
+    static let userBubbleStart = Color("userBubbleStart")
     /// User message bubble gradient end.
-    static let userBubbleEnd = Color(red: 0.18, green: 0.15, blue: 0.10)
+    static let userBubbleEnd = Color("userBubbleEnd")
     /// Assistant message bubble background.
-    static let assistantBubble = Color(red: 0.10, green: 0.14, blue: 0.11)
+    static let assistantBubble = Color("assistantBubble")
 
     // MARK: Borders
     /// Default border / divider.
-    static let border = Color.white.opacity(0.06)
+    static let border = Color("border")
     /// Active / focused border.
-    static let borderActive = Color.white.opacity(0.12)
+    static let borderActive = Color("borderActive")
 
     // MARK: Capability Indicators (distinct per model feature)
-    /// Vision capability.
-    static let capabilityVision = Color(red: 0.29, green: 0.62, blue: 1.0)
-    /// Audio capability.
-    static let capabilityAudio = Color(red: 0.75, green: 0.35, blue: 0.95)
+    /// Vision capability — bright sky blue.
+    static let capabilityVision = Color("capabilityVision")
+    /// Audio capability — vivid purple.
+    /// Distinct from: `capabilityThinking` (280° purple vs 310° pink-magenta).
+    static let capabilityAudio = Color("capabilityAudio")
     /// Multi-Token Prediction capability.
     /// 180° cyan — moved out of green family.
-    static let capabilityMTP = Color(red: 0.26, green: 0.75, blue: 0.75)
+    static let capabilityMTP = Color("capabilityMTP")
     /// Thinking/reasoning capability indicator.
     /// 310° pink-magenta — distinct from capabilityAudio (280° purple).
-    static let capabilityThinking = Color(red: 0.88, green: 0.44, blue: 0.81)
+    static let capabilityThinking = Color("capabilityThinking")
     /// Constrained Decoding capability.
     /// 55° yellow — distinct from accentSecondary (38°) and warning (22°).
-    static let capabilityCD = Color(red: 0.82, green: 0.77, blue: 0.25)
+    static let capabilityCD = Color("capabilityCD")
+
+    // MARK: Gradient Support
+    /// Deep midnight-sky tint for showcase/dashboard gradient endpoint.
+    static let backgroundShowcaseEnd = Color("backgroundShowcaseEnd")
+
+    // MARK: Pre-Composed Opacity Variants
+    // These capture high-frequency opacity patterns as named tokens.
+    // Derived from base tokens — automatically adapt when base colors change.
+
+    /// Accent primary at 15% opacity — badge backgrounds, selected fills, tinted surfaces.
+    static let accentPrimaryTint = accentPrimary.opacity(0.15)
+    /// Accent primary at 10% — faint hover states, subtle row highlights.
+    static let accentPrimaryFaint = accentPrimary.opacity(0.1)
+    /// Accent primary at 30% — borders on accent elements, ring strokes.
+    static let accentPrimaryBorder = accentPrimary.opacity(0.3)
+    /// Background tertiary at 30% — blockquote fills, code block backgrounds, subtle surface tints.
+    static let backgroundTertiarySubtle = backgroundTertiary.opacity(0.3)
+
+    // MARK: Accessible Dim Text
+    /// Quaternary text — divider dots, watermarks, deeply de-emphasized decorative text.
+    /// Dimmer than textTertiary but still WCAG AA compliant at ≥ 3:1 on backgroundPrimary.
+    /// Use instead of applying .opacity() to textTertiary (which drops below readable contrast).
+    static let textQuaternary = textTertiary.opacity(0.7)
 }
 
 // MARK: - Gradients
@@ -111,82 +155,15 @@ enum AppGradients {
         endPoint: .bottomTrailing
     )
 
-    /// Header/toolbar gradient — bark to shadow.
-    static let toolbar = LinearGradient(
-        colors: [
-            AppColors.backgroundSecondary.opacity(0.95),
-            AppColors.backgroundPrimary.opacity(0.98)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
-    /// Accent shimmer for loading states.
-    static let shimmer = LinearGradient(
-        colors: [AppColors.accentPrimary, AppColors.accentPrimary.opacity(0.7), AppColors.accentPrimary],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
-
-    /// Thinking mode glow.
-    static let thinking = LinearGradient(
-        colors: [
-            AppColors.reasoning.opacity(0.3),
-            AppColors.reasoning.opacity(0.1),
-            AppColors.reasoning.opacity(0.3)
-        ],
-        startPoint: .leading,
-        endPoint: .trailing
-    )
-
-    /// Model card background — layered bark.
-    static let card = LinearGradient(
-        colors: [
-            AppColors.backgroundSecondary,
-            AppColors.backgroundTertiary.opacity(0.7)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    /// Sidebar/panel background — forest depth.
-    static let sidebar = LinearGradient(
-        colors: [
-            AppColors.backgroundSecondary.opacity(0.6),
-            AppColors.backgroundPrimary.opacity(0.8)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
     /// Showcase/dashboard background — deep forest with midnight sky tint.
     /// Used by PerformanceDashboardView and ModelShowcaseView.
     static let showcaseBackground = LinearGradient(
         colors: [
             AppColors.backgroundPrimary,
-            Color(red: 0.1, green: 0.15, blue: 0.25)
+            AppColors.backgroundShowcaseEnd
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
-    )
-}
-
-// MARK: - Shadows
-
-enum AppShadow {
-    /// Subtle depth shadow for cards.
-    static func card(_ scheme: ColorScheme = .dark) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-        (Color.black.opacity(0.3), 8, 0, 4)
-    }
-
-    /// Glow shadow for active elements.
-    static let activeGlow: (color: Color, radius: CGFloat) = (
-        AppColors.accentPrimary.opacity(0.25), 12
-    )
-
-    /// Warm glow for user interaction elements.
-    static let warmGlow: (color: Color, radius: CGFloat) = (
-        AppColors.accentSecondary.opacity(0.2), 10
     )
 }
 
@@ -219,6 +196,14 @@ enum AppTypography {
     static let subtitle: Font = .system(.subheadline, design: .default, weight: .medium)
     /// Tiny labels, chart axes, fine print (~9pt light).
     static let footnote: Font = .system(.caption2, design: .default, weight: .light)
+
+    // MARK: Weight Variants
+    /// Caption with medium weight — for inline labels needing subtle emphasis.
+    static let captionMedium: Font = .system(.caption2, design: .default, weight: .medium)
+    /// Caption with semibold weight — for active/interactive caption labels.
+    static let captionSemibold: Font = .system(.caption2, design: .default, weight: .semibold)
+    /// Body with semibold weight — for emphasized body text in tables/comparisons.
+    static let bodySemibold: Font = .system(.body, design: .default, weight: .semibold)
 
     // MARK: iOS List
     /// List row title — system body for maximum readability at all Dynamic Type sizes.
@@ -356,8 +341,11 @@ enum AppAnimation {
 
 // MARK: - View Modifiers
 
-/// Premium glass card surface — frosted glass in a forest.
+/// Glass card background — frosted glass in a dark forest.
 /// The forest palette bleeds through the material for a warm, organic feel.
+///
+/// ⚠️ Do NOT combine with `.glassEffect()` — use one or the other, never both.
+/// Stacking produces a double-glass sandwich with over-blurred, muddy results.
 struct GlassCardModifier: ViewModifier {
     var cornerRadius: CGFloat = AppRadius.lg
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -380,7 +368,7 @@ struct GlassCardModifier: ViewModifier {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(AppColors.border, lineWidth: 0.5)
+                        .stroke(AppColors.border, lineWidth: AppLineWidth.hairline)
                 )
             }
     }
@@ -409,7 +397,7 @@ struct ForestGlassModifier: ViewModifier {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(AppColors.borderActive, lineWidth: 0.5)
+                        .stroke(AppColors.borderActive, lineWidth: AppLineWidth.hairline)
                 )
             }
     }
@@ -436,9 +424,12 @@ struct PulsingGlowModifier: ViewModifier {
     /// Cached check: are we running inside an XCTest host?
     private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || CommandLine.arguments.contains("-DisableAnimations")
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func body(content: Content) -> some View {
-        if Self.isRunningTests {
+        if Self.isRunningTests || reduceMotion {
             // Static shadow — no animation cycle to saturate the runloop
+            // or when user has enabled Reduce Motion accessibility preference
             content
                 .shadow(color: color.opacity(0.3), radius: 8)
         } else {
@@ -481,7 +472,7 @@ struct BadgeModifier: ViewModifier {
             .font(AppTypography.badge)
             .foregroundStyle(color)
             .padding(.horizontal, AppSpacing.sm)
-            .padding(.vertical, 3)
+            .padding(.vertical, 3) // design-system-exempt: badge internal vertical padding — no matching token
             .background(color.opacity(0.12))
             .clipShape(Capsule())
     }
@@ -666,13 +657,13 @@ extension Theme {
     static func appDefault(isUser: Bool) -> Theme {
         Theme()
             .text {
-                ForegroundColor(isUser ? AppColors.textPrimary : AppColors.textPrimary)
+                ForegroundColor(isUser ? AppColors.textPrimary : AppColors.textSecondary)
                 FontSize(.em(1.0)) // Uses base Dynamic Type size from SwiftUI environment
             }
             .code {
                 FontFamilyVariant(.monospaced)
                 ForegroundColor(AppColors.accentPrimary)
-                BackgroundColor(AppColors.backgroundTertiary.opacity(0.5))
+                BackgroundColor(AppColors.backgroundTertiary.opacity(0.5)) // design-system-exempt: code block needs more density than backgroundTertiarySubtle (0.3)
             }
             .strong {
                 FontWeight(.semibold)
@@ -716,7 +707,7 @@ extension Theme {
                         .padding(.vertical, AppSpacing.sm)
                         .foregroundStyle(AppColors.textSecondary)
                 }
-                .background(AppColors.backgroundTertiary.opacity(0.3))
+                .background(AppColors.backgroundTertiarySubtle)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .padding(.vertical, AppSpacing.xs)
             }
@@ -727,7 +718,7 @@ extension Theme {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.border, lineWidth: 1)
+                            .stroke(AppColors.border, lineWidth: AppLineWidth.regular)
                     )
             }
             .tableCell { configuration in

@@ -62,19 +62,19 @@ struct PanelResizeHandle: View {
             Rectangle()
                 .fill(isHovering || isDragging ? AppColors.textTertiary : AppColors.border)
                 .frame(width: 1)
-                .animation(.easeInOut(duration: 0.15), value: isHovering)
-                .animation(.easeInOut(duration: 0.15), value: isDragging)
+                .animation(AppAnimation.quick, value: isHovering)
+                .animation(AppAnimation.quick, value: isDragging)
 
             // Grip dots — shown on hover/drag for discoverability
             if isHovering || isDragging {
                 VStack(spacing: AppSpacing.xxs) {
                     ForEach(0..<3, id: \.self) { _ in
                         Circle()
-                            .fill(AppColors.textTertiary.opacity(0.6))
+                            .fill(AppColors.textTertiary)
                             .frame(width: 3, height: 3)
                     }
                 }
-                .transition(.opacity.animation(.easeInOut(duration: 0.15)))
+                .transition(.opacity.animation(AppAnimation.quick))
             }
         }
         // Wide invisible hit area for easy grabbing

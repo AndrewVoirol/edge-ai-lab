@@ -540,10 +540,10 @@ struct iOSModelHubView: View {
             // Leading: Pulsing indicator
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(AppColors.accentPrimary.opacity(0.15))
+                    .fill(AppColors.accentPrimaryTint)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentPrimary.opacity(0.3), lineWidth: AppLineWidth.hairline)
+                            .stroke(AppColors.accentPrimaryBorder, lineWidth: AppLineWidth.hairline)
                     )
                 Image(systemName: "bolt.fill")
                     .font(AppIconSize.lg)

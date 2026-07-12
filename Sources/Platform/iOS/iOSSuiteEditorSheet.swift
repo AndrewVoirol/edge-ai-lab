@@ -288,7 +288,7 @@ struct iOSSuiteEditorSheet: View {
                             .padding(.vertical, AppSpacing.sm)
                             .background(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .fill(isSelected ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
+                                    .fill(isSelected ? AppColors.accentPrimaryTint : Color.clear)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
@@ -349,7 +349,7 @@ struct iOSSuiteEditorSheet: View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "text.bubble")
                 .font(AppIconSize.xxl)
-                .foregroundStyle(AppColors.textTertiary.opacity(0.5))
+                .foregroundStyle(AppColors.textQuaternary)
 
             Text("No prompts yet")
                 .font(AppTypography.subtitle)
@@ -371,7 +371,7 @@ struct iOSSuiteEditorSheet: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(Capsule())
             }
             .accessibilityIdentifier("suiteEditor_addFirstPrompt")
@@ -449,7 +449,7 @@ struct iOSSuiteEditorSheet: View {
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
-                    isEditing ? AppColors.accentPrimary.opacity(0.3) : Color.clear,
+                    isEditing ? AppColors.accentPrimaryBorder : Color.clear,
                     lineWidth: AppLineWidth.regular
                 )
         )
@@ -532,12 +532,12 @@ struct iOSSuiteEditorSheet: View {
                             .padding(.vertical, AppSpacing.xs)
                             .background(
                                 Capsule()
-                                    .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
+                                    .fill(isActive ? AppColors.accentPrimaryTint : Color.clear)
                             )
                             .overlay(
                                 Capsule()
                                     .stroke(
-                                        isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border,
+                                        isActive ? AppColors.accentPrimaryBorder : AppColors.border,
                                         lineWidth: AppLineWidth.hairline
                                     )
                             )

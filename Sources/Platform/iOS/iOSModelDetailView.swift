@@ -173,7 +173,7 @@ struct iOSModelDetailView: View {
                     .fill(isActiveModel ? AppColors.accentPrimary.opacity(0.12) : AppColors.backgroundTertiary)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .stroke(isActiveModel ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: AppLineWidth.hairline)
+                            .stroke(isActiveModel ? AppColors.accentPrimaryBorder : AppColors.border, lineWidth: AppLineWidth.hairline)
                     )
 
                 VStack(spacing: AppSpacing.sm) {
@@ -268,13 +268,7 @@ struct iOSModelDetailView: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppSpacing.md)
-                        .background(
-                            LinearGradient(
-                                colors: [AppColors.accentPrimary, AppColors.accentPrimary],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(AppColors.accentPrimary)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .sensoryFeedback(.impact(weight: .medium), trigger: router.selectedTab)
@@ -310,7 +304,7 @@ struct iOSModelDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.md)
-                .background(AppColors.accentPrimary.opacity(0.1))
+                .background(AppColors.accentPrimaryFaint)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
 
             } else if case .downloaded(let url) = downloadState {

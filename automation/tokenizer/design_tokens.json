@@ -1,0 +1,235 @@
+{
+  "colors": {
+    "backgroundPrimary": {
+      "r": 0.05,
+      "g": 0.07,
+      "b": 0.06
+    },
+    "backgroundSecondary": {
+      "r": 0.09,
+      "g": 0.12,
+      "b": 0.1
+    },
+    "backgroundTertiary": {
+      "r": 0.13,
+      "g": 0.17,
+      "b": 0.14
+    },
+    "amber": {
+      "r": 0.85,
+      "g": 0.67,
+      "b": 0.35
+    },
+    "moss": {
+      "r": 0.31,
+      "g": 0.78,
+      "b": 0.55
+    },
+    "sprout": {
+      "r": 0.31,
+      "g": 0.78,
+      "b": 0.55
+    },
+    "caution": {
+      "r": 0.88,
+      "g": 0.67,
+      "b": 0.24
+    },
+    "ember": {
+      "r": 0.86,
+      "g": 0.39,
+      "b": 0.31
+    },
+    "sage": {
+      "r": 0.39,
+      "g": 0.65,
+      "b": 0.55
+    },
+    "action": {
+      "r": 0.42,
+      "g": 0.54,
+      "b": 1.0
+    },
+    "textPrimary": {
+      "r": 0.91,
+      "g": 0.87,
+      "b": 0.82
+    },
+    "textSecondary": {
+      "r": 0.71,
+      "g": 0.66,
+      "b": 0.59
+    },
+    "textTertiary": {
+      "r": 0.68,
+      "g": 0.63,
+      "b": 0.58
+    },
+    "userBubbleStart": {
+      "r": 0.28,
+      "g": 0.22,
+      "b": 0.14
+    },
+    "userBubbleEnd": {
+      "r": 0.18,
+      "g": 0.15,
+      "b": 0.1
+    },
+    "assistantBubble": {
+      "r": 0.1,
+      "g": 0.14,
+      "b": 0.11
+    },
+    "badgeVision": {
+      "r": 0.29,
+      "g": 0.62,
+      "b": 1.0
+    },
+    "badgeAudio": {
+      "r": 0.75,
+      "g": 0.35,
+      "b": 0.95
+    },
+    "badgeMTP": {
+      "r": 0.2,
+      "g": 0.78,
+      "b": 0.45
+    },
+    "badgeThinking": {
+      "r": 0.65,
+      "g": 0.42,
+      "b": 0.95
+    },
+    "badgeCD": {
+      "r": 0.9,
+      "g": 0.62,
+      "b": 0.2
+    },
+    "badgeTools": {
+      "r": 0.3,
+      "g": 0.75,
+      "b": 0.7
+    },
+    "border": {
+      "base_color": "white",
+      "opacity": 0.06
+    },
+    "borderActive": {
+      "base_color": "white",
+      "opacity": 0.12
+    }
+  },
+  "typography": {
+    "body": {
+      "size": "body",
+      "design": "default",
+      "weight": "regular"
+    },
+    "mono": {
+      "size": "caption",
+      "design": "monospaced",
+      "weight": "regular"
+    },
+    "sectionHeader": {
+      "size": "subheadline",
+      "design": "default",
+      "weight": "semibold"
+    },
+    "metric": {
+      "size": "caption",
+      "design": "monospaced",
+      "weight": "medium"
+    },
+    "metricLarge": {
+      "size": "title3",
+      "design": "monospaced",
+      "weight": "bold"
+    },
+    "caption": {
+      "size": "caption2",
+      "design": "default",
+      "weight": "regular"
+    },
+    "badge": {
+      "size": "caption2",
+      "design": "rounded",
+      "weight": "medium"
+    },
+    "pageTitle": {
+      "size": "title",
+      "design": "default",
+      "weight": "bold"
+    },
+    "sectionTitle": {
+      "size": "title3",
+      "design": "default",
+      "weight": "semibold"
+    },
+    "cardTitle": {
+      "size": "headline",
+      "design": "default",
+      "weight": "semibold"
+    },
+    "subtitle": {
+      "size": "subheadline",
+      "design": "default",
+      "weight": "medium"
+    },
+    "footnote": {
+      "size": "caption2",
+      "design": "default",
+      "weight": "light"
+    },
+    "listTitle": {
+      "size": "body",
+      "design": "default",
+      "weight": "regular"
+    },
+    "listSubtitle": {
+      "size": "subheadline",
+      "design": "default",
+      "weight": "regular"
+    },
+    "listTertiary": {
+      "size": "footnote",
+      "design": "default",
+      "weight": "regular"
+    }
+  },
+  "icon_sizes": {
+    "xxs": {
+      "size": "caption2"
+    },
+    "xs": {
+      "size": "caption"
+    },
+    "sm": {
+      "size": "footnote"
+    },
+    "md": {
+      "size": "subheadline"
+    },
+    "lg": {
+      "size": "body"
+    },
+    "xl": {
+      "size": "title3"
+    },
+    "xxl": {
+      "size": "title"
+    },
+    "hero": {
+      "size": "largeTitle"
+    }
+  },
+  "asset_colors": {
+    "AccentColor": {
+      "light": {
+        "red": "0.361",
+        "green": "0.651",
+        "blue": "0.451",
+        "alpha": "1.000"
+      }
+    }
+  }
+}

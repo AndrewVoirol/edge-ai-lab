@@ -5,7 +5,7 @@ description: Token architecture, naming conventions, palette theming, and exempt
 
 # Design System
 
-EdgeAILab uses a centralized semantic token architecture. All visual values — colors, typography, spacing, radii, line widths, sizes — are defined in `Sources/DesignSystem/DesignSystem.swift` as `enum` namespaces with `static let` properties.
+EdgeAILab uses a centralized semantic token architecture. All visual values — colors, typography, spacing, radii, line widths, sizes — are defined in `Sources/DesignSystem/DesignSystem.swift` as `enum` namespaces with `static let` properties. Color tokens are backed by Asset Catalog color sets in `Sources/Assets.xcassets/*.colorset/` with `Any` and `Dark` appearance variants.
 
 ## Core Principle: Intent Over Appearance
 
@@ -22,12 +22,15 @@ Token names describe **what they do**, not **what they look like**.
 
 ### AppColors — Semantic Color Palette
 ```
-Backgrounds:  .background, .surfaceElevated, .surfaceSecondary
-Text:         .textPrimary, .textSecondary, .textTertiary
+Backgrounds:  .backgroundPrimary, .backgroundSecondary, .backgroundTertiary
+              .backgroundShowcaseEnd, .backgroundTertiarySubtle (0.3 opacity)
+Text:         .textPrimary, .textSecondary, .textTertiary, .textQuaternary
 Accents:      .accentPrimary, .accentSecondary
-Status:       .success, .warning, .error, .info
-Borders:      .border
-Chat:         .chatUser, .chatAssistant
+              .accentPrimaryTint (0.15), .accentPrimaryFaint (0.1), .accentPrimaryBorder (0.3)
+Status:       .success, .warning, .destructive, .reasoning, .toolAction
+Borders:      .border, .borderActive
+Chat:         .userBubbleStart, .userBubbleEnd, .assistantBubble
+Capability:   .capabilityVision, .capabilityAudio, .capabilityCD, .capabilityMTP, .capabilityThinking
 ```
 
 ### AppTypography — Dynamic Type Font Styles
@@ -35,6 +38,7 @@ Chat:         .chatUser, .chatAssistant
 Large:    .largeTitle, .title, .headline
 Medium:   .cardTitle, .subtitle, .bodyLarge
 Standard: .body, .caption, .captionSecondary
+Weights:  .bodySemibold, .captionMedium, .captionSemibold
 Special:  .metric, .metricLarge, .mono
 ```
 
@@ -82,11 +86,11 @@ Valid exemption reasons:
 ## Changing the Palette
 
 To retheme the entire app:
-1. Open `Sources/DesignSystem/DesignSystem.swift`
-2. Edit the `Color(red:green:blue:)` values in `AppColors`
-3. Build and verify — every view in the app will update automatically
+1. Edit the color values in `Sources/Assets.xcassets/*.colorset/Contents.json`
+2. Each color set has `Any` (fallback) and `Dark` appearance variants — edit both
+3. Build and verify — every view in the app will update automatically via `AppColors` tokens
 
-No other files need to change. This is the design system's primary value.
+No Swift code changes needed. This is the design system's primary value.
 
 ## Verification Commands
 
