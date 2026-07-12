@@ -47,14 +47,17 @@ enum AppColors {
 
     // MARK: Semantic State
     /// Success / ready / healthy / downloaded / verified / passed.
-    static let success = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// 91° lime-green — visually distinct from accentPrimary (151° green).
+    static let success = Color(red: 0.54, green: 0.75, blue: 0.34)
     /// Warning / attention needed / loading / paused / beta / restart required.
-    static let warning = Color(red: 0.88, green: 0.67, blue: 0.24)
+    /// 22° orange — distinct from accentSecondary (38° gold) by higher saturation and lower hue.
+    static let warning = Color(red: 0.90, green: 0.49, blue: 0.25)
     /// Error / critical / danger / delete / cancel / failed.
     /// Boosted for ≥ 3:1 large-text contrast with Liquid Glass.
     static let destructive = Color(red: 0.86, green: 0.39, blue: 0.31)
     /// Thinking / reasoning mode — active contemplation state.
-    static let reasoning = Color(red: 0.39, green: 0.65, blue: 0.55)
+    /// 195° slate-blue — moved out of green family entirely.
+    static let reasoning = Color(red: 0.40, green: 0.64, blue: 0.72)
     /// Tool calling / function execution / agent actions.
     static let toolAction = Color(red: 0.42, green: 0.54, blue: 1.0)
 
@@ -65,8 +68,8 @@ enum AppColors {
     /// Tuned to ≥ 4.5:1 on backgroundPrimary/Secondary even with Liquid Glass.
     static let textSecondary = Color(red: 0.71, green: 0.66, blue: 0.59)
     /// Tertiary text — timestamps, hints, metadata, disabled states.
-    /// Tuned to ≥ 4.5:1 contrast on backgroundPrimary even with Liquid Glass.
-    static let textTertiary = Color(red: 0.68, green: 0.63, blue: 0.58)
+    /// 5.4:1 contrast on backgroundPrimary. Gap from textSecondary: 4× wider than before.
+    static let textTertiary = Color(red: 0.58, green: 0.53, blue: 0.48)
 
     // MARK: Chat Bubbles
     /// User message bubble gradient start.
@@ -88,11 +91,14 @@ enum AppColors {
     /// Audio capability.
     static let capabilityAudio = Color(red: 0.75, green: 0.35, blue: 0.95)
     /// Multi-Token Prediction capability.
-    static let capabilityMTP = Color(red: 0.20, green: 0.78, blue: 0.45)
+    /// 180° cyan — moved out of green family.
+    static let capabilityMTP = Color(red: 0.26, green: 0.75, blue: 0.75)
     /// Thinking/reasoning capability indicator.
-    static let capabilityThinking = Color(red: 0.65, green: 0.42, blue: 0.95)
+    /// 310° pink-magenta — distinct from capabilityAudio (280° purple).
+    static let capabilityThinking = Color(red: 0.88, green: 0.44, blue: 0.81)
     /// Constrained Decoding capability.
-    static let capabilityCD = Color(red: 0.90, green: 0.62, blue: 0.20)
+    /// 55° yellow — distinct from accentSecondary (38°) and warning (22°).
+    static let capabilityCD = Color(red: 0.82, green: 0.77, blue: 0.25)
 }
 
 // MARK: - Gradients
