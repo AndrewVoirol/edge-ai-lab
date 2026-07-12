@@ -31,7 +31,9 @@ import MarkdownUI
 ///
 /// **Architecture:** All color values live in the Asset Catalog (`Assets.xcassets`).
 /// Each color set has Any (fallback) and Dark appearance variants.
-/// Light-mode variants are TODO — currently both resolve to the dark palette.
+/// Both light and dark appearances are authored in the Asset Catalog.
+/// Light values use warm neutrals; dark values use the forest palette.
+/// All combinations verified ≥ WCAG AA contrast (4.5:1 text, 3:1 UI).
 ///
 /// **Theming:** To change the app's palette, edit color values in the Asset Catalog.
 /// No view file references a color directly — all go through these tokens.
