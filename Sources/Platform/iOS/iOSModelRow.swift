@@ -262,7 +262,7 @@ struct iOSModelRow: View {
                 Image(systemName: metadata.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
                     .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentPrimary)
-                    .frame(width: 44, height: 44) // HIG: 44pt minimum tap target
+                    .frame(width: AppSize.tapTarget, height: AppSize.tapTarget) // HIG: 44pt minimum tap target
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("modelRow_download_\(metadata.modelFile)")
@@ -280,7 +280,7 @@ struct iOSModelRow: View {
                         .foregroundStyle(AppColors.accentPrimary)
                 }
                 .frame(width: 28, height: 28)
-                .frame(width: 44, height: 44) // Expanded tap target
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget) // Expanded tap target
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Cancel download")
@@ -290,7 +290,7 @@ struct iOSModelRow: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.success)
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Downloaded")
                 .accessibilityIdentifier("modelRow_downloaded_\(metadata.modelFile)")
 
@@ -306,7 +306,7 @@ struct iOSModelRow: View {
                         .font(AppTypography.badge)
                         .foregroundStyle(AppColors.destructive)
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Download failed: \(message). Tap to retry.")
@@ -316,7 +316,7 @@ struct iOSModelRow: View {
             Image(systemName: "lock.circle.fill")
                 .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.warning)
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Authentication required")
                 .accessibilityIdentifier("modelRow_auth_\(metadata.modelFile)")
 
@@ -325,7 +325,7 @@ struct iOSModelRow: View {
             Image(systemName: "clock.fill")
                 .font(AppIconSize.lg)
                 .foregroundStyle(AppColors.textSecondary)
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Queued for download")
                 .accessibilityIdentifier("modelRow_queued_\(metadata.modelFile)")
 
@@ -337,7 +337,7 @@ struct iOSModelRow: View {
                 Image(systemName: "play.circle.fill")
                     .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentPrimary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Resume download")

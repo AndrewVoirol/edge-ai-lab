@@ -244,7 +244,7 @@ struct iOSModelDetailView: View {
                     HStack(spacing: AppSpacing.sm) {
                         Circle()
                             .fill(AppColors.success)
-                            .frame(width: 8, height: 8)
+                            .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                             .pulsingGlow(AppColors.success)
                         Text("Model is running")
                             .font(AppTypography.subtitle)

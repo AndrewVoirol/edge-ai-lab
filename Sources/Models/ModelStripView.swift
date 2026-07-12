@@ -138,7 +138,7 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
                         .fill(isActive ? AppColors.accentPrimary : AppColors.success)
-                        .frame(width: 5, height: 5)
+                        .frame(width: AppSize.dotSm, height: AppSize.dotSm)
                     Text(isActive ? "Loaded Engine" : "Click to Load Engine")
                         .font(AppTypography.caption)
                         .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textTertiary)
@@ -238,7 +238,7 @@ struct ModelStripView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Circle()
                         .fill(AppColors.success)
-                        .frame(width: 5, height: 5)
+                        .frame(width: AppSize.dotSm, height: AppSize.dotSm)
                     Text("Ready")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)

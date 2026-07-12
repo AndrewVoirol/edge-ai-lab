@@ -655,13 +655,13 @@ struct EvalRunnerView: View {
         return ZStack {
             Circle()
                 .stroke(color.opacity(0.2), lineWidth: AppLineWidth.heavy)
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
 
             Circle()
                 .trim(from: 0, to: rate)
                 .stroke(color, style: StrokeStyle(lineWidth: AppLineWidth.heavy, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .frame(width: 44, height: 44)
+                .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
 
             Text("\(percent)%")
                 .font(AppTypography.metric)

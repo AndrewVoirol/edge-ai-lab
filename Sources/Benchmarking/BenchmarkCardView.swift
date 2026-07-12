@@ -622,7 +622,7 @@ struct BenchmarkCardView: View {
                 HStack(spacing: 6) {
                     Circle()
                         .fill(data.tier.color)
-                        .frame(width: 6, height: 6)
+                        .frame(width: AppSize.dotMd, height: AppSize.dotMd)
                     Text(data.tier.label.uppercased())
                         .font(.system(size: labelSize - 1, weight: .bold, design: .default)) // design-system-exempt: image export requires fixed point sizes
                         .foregroundStyle(data.tier.color)

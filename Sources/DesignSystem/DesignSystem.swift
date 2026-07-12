@@ -283,6 +283,28 @@ enum AppLineWidth {
     static let heavy: CGFloat = 3
 }
 
+// MARK: - Standard Sizes
+
+/// Fixed-size design tokens for indicators, dots, and tap targets.
+///
+/// Only values that represent a **design concept** belong here (status dots,
+/// touch targets). Layout-specific dimensions (column widths, panel sizes,
+/// window constraints) remain inline as they are context-dependent.
+enum AppSize {
+    /// Tiny status dot (inactive/secondary model indicators). 5×5
+    static let dotSm: CGFloat = 5
+    /// Small status dot (capability dots, status indicators). 6×6
+    static let dotMd: CGFloat = 6
+    /// Streaming/animation dot (chat typing indicator). 7×7
+    static let dotLg: CGFloat = 7
+    /// Standard status dot (active model, legend entries). 8×8
+    static let dotXl: CGFloat = 8
+    /// Large indicator dot (onboarding page dots). 10×10
+    static let dotHero: CGFloat = 10
+    /// Apple HIG minimum tap target. 44×44
+    static let tapTarget: CGFloat = 44
+}
+
 /// Dynamic Type–aware icon sizing for SF Symbols.
 ///
 /// Use these instead of `.font(.system(size:))` on `Image(systemName:)`.

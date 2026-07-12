@@ -158,7 +158,7 @@ extension InferenceSettingsView {
                             let state = viewModel.getMCPClientState(for: config.id)
                             HStack(spacing: AppSpacing.xs) {
                                 Circle()
-                                    .frame(width: 8, height: 8)
+                                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                                     .foregroundStyle(statusColor(for: state))
                                 Text(statusText(for: state))
                                     .font(AppTypography.caption)

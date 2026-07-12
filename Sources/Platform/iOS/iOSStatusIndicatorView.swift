@@ -91,7 +91,7 @@ struct iOSStatusIndicatorView: View {
             } else {
                 Circle()
                     .fill(AppColors.success)
-                    .frame(width: 6, height: 6)
+                    .frame(width: AppSize.dotMd, height: AppSize.dotMd)
                     .pulsingGlow(AppColors.success)
             }
 

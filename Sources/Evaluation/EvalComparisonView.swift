@@ -259,7 +259,7 @@ struct EvalComparisonView: View {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
                                 .fill(PassRateTier.color(for: result.passRate))
-                                .frame(width: 8, height: 8)
+                                .frame(width: AppSize.dotXl, height: AppSize.dotXl)
 
                             Text(result.modelName)
                                 .font(AppTypography.sectionHeader)

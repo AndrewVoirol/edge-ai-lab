@@ -363,7 +363,7 @@ struct SidebarView: View {
             HStack(spacing: AppSpacing.sm) {
                 Circle()
                     .fill(AppColors.success)
-                    .frame(width: 8, height: 8)
+                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                     .glow(AppColors.success, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(metadata.name)
@@ -383,7 +383,7 @@ struct SidebarView: View {
             HStack(spacing: AppSpacing.sm) {
                 Circle()
                     .fill(AppColors.success)
-                    .frame(width: 8, height: 8)
+                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                     .glow(AppColors.success, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(modelName)
@@ -402,7 +402,7 @@ struct SidebarView: View {
             HStack(spacing: AppSpacing.sm) {
                 Circle()
                     .fill(AppColors.textTertiary.opacity(0.4))
-                    .frame(width: 8, height: 8)
+                    .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                 Text("No model loaded")
                     .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textTertiary)
@@ -790,7 +790,7 @@ private struct SidebarModelRow: View {
             HStack(spacing: AppSpacing.xs) {
                 Circle()
                     .fill(isActive ? AppColors.accentPrimary : AppColors.success)
-                    .frame(width: 5, height: 5)
+                    .frame(width: AppSize.dotSm, height: AppSize.dotSm)
                 Text(isActive ? "Loaded" : "Available")
                     .font(AppTypography.caption)
                     .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textTertiary)

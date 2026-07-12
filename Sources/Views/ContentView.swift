@@ -121,7 +121,7 @@ struct ContentView: View {
                             if viewModel.activeCanvasContent != nil {
                                 Rectangle()
                                     .fill(AppColors.border)
-                                    .frame(width: 0.5)
+                                    .frame(width: AppLineWidth.hairline)
                                 CanvasPanelView()
                             }
                         }

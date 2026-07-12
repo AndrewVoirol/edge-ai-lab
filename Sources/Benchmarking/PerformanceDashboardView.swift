@@ -329,7 +329,7 @@ struct PerformanceDashboardView: View {
             // Tier indicator
             Circle()
                 .fill(tier.color)
-                .frame(width: 8, height: 8)
+                .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                 .glow(tier.color, radius: 4, opacity: 0.6)
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {

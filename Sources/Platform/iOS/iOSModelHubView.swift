@@ -594,7 +594,7 @@ struct iOSModelHubView: View {
             // Ready indicator
             Circle()
                 .fill(AppColors.success)
-                .frame(width: 8, height: 8)
+                .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                 .pulsingGlow(AppColors.success)
         }
         .padding(.vertical, AppSpacing.listRowVertical)

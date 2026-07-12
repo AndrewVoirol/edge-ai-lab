@@ -54,7 +54,7 @@ struct BenchmarkBarView: View {
 
                 Rectangle()
                     .fill(AppColors.border)
-                    .frame(width: 0.5, height: 18)
+                    .frame(width: AppLineWidth.hairline, height: 18)
 
                 // Thermal state indicator
                 thermalIndicator
@@ -62,13 +62,13 @@ struct BenchmarkBarView: View {
 
                 Rectangle()
                     .fill(AppColors.border)
-                    .frame(width: 0.5, height: 18)
+                    .frame(width: AppLineWidth.hairline, height: 18)
 
                 benchmarkItem(label: "TTFT", value: String(format: "%.3fs", metrics.timeToFirstToken ?? 0))
                     .accessibilityLabel("Time to first token: \(String(format: "%.3f", metrics.timeToFirstToken ?? 0)) seconds")
                 Rectangle()
                     .fill(AppColors.border)
-                    .frame(width: 0.5, height: 18)
+                    .frame(width: AppLineWidth.hairline, height: 18)
 
                 // Hero metric: decode speed with tier color
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
@@ -84,7 +84,7 @@ struct BenchmarkBarView: View {
 
                 Rectangle()
                     .fill(AppColors.border)
-                    .frame(width: 0.5, height: 18)
+                    .frame(width: AppLineWidth.hairline, height: 18)
 
                 benchmarkItem(label: "Prefill", value: String(format: "%.1f tok/s", metrics.promptTokensPerSecond ?? 0))
                     .accessibilityLabel("Prefill speed: \(String(format: "%.1f", metrics.promptTokensPerSecond ?? 0)) tokens per second")
@@ -92,7 +92,7 @@ struct BenchmarkBarView: View {
                 // Memory indicator
                 Rectangle()
                     .fill(AppColors.border)
-                    .frame(width: 0.5, height: 18)
+                    .frame(width: AppLineWidth.hairline, height: 18)
                 memoryIndicator
 
                 Spacer()

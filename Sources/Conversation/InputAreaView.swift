@@ -360,7 +360,7 @@ struct InputAreaView: View {
                 .scaleEffect(isSendPressed ? 0.85 : 1.0)
         }
         .buttonStyle(.plain)
-        .frame(minWidth: 44, minHeight: 44) // HIG: 44pt minimum tap target
+        .frame(minWidth: AppSize.tapTarget, minHeight: AppSize.tapTarget) // HIG: 44pt minimum tap target
         .disabled(!canSubmitPrompt)
         .accessibilityLabel(viewModel.isGenerating ? "Stop generating" : "Send message")
         .accessibilityIdentifier("button_send")
@@ -473,7 +473,7 @@ struct InputAreaView: View {
                             .font(AppTypography.caption)
                     }
                     .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44) // HIG: 44pt minimum tap target
+                    .frame(minWidth: AppSize.tapTarget, minHeight: AppSize.tapTarget) // HIG: 44pt minimum tap target
                     .contentShape(Rectangle())
                     .accessibilityLabel("Remove attached image")
                     .accessibilityIdentifier("button_removeImage")

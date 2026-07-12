@@ -291,7 +291,7 @@ struct BenchmarkSummaryCard: View {
     private var metricDivider: some View {
         Rectangle()
             .fill(AppColors.border)
-            .frame(width: 0.5, height: 40)
+            .frame(width: AppLineWidth.hairline, height: 40)
     }
 
     /// Section label for detail metric groups.

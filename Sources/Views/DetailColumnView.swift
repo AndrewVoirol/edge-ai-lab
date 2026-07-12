@@ -157,7 +157,7 @@ private struct ModelDetailPanel: View {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
                                 .fill(AppColors.success)
-                                .frame(width: 8, height: 8)
+                                .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                                 .glow(AppColors.success, radius: 6, opacity: 0.5)
                             Text("Loaded")
                                 .font(AppTypography.badge)
@@ -168,7 +168,7 @@ private struct ModelDetailPanel: View {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
                                 .fill(AppColors.textTertiary.opacity(0.4))
-                                .frame(width: 8, height: 8)
+                                .frame(width: AppSize.dotXl, height: AppSize.dotXl)
                             Text("Not Loaded")
                                 .font(AppTypography.badge)
                                 .foregroundStyle(AppColors.textTertiary)

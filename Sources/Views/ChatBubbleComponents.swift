@@ -285,7 +285,7 @@ struct CodeBlockView: View {
                     // Vertical separator
                     Rectangle()
                         .fill(AppColors.border)
-                        .frame(width: 0.5)
+                        .frame(width: AppLineWidth.hairline)
 
                     // Code content
                     VStack(alignment: .leading, spacing: 0) { // design-system-exempt: zero spacing for tight packing

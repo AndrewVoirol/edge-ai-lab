@@ -353,7 +353,7 @@ struct ChatBubbleView: View {
                     // Status indicator
                     Circle()
                         .fill(event.succeeded ? AppColors.success : AppColors.destructive)
-                        .frame(width: 6, height: 6)
+                        .frame(width: AppSize.dotMd, height: AppSize.dotMd)
                         .glow(event.succeeded ? AppColors.success : AppColors.destructive, radius: 4, opacity: 0.6)
 
                     Image(systemName: "wrench.and.screwdriver")

@@ -49,7 +49,7 @@ struct ModelCapabilityCard: View {
                             HStack(spacing: AppSpacing.xxs) {
                                 Circle()
                                     .fill(backend.activeBackend == .gpu ? AppColors.success : AppColors.warning)
-                                    .frame(width: 6, height: 6)
+                                    .frame(width: AppSize.dotMd, height: AppSize.dotMd)
                                 Text(backend.activeBackend == .gpu ? "GPU (Metal)" : "CPU")
                                     .font(AppTypography.metric)
                                     .foregroundStyle(AppColors.textSecondary)
