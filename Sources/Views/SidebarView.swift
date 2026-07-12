@@ -70,8 +70,6 @@ struct SidebarView: View {
     @Environment(ConversationViewModel.self) private var viewModel
     @Binding var selectedSection: SidebarSection?
     @Binding var selectedModelId: String?
-    @Binding var showcaseModel: ModelMetadata?
-    @Binding var showcaseModelURL: URL?
 
     /// Model pending delete confirmation.
     @State private var modelToDelete: DiscoveredModel?
@@ -105,8 +103,8 @@ struct SidebarView: View {
                     }
                     .contextMenu {
                         Button {
-                            showcaseModelURL = model.url
-                            showcaseModel = model.resolvedMetadata
+                            viewModel.showcaseModelURL = model.url
+                            viewModel.showcaseModel = model.resolvedMetadata
                         } label: {
                             Label("Model Info", systemImage: "info.circle")
                         }
@@ -735,17 +733,13 @@ private struct SidebarModelRow: View {
 #Preview("Sidebar — No Model") {
     SidebarView(
         selectedSection: .constant(nil),
-        selectedModelId: .constant(nil),
-        showcaseModel: .constant(nil),
-        showcaseModelURL: .constant(nil)
+        selectedModelId: .constant(nil)
     )
 }
 
 #Preview("Sidebar — Models Section") {
     SidebarView(
         selectedSection: .constant(.models),
-        selectedModelId: .constant(nil),
-        showcaseModel: .constant(nil),
-        showcaseModelURL: .constant(nil)
+        selectedModelId: .constant(nil)
     )
 }

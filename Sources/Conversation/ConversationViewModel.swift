@@ -309,6 +309,19 @@ final class ConversationViewModel {
     /// Set by CodeBlockView's "Open in Canvas" button, cleared by the panel's close button.
     var activeCanvasContent: CanvasContent?
 
+    /// Stashed canvas content for ⌘⇧K toggle restore. Populated when canvas is closed
+    /// so the toggle command can reopen the last viewed content.
+    var lastCanvasContent: CanvasContent?
+
+    // MARK: - Model Showcase State
+
+    /// The model to display in the Model Showcase sheet.
+    /// Set by context menus (macOS sidebar, iOS model hub) and toolbar buttons (iOS detail view).
+    var showcaseModel: ModelMetadata?
+
+    /// The file URL for the model shown in the showcase sheet.
+    var showcaseModelURL: URL?
+
     // MARK: - MCP Servers Support
 
     var mcpServers: [MCPServerConfig] = []

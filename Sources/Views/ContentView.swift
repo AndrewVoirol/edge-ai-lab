@@ -47,8 +47,6 @@ struct ContentView: View {
     @Environment(iOSNavigationRouter.self) private var navigationRouter
     #endif
     @State private var showSettings = false
-    @State private var showcaseModel: ModelMetadata?
-    @State private var showcaseModelURL: URL?
 
     // NavigationSplitView state
     @State private var selectedSection: SidebarSection?
@@ -82,9 +80,7 @@ struct ContentView: View {
             // Left column: Sidebar (collapse handled by built-in NavigationSplitView toggle)
             SidebarView(
                 selectedSection: $selectedSection,
-                selectedModelId: $selectedModelId,
-                showcaseModel: $showcaseModel,
-                showcaseModelURL: $showcaseModelURL
+                selectedModelId: $selectedModelId
             )
         } detail: {
             // Detail area: middle panel + chat panel side-by-side
@@ -223,7 +219,10 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleCanvasRequested)) { _ in
             withAnimation(AppAnimation.standard) {
                 if viewModel.activeCanvasContent != nil {
+                    viewModel.lastCanvasContent = viewModel.activeCanvasContent
                     viewModel.activeCanvasContent = nil
+                } else if let last = viewModel.lastCanvasContent {
+                    viewModel.activeCanvasContent = last
                 }
             }
         }
@@ -430,9 +429,12 @@ extension ContentView {
                 }
             }
 
-            .sheet(item: $showcaseModel) { model in
+            .sheet(item: Binding(
+                get: { viewModel.showcaseModel },
+                set: { viewModel.showcaseModel = $0 }
+            )) { model in
                 NavigationStack {
-                    ModelShowcaseView(metadata: model, fileURL: showcaseModelURL)
+                    ModelShowcaseView(metadata: model, fileURL: viewModel.showcaseModelURL)
                 }
                 #if os(macOS)
                 .frame(minWidth: 450, minHeight: 550)

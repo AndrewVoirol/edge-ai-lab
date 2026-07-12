@@ -126,6 +126,17 @@ struct iOSModelDetailView: View {
         .navigationTitle(metadata.name)
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: isActiveModel)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    viewModel.showcaseModel = metadata
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .accessibilityLabel("Model Info")
+                .accessibilityIdentifier("modelDetail_showcaseButton")
+            }
+        }
         .alert("Delete Model?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 deleteModel()

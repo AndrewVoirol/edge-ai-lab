@@ -269,6 +269,23 @@ struct iOSModelHubView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             loadSwipeButton(for: item.state)
         }
+        .contextMenu {
+            Button {
+                viewModel.showcaseModelURL = item.url
+                viewModel.showcaseModel = item.metadata
+            } label: {
+                Label("Model Info", systemImage: "info.circle")
+            }
+            .accessibilityIdentifier("modelRow_context_info_\(item.metadata.modelFile)")
+
+            Button(role: .destructive) {
+                modelToDelete = item.metadata
+                showDeleteConfirmation = true
+            } label: {
+                Label("Delete Model", systemImage: "trash")
+            }
+            .accessibilityIdentifier("modelRow_context_delete_\(item.metadata.modelFile)")
+        }
     }
 
     @ViewBuilder

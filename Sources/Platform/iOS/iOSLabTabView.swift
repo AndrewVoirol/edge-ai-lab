@@ -41,6 +41,19 @@ struct iOSLabTabView: View {
             }
             .navigationTitle("Lab")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        BenchmarkComparisonView()
+                            .navigationTitle("Compare Models")
+                            .navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        Image(systemName: "arrow.left.arrow.right")
+                    }
+                    .accessibilityLabel("Compare Models")
+                    .accessibilityIdentifier("lab_compareModels")
+                }
+            }
         }
         .accessibilityIdentifier("tab_lab")
     }

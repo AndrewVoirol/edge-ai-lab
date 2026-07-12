@@ -134,6 +134,7 @@ struct CanvasPanelView: View {
 
             // Close button
             Button {
+                viewModel.lastCanvasContent = viewModel.activeCanvasContent
                 viewModel.activeCanvasContent = nil
             } label: {
                 Image(systemName: "xmark.circle.fill")
