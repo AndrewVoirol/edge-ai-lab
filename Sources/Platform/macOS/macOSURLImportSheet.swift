@@ -118,9 +118,9 @@ struct macOSURLImportSheet: View {
                     .font(AppTypography.subtitle)
             }
             .buttonStyle(.borderedProminent)
-            .tint(AppColors.moss)
+            .tint(AppColors.accentPrimary)
             .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .glow(AppColors.moss, radius: 8, opacity: 0.25)
+            .glow(AppColors.accentPrimary, radius: 8, opacity: 0.25)
             .accessibilityIdentifier("urlImport_importButton")
         }
     }
@@ -256,9 +256,9 @@ struct macOSURLImportSheet: View {
                         .font(AppTypography.subtitle)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(AppColors.moss)
+                .tint(AppColors.accentPrimary)
                 .controlSize(.large)
-                .glow(AppColors.moss, radius: 10, opacity: 0.3)
+                .glow(AppColors.accentPrimary, radius: 10, opacity: 0.3)
                 .accessibilityIdentifier("urlImport_downloadButton")
             }
         }
@@ -281,11 +281,11 @@ struct macOSURLImportSheet: View {
             HStack(spacing: AppSpacing.md) {
                 if meta.metadata.supportsImage {
                     Label("Vision", systemImage: "eye")
-                        .badge(AppColors.badgeVision)
+                        .badge(AppColors.capabilityVision)
                 }
                 if meta.metadata.supportsAudio {
                     Label("Audio", systemImage: "waveform")
-                        .badge(AppColors.badgeAudio)
+                        .badge(AppColors.capabilityAudio)
                 }
             }
         }
@@ -337,8 +337,8 @@ struct macOSURLImportSheet: View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "checkmark.circle.fill")
                 .font(AppIconSize.hero)
-                .foregroundStyle(AppColors.sprout)
-                .glow(AppColors.sprout, radius: 14, opacity: 0.5)
+                .foregroundStyle(AppColors.success)
+                .glow(AppColors.success, radius: 14, opacity: 0.5)
 
             Text(meta.metadata.name)
                 .font(AppTypography.listTitle)
@@ -357,9 +357,9 @@ struct macOSURLImportSheet: View {
                     .font(AppTypography.subtitle)
             }
             .buttonStyle(.borderedProminent)
-            .tint(AppColors.amber)
+            .tint(AppColors.accentSecondary)
             .controlSize(.large)
-            .glow(AppColors.amber, radius: 10, opacity: 0.3)
+            .glow(AppColors.accentSecondary, radius: 10, opacity: 0.3)
             .accessibilityIdentifier("urlImport_loadButton")
         }
         .frame(maxWidth: .infinity)
@@ -374,11 +374,11 @@ struct macOSURLImportSheet: View {
         VStack(spacing: AppSpacing.lg) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(AppIconSize.xxl)
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
 
             Text(error)
                 .font(AppTypography.listSubtitle)
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
                 .multilineTextAlignment(.center)
 
             Button {

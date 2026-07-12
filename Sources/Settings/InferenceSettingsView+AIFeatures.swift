@@ -37,7 +37,7 @@ extension InferenceSettingsView {
             )
         } header: {
             Label("Thinking Mode", systemImage: "brain.head.profile")
-                .foregroundStyle(AppColors.sage)
+                .foregroundStyle(AppColors.reasoning)
         }
     }
 
@@ -66,7 +66,7 @@ extension InferenceSettingsView {
                 .foregroundStyle(AppColors.textSecondary)
             } header: {
                 Label("Vision Settings", systemImage: "eye")
-                    .foregroundStyle(AppColors.badgeVision)
+                    .foregroundStyle(AppColors.capabilityVision)
             }
         }
     }
@@ -84,10 +84,10 @@ extension InferenceSettingsView {
                         Text("Enable Agent Skills")
                         Text("Beta")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.caution)
+                            .foregroundStyle(AppColors.warning)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, 1)
-                            .background(AppColors.caution.opacity(0.15))
+                            .background(AppColors.warning.opacity(0.15))
                             .clipShape(Capsule())
                     }
                 }
@@ -103,7 +103,7 @@ extension InferenceSettingsView {
                         HStack(spacing: 6) {
                             Image(systemName: "wrench.fill")
                                 .font(.caption2)
-                                .foregroundStyle(AppColors.action)
+                                .foregroundStyle(AppColors.toolAction)
                             Text(item.name)
                                 .font(AppTypography.caption)
                                 .fontDesign(.monospaced)
@@ -129,7 +129,7 @@ extension InferenceSettingsView {
             }
         } header: {
             Label("Tool Calling", systemImage: "wrench.and.screwdriver")
-                .foregroundStyle(AppColors.action)
+                .foregroundStyle(AppColors.toolAction)
         }
     }
 
@@ -247,7 +247,7 @@ extension InferenceSettingsView {
                                         HStack(spacing: 4) {
                                             Image(systemName: "circle.grid.cross.fill")
                                                 .font(.caption2)
-                                                .foregroundStyle(AppColors.moss)
+                                                .foregroundStyle(AppColors.accentPrimary)
                                             Text(tool.name)
                                                 .font(.caption2)
                                                 .monospaced()
@@ -277,7 +277,7 @@ extension InferenceSettingsView {
                                 }
                                 .buttonStyle(.borderless)
                                 .font(.caption2)
-                                .foregroundStyle(AppColors.ember)
+                                .foregroundStyle(AppColors.destructive)
                                 .accessibilityIdentifier("button_delete_mcp_\(config.name)")
                             }
                         }
@@ -301,7 +301,7 @@ extension InferenceSettingsView {
                 .accessibilityIdentifier("button_addMCP")
             } header: {
                 Label("MCP Servers (macOS Only)", systemImage: "server.rack")
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
             }
         }
         #endif

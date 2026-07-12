@@ -239,11 +239,11 @@ struct iOSModelHubView: View {
                     } label: {
                         Label("Unload", systemImage: "eject")
                     }
-                    .tint(AppColors.caution)
+                    .tint(AppColors.warning)
                 }
             } header: {
                 Label("Now Running", systemImage: "bolt.fill")
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
             }
         }
     }
@@ -299,7 +299,7 @@ struct iOSModelHubView: View {
             } label: {
                 Label("Load", systemImage: "bolt")
             }
-            .tint(AppColors.moss)
+            .tint(AppColors.accentPrimary)
         }
     }
 
@@ -325,7 +325,7 @@ struct iOSModelHubView: View {
                 if isCommunitySearching {
                     ProgressView()
                         .controlSize(.mini)
-                        .tint(AppColors.moss)
+                        .tint(AppColors.accentPrimary)
                 }
                 if !communitySearchQuery.isEmpty {
                     Button {
@@ -345,7 +345,7 @@ struct iOSModelHubView: View {
             if let error = browser.lastError {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(AppColors.caution)
+                        .foregroundStyle(AppColors.warning)
                     Text(error)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -375,7 +375,7 @@ struct iOSModelHubView: View {
                 if browser.isLoading {
                     ProgressView()
                         .controlSize(.mini)
-                        .tint(AppColors.moss)
+                        .tint(AppColors.accentPrimary)
                 }
                 Button {
                     Task { await browser.refreshGemmaModels() }
@@ -477,18 +477,18 @@ struct iOSModelHubView: View {
 
         case .downloading(let progress):
             ProgressView(value: progress)
-                .tint(AppColors.moss)
+                .tint(AppColors.accentPrimary)
                 .frame(width: 36)
 
         case .downloadingDirectory(let progress, _, _):
             ProgressView(value: progress)
-                .tint(AppColors.amber)
+                .tint(AppColors.accentSecondary)
                 .frame(width: 36)
 
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundStyle(AppColors.sprout)
+                .foregroundStyle(AppColors.success)
 
         case .failed:
             Button {
@@ -496,7 +496,7 @@ struct iOSModelHubView: View {
             } label: {
                 Image(systemName: "arrow.clockwise.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(AppColors.ember)
+                    .foregroundStyle(AppColors.destructive)
             }
             .buttonStyle(.plain)
 
@@ -540,29 +540,29 @@ struct iOSModelHubView: View {
             // Leading: Pulsing indicator
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(AppColors.moss.opacity(0.15))
+                    .fill(AppColors.accentPrimary.opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.moss.opacity(0.3), lineWidth: 0.5)
+                            .stroke(AppColors.accentPrimary.opacity(0.3), lineWidth: 0.5)
                     )
                 Image(systemName: "bolt.fill")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
             }
             .frame(width: 40, height: 40)
-            .pulsingGlow(AppColors.moss)
+            .pulsingGlow(AppColors.accentPrimary)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: AppSpacing.xs) {
                     if let result = viewModel.backendResult {
                         Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                             .font(AppTypography.badge)
-                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
+                            .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     }
 
                     if let metrics = viewModel.performanceMetrics {
@@ -577,13 +577,13 @@ struct iOSModelHubView: View {
                     if metadata.supportsImage {
                         Label("Vision", systemImage: "eye")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.badgeVision)
+                            .foregroundStyle(AppColors.capabilityVision)
                             .accessibilityIdentifier("activeModel_badge_vision")
                     }
                     if metadata.supportsAudio {
                         Label("Audio", systemImage: "waveform")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.badgeAudio)
+                            .foregroundStyle(AppColors.capabilityAudio)
                             .accessibilityIdentifier("activeModel_badge_audio")
                     }
                 }
@@ -593,9 +593,9 @@ struct iOSModelHubView: View {
 
             // Ready indicator
             Circle()
-                .fill(AppColors.sprout)
+                .fill(AppColors.success)
                 .frame(width: 8, height: 8)
-                .pulsingGlow(AppColors.sprout)
+                .pulsingGlow(AppColors.success)
         }
         .padding(.vertical, AppSpacing.listRowVertical)
         .accessibilityIdentifier("modelHub_activeModel")
@@ -725,9 +725,9 @@ struct iOSModelHubView: View {
     /// Format color for a model format.
     private func formatColor(_ format: HFModelFormat) -> Color {
         switch format {
-        case .litertlm: AppColors.sprout
-        case .mlx: AppColors.amber
-        case .gguf: AppColors.moss
+        case .litertlm: AppColors.success
+        case .mlx: AppColors.accentSecondary
+        case .gguf: AppColors.accentPrimary
         case .unknown: AppColors.textTertiary
         }
     }

@@ -36,7 +36,7 @@ struct ModelCapabilityCard: View {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "cpu.fill")
                     .font(.title3)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .symbolEffect(.pulse, isActive: !appeared)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -48,7 +48,7 @@ struct ModelCapabilityCard: View {
                         if let backend = backendResult {
                             HStack(spacing: 3) {
                                 Circle()
-                                    .fill(backend.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
+                                    .fill(backend.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                                     .frame(width: 6, height: 6)
                                 Text(backend.activeBackend == .gpu ? "GPU (Metal)" : "CPU")
                                     .font(AppTypography.metric)
@@ -106,11 +106,11 @@ struct ModelCapabilityCard: View {
             ],
             spacing: AppSpacing.sm
         ) {
-            capabilityBadge("Vision", icon: "eye.fill", supported: metadata.supportsImage, color: AppColors.badgeVision)
-            capabilityBadge("Audio", icon: "waveform", supported: metadata.supportsAudio, color: AppColors.badgeAudio)
-            capabilityBadge("MTP", icon: "hare.fill", supported: metadata.supportsMTP && runtimeType != .mlx, color: AppColors.badgeMTP)
-            capabilityBadge("Thinking", icon: "brain.head.profile", supported: true, color: AppColors.badgeThinking)
-            capabilityBadge("Tools", icon: "wrench.fill", supported: metadata.supportsToolCalling, color: AppColors.badgeTools)
+            capabilityBadge("Vision", icon: "eye.fill", supported: metadata.supportsImage, color: AppColors.capabilityVision)
+            capabilityBadge("Audio", icon: "waveform", supported: metadata.supportsAudio, color: AppColors.capabilityAudio)
+            capabilityBadge("MTP", icon: "hare.fill", supported: metadata.supportsMTP && runtimeType != .mlx, color: AppColors.capabilityMTP)
+            capabilityBadge("Thinking", icon: "brain.head.profile", supported: true, color: AppColors.capabilityThinking)
+            capabilityBadge("Tools", icon: "wrench.fill", supported: metadata.supportsToolCalling, color: AppColors.toolAction)
             contextWindowBadge
         }
     }
@@ -143,7 +143,7 @@ struct ModelCapabilityCard: View {
         HStack(spacing: AppSpacing.xs) {
             Image(systemName: "text.line.first.and.arrowtriangle.forward")
                 .font(.caption2)
-                .foregroundStyle(AppColors.amber)
+                .foregroundStyle(AppColors.accentSecondary)
             Text(Self.formatContextWindow(metadata.contextWindowSize))
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
                 .foregroundStyle(AppColors.textSecondary)
@@ -153,7 +153,7 @@ struct ModelCapabilityCard: View {
         .padding(.vertical, AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(AppColors.amber.opacity(0.06))
+                .fill(AppColors.accentSecondary.opacity(0.06))
         )
         .accessibilityLabel("Context window: \(metadata.contextWindowSize ?? 0) tokens")
     }

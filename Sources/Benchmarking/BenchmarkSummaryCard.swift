@@ -85,7 +85,7 @@ struct BenchmarkSummaryCard: View {
             VStack(spacing: AppSpacing.xs) {
                 Text(String(format: "%.3f", metrics.timeToFirstToken ?? 0))
                     .font(AppTypography.metric)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 Text("TTFT (s)")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
@@ -98,7 +98,7 @@ struct BenchmarkSummaryCard: View {
             VStack(spacing: AppSpacing.xs) {
                 Text(String(format: "%.1f", metrics.promptTokensPerSecond ?? 0))
                     .font(AppTypography.metric)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 Text("Prefill tok/s")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
@@ -142,13 +142,13 @@ struct BenchmarkSummaryCard: View {
 
                 LazyVGrid(columns: detailColumns, alignment: .leading, spacing: AppSpacing.xs) {
                     if let decodeCount = metrics.tokenCount {
-                        detailCell(label: "Decode", value: "\(decodeCount) tok", color: AppColors.amber)
+                        detailCell(label: "Decode", value: "\(decodeCount) tok", color: AppColors.accentSecondary)
                     }
                     if let prefillCount = metrics.promptTokenCount {
-                        detailCell(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.amber)
+                        detailCell(label: "Prefill", value: "\(prefillCount) tok", color: AppColors.accentSecondary)
                     }
                     if let initTime = metrics.initTimeSeconds {
-                        detailCell(label: "Init Time", value: String(format: "%.2fs", initTime), color: AppColors.amber)
+                        detailCell(label: "Init Time", value: String(format: "%.2fs", initTime), color: AppColors.accentSecondary)
                     }
                 }
             }
@@ -170,17 +170,17 @@ struct BenchmarkSummaryCard: View {
                     detailCell(
                         label: "Start",
                         value: String(format: "%.0f MB", inferenceMetrics.startSnapshot.availableMemoryMB),
-                        color: AppColors.moss
+                        color: AppColors.accentPrimary
                     )
                     detailCell(
                         label: "End",
                         value: String(format: "%.0f MB", inferenceMetrics.endSnapshot.availableMemoryMB),
-                        color: AppColors.moss
+                        color: AppColors.accentPrimary
                     )
                     detailCell(
                         label: "Δ Memory",
                         value: String(format: "%+.0f MB", inferenceMetrics.memoryDeltaMB),
-                        color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.caution : AppColors.moss
+                        color: inferenceMetrics.memoryDeltaMB < -500 ? AppColors.warning : AppColors.accentPrimary
                     )
                 }
 
@@ -188,7 +188,7 @@ struct BenchmarkSummaryCard: View {
                 if inferenceMetrics.thermalStateChanged {
                     HStack(spacing: AppSpacing.xs) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.caution)
+                            .foregroundStyle(AppColors.warning)
                             .font(.caption)
                         Text("Thermal: \(inferenceMetrics.startSnapshot.thermalLevel.label) → \(inferenceMetrics.endSnapshot.thermalLevel.label)")
                             .font(AppTypography.caption)
@@ -213,10 +213,10 @@ struct BenchmarkSummaryCard: View {
                 sectionLabel("Latency Statistics")
 
                 LazyVGrid(columns: detailColumns, alignment: .leading, spacing: AppSpacing.xs) {
-                    detailCell(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.moss)
-                    detailCell(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.moss)
-                    detailCell(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.moss)
-                    detailCell(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.moss)
+                    detailCell(label: "Median", value: String(format: "%.1f ms", inferenceMetrics.medianTokenLatencyMs), color: AppColors.accentPrimary)
+                    detailCell(label: "P95", value: String(format: "%.1f ms", inferenceMetrics.p95TokenLatencyMs), color: AppColors.accentPrimary)
+                    detailCell(label: "Min", value: String(format: "%.1f ms", inferenceMetrics.minTokenLatencyMs), color: AppColors.accentPrimary)
+                    detailCell(label: "Max", value: String(format: "%.1f ms", inferenceMetrics.maxTokenLatencyMs), color: AppColors.accentPrimary)
                 }
             }
             .padding(AppSpacing.sm)
@@ -234,9 +234,9 @@ struct BenchmarkSummaryCard: View {
                 sectionLabel("MTP Speculation")
 
                 LazyVGrid(columns: detailColumns, alignment: .leading, spacing: AppSpacing.xs) {
-                    detailCell(label: "Acceptance", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.caution)
-                    detailCell(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.caution)
-                    detailCell(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.caution)
+                    detailCell(label: "Acceptance", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
+                    detailCell(label: "Draft", value: "\(metrics.proposedDraftTokens ?? 0) tok", color: AppColors.warning)
+                    detailCell(label: "Accepted", value: "\(metrics.acceptedDraftTokens ?? 0) tok", color: AppColors.warning)
                 }
 
                 if let reason = metrics.passthroughReason {

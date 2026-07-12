@@ -102,9 +102,9 @@ struct iOSHFModelDetailView: View {
     @ViewBuilder
     private var formatBadge: some View {
         let (text, color): (String, Color) = switch format {
-        case .litertlm: ("LiteRT", AppColors.sprout)
-        case .mlx: ("MLX", AppColors.amber)
-        case .gguf: ("GGUF", AppColors.moss)
+        case .litertlm: ("LiteRT", AppColors.success)
+        case .mlx: ("MLX", AppColors.accentSecondary)
+        case .gguf: ("GGUF", AppColors.accentPrimary)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         HStack(spacing: AppSpacing.xs) {
@@ -129,20 +129,20 @@ struct iOSHFModelDetailView: View {
                 label: "Downloads",
                 value: formatCount(model.downloads),
                 icon: "arrow.down.circle",
-                color: AppColors.moss
+                color: AppColors.accentPrimary
             )
             statCell(
                 label: "Likes",
                 value: "\(model.likes)",
                 icon: "heart",
-                color: AppColors.ember
+                color: AppColors.destructive
             )
             if let size = modelSize {
                 statCell(
                     label: "File Size",
                     value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file),
                     icon: "doc.zipper",
-                    color: AppColors.amber
+                    color: AppColors.accentSecondary
                 )
             }
         }
@@ -222,10 +222,10 @@ struct iOSHFModelDetailView: View {
 
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "cpu")
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                     Text(quant.uppercased())
                         .font(AppTypography.metric)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                 }
                 .padding(AppSpacing.md)
                 .glassCard(cornerRadius: AppRadius.md)
@@ -270,7 +270,7 @@ struct iOSHFModelDetailView: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(AppSpacing.md)
-                    .background(AppColors.moss)
+                    .background(AppColors.accentPrimary)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .buttonStyle(.plain)
@@ -280,7 +280,7 @@ struct iOSHFModelDetailView: View {
         case .downloading(let progress):
             VStack(spacing: AppSpacing.sm) {
                 ProgressView(value: progress)
-                    .tint(AppColors.moss)
+                    .tint(AppColors.accentPrimary)
                 Text("Downloading… \(Int(progress * 100))%")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -292,10 +292,10 @@ struct iOSHFModelDetailView: View {
         case .downloaded(let url):
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
                 Text("Downloaded")
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
             }
             .padding(AppSpacing.md)
             .glassCard(cornerRadius: AppRadius.md)
@@ -315,7 +315,7 @@ struct iOSHFModelDetailView: View {
                 .foregroundStyle(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(AppSpacing.md)
-                .background(AppColors.moss)
+                .background(AppColors.accentPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             }
             .buttonStyle(.plain)
@@ -324,10 +324,10 @@ struct iOSHFModelDetailView: View {
         case .failed(let message):
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(AppColors.ember)
+                    .foregroundStyle(AppColors.destructive)
                 Text(message)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.ember)
+                    .foregroundStyle(AppColors.destructive)
                     .lineLimit(3)
             }
             .padding(AppSpacing.md)
@@ -374,7 +374,7 @@ struct iOSHFModelDetailView: View {
                 .foregroundStyle(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(AppSpacing.md)
-                .background(AppColors.amber)
+                .background(AppColors.accentSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             }
             .buttonStyle(.plain)
@@ -383,7 +383,7 @@ struct iOSHFModelDetailView: View {
         case .downloadingDirectory(let progress, let completed, let total):
             VStack(spacing: AppSpacing.sm) {
                 ProgressView(value: progress)
-                    .tint(AppColors.amber)
+                    .tint(AppColors.accentSecondary)
                 Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -395,10 +395,10 @@ struct iOSHFModelDetailView: View {
         case .downloaded:
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
                 Text("Downloaded")
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
             }
             .padding(AppSpacing.md)
             .glassCard(cornerRadius: AppRadius.md)
@@ -415,10 +415,10 @@ struct iOSHFModelDetailView: View {
         Link(destination: URL(string: "https://huggingface.co/\(model.id)")!) {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "link")
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 Text("View on HuggingFace")
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 Spacer()
                 Image(systemName: "arrow.up.right")
                     .font(.caption)

@@ -93,10 +93,10 @@ struct CanvasPanelView: View {
             if let lang = content.language {
                 Text(lang.uppercased())
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.amber)
+                    .foregroundStyle(AppColors.accentSecondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(AppColors.amber.opacity(0.12))
+                    .background(AppColors.accentSecondary.opacity(0.12))
                     .clipShape(Capsule())
             }
 
@@ -125,7 +125,7 @@ struct CanvasPanelView: View {
                     Text(copied ? "Copied" : "Copy HTML")
                         .font(AppTypography.caption)
                 }
-                .foregroundStyle(copied ? AppColors.sprout : AppColors.textSecondary)
+                .foregroundStyle(copied ? AppColors.success : AppColors.textSecondary)
             }
             .buttonStyle(.plain)
             .animation(.easeInOut(duration: 0.2), value: copied)

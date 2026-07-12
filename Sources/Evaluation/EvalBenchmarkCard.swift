@@ -108,10 +108,10 @@ struct EvalBenchmarkCard: View {
                     Text(data.category.displayName)
                         .font(AppTypography.badge)
                 }
-                .foregroundStyle(AppColors.moss)
+                .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 5)
-                .background(AppColors.moss.opacity(0.12))
+                .background(AppColors.accentPrimary.opacity(0.12))
                 .clipShape(Capsule())
             }
 
@@ -188,13 +188,13 @@ struct EvalBenchmarkCard: View {
                     label: "Speed",
                     value: String(format: "%.1f", summary.avgDecodeSpeed),
                     unit: "tok/s",
-                    color: AppColors.moss
+                    color: AppColors.accentPrimary
                 )
                 metricPill(
                     label: "TTFT",
                     value: String(format: "%.2f", summary.avgTTFT),
                     unit: "s",
-                    color: AppColors.amber
+                    color: AppColors.accentSecondary
                 )
             }
         }
@@ -248,10 +248,10 @@ struct EvalBenchmarkCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "flask.fill")
                     .font(AppIconSize.sm)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 Text("Edge AI Lab")
                     .font(AppTypography.sectionHeader)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
             }
         }
     }
@@ -330,7 +330,7 @@ struct EvalBenchmarkCardShareSheet: View {
 
                 Button("Done") { dismiss() }
                     .buttonStyle(.plain)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .accessibilityIdentifier("evalBenchmarkCard_doneButton")
             }
             .padding(.horizontal, AppSpacing.xl)
@@ -357,7 +357,7 @@ struct EvalBenchmarkCardShareSheet: View {
                         actionButton(
                             icon: isCopied ? "checkmark.circle.fill" : "doc.on.doc",
                             label: isCopied ? "Copied!" : "Copy Image",
-                            color: isCopied ? AppColors.sprout : AppColors.moss
+                            color: isCopied ? AppColors.success : AppColors.accentPrimary
                         ) {
                             copyToClipboard()
                         }
@@ -365,7 +365,7 @@ struct EvalBenchmarkCardShareSheet: View {
                         actionButton(
                             icon: isSaved ? "checkmark.circle.fill" : "arrow.down.circle",
                             label: isSaved ? "Saved!" : "Save PNG",
-                            color: isSaved ? AppColors.sprout : AppColors.amber
+                            color: isSaved ? AppColors.success : AppColors.accentSecondary
                         ) {
                             saveToDisk()
                         }

@@ -68,7 +68,7 @@ struct iOSConversationPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                         .accessibilityIdentifier("conversationPicker_done")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -77,7 +77,7 @@ struct iOSConversationPickerSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "plus.bubble")
-                            .foregroundStyle(AppColors.moss)
+                            .foregroundStyle(AppColors.accentPrimary)
                     }
                     .accessibilityIdentifier("conversationPicker_newChat")
                 }
@@ -217,7 +217,7 @@ struct iOSConversationPickerSheet: View {
                 HStack {
                     Text(entry.title)
                         .font(titleFont)
-                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textPrimary)
                         .lineLimit(2)
 
                     Spacer()
@@ -225,7 +225,7 @@ struct iOSConversationPickerSheet: View {
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.caption)
-                            .foregroundStyle(AppColors.moss)
+                            .foregroundStyle(AppColors.accentPrimary)
                     }
                 }
 
@@ -233,19 +233,19 @@ struct iOSConversationPickerSheet: View {
                 HStack(spacing: AppSpacing.xs) {
                     Text(entry.modelShortName)
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, 2)
-                        .background(AppColors.moss.opacity(0.1))
+                        .background(AppColors.accentPrimary.opacity(0.1))
                         .clipShape(Capsule())
 
                     ForEach(entry.activeFeatureBadges, id: \.self) { badge in
                         Text(badge)
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.moss)
+                            .foregroundStyle(AppColors.accentPrimary)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, 2)
-                            .background(AppColors.moss.opacity(0.1))
+                            .background(AppColors.accentPrimary.opacity(0.1))
                             .clipShape(Capsule())
                     }
 

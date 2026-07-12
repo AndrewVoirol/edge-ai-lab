@@ -87,12 +87,12 @@ struct iOSStatusIndicatorView: View {
             if viewModel.isLoadingModel {
                 ProgressView()
                     .controlSize(.mini)
-                    .tint(AppColors.moss)
+                    .tint(AppColors.accentPrimary)
             } else {
                 Circle()
-                    .fill(AppColors.sprout)
+                    .fill(AppColors.success)
                     .frame(width: 6, height: 6)
-                    .pulsingGlow(AppColors.sprout)
+                    .pulsingGlow(AppColors.success)
             }
 
             // Model name
@@ -111,11 +111,11 @@ struct iOSStatusIndicatorView: View {
             if let result = viewModel.backendResult, viewModel.isEngineReady {
                 Text(result.activeBackend == .gpu ? "GPU" : "CPU")
                     .font(AppTypography.badge)
-                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution)
+                    .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(
-                        (result.activeBackend == .gpu ? AppColors.sprout : AppColors.caution).opacity(0.12)
+                        (result.activeBackend == .gpu ? AppColors.success : AppColors.warning).opacity(0.12)
                     )
                     .clipShape(Capsule())
             }
@@ -189,16 +189,16 @@ struct iOSStatusIndicatorView: View {
             if let metadata = viewModel.activeModelMetadata {
                 HStack(spacing: AppSpacing.xs) {
                     if metadata.supportsImage {
-                        Text("Vision").badge(AppColors.badgeVision)
+                        Text("Vision").badge(AppColors.capabilityVision)
                     }
                     if metadata.supportsAudio {
-                        Text("Audio").badge(AppColors.badgeAudio)
+                        Text("Audio").badge(AppColors.capabilityAudio)
                     }
                     if metadata.supportsMTP {
-                        Text("MTP").badge(AppColors.badgeMTP)
+                        Text("MTP").badge(AppColors.capabilityMTP)
                     }
                     if metadata.supportsToolCalling {
-                        Text("Tools").badge(AppColors.action)
+                        Text("Tools").badge(AppColors.toolAction)
                     }
                     Spacer()
                 }
@@ -228,10 +228,10 @@ struct iOSStatusIndicatorView: View {
 
     private func thermalColor(for state: ThermalLevel) -> Color {
         switch state {
-        case .nominal: return AppColors.sprout
-        case .fair: return AppColors.caution
-        case .serious: return AppColors.ember
-        case .critical: return AppColors.ember
+        case .nominal: return AppColors.success
+        case .fair: return AppColors.warning
+        case .serious: return AppColors.destructive
+        case .critical: return AppColors.destructive
         }
     }
 }

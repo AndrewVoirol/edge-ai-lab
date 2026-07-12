@@ -33,7 +33,7 @@ struct StreamingIndicator: View {
             HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { _ in
                     Circle()
-                        .fill(AppColors.moss.opacity(0.7))
+                        .fill(AppColors.accentPrimary.opacity(0.7))
                         .frame(width: 7, height: 7)
                 }
             }
@@ -43,7 +43,7 @@ struct StreamingIndicator: View {
             HStack(spacing: 5) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
-                        .fill(AppColors.moss.opacity(0.7))
+                        .fill(AppColors.accentPrimary.opacity(0.7))
                         .frame(width: 7, height: 7)
                         .scaleEffect(isAnimating ? 1.0 : 0.4)
                         .animation(
@@ -92,9 +92,9 @@ struct WikipediaSummaryCard: View {
                 } else {
                     Image(systemName: "book.pages.fill")
                         .font(.largeTitle)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                         .frame(width: 80, height: 80)
-                        .background(AppColors.moss.opacity(0.1))
+                        .background(AppColors.accentPrimary.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 }
 
@@ -128,7 +128,7 @@ struct WikipediaSummaryCard: View {
                         Image(systemName: "chevron.right")
                             .font(.caption2)
                     }
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 }
             }
         }
@@ -202,10 +202,10 @@ struct CodeBlockView: View {
                 if let lang = language, !lang.isEmpty {
                     Text(lang.uppercased())
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.amber)
+                        .foregroundStyle(AppColors.accentSecondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(AppColors.amber.opacity(0.12))
+                        .background(AppColors.accentSecondary.opacity(0.12))
                         .clipShape(Capsule())
                 }
                 Spacer()
@@ -226,7 +226,7 @@ struct CodeBlockView: View {
                             Text("Open in Canvas")
                                 .font(AppTypography.caption)
                         }
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("button_openInCanvas")
@@ -251,7 +251,7 @@ struct CodeBlockView: View {
                         Text(copied ? "Copied" : "Copy")
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(copied ? AppColors.sprout : AppColors.textSecondary)
+                    .foregroundStyle(copied ? AppColors.success : AppColors.textSecondary)
                 }
                 .buttonStyle(.plain)
                 .animation(.easeInOut(duration: 0.2), value: copied)

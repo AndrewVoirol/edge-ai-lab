@@ -59,7 +59,7 @@ struct CommunityModelsBrowser: View {
         // Section header
         HStack {
             Image(systemName: "globe")
-                .foregroundStyle(AppColors.moss)
+                .foregroundStyle(AppColors.accentPrimary)
             Text("Community Models")
                 .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textSecondary)
@@ -68,7 +68,7 @@ struct CommunityModelsBrowser: View {
             if browser.isLoading {
                 ProgressView()
                     .controlSize(.small)
-                    .tint(AppColors.moss)
+                    .tint(AppColors.accentPrimary)
             }
 
             Button {
@@ -100,7 +100,7 @@ struct CommunityModelsBrowser: View {
             if isSearching {
                 ProgressView()
                     .controlSize(.mini)
-                    .tint(AppColors.moss)
+                    .tint(AppColors.accentPrimary)
             }
             if !searchQuery.isEmpty {
                 Button {
@@ -124,7 +124,7 @@ struct CommunityModelsBrowser: View {
         if let error = browser.lastError {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "exclamationmark.triangle")
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Text(error)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
@@ -148,7 +148,7 @@ struct CommunityModelsBrowser: View {
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "sparkles")
                             .font(.title3)
-                            .foregroundStyle(AppColors.amber)
+                            .foregroundStyle(AppColors.accentSecondary)
                         Text("Getting Started")
                             .font(AppTypography.sectionHeader)
                             .foregroundStyle(AppColors.textPrimary)
@@ -167,7 +167,7 @@ struct CommunityModelsBrowser: View {
             // Inline URL import — paste a HuggingFace URL to import any model
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "link.badge.plus")
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 TextField("Paste a HuggingFace URL…", text: $inlineURL)
                     .textFieldStyle(.plain)
                     .font(AppTypography.listSubtitle)
@@ -188,7 +188,7 @@ struct CommunityModelsBrowser: View {
                             .foregroundStyle(AppColors.textPrimary)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xs)
-                            .background(AppColors.moss)
+                            .background(AppColors.accentPrimary)
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -259,7 +259,7 @@ struct CommunityModelsBrowser: View {
                             Text("Browse Models")
                                 .font(AppTypography.subtitle)
                         }
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("browserDetail_backButton")
@@ -292,20 +292,20 @@ struct CommunityModelsBrowser: View {
                             label: "Downloads",
                             value: formatBrowserCount(model.downloads),
                             icon: "arrow.down.circle",
-                            color: AppColors.moss
+                            color: AppColors.accentPrimary
                         )
                         browserStatCell(
                             label: "Likes",
                             value: "\(model.likes)",
                             icon: "heart",
-                            color: AppColors.ember
+                            color: AppColors.destructive
                         )
                         if let size = browserModelSize {
                             browserStatCell(
                                 label: "File Size",
                                 value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file),
                                 icon: "doc.zipper",
-                                color: AppColors.amber
+                                color: AppColors.accentSecondary
                             )
                         }
                     }
@@ -324,10 +324,10 @@ struct CommunityModelsBrowser: View {
 
                             HStack(spacing: AppSpacing.sm) {
                                 Image(systemName: "cpu")
-                                    .foregroundStyle(AppColors.moss)
+                                    .foregroundStyle(AppColors.accentPrimary)
                                 Text(quant.uppercased())
                                     .font(AppTypography.metric)
-                                    .foregroundStyle(AppColors.moss)
+                                    .foregroundStyle(AppColors.accentPrimary)
                             }
                             .padding(AppSpacing.md)
                             .glassCard(cornerRadius: AppRadius.md)
@@ -350,9 +350,9 @@ struct CommunityModelsBrowser: View {
     @ViewBuilder
     private var browserFormatBadge: some View {
         let (text, color): (String, Color) = switch browserFormat {
-        case .litertlm: ("LiteRT", AppColors.sprout)
-        case .mlx: ("MLX", AppColors.amber)
-        case .gguf: ("GGUF", AppColors.moss)
+        case .litertlm: ("LiteRT", AppColors.success)
+        case .mlx: ("MLX", AppColors.accentSecondary)
+        case .gguf: ("GGUF", AppColors.accentPrimary)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         HStack(spacing: AppSpacing.xs) {
@@ -447,7 +447,7 @@ struct CommunityModelsBrowser: View {
                             .foregroundStyle(AppColors.textPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(AppSpacing.md)
-                            .background(AppColors.moss)
+                            .background(AppColors.accentPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                         }
                         .buttonStyle(.plain)
@@ -457,7 +457,7 @@ struct CommunityModelsBrowser: View {
                 case .downloading(let progress):
                     VStack(spacing: AppSpacing.sm) {
                         ProgressView(value: progress)
-                            .tint(AppColors.moss)
+                            .tint(AppColors.accentPrimary)
                         Text("Downloading… \(Int(progress * 100))%")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)
@@ -468,10 +468,10 @@ struct CommunityModelsBrowser: View {
                 case .downloaded(let url):
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColors.sprout)
+                            .foregroundStyle(AppColors.success)
                         Text("Downloaded")
                             .font(AppTypography.subtitle)
-                            .foregroundStyle(AppColors.sprout)
+                            .foregroundStyle(AppColors.success)
                     }
                     .padding(AppSpacing.md)
                     .glassCard(cornerRadius: AppRadius.md)
@@ -490,7 +490,7 @@ struct CommunityModelsBrowser: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(AppSpacing.md)
-                        .background(AppColors.moss)
+                        .background(AppColors.accentPrimary)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .buttonStyle(.plain)
@@ -499,10 +499,10 @@ struct CommunityModelsBrowser: View {
                 case .failed(let message):
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.ember)
+                            .foregroundStyle(AppColors.destructive)
                         Text(message)
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.ember)
+                            .foregroundStyle(AppColors.destructive)
                             .lineLimit(2)
                     }
                     .padding(AppSpacing.md)
@@ -544,7 +544,7 @@ struct CommunityModelsBrowser: View {
                         .foregroundStyle(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(AppSpacing.md)
-                        .background(AppColors.amber)
+                        .background(AppColors.accentSecondary)
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .buttonStyle(.plain)
@@ -553,7 +553,7 @@ struct CommunityModelsBrowser: View {
                 case .downloadingDirectory(let progress, let completed, let total):
                     VStack(spacing: AppSpacing.sm) {
                         ProgressView(value: progress)
-                            .tint(AppColors.amber)
+                            .tint(AppColors.accentSecondary)
                         Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)
@@ -564,10 +564,10 @@ struct CommunityModelsBrowser: View {
                 case .downloaded:
                     HStack(spacing: AppSpacing.sm) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColors.sprout)
+                            .foregroundStyle(AppColors.success)
                         Text("Downloaded")
                             .font(AppTypography.subtitle)
-                            .foregroundStyle(AppColors.sprout)
+                            .foregroundStyle(AppColors.success)
                     }
                     .padding(AppSpacing.md)
                     .glassCard(cornerRadius: AppRadius.md)

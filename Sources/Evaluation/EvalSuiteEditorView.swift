@@ -236,7 +236,7 @@ struct EvalSuiteEditorView: View {
 
                 Button("Save") { saveSuite() }
                     .buttonStyle(.plain)
-                    .foregroundStyle(isValid ? AppColors.moss : AppColors.textTertiary)
+                    .foregroundStyle(isValid ? AppColors.accentPrimary : AppColors.textTertiary)
                     .disabled(!isValid)
                     .accessibilityIdentifier("evalSuiteEditor_saveButton")
             }
@@ -317,12 +317,12 @@ struct EvalSuiteEditorView: View {
                             .padding(.vertical, AppSpacing.sm)
                             .background(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
-                                    .fill(isSelected ? AppColors.moss.opacity(0.15) : Color.clear)
+                                    .fill(isSelected ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
-                                        isSelected ? AppColors.moss.opacity(0.4) : AppColors.border,
+                                        isSelected ? AppColors.accentPrimary.opacity(0.4) : AppColors.border,
                                         lineWidth: 1
                                     )
                             )
@@ -360,7 +360,7 @@ struct EvalSuiteEditorView: View {
                         Text("Add Prompt")
                             .font(AppTypography.sectionHeader)
                     }
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("evalSuiteEditor_addPromptButton")
@@ -398,10 +398,10 @@ struct EvalSuiteEditorView: View {
                     Text("Add First Prompt")
                         .font(AppTypography.sectionHeader)
                 }
-                .foregroundStyle(AppColors.moss)
+                .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.moss.opacity(0.1))
+                .background(AppColors.accentPrimary.opacity(0.1))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -420,10 +420,10 @@ struct EvalSuiteEditorView: View {
             HStack {
                 Text("#\(index + 1)")
                     .font(AppTypography.metric)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
 
                 Text(prompt.expectedBehavior.displayName)
-                    .badge(AppColors.moss)
+                    .badge(AppColors.accentPrimary)
 
                 Text("\(prompt.timeoutSeconds)s")
                     .font(AppTypography.caption)
@@ -439,7 +439,7 @@ struct EvalSuiteEditorView: View {
                 } label: {
                     Image(systemName: isEditing ? "chevron.up" : "pencil")
                         .font(.caption)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("evalSuiteEditor_editPrompt_\(index)")
@@ -459,7 +459,7 @@ struct EvalSuiteEditorView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.caption)
-                        .foregroundStyle(AppColors.ember)
+                        .foregroundStyle(AppColors.destructive)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("evalSuiteEditor_deletePrompt_\(index)")
@@ -482,7 +482,7 @@ struct EvalSuiteEditorView: View {
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .stroke(
-                    isEditing ? AppColors.moss.opacity(0.3) : Color.clear,
+                    isEditing ? AppColors.accentPrimary.opacity(0.3) : Color.clear,
                     lineWidth: 1
                 )
         )
@@ -564,7 +564,7 @@ struct EvalSuiteEditorView: View {
                         .padding(.vertical, 3)
                         .background(
                             Capsule()
-                                .fill(isActive ? AppColors.moss.opacity(0.15) : Color.clear)
+                                .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)

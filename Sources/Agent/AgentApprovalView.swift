@@ -30,7 +30,7 @@ struct AgentApprovalView: View {
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.shield.fill")
                     .font(.title2)
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Text("Tool Approval Required")
                     .font(.headline)
                     .foregroundStyle(AppColors.textPrimary)
@@ -47,7 +47,7 @@ struct AgentApprovalView: View {
                         .foregroundStyle(AppColors.textSecondary)
                     Text(toolName)
                         .font(.subheadline.monospaced())
-                        .foregroundStyle(AppColors.action)
+                        .foregroundStyle(AppColors.toolAction)
                 }
                 .accessibilityIdentifier("approvalToolName")
 
@@ -96,7 +96,7 @@ struct AgentApprovalView: View {
                         .padding(.vertical, 8)
                 }
                 .buttonStyle(.bordered)
-                .tint(AppColors.ember)
+                .tint(AppColors.destructive)
                 .accessibilityIdentifier("approvalDenyButton")
 
                 Button(action: onApprove) {
@@ -105,7 +105,7 @@ struct AgentApprovalView: View {
                         .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(AppColors.sprout)
+                .tint(AppColors.success)
                 .accessibilityIdentifier("approvalApproveButton")
             }
         }

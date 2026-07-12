@@ -77,12 +77,12 @@ struct ConversationAreaView: View {
                 .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [AppColors.amber, AppColors.moss],
+                        colors: [AppColors.accentSecondary, AppColors.accentPrimary],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .pulsingGlow(AppColors.moss)
+                .pulsingGlow(AppColors.accentPrimary)
                 .accessibilityHidden(true)
 
             VStack(spacing: AppSpacing.sm) {
@@ -138,7 +138,7 @@ struct ConversationAreaView: View {
                         icon: "text.bubble",
                         title: "Start a conversation",
                         subtitle: "Ask anything — inference runs locally",
-                        color: AppColors.moss,
+                        color: AppColors.accentPrimary,
                         id: "hint_chat",
                         delay: 0.0
                     ) {
@@ -150,7 +150,7 @@ struct ConversationAreaView: View {
                             icon: "photo",
                             title: "Analyze an image",
                             subtitle: "Attach a photo and ask about it",
-                            color: AppColors.badgeVision,
+                            color: AppColors.capabilityVision,
                             id: "hint_image",
                             delay: 0.05
                         ) {
@@ -162,7 +162,7 @@ struct ConversationAreaView: View {
                         icon: "wrench.and.screwdriver",
                         title: "Use built-in tools",
                         subtitle: "6 tools: calculator, datetime, device info, and more",
-                        color: AppColors.action,
+                        color: AppColors.toolAction,
                         id: "hint_tools",
                         delay: 0.1
                     ) {
@@ -175,7 +175,7 @@ struct ConversationAreaView: View {
                         icon: "brain.head.profile",
                         title: "Watch the model think",
                         subtitle: "See step-by-step reasoning in real-time",
-                        color: AppColors.badgeThinking,
+                        color: AppColors.capabilityThinking,
                         id: "hint_thinking",
                         delay: 0.15
                     ) {
@@ -188,7 +188,7 @@ struct ConversationAreaView: View {
                         icon: "speedometer",
                         title: "Benchmark performance",
                         subtitle: "Per-token latency, TTFT, P95, thermal tracking",
-                        color: AppColors.amber,
+                        color: AppColors.accentSecondary,
                         id: "hint_benchmark",
                         delay: 0.2
                     ) {
@@ -267,7 +267,7 @@ struct ConversationAreaView: View {
         HStack(spacing: AppSpacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.body)
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text("Inference Failed")
@@ -290,10 +290,10 @@ struct ConversationAreaView: View {
             } label: {
                 Text("Retry")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.amber)
+                    .foregroundStyle(AppColors.accentSecondary)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.amber.opacity(0.12))
+                    .background(AppColors.accentSecondary.opacity(0.12))
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
@@ -302,7 +302,7 @@ struct ConversationAreaView: View {
         .glassCard(cornerRadius: AppRadius.md)
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .stroke(AppColors.ember.opacity(0.3), lineWidth: 1)
+                .stroke(AppColors.destructive.opacity(0.3), lineWidth: 1)
         )
         .messageEntrance()
         .accessibilityLabel("Inference error: \(errorMessage). Tap Retry to resend your last message.")

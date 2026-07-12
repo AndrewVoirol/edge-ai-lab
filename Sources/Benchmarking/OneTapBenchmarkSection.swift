@@ -62,13 +62,13 @@ struct OneTapBenchmarkSection: View {
             .padding(AppSpacing.md)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.lg)
-                    .fill(AppColors.moss.opacity(0.15))
+                    .fill(AppColors.accentPrimary.opacity(0.15))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .strokeBorder(AppColors.moss.opacity(0.3), lineWidth: 1)
+                            .strokeBorder(AppColors.accentPrimary.opacity(0.3), lineWidth: 1)
                     )
             )
-            .foregroundStyle(AppColors.moss)
+            .foregroundStyle(AppColors.accentPrimary)
         }
         .buttonStyle(.plain)
         .disabled(!viewModel.isEngineReady)
@@ -105,7 +105,7 @@ struct OneTapBenchmarkSection: View {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(AppColors.ember)
+                        .foregroundStyle(AppColors.destructive)
                     Text("Benchmark failed")
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
@@ -129,7 +129,7 @@ struct OneTapBenchmarkSection: View {
         HStack(spacing: AppSpacing.md) {
             ProgressView()
                 .controlSize(.small)
-                .tint(AppColors.moss)
+                .tint(AppColors.accentPrimary)
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(label)
                     .font(AppTypography.subtitle)
@@ -151,7 +151,7 @@ struct OneTapBenchmarkSection: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
                 Text("Benchmark Complete")
                     .font(AppTypography.subtitle)
                     .foregroundStyle(AppColors.textPrimary)
@@ -172,13 +172,13 @@ struct OneTapBenchmarkSection: View {
                     label: "TTFT",
                     value: String(format: "%.3f", result.medianTTFTSeconds),
                     unit: "sec",
-                    color: AppColors.moss
+                    color: AppColors.accentPrimary
                 )
                 metricCell(
                     label: "Prefill",
                     value: String(format: "%.1f", result.medianPrefillTokensPerSecond),
                     unit: "tok/s",
-                    color: AppColors.moss
+                    color: AppColors.accentPrimary
                 )
             }
 
@@ -219,7 +219,7 @@ struct OneTapBenchmarkSection: View {
                 Text("Run Again")
                     .font(AppTypography.caption)
             }
-            .foregroundStyle(AppColors.moss)
+            .foregroundStyle(AppColors.accentPrimary)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("button_rerunBenchmark")

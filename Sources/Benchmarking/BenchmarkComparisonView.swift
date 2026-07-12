@@ -108,7 +108,7 @@ struct BenchmarkComparisonView: View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: "exclamationmark.triangle")
                 .font(AppIconSize.hero)
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
 
             Text(message)
                 .font(AppTypography.caption)

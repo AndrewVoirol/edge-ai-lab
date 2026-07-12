@@ -203,8 +203,8 @@ struct iOSChatTabView: View {
                     .fill(
                         RadialGradient(
                             gradient: Gradient(colors: [
-                                AppColors.moss.opacity(0.15),
-                                AppColors.moss.opacity(0.02),
+                                AppColors.accentPrimary.opacity(0.15),
+                                AppColors.accentPrimary.opacity(0.02),
                                 .clear
                             ]),
                             center: .center,
@@ -222,21 +222,21 @@ struct iOSChatTabView: View {
                         Circle()
                             .stroke(
                                 LinearGradient(
-                                    colors: [AppColors.moss.opacity(0.4), AppColors.moss.opacity(0.1)],
+                                    colors: [AppColors.accentPrimary.opacity(0.4), AppColors.accentPrimary.opacity(0.1)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: 1
                             )
                     )
-                    .shadow(color: AppColors.moss.opacity(0.2), radius: 20, x: 0, y: 4)
+                    .shadow(color: AppColors.accentPrimary.opacity(0.2), radius: 20, x: 0, y: 4)
 
                 // CPU icon
                 Image(systemName: "cpu")
                     .font(AppIconSize.xxl)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [AppColors.moss, AppColors.moss],
+                            colors: [AppColors.accentPrimary, AppColors.accentPrimary],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -274,13 +274,13 @@ struct iOSChatTabView: View {
                 .padding(.vertical, AppSpacing.md)
                 .background(
                     LinearGradient(
-                        colors: [AppColors.moss, AppColors.moss],
+                        colors: [AppColors.accentPrimary, AppColors.accentPrimary],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
                 .clipShape(Capsule())
-                .shadow(color: AppColors.moss.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: AppColors.accentPrimary.opacity(0.3), radius: 12, x: 0, y: 4)
             }
             .sensoryFeedback(.impact(weight: .light), trigger: router.selectedTab)
             .accessibilityLabel("Browse models to load one for chat")

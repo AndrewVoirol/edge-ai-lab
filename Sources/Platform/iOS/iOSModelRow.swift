@@ -79,7 +79,7 @@ struct iOSModelRow: View {
                 // Model name
                 Text(metadata.name)
                     .font(AppTypography.listTitle)
-                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
+                    .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textPrimary)
                     .lineLimit(1)
 
                 // Architecture + size
@@ -130,15 +130,15 @@ struct iOSModelRow: View {
     private var modelIcon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(isActive ? AppColors.moss.opacity(0.15) : AppColors.backgroundTertiary)
+                .fill(isActive ? AppColors.accentPrimary.opacity(0.15) : AppColors.backgroundTertiary)
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(isActive ? AppColors.moss.opacity(0.3) : AppColors.border, lineWidth: 0.5)
+                        .stroke(isActive ? AppColors.accentPrimary.opacity(0.3) : AppColors.border, lineWidth: 0.5)
                 )
 
             Image(systemName: iconName)
                 .font(AppIconSize.lg)
-                .foregroundStyle(isActive ? AppColors.moss : AppColors.textSecondary)
+                .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textSecondary)
         }
     }
 
@@ -160,19 +160,19 @@ struct iOSModelRow: View {
             if metadata.supportsImage {
                 Label("Vision", systemImage: "eye")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.badgeVision)
+                    .foregroundStyle(AppColors.capabilityVision)
                     .accessibilityIdentifier("modelRow_badge_vision_\(metadata.modelFile)")
             }
             if metadata.supportsAudio {
                 Label("Audio", systemImage: "waveform")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.badgeAudio)
+                    .foregroundStyle(AppColors.capabilityAudio)
                     .accessibilityIdentifier("modelRow_badge_audio_\(metadata.modelFile)")
             }
             if metadata.supportsMTP {
                 Label("MTP", systemImage: "bolt.horizontal")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.badgeMTP)
+                    .foregroundStyle(AppColors.capabilityMTP)
                     .accessibilityIdentifier("modelRow_badge_mtp_\(metadata.modelFile)")
             }
         }
@@ -183,7 +183,7 @@ struct iOSModelRow: View {
     private func downloadProgressRow(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.moss)
+                .tint(AppColors.accentPrimary)
                 .accessibilityIdentifier("modelRow_progress_\(metadata.modelFile)")
 
             // Try to show rich progress (speed + ETA)
@@ -236,14 +236,14 @@ struct iOSModelRow: View {
     private func pausedRow(progress: Double) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             ProgressView(value: progress, total: 1.0)
-                .tint(AppColors.caution)
+                .tint(AppColors.warning)
             HStack(spacing: 4) {
                 Image(systemName: "pause.fill")
                     .font(AppIconSize.xxs)
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Text(String(format: "Paused at %.0f%%", progress * 100))
                     .font(AppTypography.listTertiary)
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Spacer()
             }
         }
@@ -261,7 +261,7 @@ struct iOSModelRow: View {
             } label: {
                 Image(systemName: metadata.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .frame(width: 44, height: 44) // HIG: 44pt minimum tap target
             }
             .buttonStyle(.plain)
@@ -277,7 +277,7 @@ struct iOSModelRow: View {
                         .stroke(AppColors.textTertiary.opacity(0.3), lineWidth: 2)
                     Image(systemName: "stop.fill")
                         .font(AppIconSize.xxs)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                 }
                 .frame(width: 28, height: 28)
                 .frame(width: 44, height: 44) // Expanded tap target
@@ -289,7 +289,7 @@ struct iOSModelRow: View {
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
                 .font(AppIconSize.lg)
-                .foregroundStyle(AppColors.sprout)
+                .foregroundStyle(AppColors.success)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Downloaded")
                 .accessibilityIdentifier("modelRow_downloaded_\(metadata.modelFile)")
@@ -301,10 +301,10 @@ struct iOSModelRow: View {
                 VStack(spacing: 2) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .font(AppIconSize.lg)
-                        .foregroundStyle(AppColors.ember)
+                        .foregroundStyle(AppColors.destructive)
                     Text("Retry")
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.ember)
+                        .foregroundStyle(AppColors.destructive)
                 }
                 .frame(width: 44, height: 44)
             }
@@ -315,7 +315,7 @@ struct iOSModelRow: View {
         case .authRequired:
             Image(systemName: "lock.circle.fill")
                 .font(AppIconSize.lg)
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
                 .frame(width: 44, height: 44)
                 .accessibilityLabel("Authentication required")
                 .accessibilityIdentifier("modelRow_auth_\(metadata.modelFile)")
@@ -336,7 +336,7 @@ struct iOSModelRow: View {
             } label: {
                 Image(systemName: "play.circle.fill")
                     .font(AppIconSize.lg)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)

@@ -31,7 +31,7 @@ struct ConfigProofView: View {
 
     /// Config proof uses a muted instrument-panel tone — distinct from
     /// thinking (sage), tools (orange), benchmark (tier-based).
-    private let proofColor = AppColors.moss
+    private let proofColor = AppColors.accentPrimary
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
@@ -95,16 +95,16 @@ struct ConfigProofView: View {
                 configChip(engine, color: AppColors.textTertiary)
             }
             if snapshot.thinkingEnabled == true {
-                configChip("Think", color: AppColors.badgeThinking)
+                configChip("Think", color: AppColors.capabilityThinking)
             }
             if snapshot.mtpEnabled == true {
-                configChip("MTP", color: AppColors.badgeMTP)
+                configChip("MTP", color: AppColors.capabilityMTP)
             }
             if snapshot.constrainedDecodingEnabled == true {
-                configChip("CD", color: AppColors.badgeCD)
+                configChip("CD", color: AppColors.capabilityCD)
             }
             if snapshot.toolCallingEnabled == true {
-                configChip("Tools", color: AppColors.badgeTools)
+                configChip("Tools", color: AppColors.toolAction)
             }
         }
     }
@@ -143,13 +143,13 @@ struct ConfigProofView: View {
             // Feature Flags
             configSection("Features") {
                 configRow("Thinking", value: snapshot.thinkingEnabled == true ? "On" : "Off",
-                         color: snapshot.thinkingEnabled == true ? AppColors.badgeThinking : nil)
+                         color: snapshot.thinkingEnabled == true ? AppColors.capabilityThinking : nil)
                 configRow("MTP", value: snapshot.mtpEnabled == true ? "On" : "Off",
-                         color: snapshot.mtpEnabled == true ? AppColors.badgeMTP : nil)
+                         color: snapshot.mtpEnabled == true ? AppColors.capabilityMTP : nil)
                 configRow("Constrained Decoding", value: snapshot.constrainedDecodingEnabled == true ? "On" : "Off",
-                         color: snapshot.constrainedDecodingEnabled == true ? AppColors.badgeCD : nil)
+                         color: snapshot.constrainedDecodingEnabled == true ? AppColors.capabilityCD : nil)
                 configRow("Tool Calling", value: snapshot.toolCallingEnabled == true ? "On" : "Off",
-                         color: snapshot.toolCallingEnabled == true ? AppColors.badgeTools : nil)
+                         color: snapshot.toolCallingEnabled == true ? AppColors.toolAction : nil)
             }
 
             // Sampler

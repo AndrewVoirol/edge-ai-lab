@@ -27,79 +27,72 @@ import MarkdownUI
 
 /// Curated color palette — Petrichor.
 /// Blue-slate stone as the dominant base, bright overcast light for text,
-/// rain-fresh green and warm amber as restrained accents.
-/// No generic primary colors. Every color is intentional.
+/// Semantic color tokens — names describe PURPOSE, not appearance.
+/// To theme the app, change values here. No view file references a color directly.
 enum AppColors {
 
     // MARK: Backgrounds
-    /// The deepest background — forest floor at night.
+    /// Deepest background layer.
     static let backgroundPrimary = Color(red: 0.05, green: 0.07, blue: 0.06)
-    /// Slightly elevated surface (cards, panels) — charcoal bark.
+    /// Elevated surface (cards, panels).
     static let backgroundSecondary = Color(red: 0.09, green: 0.12, blue: 0.10)
-    /// Tertiary surface (input fields, wells) — dark moss.
+    /// Inset surface (input fields, wells).
     static let backgroundTertiary = Color(red: 0.13, green: 0.17, blue: 0.14)
 
     // MARK: Accent Colors
-    /// Warm amber for user actions and highlights — cabin light through fog.
-    static let amber = Color(red: 0.85, green: 0.67, blue: 0.35)
-    /// Rain-fresh moss green — the Lab's signature accent.
-    /// Interactive elements, buttons, highlights, active states, decorative emphasis.
-    /// Boosted for ≥ 4.5:1 on dark backgrounds with Liquid Glass.
-    static let moss = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// Primary brand accent — interactive elements, buttons, active states, progress indicators.
+    static let accentPrimary = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// Secondary accent — user-side actions, role labels, send button, code language tags.
+    static let accentSecondary = Color(red: 0.85, green: 0.67, blue: 0.35)
 
-    // MARK: Semantic
-    /// New growth — success, ready, healthy, downloaded, verified.
-    /// Shares dark-mode value with `moss`; diverges in light-mode (Phase 4).
-    /// Boosted for Liquid Glass contrast compliance.
-    static let sprout = Color(red: 0.31, green: 0.78, blue: 0.55)
-    /// Autumn caution — warning, attention needed.
-    static let caution = Color(red: 0.88, green: 0.67, blue: 0.24)
-    /// Dying ember — error, critical, danger, urgent.
+    // MARK: Semantic State
+    /// Success / ready / healthy / downloaded / verified / passed.
+    static let success = Color(red: 0.31, green: 0.78, blue: 0.55)
+    /// Warning / attention needed / loading / paused / beta / restart required.
+    static let warning = Color(red: 0.88, green: 0.67, blue: 0.24)
+    /// Error / critical / danger / delete / cancel / failed.
     /// Boosted for ≥ 3:1 large-text contrast with Liquid Glass.
-    static let ember = Color(red: 0.86, green: 0.39, blue: 0.31)
-    /// Mountain sage — thinking / reasoning mode, contemplative.
-    static let sage = Color(red: 0.39, green: 0.65, blue: 0.55)
-    /// Glacial action — tool calling / function execution.
-    /// Cool indigo, unmistakable from amber caution.
-    static let action = Color(red: 0.42, green: 0.54, blue: 1.0)
+    static let destructive = Color(red: 0.86, green: 0.39, blue: 0.31)
+    /// Thinking / reasoning mode — active contemplation state.
+    static let reasoning = Color(red: 0.39, green: 0.65, blue: 0.55)
+    /// Tool calling / function execution / agent actions.
+    static let toolAction = Color(red: 0.42, green: 0.54, blue: 1.0)
 
     // MARK: Text
-    /// Primary text — warm cream, high contrast on dark.
+    /// Primary content text — headings, interactive labels.
     static let textPrimary = Color(red: 0.91, green: 0.87, blue: 0.82)
-    /// Secondary text — weathered wood, labels, captions.
-    /// Tuned to ≥ 4.5:1 on backgroundPrimary/Secondary even with Liquid Glass (+15% bg lightening).
+    /// Secondary text — descriptions, section labels.
+    /// Tuned to ≥ 4.5:1 on backgroundPrimary/Secondary even with Liquid Glass.
     static let textSecondary = Color(red: 0.71, green: 0.66, blue: 0.59)
-    /// Tertiary text — deep shadow, timestamps, hints.
-    /// Tuned to ≥ 4.5:1 contrast on backgroundPrimary even with Liquid Glass (+15% bg lightening).
+    /// Tertiary text — timestamps, hints, metadata, disabled states.
+    /// Tuned to ≥ 4.5:1 contrast on backgroundPrimary even with Liquid Glass.
     static let textTertiary = Color(red: 0.68, green: 0.63, blue: 0.58)
 
     // MARK: Chat Bubbles
-    /// User message bubble gradient start — deep amber wood.
+    /// User message bubble gradient start.
     static let userBubbleStart = Color(red: 0.28, green: 0.22, blue: 0.14)
-    /// User message bubble gradient end — darker wood.
+    /// User message bubble gradient end.
     static let userBubbleEnd = Color(red: 0.18, green: 0.15, blue: 0.10)
-    /// Assistant message bubble — dark moss panel.
+    /// Assistant message bubble background.
     static let assistantBubble = Color(red: 0.10, green: 0.14, blue: 0.11)
 
     // MARK: Borders
-    /// Subtle divider/border — like bark grain.
+    /// Default border / divider.
     static let border = Color.white.opacity(0.06)
-    /// Active/focused border — slightly brighter grain.
+    /// Active / focused border.
     static let borderActive = Color.white.opacity(0.12)
 
-    // MARK: Badge Colors (distinct per capability — vivid & saturated)
-    /// Vision badge — bright sky blue.
-    static let badgeVision = Color(red: 0.29, green: 0.62, blue: 1.0)
-    /// Audio badge — vivid purple.
-    static let badgeAudio = Color(red: 0.75, green: 0.35, blue: 0.95)
-    /// MTP badge — bright emerald green.
-    static let badgeMTP = Color(red: 0.20, green: 0.78, blue: 0.45)
-    /// Thinking badge — vivid violet-purple, clearly distinct from greens.
-    static let badgeThinking = Color(red: 0.65, green: 0.42, blue: 0.95)
-    /// Constrained Decoding badge — warm amber-orange.
-    static let badgeCD = Color(red: 0.90, green: 0.62, blue: 0.20)
-    /// Tool Calling badge — bright teal.
-    static let badgeTools = Color(red: 0.30, green: 0.75, blue: 0.70)
+    // MARK: Capability Indicators (distinct per model feature)
+    /// Vision capability.
+    static let capabilityVision = Color(red: 0.29, green: 0.62, blue: 1.0)
+    /// Audio capability.
+    static let capabilityAudio = Color(red: 0.75, green: 0.35, blue: 0.95)
+    /// Multi-Token Prediction capability.
+    static let capabilityMTP = Color(red: 0.20, green: 0.78, blue: 0.45)
+    /// Thinking/reasoning capability indicator.
+    static let capabilityThinking = Color(red: 0.65, green: 0.42, blue: 0.95)
+    /// Constrained Decoding capability.
+    static let capabilityCD = Color(red: 0.90, green: 0.62, blue: 0.20)
 }
 
 // MARK: - Gradients
@@ -122,19 +115,19 @@ enum AppGradients {
         endPoint: .bottom
     )
 
-    /// Accent shimmer for loading states — moss light filtering through canopy.
+    /// Accent shimmer for loading states.
     static let shimmer = LinearGradient(
-        colors: [AppColors.moss, AppColors.moss.opacity(0.7), AppColors.moss],
+        colors: [AppColors.accentPrimary, AppColors.accentPrimary.opacity(0.7), AppColors.accentPrimary],
         startPoint: .leading,
         endPoint: .trailing
     )
 
-    /// Thinking mode glow — sage mist.
+    /// Thinking mode glow.
     static let thinking = LinearGradient(
         colors: [
-            AppColors.sage.opacity(0.3),
-            AppColors.sage.opacity(0.1),
-            AppColors.sage.opacity(0.3)
+            AppColors.reasoning.opacity(0.3),
+            AppColors.reasoning.opacity(0.1),
+            AppColors.reasoning.opacity(0.3)
         ],
         startPoint: .leading,
         endPoint: .trailing
@@ -180,14 +173,14 @@ enum AppShadow {
         (Color.black.opacity(0.3), 8, 0, 4)
     }
 
-    /// Glow shadow for active elements — moss-tinted.
+    /// Glow shadow for active elements.
     static let activeGlow: (color: Color, radius: CGFloat) = (
-        AppColors.moss.opacity(0.25), 12
+        AppColors.accentPrimary.opacity(0.25), 12
     )
 
     /// Warm glow for user interaction elements.
     static let warmGlow: (color: Color, radius: CGFloat) = (
-        AppColors.amber.opacity(0.2), 10
+        AppColors.accentSecondary.opacity(0.2), 10
     )
 }
 
@@ -532,11 +525,11 @@ enum PerformanceTier {
 
     var color: Color {
         switch self {
-        case .excellent: return AppColors.moss       // Rain-fresh — peak performance
-        case .great:     return AppColors.moss       // Still healthy — label differentiates
-        case .good:      return AppColors.amber      // Warming — performance is fading
-        case .fair:      return AppColors.caution    // Autumn amber — slowing
-        case .slow:      return AppColors.ember      // Dying ember — needs attention
+        case .excellent: return AppColors.accentPrimary   // Peak performance
+        case .great:     return AppColors.accentPrimary   // Still healthy — label differentiates
+        case .good:      return AppColors.accentSecondary // Performance fading
+        case .fair:      return AppColors.warning         // Slowing — attention
+        case .slow:      return AppColors.destructive     // Needs attention
         }
     }
 
@@ -571,9 +564,9 @@ enum PassRateTier {
 
     var color: Color {
         switch self {
-        case .excellent: return AppColors.sprout
-        case .moderate:  return AppColors.amber
-        case .poor:      return AppColors.ember
+        case .excellent: return AppColors.success
+        case .moderate:  return AppColors.accentSecondary
+        case .poor:      return AppColors.destructive
         }
     }
 
@@ -605,10 +598,10 @@ enum ConfidenceTier {
 
     var color: Color {
         switch self {
-        case .verified: return AppColors.sprout
-        case .high:     return AppColors.sprout
-        case .medium:   return AppColors.caution
-        case .low:      return AppColors.ember
+        case .verified: return AppColors.success
+        case .high:     return AppColors.success
+        case .medium:   return AppColors.warning
+        case .low:      return AppColors.destructive
         }
     }
 
@@ -630,14 +623,14 @@ extension Theme {
             }
             .code {
                 FontFamilyVariant(.monospaced)
-                ForegroundColor(AppColors.moss)
+                ForegroundColor(AppColors.accentPrimary)
                 BackgroundColor(AppColors.backgroundTertiary.opacity(0.5))
             }
             .strong {
                 FontWeight(.semibold)
             }
             .link {
-                ForegroundColor(AppColors.amber)
+                ForegroundColor(AppColors.accentSecondary)
             }
             .heading1 { configuration in
                 VStack(alignment: .leading, spacing: 0) {
@@ -668,7 +661,7 @@ extension Theme {
             .blockquote { configuration in
                 HStack(spacing: 0) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(AppColors.moss)
+                        .fill(AppColors.accentPrimary)
                         .frame(width: 4)
                     configuration.label
                         .padding(.horizontal, AppSpacing.md)

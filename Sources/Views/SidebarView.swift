@@ -353,7 +353,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loading…")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.caution)
+                        .foregroundStyle(AppColors.warning)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loading")
@@ -362,9 +362,9 @@ struct SidebarView: View {
             // Model loaded with known metadata
             HStack(spacing: AppSpacing.sm) {
                 Circle()
-                    .fill(AppColors.sprout)
+                    .fill(AppColors.success)
                     .frame(width: 8, height: 8)
-                    .glow(AppColors.sprout, radius: 6, opacity: 0.5)
+                    .glow(AppColors.success, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(metadata.name)
                         .font(AppTypography.subtitle)
@@ -372,7 +372,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loaded")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.sprout)
+                        .foregroundStyle(AppColors.success)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loaded")
@@ -382,9 +382,9 @@ struct SidebarView: View {
             let modelName = GalleryModelDiscovery.cleanModelDirectoryName(url.lastPathComponent)
             HStack(spacing: AppSpacing.sm) {
                 Circle()
-                    .fill(AppColors.sprout)
+                    .fill(AppColors.success)
                     .frame(width: 8, height: 8)
-                    .glow(AppColors.sprout, radius: 6, opacity: 0.5)
+                    .glow(AppColors.success, radius: 6, opacity: 0.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(modelName)
                         .font(AppTypography.subtitle)
@@ -392,7 +392,7 @@ struct SidebarView: View {
                         .lineLimit(1)
                     Text("Loaded")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.sprout)
+                        .foregroundStyle(AppColors.success)
                 }
             }
             .accessibilityIdentifier("sidebar_activeModel_loaded")
@@ -443,7 +443,7 @@ struct SidebarView: View {
             case .downloading(let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.moss)
+                        .tint(AppColors.accentPrimary)
                         .accessibilityLabel("Downloading, \(Int(progress * 100)) percent")
                     HStack {
                         Text("\(Int(progress * 100))%")
@@ -465,7 +465,7 @@ struct SidebarView: View {
             case .downloadingDirectory(let progress, let completed, let total):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.amber)
+                        .tint(AppColors.accentSecondary)
                     HStack {
                         Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                             .font(AppTypography.caption)
@@ -506,11 +506,11 @@ struct SidebarView: View {
             case .paused(_, let progress):
                 VStack(alignment: .leading, spacing: 2) {
                     ProgressView(value: progress)
-                        .tint(AppColors.caution)
+                        .tint(AppColors.warning)
                     HStack {
                         Text("Paused · \(Int(progress * 100))%")
                             .font(AppTypography.caption)
-                            .foregroundStyle(AppColors.caution)
+                            .foregroundStyle(AppColors.warning)
                         Spacer()
                     }
                 }
@@ -519,10 +519,10 @@ struct SidebarView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(AppColors.caution)
+                        .foregroundStyle(AppColors.warning)
                     Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.caution)
+                        .foregroundStyle(AppColors.warning)
                 }
 
             default:
@@ -553,7 +553,7 @@ struct SidebarView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Text(displayTitle(for: entry))
                         .font(isActive ? AppTypography.sectionHeader : AppTypography.subtitle)
-                        .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
+                        .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textPrimary)
                         .lineLimit(2)
 
                     Spacer()
@@ -561,7 +561,7 @@ struct SidebarView: View {
                     if entry.forkedFrom != nil {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.caption2)
-                            .foregroundStyle(AppColors.moss)
+                            .foregroundStyle(AppColors.accentPrimary)
                     }
                 }
 
@@ -610,7 +610,7 @@ struct SidebarView: View {
         .contentShape(Rectangle())
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .strokeBorder(isActive ? AppColors.moss.opacity(0.4) : .clear, lineWidth: 1)
+                .strokeBorder(isActive ? AppColors.accentPrimary.opacity(0.4) : .clear, lineWidth: 1)
         )
         .contextMenu {
             Button {
@@ -717,11 +717,11 @@ struct SidebarView: View {
     /// Color for a feature badge icon.
     private func badgeColor(for badge: String) -> Color {
         switch badge.lowercased() {
-        case "thinking", "think": return AppColors.sage
-        case "tools", "tool calling": return AppColors.action
-        case "mtp": return AppColors.badgeMTP
-        case "skills": return AppColors.amber
-        case "cd": return AppColors.badgeCD
+        case "thinking", "think": return AppColors.reasoning
+        case "tools", "tool calling": return AppColors.toolAction
+        case "mtp": return AppColors.capabilityMTP
+        case "skills": return AppColors.accentSecondary
+        case "cd": return AppColors.capabilityCD
         default: return AppColors.textTertiary
         }
     }
@@ -750,16 +750,16 @@ private struct SidebarModelRow: View {
             HStack(spacing: AppSpacing.xs) {
                 Text(model.resolvedMetadata.name)
                     .font(AppTypography.subtitle)
-                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textPrimary)
+                    .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textPrimary)
                     .lineLimit(1)
 
                 if model.source == .edgeGallery {
                     Text("Gallery")
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, AppSpacing.xs)
                         .padding(.vertical, 1)
-                        .background(AppColors.moss.opacity(0.1))
+                        .background(AppColors.accentPrimary.opacity(0.1))
                         .clipShape(Capsule())
                 }
 
@@ -772,7 +772,7 @@ private struct SidebarModelRow: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.caption2)
-                            .foregroundStyle(AppColors.ember.opacity(0.7))
+                            .foregroundStyle(AppColors.destructive.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .transition(.opacity)
@@ -789,11 +789,11 @@ private struct SidebarModelRow: View {
             // Status indicator + size
             HStack(spacing: AppSpacing.xs) {
                 Circle()
-                    .fill(isActive ? AppColors.moss : AppColors.sprout)
+                    .fill(isActive ? AppColors.accentPrimary : AppColors.success)
                     .frame(width: 5, height: 5)
                 Text(isActive ? "Loaded" : "Available")
                     .font(AppTypography.caption)
-                    .foregroundStyle(isActive ? AppColors.moss : AppColors.textTertiary)
+                    .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textTertiary)
             }
         }
         .padding(.vertical, AppSpacing.xs)

@@ -62,28 +62,28 @@ struct AgentStatusView: View {
                 .accessibilityIdentifier("agentStatusIcon_idle")
         case .thinking:
             Image(systemName: "brain.head.profile")
-                .foregroundStyle(AppColors.sage)
+                .foregroundStyle(AppColors.reasoning)
                 .symbolEffect(.pulse, options: shouldAnimate ? .repeating : .default)
                 .accessibilityIdentifier("agentStatusIcon_thinking")
         case .executingTool(let name):
             Image(systemName: "hammer.fill")
-                .foregroundStyle(AppColors.action)
+                .foregroundStyle(AppColors.toolAction)
                 .accessibilityIdentifier("agentStatusIcon_executing_\(name)")
         case .waitingForApproval:
             Image(systemName: "exclamationmark.shield.fill")
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
                 .accessibilityIdentifier("agentStatusIcon_approval")
         case .completed:
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(AppColors.sprout)
+                .foregroundStyle(AppColors.success)
                 .accessibilityIdentifier("agentStatusIcon_completed")
         case .forceStopped:
             Image(systemName: "stop.circle.fill")
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
                 .accessibilityIdentifier("agentStatusIcon_stopped")
         case .cancelled:
             Image(systemName: "xmark.circle.fill")
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
                 .accessibilityIdentifier("agentStatusIcon_cancelled")
         }
     }
@@ -96,22 +96,22 @@ struct AgentStatusView: View {
                 .foregroundStyle(AppColors.textSecondary)
         case .thinking:
             Text("Thinking...")
-                .foregroundStyle(AppColors.sage)
+                .foregroundStyle(AppColors.reasoning)
         case .executingTool(let name):
             Text("Executing: \(name)")
-                .foregroundStyle(AppColors.action)
+                .foregroundStyle(AppColors.toolAction)
         case .waitingForApproval(let tool, _):
             Text("Approval needed: \(tool)")
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
         case .completed:
             Text("Completed")
-                .foregroundStyle(AppColors.sprout)
+                .foregroundStyle(AppColors.success)
         case .forceStopped:
             Text("Stopped after \(harness.steps.count) steps")
-                .foregroundStyle(AppColors.caution)
+                .foregroundStyle(AppColors.warning)
         case .cancelled:
             Text("Cancelled")
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
         }
     }
 
@@ -142,7 +142,7 @@ struct AgentStatusView: View {
                             if let tool = step.toolCall {
                                 Text("→ \(tool.toolName)")
                                     .font(.caption)
-                                    .foregroundStyle(AppColors.action)
+                                    .foregroundStyle(AppColors.toolAction)
                             }
                         }
                         if let reasoning = step.reasoning {
@@ -167,7 +167,7 @@ struct AgentStatusView: View {
         Button(action: { harness.cancel() }) {
             Label("Cancel Agent", systemImage: "stop.fill")
                 .font(.caption)
-                .foregroundStyle(AppColors.ember)
+                .foregroundStyle(AppColors.destructive)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("agentCancelButton")

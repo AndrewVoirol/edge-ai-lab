@@ -391,10 +391,10 @@ final class SprintFeatureIntegrationTests: XCTestCase {
     func testBadgeColorsAreDistinct() {
         // These are the four badge colors used for hint cards
         let colors = [
-            AppColors.moss,       // Chat hint
-            AppColors.badgeVision,      // Image hint
-            AppColors.action,         // Tools hint
-            AppColors.badgeThinking     // Thinking hint
+            AppColors.accentPrimary,       // Chat hint
+            AppColors.capabilityVision,      // Image hint
+            AppColors.toolAction,         // Tools hint
+            AppColors.capabilityThinking     // Thinking hint
         ]
 
         // Verify all 4 colors are present and unique

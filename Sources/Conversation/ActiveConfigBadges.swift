@@ -89,7 +89,7 @@ struct ActiveConfigBadges: View {
                 flagId: "thinking",
                 label: "Think",
                 symbol: "brain.head.profile",
-                color: AppColors.badgeThinking,
+                color: AppColors.capabilityThinking,
                 isSupported: supported
             ))
         }
@@ -102,7 +102,7 @@ struct ActiveConfigBadges: View {
                 flagId: "mtp",
                 label: "MTP",
                 symbol: "bolt.fill",
-                color: AppColors.badgeMTP,
+                color: AppColors.capabilityMTP,
                 isSupported: supported
             ))
         }
@@ -115,7 +115,7 @@ struct ActiveConfigBadges: View {
                 flagId: "cd",
                 label: "CD",
                 symbol: "doc.text.magnifyingglass",
-                color: AppColors.badgeCD,
+                color: AppColors.capabilityCD,
                 isSupported: supported
             ))
         }
@@ -128,7 +128,7 @@ struct ActiveConfigBadges: View {
                 flagId: "tools",
                 label: "Tools",
                 symbol: "wrench.fill",
-                color: AppColors.badgeTools,
+                color: AppColors.toolAction,
                 isSupported: supported
             ))
         }

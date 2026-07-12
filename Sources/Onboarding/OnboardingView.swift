@@ -128,7 +128,7 @@ struct OnboardingView: View {
         HStack(spacing: AppSpacing.sm) {
             ForEach(0..<pages.count, id: \.self) { index in
                 Circle()
-                    .fill(index == currentPage ? AppColors.moss : AppColors.textTertiary)
+                    .fill(index == currentPage ? AppColors.accentPrimary : AppColors.textTertiary)
                     .frame(width: index == currentPage ? 10 : 6,
                            height: index == currentPage ? 10 : 6)
                     .animation(AppAnimation.standard, value: currentPage)
@@ -163,7 +163,7 @@ struct OnboardingView: View {
                     RoundedRectangle(cornerRadius: AppRadius.xl)
                         .fill(
                             LinearGradient(
-                                colors: [AppColors.moss, AppColors.moss],
+                                colors: [AppColors.accentPrimary, AppColors.accentPrimary],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -171,7 +171,7 @@ struct OnboardingView: View {
                 }
         }
         .buttonStyle(.plain)
-        .glow(AppColors.moss, radius: 10, opacity: 0.25)
+        .glow(AppColors.accentPrimary, radius: 10, opacity: 0.25)
         .accessibilityIdentifier(isLastPage ? "onboarding_getStarted" : "onboarding_continue")
         .accessibilityHint(isLastPage ? "Double-tap to complete setup and start using Edge AI Lab" : "Double-tap to go to next page")
     }
@@ -181,11 +181,11 @@ struct OnboardingView: View {
     /// Maps each page index to a distinct accent color from the Dark Forest palette.
     private func iconColor(for index: Int) -> Color {
         switch index {
-        case 0: return AppColors.moss
-        case 1: return AppColors.amber
-        case 2: return AppColors.moss
-        case 3: return AppColors.moss
-        default: return AppColors.moss
+        case 0: return AppColors.accentPrimary
+        case 1: return AppColors.accentSecondary
+        case 2: return AppColors.accentPrimary
+        case 3: return AppColors.accentPrimary
+        default: return AppColors.accentPrimary
         }
     }
 }

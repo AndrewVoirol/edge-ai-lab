@@ -43,7 +43,7 @@ struct SettingsImpactLabel: View {
                     Text("Reload")
                         .font(.system(size: 10, weight: .medium, design: .rounded))
                 }
-                .foregroundStyle(AppColors.caution.opacity(0.8))
+                .foregroundStyle(AppColors.warning.opacity(0.8))
                 .accessibilityLabel("Requires engine reload")
             }
         }
@@ -101,10 +101,10 @@ private struct ImpactPill: View {
 
     private var pillColor: Color {
         switch area {
-        case .speed: return AppColors.badgeMTP
-        case .quality: return AppColors.badgeThinking
-        case .memory: return AppColors.caution
-        case .compatibility: return AppColors.badgeCD
+        case .speed: return AppColors.capabilityMTP
+        case .quality: return AppColors.capabilityThinking
+        case .memory: return AppColors.warning
+        case .compatibility: return AppColors.capabilityCD
         }
     }
 }

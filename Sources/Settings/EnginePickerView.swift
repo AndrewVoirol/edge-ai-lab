@@ -50,7 +50,7 @@ struct EnginePickerView: View {
             if viewModel.isEngineReady {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AppColors.sprout)
+                        .foregroundStyle(AppColors.success)
                     Text("\(viewModel.selectedRuntimeType.displayName) engine ready")
                         .font(.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -94,9 +94,9 @@ struct EnginePickerView: View {
                             .font(.caption)
                     } icon: {
                         Image(systemName: "wand.and.stars")
-                            .foregroundStyle(AppColors.moss)
+                            .foregroundStyle(AppColors.accentPrimary)
                     }
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                     .accessibilityIdentifier("engine_autodetect_hint")
                 } else {
                     Label {
@@ -104,7 +104,7 @@ struct EnginePickerView: View {
                             .font(.caption)
                     } icon: {
                         Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(AppColors.sprout)
+                            .foregroundStyle(AppColors.success)
                     }
                     .foregroundStyle(AppColors.textTertiary)
                     .accessibilityIdentifier("engine_format_match")

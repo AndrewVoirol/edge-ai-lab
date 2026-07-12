@@ -136,10 +136,10 @@ struct HFModelCard: View {
             if let quant = model.quantizationInfo {
                 Text(quant.uppercased())
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, 2)
-                    .background(AppColors.moss.opacity(0.15))
+                    .background(AppColors.accentPrimary.opacity(0.15))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             }
 
@@ -173,9 +173,9 @@ struct HFModelCard: View {
     @ViewBuilder
     private var formatBadge: some View {
         let (text, color): (String, Color) = switch format {
-        case .litertlm: ("LiteRT", AppColors.sprout)
-        case .mlx: ("MLX", AppColors.amber)
-        case .gguf: ("GGUF", AppColors.moss)
+        case .litertlm: ("LiteRT", AppColors.success)
+        case .mlx: ("MLX", AppColors.accentSecondary)
+        case .gguf: ("GGUF", AppColors.accentPrimary)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         Text(text)
@@ -208,10 +208,10 @@ struct HFModelCard: View {
                         Text("Download")
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(AppColors.moss)
+                    .foregroundStyle(AppColors.accentPrimary)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
-                    .background(AppColors.moss.opacity(0.1))
+                    .background(AppColors.accentPrimary.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .buttonStyle(.plain)
@@ -227,10 +227,10 @@ struct HFModelCard: View {
                         Text("Download (\(sizeLabel))")
                             .font(AppTypography.caption)
                     }
-                    .foregroundStyle(AppColors.amber)
+                    .foregroundStyle(AppColors.accentSecondary)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
-                    .background(AppColors.amber.opacity(0.1))
+                    .background(AppColors.accentSecondary.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                 }
                 .buttonStyle(.plain)
@@ -248,7 +248,7 @@ struct HFModelCard: View {
         case .downloading(let progress):
             VStack(spacing: 2) {
                 ProgressView(value: progress)
-                    .tint(AppColors.moss)
+                    .tint(AppColors.accentPrimary)
                 HStack {
                     Text("\(Int(progress * 100))%")
                         .font(AppTypography.caption)
@@ -271,20 +271,20 @@ struct HFModelCard: View {
         case .downloaded:
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
                 Text("Downloaded")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.sprout)
+                    .foregroundStyle(AppColors.success)
             }
 
         case .failed(let message):
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(AppColors.ember)
+                    .foregroundStyle(AppColors.destructive)
                     .font(.caption2)
                 Text(message)
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.ember)
+                    .foregroundStyle(AppColors.destructive)
                     .lineLimit(1)
             }
 
@@ -294,7 +294,7 @@ struct HFModelCard: View {
                 Text("Auth required")
             }
             .font(AppTypography.caption)
-            .foregroundStyle(AppColors.caution)
+            .foregroundStyle(AppColors.warning)
 
         case .queued(let position):
             HStack(spacing: AppSpacing.xs) {
@@ -308,16 +308,16 @@ struct HFModelCard: View {
         case .paused(_, let progress):
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "pause.fill")
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Text("Paused · \(Int(progress * 100))%")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
             }
 
         case .downloadingDirectory(let progress, let completed, let total):
             VStack(spacing: 2) {
                 ProgressView(value: progress)
-                    .tint(AppColors.amber)
+                    .tint(AppColors.accentSecondary)
                 HStack {
                     Text("\(completed)/\(total) files · \(Int(progress * 100))%")
                         .font(AppTypography.caption)
@@ -338,10 +338,10 @@ struct HFModelCard: View {
         case .pausedDirectory(let progress, let completed, let total):
             HStack(spacing: AppSpacing.xs) {
                 Image(systemName: "pause.fill")
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
                 Text("Paused · \(completed)/\(total) files · \(Int(progress * 100))%")
                     .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.caution)
+                    .foregroundStyle(AppColors.warning)
             }
         }
     }

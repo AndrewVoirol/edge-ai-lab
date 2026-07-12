@@ -291,7 +291,7 @@ struct ContentView: View {
             .tag(AppTab.settings)
         }
         .foregroundStyle(AppColors.textPrimary)
-        .tint(AppColors.moss)
+        .tint(AppColors.accentPrimary)
         .sheet(item: Binding(
             get: { viewModel.activeCanvasContent },
             set: { viewModel.activeCanvasContent = $0 }
@@ -525,31 +525,31 @@ struct ModelCapabilityBadges: View {
         HStack(spacing: AppSpacing.xs) {
             if metadata.supportsImage {
                 Text("Vision")
-                    .badge(AppColors.badgeVision)
+                    .badge(AppColors.capabilityVision)
                     .accessibilityIdentifier("badge_vision")
                     .accessibilityLabel("Vision capability")
             }
             if metadata.supportsAudio {
                 Text("Audio")
-                    .badge(AppColors.badgeAudio)
+                    .badge(AppColors.capabilityAudio)
                     .accessibilityIdentifier("badge_audio")
                     .accessibilityLabel("Audio capability")
             }
             if metadata.supportsMTP {
                 Text("MTP")
-                    .badge(AppColors.badgeMTP)
+                    .badge(AppColors.capabilityMTP)
                     .accessibilityIdentifier("badge_mtp")
                     .accessibilityLabel("Multi-turn planning capability")
             }
             if runtimeFlags.enableToolCalling {
                 Text("Tools")
-                    .badge(AppColors.action)
+                    .badge(AppColors.toolAction)
                     .accessibilityIdentifier("badge_tools")
                     .accessibilityLabel("Tool calling capability")
             }
             if runtimeFlags.enableThinking {
                 Text("Thinking")
-                    .badge(AppColors.badgeThinking)
+                    .badge(AppColors.capabilityThinking)
                     .accessibilityIdentifier("badge_thinking")
                     .accessibilityLabel("Thinking mode capability")
             }

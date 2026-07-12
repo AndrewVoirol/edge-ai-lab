@@ -136,7 +136,7 @@ private struct ModelDetailPanel: View {
                             Text("Models")
                         }
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.moss)
+                        .foregroundStyle(AppColors.accentPrimary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("modelDetail_backButton")
@@ -156,12 +156,12 @@ private struct ModelDetailPanel: View {
                     if isActiveModel {
                         HStack(spacing: AppSpacing.xs) {
                             Circle()
-                                .fill(AppColors.sprout)
+                                .fill(AppColors.success)
                                 .frame(width: 8, height: 8)
-                                .glow(AppColors.sprout, radius: 6, opacity: 0.5)
+                                .glow(AppColors.success, radius: 6, opacity: 0.5)
                             Text("Loaded")
                                 .font(AppTypography.badge)
-                                .foregroundStyle(AppColors.sprout)
+                                .foregroundStyle(AppColors.success)
                         }
                         .accessibilityIdentifier("modelDetail_status_loaded")
                     } else {
@@ -187,7 +187,7 @@ private struct ModelDetailPanel: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                        .tint(AppColors.caution)
+                        .tint(AppColors.warning)
                         .accessibilityIdentifier("modelDetail_unloadButton")
                     } else if let modelId = selectedModelId,
                               let discovered = viewModel.discoveredModels.first(where: { $0.filename == modelId }) {
@@ -202,7 +202,7 @@ private struct ModelDetailPanel: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(AppColors.moss)
+                        .tint(AppColors.accentPrimary)
                         .accessibilityIdentifier("modelDetail_loadButton")
                     }
                 }
@@ -257,7 +257,7 @@ private struct ModelDetailPanel: View {
                         countStyle: .file
                     ),
                     icon: "doc.zipper",
-                    color: AppColors.amber
+                    color: AppColors.accentSecondary
                 )
 
                 // Min RAM
@@ -265,7 +265,7 @@ private struct ModelDetailPanel: View {
                     label: "Min RAM",
                     value: "\(metadata.minDeviceMemoryGB) GB",
                     icon: "memorychip",
-                    color: AppColors.moss
+                    color: AppColors.accentPrimary
                 )
 
                 // Context Window
@@ -273,7 +273,7 @@ private struct ModelDetailPanel: View {
                     label: "Context",
                     value: formatTokenCount(metadata.contextWindowSize),
                     icon: "text.alignleft",
-                    color: AppColors.moss
+                    color: AppColors.accentPrimary
                 )
             }
         }
@@ -337,11 +337,11 @@ private struct ModelDetailPanel: View {
                         let capability = metadata.platformSupport.currentPlatform
                         if capability.supportsGPU {
                             Text("GPU")
-                                .badge(AppColors.moss)
+                                .badge(AppColors.accentPrimary)
                         }
                         if capability.supportsCPU {
                             Text("CPU")
-                                .badge(AppColors.moss)
+                                .badge(AppColors.accentPrimary)
                         }
                     }
                 }
@@ -353,7 +353,7 @@ private struct ModelDetailPanel: View {
                         .foregroundStyle(AppColors.textTertiary)
                     Text(metadata.recommendedFor)
                         .font(AppTypography.badge)
-                        .foregroundStyle(AppColors.amber)
+                        .foregroundStyle(AppColors.accentSecondary)
                 }
             }
             .padding(AppSpacing.md)
@@ -373,7 +373,7 @@ private struct ModelDetailPanel: View {
                         .font(AppIconSize.hero)
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [AppColors.moss, AppColors.moss],
+                                colors: [AppColors.accentPrimary, AppColors.accentPrimary],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -403,7 +403,7 @@ private struct ModelDetailPanel: View {
                         // Card 1: Browse community models
                         gettingStartedCard(
                             icon: "arrow.down.circle",
-                            iconColor: AppColors.moss,
+                            iconColor: AppColors.accentPrimary,
                             title: "Browse Models",
                             subtitle: "Download Gemma models from HuggingFace below"
                         )
@@ -411,7 +411,7 @@ private struct ModelDetailPanel: View {
                         // Card 2: Load from disk
                         gettingStartedCard(
                             icon: "folder",
-                            iconColor: AppColors.amber,
+                            iconColor: AppColors.accentSecondary,
                             title: "Load from Disk",
                             subtitle: "Open a .litertlm file (⌘O)"
                         )
@@ -419,7 +419,7 @@ private struct ModelDetailPanel: View {
                         // Card 3: Drag & Drop
                         gettingStartedCard(
                             icon: "arrow.down.doc",
-                            iconColor: AppColors.moss,
+                            iconColor: AppColors.accentPrimary,
                             title: "Drag & Drop",
                             subtitle: "Drop a .litertlm file onto the window"
                         )
@@ -435,10 +435,10 @@ private struct ModelDetailPanel: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.sm) {
-                        featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.amber)
-                        featureHighlight(icon: "brain.head.profile", title: "Thinking Mode", subtitle: "See the model reason step-by-step", iconColor: AppColors.badgeThinking)
-                        featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.action)
-                        featureHighlight(icon: "photo.on.rectangle", title: "Multimodal", subtitle: "Images and audio with vision models", iconColor: AppColors.badgeVision)
+                        featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.accentSecondary)
+                        featureHighlight(icon: "brain.head.profile", title: "Thinking Mode", subtitle: "See the model reason step-by-step", iconColor: AppColors.capabilityThinking)
+                        featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.toolAction)
+                        featureHighlight(icon: "photo.on.rectangle", title: "Multimodal", subtitle: "Images and audio with vision models", iconColor: AppColors.capabilityVision)
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
@@ -484,7 +484,7 @@ private struct ModelDetailPanel: View {
         icon: String,
         title: String,
         subtitle: String,
-        iconColor: Color = AppColors.moss
+        iconColor: Color = AppColors.accentPrimary
     ) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
@@ -529,7 +529,7 @@ private struct ConversationDetailPlaceholder: View {
                 .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [AppColors.amber, AppColors.amber.opacity(0.6)],
+                        colors: [AppColors.accentSecondary, AppColors.accentSecondary.opacity(0.6)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -575,7 +575,7 @@ private struct ExperimentDetailView: View {
                 HStack(spacing: AppSpacing.sm) {
                     Image(systemName: "archivebox.fill")
                         .font(.title2)
-                        .foregroundStyle(AppColors.amber)
+                        .foregroundStyle(AppColors.accentSecondary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(activeEntry?.title ?? "Archived Experiment")
                             .font(AppTypography.sectionTitle)
@@ -611,11 +611,11 @@ private struct ExperimentDetailView: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(AppSpacing.md)
-                    .background(AppColors.moss.opacity(0.2))
+                    .background(AppColors.accentPrimary.opacity(0.2))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.moss.opacity(0.4), lineWidth: 1)
+                            .stroke(AppColors.accentPrimary.opacity(0.4), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -661,7 +661,7 @@ private struct ExperimentDetailView: View {
             Spacer()
             Text(value)
                 .font(AppTypography.metric)
-                .foregroundStyle(AppColors.moss)
+                .foregroundStyle(AppColors.accentPrimary)
         }
         .padding(.vertical, AppSpacing.xs)
     }
