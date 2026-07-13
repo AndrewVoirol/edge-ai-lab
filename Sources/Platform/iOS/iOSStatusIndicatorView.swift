@@ -57,7 +57,7 @@ struct iOSStatusIndicatorView: View {
                         // Expanded: Detail metrics
                         if isExpanded {
                             expandedContent
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                .transition(.slideDown)
                         }
                     }
                     .padding(.horizontal, AppSpacing.lg)
@@ -70,9 +70,9 @@ struct iOSStatusIndicatorView: View {
             }
             .background {
                 if reduceTransparency {
-                    AppColors.backgroundSecondary.opacity(0.85)
+                    AppColors.backgroundSecondary.opacity(AppOpacity.glass)
                 } else {
-                    AppColors.backgroundSecondary.opacity(0.7)
+                    AppColors.backgroundSecondary.opacity(AppOpacity.strong)
                         .background(.ultraThinMaterial)
                 }
             }
@@ -115,7 +115,7 @@ struct iOSStatusIndicatorView: View {
                     .padding(.horizontal, AppSpacing.xs)
                     .padding(.vertical, AppSpacing.xxs)
                     .background(
-                        (result.activeBackend == .gpu ? AppColors.success : AppColors.warning).opacity(0.12)
+                        (result.activeBackend == .gpu ? AppColors.success : AppColors.warning).opacity(AppOpacity.fill)
                     )
                     .clipShape(Capsule())
             }

@@ -173,26 +173,26 @@ private struct BadgePill: View {
                 Text(badge.label)
                     .font(AppTypography.badge)
             }
-            .foregroundStyle(badge.isSupported ? badge.color : badge.color.opacity(0.4))
+            .foregroundStyle(badge.isSupported ? badge.color : badge.color.opacity(AppOpacity.dim))
             .padding(.horizontal, AppSpacing.sm)
             .padding(.vertical, AppSpacing.xxs + 1)
             .background(
                 Capsule()
                     .fill(badge.isSupported
-                        ? badge.color.opacity(0.12)
-                        : badge.color.opacity(0.05))
+                        ? badge.color.opacity(AppOpacity.fill)
+                        : badge.color.opacity(AppOpacity.ghost))
             )
             .overlay(
                 Capsule()
                     .strokeBorder(
                         badge.isSupported
-                            ? badge.color.opacity(0.3)
-                            : badge.color.opacity(0.1),
+                            ? badge.color.opacity(AppOpacity.medium)
+                            : badge.color.opacity(AppOpacity.faint),
                         lineWidth: AppLineWidth.hairline
                     )
             )
             .scaleEffect(isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
+            .animation(AppAnimation.micro, value: isPressed)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("badge_\(badge.flagId)")

@@ -127,13 +127,13 @@ struct ModelCapabilityCard: View {
             Spacer()
             Image(systemName: supported ? "checkmark.circle.fill" : "minus.circle")
                 .font(AppIconSize.xxs)
-                .foregroundStyle(supported ? color.opacity(0.6) : AppColors.textQuaternary)
+                .foregroundStyle(supported ? color.opacity(AppOpacity.prominent) : AppColors.textQuaternary)
         }
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(supported ? color.opacity(0.06) : Color.clear)
+                .fill(supported ? color.opacity(AppOpacity.mist) : Color.clear)
         )
         .accessibilityLabel("\(label): \(supported ? "supported" : "not supported")")
     }
@@ -153,7 +153,7 @@ struct ModelCapabilityCard: View {
         .padding(.vertical, AppSpacing.xs)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(AppColors.accentSecondary.opacity(0.06))
+                .fill(AppColors.accentSecondary.opacity(AppOpacity.mist))
         )
         .accessibilityLabel("Context window: \(metadata.contextWindowSize ?? 0) tokens")
     }

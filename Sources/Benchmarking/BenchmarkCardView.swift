@@ -440,7 +440,7 @@ struct BenchmarkCardView: View {
                     Text(value)
                         .font(.system(size: heroFontSize, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                         .foregroundStyle(color)
-                        .shadow(color: color.opacity(0.4), radius: 20, x: 0, y: 0)
+                        .shadow(color: color.opacity(0.4), radius: 20, x: 0, y: 0) // design-system-exempt: image-export pixel-exact rendering
 
                     Text(unit)
                         .font(.system(size: heroUnitSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
@@ -450,7 +450,7 @@ struct BenchmarkCardView: View {
                 Text(value)
                     .font(.system(size: secondaryMetricSize, weight: .bold, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
                     .foregroundStyle(color)
-                    .shadow(color: color.opacity(0.25), radius: 12, x: 0, y: 0)
+                    .shadow(color: color.opacity(0.25), radius: 12, x: 0, y: 0) // design-system-exempt: image-export pixel-exact rendering
             }
 
             Text(label)

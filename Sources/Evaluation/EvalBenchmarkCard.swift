@@ -347,7 +347,7 @@ struct EvalBenchmarkCardShareSheet: View {
                             height: EvalBenchmarkCard.cardHeight * 0.5
                         )
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
-                        .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
+                        .appShadow(.cardPreview)
                         .padding(.top, AppSpacing.xl)
 
                     // Action buttons

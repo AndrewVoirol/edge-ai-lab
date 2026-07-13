@@ -140,7 +140,7 @@ struct BenchmarkBarView: View {
             // Expanded detail view
             if isBenchmarkExpanded {
                 expandedMetricsView(metrics: metrics)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.slideDown)
             }
         }
         .font(AppTypography.caption)

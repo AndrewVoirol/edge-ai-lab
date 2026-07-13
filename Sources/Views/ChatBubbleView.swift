@@ -224,21 +224,21 @@ struct ChatBubbleView: View {
                     AppGradients.userBubble
                 case .assistant:
                     if reduceTransparency {
-                        Rectangle().fill(AppColors.assistantBubble.opacity(0.85))
+                        Rectangle().fill(AppColors.assistantBubble.opacity(AppOpacity.glass))
                     } else {
-                        Rectangle().fill(AppColors.assistantBubble.opacity(0.3)).background(.ultraThinMaterial)
+                        Rectangle().fill(AppColors.assistantBubble.opacity(AppOpacity.medium)).background(.ultraThinMaterial)
                     }
                 case .system:
                     if reduceTransparency {
-                        Rectangle().fill(AppColors.backgroundTertiary.opacity(0.85))
+                        Rectangle().fill(AppColors.backgroundTertiary.opacity(AppOpacity.glass))
                     } else {
-                        Rectangle().fill(AppColors.backgroundTertiary.opacity(0.4)).background(.ultraThinMaterial)
+                        Rectangle().fill(AppColors.backgroundTertiary.opacity(AppOpacity.dim)).background(.ultraThinMaterial)
                     }
                 case .toolResult:
                     if reduceTransparency {
-                        Rectangle().fill(AppColors.toolAction.opacity(0.85))
+                        Rectangle().fill(AppColors.toolAction.opacity(AppOpacity.glass))
                     } else {
-                        Rectangle().fill(AppColors.toolAction.opacity(0.08)).background(.ultraThinMaterial)
+                        Rectangle().fill(AppColors.toolAction.opacity(AppOpacity.tint)).background(.ultraThinMaterial)
                     }
                 }
             }
@@ -253,10 +253,10 @@ struct ChatBubbleView: View {
 
     private var bubbleBorderColor: Color {
         switch message.role {
-        case .user:      return AppColors.userBubbleStart.opacity(0.3)
+        case .user:      return AppColors.userBubbleStart.opacity(AppOpacity.medium)
         case .assistant:  return AppColors.border
-        case .system:    return AppColors.warning.opacity(0.15)
-        case .toolResult: return AppColors.toolAction.opacity(0.15)
+        case .system:    return AppColors.warning.opacity(AppOpacity.rinse)
+        case .toolResult: return AppColors.toolAction.opacity(AppOpacity.rinse)
         }
     }
 
@@ -298,11 +298,11 @@ struct ChatBubbleView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.reasoning.opacity(0.06))
+                .background(AppColors.reasoning.opacity(AppOpacity.mist))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.reasoning.opacity(0.1), lineWidth: AppLineWidth.hairline)
+                        .stroke(AppColors.reasoning.opacity(AppOpacity.faint), lineWidth: AppLineWidth.hairline)
                 )
             }
             .buttonStyle(.plain)
@@ -319,12 +319,9 @@ struct ChatBubbleView: View {
                     .textSelection(.enabled)
                     .padding(AppSpacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.reasoning.opacity(0.04))
+                    .background(AppColors.reasoning.opacity(AppOpacity.ghost))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                        removal: .opacity
-                    ))
+                    .transition(.contentReveal)
             }
         }
     }
@@ -376,11 +373,11 @@ struct ChatBubbleView: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.toolAction.opacity(0.06))
+                .background(AppColors.toolAction.opacity(AppOpacity.mist))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.sm)
-                        .stroke(AppColors.toolAction.opacity(0.1), lineWidth: AppLineWidth.hairline)
+                        .stroke(AppColors.toolAction.opacity(AppOpacity.faint), lineWidth: AppLineWidth.hairline)
                 )
             }
             .buttonStyle(.plain)
@@ -415,12 +412,9 @@ struct ChatBubbleView: View {
                 }
                 .padding(AppSpacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(AppColors.backgroundTertiary.opacity(0.5))
+                .background(AppColors.backgroundTertiary.opacity(AppOpacity.half))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                    removal: .opacity
-                ))
+                .transition(.contentReveal)
             }
         }
     }
@@ -469,11 +463,11 @@ struct ChatBubbleView: View {
                     }
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.sm)
-                    .background(AppColors.accentPrimary.opacity(0.08))
+                    .background(AppColors.accentPrimary.opacity(AppOpacity.tint))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(AppColors.accentPrimary.opacity(0.12), lineWidth: AppLineWidth.hairline)
+                            .stroke(AppColors.accentPrimary.opacity(AppOpacity.fill), lineWidth: AppLineWidth.hairline)
                     )
                 }
             }
@@ -517,11 +511,11 @@ struct ChatBubbleView: View {
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.xs)
-        .background(tier.color.opacity(0.06))
+        .background(tier.color.opacity(AppOpacity.mist))
         .clipShape(Capsule())
         .overlay(
             Capsule()
-                .stroke(tier.color.opacity(0.1), lineWidth: AppLineWidth.hairline)
+                .stroke(tier.color.opacity(AppOpacity.faint), lineWidth: AppLineWidth.hairline)
         )
         .accessibilityIdentifier("benchmarkBadge_\(message.id)")
         .accessibilityLabel("Performance: \(String(format: "%.1f", benchmark.decodeTokensPerSecond)) tokens per second, \(tier.label)")

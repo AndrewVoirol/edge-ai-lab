@@ -280,7 +280,7 @@ struct EvalComparisonView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: AppRadius.md)
                                 .stroke(
-                                    isActive ? AppColors.accentPrimary.opacity(0.4) : AppColors.border.opacity(0.3),
+                                    isActive ? AppColors.accentPrimary.opacity(AppOpacity.dim) : AppColors.border.opacity(AppOpacity.medium),
                                     lineWidth: AppLineWidth.regular
                                 )
                         )
@@ -357,7 +357,7 @@ struct EvalComparisonView: View {
             .padding(.bottom, AppSpacing.xs)
             #endif
 
-            Divider().overlay(AppColors.border.opacity(0.3))
+            Divider().overlay(AppColors.border.opacity(AppOpacity.medium))
 
             // Result rows
             ForEach(filteredPromptResults) { result in
@@ -393,7 +393,7 @@ struct EvalComparisonView: View {
                 if let reason = result.score.reason {
                     Text(reason)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.destructive.opacity(0.8))
+                        .foregroundStyle(AppColors.destructive.opacity(AppOpacity.emphasis))
                         .lineLimit(3)
                 }
 
@@ -414,7 +414,7 @@ struct EvalComparisonView: View {
         .padding(.vertical, AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(result.passed ? Color.clear : AppColors.destructive.opacity(0.03))
+                .fill(result.passed ? Color.clear : AppColors.destructive.opacity(AppOpacity.whisper))
         )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
         #else
@@ -434,7 +434,7 @@ struct EvalComparisonView: View {
                 if let reason = result.score.reason {
                     Text(reason)
                         .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.destructive.opacity(0.8))
+                        .foregroundStyle(AppColors.destructive.opacity(AppOpacity.emphasis))
                         .lineLimit(1)
                 }
             }
@@ -461,7 +461,7 @@ struct EvalComparisonView: View {
         .padding(.vertical, AppSpacing.sm)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .fill(result.passed ? Color.clear : AppColors.destructive.opacity(0.03))
+                .fill(result.passed ? Color.clear : AppColors.destructive.opacity(AppOpacity.whisper))
         )
         .accessibilityIdentifier("evalComparison_promptRow_\(result.id.uuidString.prefix(8))")
         #endif
@@ -501,7 +501,7 @@ struct EvalComparisonView: View {
                 .foregroundStyle(AppColors.destructive)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.sm)
-                .background(AppColors.destructive.opacity(0.1))
+                .background(AppColors.destructive.opacity(AppOpacity.faint))
                 .clipShape(Capsule())
             }
             .buttonStyle(.plain)

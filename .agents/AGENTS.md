@@ -26,6 +26,7 @@
 - **All properties in `Codable` structs that decode external API responses (HuggingFace, GitHub, etc.) MUST be optional** unless the field is documented as always-present AND verified against a live response. External APIs change without notice and return different shapes for list vs. detail endpoints. A single required field missing from one entry in an array causes the ENTIRE array decode to fail.
 - **When UI state (sheets, alerts, navigation targets) needs to be triggered from both iOS and macOS views**, store it in `ConversationViewModel` (the shared `@Observable` environment object), not in `@State` on a parent view. `@Binding` threading breaks at `#if os()` platform boundaries — iOS views cannot receive bindings from macOS-only parents. After moving state to the ViewModel, use `Binding(get:set:)` in `.sheet(item:)` and `.alert(isPresented:)` modifiers.
 - **When replacing a feature's trigger mechanism** (e.g., moving a sheet to sidebar navigation, replacing a view with a newer version), immediately remove the old infrastructure: `@State` variables, `.sheet()`/`.alert()` modifiers, private helper functions, and any closures that set the old state. Do NOT leave abandoned trigger code "for later" — it becomes dead wiring that obscures what the app actually does. After any refactor that changes how a feature is accessed, grep for orphaned `@State` variables with only 1-2 references in their file.
+- **Never name a design system type with a name that collides with SwiftUI/Foundation built-in types.** Always use the `App` prefix (e.g., `AppShadowStyle` not `ShadowStyle`, `AppTransition` not `TransitionStyle`). Known collision-prone names: `ShadowStyle`, `Animation`, `Color`, `Font`, `Gradient`, `TransitionStyle`, `ShapeStyle`. When defining a new struct/enum in DesignSystem.swift, search Apple SDK headers first: `grep -rn 'public struct <Name>' /Applications/Xcode-beta.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/SwiftUI.framework/`.
 
 ## Swift Concurrency
 - For `static let` properties with `Sendable` types (e.g., `String`, `Int`) on `@MainActor` types, use `nonisolated` (NOT `nonisolated(unsafe)`). The `unsafe` qualifier is only needed for mutable (`var`) or non-`Sendable` statics.
@@ -42,7 +43,7 @@
   ```
   Never use `@testable import EdgeAILab` — the module doesn't exist. Tuist generates `EdgeAILab_iOS` and `EdgeAILab_macOS` as separate targets.
 - **`FlowDrivenUITestRunner.swift` is a unified shared file** in `SharedTestSupport/`. Both macOS (`UITests/`) and iOS (`iOSUITests/`) test targets link against it. Platform differences are handled via `#if os()` guards within the single file.
-- All perpetual animations MUST have `XCTestConfigurationFilePath` guard.
+- All perpetual animations MUST have BOTH: (a) `XCTestConfigurationFilePath` guard to prevent runloop saturation in tests, AND (b) `@Environment(\.accessibilityReduceMotion)` guard to respect the user's accessibility preference. The canonical pattern is `if Self.isRunningTests || reduceMotion { /* static fallback */ }`. See `PulsingGlowModifier` in `DesignSystem.swift` for the reference implementation.
 - Physical device ID: `3B50314A-0702-5188-A321-BCD5CA5F8184` (iPhone 16 Pro Max).
 - iOS Simulator destination: `iPhone 16 Pro Max` (ID: `CD9FBA60-9BA8-42DC-8D19-335ECEF4C915`).
 - **testmanagerd contention**: When running iOS Simulator UI tests followed by iOS Device UI tests in the same pipeline, the host Mac's `testmanagerd` must fully tear down the simulator session before the device session starts. Always run `xcrun simctl shutdown all && sleep 15` between simulator and device test steps. Without this, device tests fail with "Timed out while enabling automation mode."
@@ -177,10 +178,17 @@ All visual values are centralized in `Sources/DesignSystem/DesignSystem.swift`. 
 | `AppRadius` | Corner radius values | `AppRadius.standard` (12pt) |
 | `AppLineWidth` | Stroke/border widths | `AppLineWidth.hairline` (0.5pt) |
 | `AppSize` | Indicator dots, tap targets | `AppSize.dotXl` (8pt) |
+| `AppOpacity` | Semantic opacity values | `AppOpacity.faint` (0.1) |
+| `AppShadow` | Named shadow/elevation tokens (via `AppShadowStyle`) | `.appShadow(.cardPreview)` |
+| `AppAnimation` | Timing/easing presets | `AppAnimation.micro` |
+| `AppTransition` | Enter/exit transition presets | `.transition(.slideDown)` |
 
 ### Token Usage Rules
 - **No hardcoded `spacing:`, `lineWidth:`, or `cornerRadius:` values** in view code without an exempt comment.
 - **No hardcoded `Color(red:green:blue:)` or `.font(.system(size:))`** — use `AppColors` and `AppTypography`.
+- **No hardcoded `.opacity(0.X)` values** — use `AppOpacity` tokens (e.g., `.opacity(AppOpacity.faint)` not `.opacity(0.1)`). Exemptions: image-export contexts, animation keyframe pairs, binary show/hide toggles, pre-composed color tokens.
+- **No hardcoded `.shadow(color:radius:x:y:)` calls** — use `.appShadow()` with `AppShadow` tokens. Exemptions: image-export contexts, animation-driven glow modifiers.
+- **No hardcoded `.transition()` compositions** — use `AppTransition` tokens (e.g., `.transition(.slideDown)` not `.transition(.opacity.combined(with: .move(edge: .top)))`).
 - **Do NOT use `Color(.systemBackground)`** — use `AppColors.backgroundPrimary` instead. All background colors go through the design system's Asset Catalog for palette consistency.
 - **Layout `.frame()` values (column widths, panel sizes, window constraints) stay inline** — these are context-dependent layout decisions, not design system concepts.
 - **Exemptions:** Mark with `// design-system-exempt: <reason>`. Valid reasons include: zero spacing for tight packing, image-export pixel-exact rendering, progress ring tracks, structural layout dimensions.

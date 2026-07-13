@@ -65,10 +65,10 @@ struct InputAreaView: View {
                     .accessibilityHint("Double-tap to create a new experiment from this archive")
                 }
                 .padding(AppSpacing.sm)
-                .background(AppColors.accentSecondary.opacity(0.08))
+                .background(AppColors.accentSecondary.opacity(AppOpacity.tint))
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                 .padding(.bottom, AppSpacing.sm)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(.slideDown)
             }
 
             // Multimodal attachment preview
@@ -187,9 +187,9 @@ struct InputAreaView: View {
                     .padding(.vertical, AppSpacing.sm)
                     .background {
                         if reduceTransparency {
-                            AppColors.backgroundTertiary.opacity(0.85)
+                            AppColors.backgroundTertiary.opacity(AppOpacity.glass)
                         } else {
-                            AppColors.backgroundTertiary.opacity(0.5).background(.ultraThinMaterial)
+                            AppColors.backgroundTertiary.opacity(AppOpacity.half).background(.ultraThinMaterial)
                         }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
@@ -269,7 +269,7 @@ struct InputAreaView: View {
         .padding(AppSpacing.md)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.lg)
-                .fill(AppColors.backgroundSecondary.opacity(0.6))
+                .fill(AppColors.backgroundSecondary.opacity(AppOpacity.prominent))
                 .background {
                     if !reduceTransparency {
                         Rectangle().fill(.ultraThinMaterial)
@@ -279,9 +279,9 @@ struct InputAreaView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.lg)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: AppLineWidth.hairline)
+                .stroke(AppColors.border.opacity(AppOpacity.medium), lineWidth: AppLineWidth.hairline)
         )
-        .shadow(color: AppColors.backgroundPrimary.opacity(0.5), radius: 8, y: -2)
+        .appShadow(.floatingBar)
         .onAppear {
             #if os(macOS)
             isPromptFocused = true
@@ -433,7 +433,7 @@ struct InputAreaView: View {
             Spacer()
         }
         .padding(.horizontal, AppSpacing.sm)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .transition(.slideDown)
         .accessibilityIdentifier("model_loading_indicator")
         .accessibilityLabel("Loading model")
     }
@@ -527,8 +527,10 @@ private struct ConditionalGlowModifier: ViewModifier {
     /// Cached check: are we running inside an XCTest host?
     private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || CommandLine.arguments.contains("-DisableAnimations")
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func body(content: Content) -> some View {
-        if Self.isRunningTests {
+        if Self.isRunningTests || reduceMotion {
             // Static shadow — no animation cycle to saturate the runloop
             content
                 .shadow(

@@ -27,13 +27,15 @@ struct StreamingIndicator: View {
     /// Cached check: are we running inside an XCTest host?
     private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || CommandLine.arguments.contains("-DisableAnimations")
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        if Self.isRunningTests {
+        if Self.isRunningTests || reduceMotion {
             // Static dots — no animation cycle to saturate the runloop
             HStack(spacing: AppSpacing.xs) {
                 ForEach(0..<3, id: \.self) { _ in
                     Circle()
-                        .fill(AppColors.accentPrimary.opacity(0.7))
+                        .fill(AppColors.accentPrimary.opacity(AppOpacity.strong))
                         .frame(width: 7, height: 7)
                 }
             }
@@ -43,7 +45,7 @@ struct StreamingIndicator: View {
             HStack(spacing: AppSpacing.xs) {
                 ForEach(0..<3, id: \.self) { i in
                     Circle()
-                        .fill(AppColors.accentPrimary.opacity(0.7))
+                        .fill(AppColors.accentPrimary.opacity(AppOpacity.strong))
                         .frame(width: 7, height: 7)
                         .scaleEffect(isAnimating ? 1.0 : 0.4)
                         .animation(
@@ -132,7 +134,7 @@ struct WikipediaSummaryCard: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.assistantBubble.opacity(0.5))
+        .background(AppColors.assistantBubble.opacity(AppOpacity.half))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)
@@ -204,7 +206,7 @@ struct CodeBlockView: View {
                         .foregroundStyle(AppColors.accentSecondary)
                         .padding(.horizontal, AppSpacing.sm)
                         .padding(.vertical, AppSpacing.xxs)
-                        .background(AppColors.accentSecondary.opacity(0.12))
+                        .background(AppColors.accentSecondary.opacity(AppOpacity.fill))
                         .clipShape(Capsule())
                 }
                 Spacer()
@@ -253,7 +255,7 @@ struct CodeBlockView: View {
                     .foregroundStyle(copied ? AppColors.success : AppColors.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.2), value: copied)
+                .animation(AppAnimation.standard, value: copied)
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.listRowVertical)
@@ -272,14 +274,14 @@ struct CodeBlockView: View {
                         ForEach(Array(codeLines.enumerated()), id: \.offset) { index, _ in
                             Text("\(index + 1)")
                                 .font(AppTypography.mono)
-                                .foregroundStyle(AppColors.textSecondary.opacity(0.7))
+                                .foregroundStyle(AppColors.textSecondary.opacity(AppOpacity.strong))
                                 .frame(minWidth: 28, alignment: .trailing)
                                 .padding(.vertical, 0.5) // design-system-exempt: sub-pixel hairline separator
                         }
                     }
                     .padding(.leading, AppSpacing.sm)
                     .padding(.trailing, AppSpacing.sm)
-                    .background(AppColors.backgroundSecondary.opacity(0.5))
+                    .background(AppColors.backgroundSecondary.opacity(AppOpacity.half))
 
                     // Vertical separator
                     Rectangle()
@@ -301,7 +303,7 @@ struct CodeBlockView: View {
                 .padding(.vertical, AppSpacing.sm)
             }
         }
-        .background(AppColors.backgroundPrimary.opacity(0.9))
+        .background(AppColors.backgroundPrimary.opacity(AppOpacity.opaque))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.md)

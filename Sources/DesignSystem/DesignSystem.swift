@@ -355,6 +355,8 @@ enum AppIconSize {
 // MARK: - Animations
 
 enum AppAnimation {
+    /// Instant tactile feedback — button press, tap scale.
+    static let micro = Animation.easeInOut(duration: 0.1)
     /// Quick micro-interaction.
     static let quick = Animation.easeOut(duration: 0.15)
     /// Standard UI transition.
@@ -366,6 +368,147 @@ enum AppAnimation {
 
     /// Message entrance.
     static let messageEntrance = Animation.spring(response: 0.35, dampingFraction: 0.8)
+}
+
+// MARK: - Transitions
+
+/// Semantic transition tokens for consistent enter/exit animations.
+///
+/// Usage: `.transition(.slideDown)` instead of
+/// `.transition(.opacity.combined(with: .move(edge: .top)))`.
+enum AppTransition {
+    /// Content sliding down from top with fade — expanding detail panels, status banners.
+    static let slideDown: AnyTransition = .opacity.combined(with: .move(edge: .top))
+    /// Content sliding up from bottom with fade — floating controls, agent status bars.
+    static let slideUp: AnyTransition = .move(edge: .bottom).combined(with: .opacity)
+    /// Asymmetric content reveal — subtle scale-in on insert, fade on remove.
+    /// Used for expandable sections in cards and chat bubbles.
+    static let contentReveal: AnyTransition = .asymmetric(
+        insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+        removal: .opacity
+    )
+}
+
+// Convenience accessors on AnyTransition for dot-syntax in `.transition(.slideDown)`.
+// Swift resolves the leading dot against AnyTransition, not AppTransition.
+extension AnyTransition {
+    static let slideDown = AppTransition.slideDown
+    static let slideUp = AppTransition.slideUp
+    static let contentReveal = AppTransition.contentReveal
+}
+
+// MARK: - Opacity
+
+/// Semantic opacity tiers — named intent instead of magic numbers.
+///
+/// Usage: `someColor.opacity(AppOpacity.faint)` instead of `someColor.opacity(0.1)`.
+/// Values are strictly ascending: whisper < ghost < mist < tint < subtle < faint < fill < rinse
+///   < medium < dim < half < prominent < strong < emphasis < glass < opaque.
+///
+/// Not every `.opacity()` call should use these — exemptions include:
+/// - Image-export contexts (ImageRenderer) — pixel-exact values
+/// - Animation keyframe pairs (e.g., `isGlowing ? 0.6 : 0.2`) — animation-specific
+/// - Binary show/hide (e.g., `appeared ? 1 : 0`) — boolean toggle
+/// - Pre-composed color tokens (accentPrimaryTint, etc.) — already named
+enum AppOpacity {
+    /// Barely-visible sheen — glass highlights, faint gradient stops.
+    static let whisper: Double = 0.03
+    /// Faint row highlights — failed-state backgrounds, reasoning tints.
+    static let ghost: Double = 0.05
+    /// Subtle tint — unsupported badge backgrounds, faint card fills.
+    static let mist: Double = 0.06
+    /// Block backgrounds — reasoning/tool/tier sections, capability card fills.
+    static let tint: Double = 0.08
+    /// Border strokes — faint accents, pill/badge backgrounds, row highlights.
+    static let faint: Double = 0.1
+    /// Badge backgrounds — section fills, active-model fills, code badges.
+    static let fill: Double = 0.12
+    /// Badge borders — warning section backgrounds, tag pill fills.
+    static let rinse: Double = 0.15
+    /// Borders — glow base, gradient stops, glass fills, ring strokes.
+    static let medium: Double = 0.3
+    /// Shadows — disabled foreground, selection borders, glass fills.
+    static let dim: Double = 0.4
+    /// Disabled states — border fills, glass fills, dimmed elements.
+    static let half: Double = 0.5
+    /// Foreground styles — chart fills, icon tints, glass fills.
+    static let prominent: Double = 0.6
+    /// Strong foreground — typing indicators, icon emphasis, delete icons.
+    static let strong: Double = 0.7
+    /// Warning/destructive foreground — status emphasis, alert icons.
+    static let emphasis: Double = 0.8
+    /// Reduce-transparency glass fills — accessible opaque fallbacks.
+    static let glass: Double = 0.85
+    /// Near-opaque overlays — search result backgrounds, frosted surfaces.
+    static let opaque: Double = 0.9
+}
+
+// MARK: - Shadows
+
+/// A value type describing a shadow's visual properties.
+/// Used by `AppShadow` tokens and the `.appShadow()` modifier.
+struct AppShadowStyle: Equatable, Sendable {
+    let color: Color
+    /// Opacity applied to the color. Use 1.0 when the color already includes opacity.
+    let opacity: Double
+    let radius: CGFloat
+    let x: CGFloat
+    let y: CGFloat
+
+    init(color: Color, opacity: Double = 1.0, radius: CGFloat, x: CGFloat = 0, y: CGFloat = 0) {
+        self.color = color
+        self.opacity = opacity
+        self.radius = radius
+        self.x = x
+        self.y = y
+    }
+}
+
+/// Semantic shadow tokens — named elevation intent instead of ad-hoc parameters.
+///
+/// Usage: `.appShadow(.cardPreview)` instead of `.shadow(color: .black.opacity(0.4), radius: 20, y: 8)`.
+///
+/// Image-export shadows (BenchmarkCardView hero metric glows) are exempt — they use dynamic
+/// color parameters and require pixel-exact values for ImageRenderer output.
+enum AppShadow {
+    /// Floating card preview in share sheets — deep black drop shadow for depth.
+    /// Used by BenchmarkCardShareSheet and EvalBenchmarkCard share previews.
+    static let cardPreview = AppShadowStyle(color: .black, opacity: AppOpacity.dim, radius: 20, y: 8)
+
+    /// Input bar floating above scrollable content — upward-cast background-colored shadow.
+    /// Creates a content fade at the input area's top edge.
+    static let floatingBar = AppShadowStyle(color: AppColors.backgroundPrimary, opacity: AppOpacity.half, radius: 8, y: -2)
+
+    /// Large hero elements (FAB circles, empty-state icons) — subtle accent-colored depth.
+    static let fab = AppShadowStyle(color: AppColors.accentPrimary, opacity: 0.2, radius: 20, y: 4)
+
+    /// Primary CTA buttons — focused accent glow beneath interactive elements.
+    /// Color uses accentPrimaryBorder (pre-composed 30% opacity accent) at full strength.
+    static let ctaGlow = AppShadowStyle(color: AppColors.accentPrimaryBorder, opacity: 1.0, radius: 12, y: 4)
+}
+
+// Convenience accessors on AppShadowStyle for dot-syntax in `.appShadow(.cardPreview)`.
+// Swift resolves the leading dot against the parameter type (AppShadowStyle), not AppShadow.
+extension AppShadowStyle {
+    static let cardPreview = AppShadow.cardPreview
+    static let floatingBar = AppShadow.floatingBar
+    static let fab = AppShadow.fab
+    static let ctaGlow = AppShadow.ctaGlow
+}
+
+/// Applies a semantic shadow token to a view.
+struct ShadowModifier: ViewModifier {
+    let style: AppShadowStyle
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(
+                color: style.color.opacity(style.opacity),
+                radius: style.radius,
+                x: style.x,
+                y: style.y
+            )
+    }
 }
 
 // MARK: - View Modifiers
@@ -567,6 +710,11 @@ extension View {
         #else
         self
         #endif
+    }
+
+    /// Apply a semantic shadow token from `AppShadow`.
+    func appShadow(_ style: AppShadowStyle) -> some View {
+        modifier(ShadowModifier(style: style))
     }
 }
 

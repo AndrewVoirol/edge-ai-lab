@@ -96,7 +96,7 @@ struct CanvasPanelView: View {
                     .foregroundStyle(AppColors.accentSecondary)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.xxs)
-                    .background(AppColors.accentSecondary.opacity(0.12))
+                    .background(AppColors.accentSecondary.opacity(AppOpacity.fill))
                     .clipShape(Capsule())
             }
 
@@ -128,7 +128,7 @@ struct CanvasPanelView: View {
                 .foregroundStyle(copied ? AppColors.success : AppColors.textSecondary)
             }
             .buttonStyle(.plain)
-            .animation(.easeInOut(duration: 0.2), value: copied)
+            .animation(AppAnimation.standard, value: copied)
             .accessibilityIdentifier("button_copyCanvasHTML")
             .accessibilityLabel(copied ? "HTML copied" : "Copy HTML to clipboard")
 

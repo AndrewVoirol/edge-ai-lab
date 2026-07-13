@@ -38,10 +38,7 @@ struct ConfigProofView: View {
             collapsedBadge
             if isExpanded {
                 expandedDetail
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                        removal: .opacity
-                    ))
+                    .transition(.contentReveal)
             }
         }
     }
@@ -60,7 +57,7 @@ struct ConfigProofView: View {
             HStack(spacing: AppSpacing.sm) {
                 Image(systemName: "gearshape.2.fill")
                     .font(AppIconSize.xxs)
-                    .foregroundStyle(proofColor.opacity(0.7))
+                    .foregroundStyle(proofColor.opacity(AppOpacity.strong))
 
                 // Feature pills — compact visual summary
                 featurePills
@@ -73,11 +70,11 @@ struct ConfigProofView: View {
             }
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.sm)
-            .background(proofColor.opacity(0.06))
+            .background(proofColor.opacity(AppOpacity.mist))
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .stroke(proofColor.opacity(0.1), lineWidth: AppLineWidth.hairline)
+                    .stroke(proofColor.opacity(AppOpacity.faint), lineWidth: AppLineWidth.hairline)
             )
         }
         .buttonStyle(.plain)
@@ -115,7 +112,7 @@ struct ConfigProofView: View {
             .foregroundStyle(color)
             .padding(.horizontal, AppSpacing.xs)
             .padding(.vertical, AppSpacing.xxs)
-            .background(color.opacity(0.1))
+            .background(color.opacity(AppOpacity.faint))
             .clipShape(Capsule())
     }
 
@@ -172,7 +169,7 @@ struct ConfigProofView: View {
         }
         .padding(AppSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(proofColor.opacity(0.03))
+        .background(proofColor.opacity(AppOpacity.whisper))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         .accessibilityIdentifier("configProofDetail_\(messageId)")
     }
@@ -184,7 +181,7 @@ struct ConfigProofView: View {
         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .bold, design: .rounded)) // design-system-exempt: fixed for compact section headers
-                .foregroundStyle(proofColor.opacity(0.5))
+                .foregroundStyle(proofColor.opacity(AppOpacity.half))
                 .tracking(0.8)
 
             content()

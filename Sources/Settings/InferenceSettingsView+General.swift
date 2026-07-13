@@ -128,7 +128,7 @@ extension InferenceSettingsView {
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.warning.opacity(0.8))
+                .foregroundStyle(AppColors.warning.opacity(AppOpacity.emphasis))
             }
 
             SettingsImpactLabel(
@@ -147,7 +147,7 @@ extension InferenceSettingsView {
                     systemImage: "exclamationmark.triangle"
                 )
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.warning.opacity(0.8))
+                .foregroundStyle(AppColors.warning.opacity(AppOpacity.emphasis))
             }
 
             SettingsImpactLabel(

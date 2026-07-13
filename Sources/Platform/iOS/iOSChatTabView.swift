@@ -148,8 +148,8 @@ struct iOSChatTabView: View {
                 AgentStatusView(harness: viewModel.agentHarness)
                     .padding(.horizontal, AppSpacing.md)
                     .padding(.vertical, AppSpacing.xs)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.easeInOut(duration: 0.3), value: viewModel.agentHarness.isRunning)
+                    .transition(.slideUp)
+                    .animation(AppAnimation.standard, value: viewModel.agentHarness.isRunning)
             }
 
             // Input area with multimodal attachments
@@ -204,7 +204,7 @@ struct iOSChatTabView: View {
                         RadialGradient(
                             gradient: Gradient(colors: [
                                 AppColors.accentPrimaryTint,
-                                AppColors.accentPrimary.opacity(0.02),
+                                AppColors.accentPrimary.opacity(AppOpacity.whisper),
                                 .clear
                             ]),
                             center: .center,
@@ -216,20 +216,20 @@ struct iOSChatTabView: View {
 
                 // Inner glass circle
                 Circle()
-                    .fill(AppColors.backgroundTertiary.opacity(0.6))
+                    .fill(AppColors.backgroundTertiary.opacity(AppOpacity.prominent))
                     .frame(width: 100, height: 100)
                     .overlay(
                         Circle()
                             .stroke(
                                 LinearGradient(
-                                    colors: [AppColors.accentPrimary.opacity(0.4), AppColors.accentPrimary.opacity(0.1)],
+                                    colors: [AppColors.accentPrimary.opacity(AppOpacity.dim), AppColors.accentPrimary.opacity(AppOpacity.faint)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
                                 lineWidth: AppLineWidth.regular
                             )
                     )
-                    .shadow(color: AppColors.accentPrimary.opacity(0.2), radius: 20, x: 0, y: 4)
+                    .appShadow(.fab)
 
                 // CPU icon
                 Image(systemName: "cpu")
@@ -268,7 +268,7 @@ struct iOSChatTabView: View {
                 .padding(.vertical, AppSpacing.md)
                 .background(AppColors.accentPrimary)
                 .clipShape(Capsule())
-                .shadow(color: AppColors.accentPrimaryBorder, radius: 12, x: 0, y: 4)
+                .appShadow(.ctaGlow)
             }
             .sensoryFeedback(.impact(weight: .light), trigger: router.selectedTab)
             .accessibilityLabel("Browse models to load one for chat")

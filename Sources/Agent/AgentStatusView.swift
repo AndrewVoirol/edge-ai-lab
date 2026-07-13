@@ -37,7 +37,7 @@ struct AgentStatusView: View {
             }
         }
         .padding(AppSpacing.lg)
-        .background(AppColors.backgroundSecondary.opacity(0.8))
+        .background(AppColors.backgroundSecondary.opacity(AppOpacity.emphasis))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.standard))
         .accessibilityIdentifier("agentStatusView")
     }

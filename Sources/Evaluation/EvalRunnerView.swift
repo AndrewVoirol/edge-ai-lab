@@ -200,7 +200,7 @@ struct EvalRunnerView: View {
                     .frame(width: 40, height: 40)
                     .background(
                         (isSelected ? AppColors.accentPrimary : AppColors.textTertiary)
-                            .opacity(0.1)
+                            .opacity(AppOpacity.faint)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
@@ -222,7 +222,7 @@ struct EvalRunnerView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.lg)
                     .stroke(
-                        isSelected ? AppColors.accentPrimary.opacity(0.6) : Color.clear,
+                        isSelected ? AppColors.accentPrimary.opacity(AppOpacity.prominent) : Color.clear,
                         lineWidth: AppLineWidth.medium
                     )
             )
@@ -375,7 +375,7 @@ struct EvalRunnerView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: AppRadius.md)
                     .stroke(
-                        isSelected ? AppColors.accentPrimary.opacity(0.4) : Color.clear,
+                        isSelected ? AppColors.accentPrimary.opacity(AppOpacity.dim) : Color.clear,
                         lineWidth: AppLineWidth.regular
                     )
             )
@@ -545,7 +545,7 @@ struct EvalRunnerView: View {
                             }
                         }
                         .padding(.vertical, AppSpacing.xxs)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(.slideUp)
                     }
                 }
                 .padding(AppSpacing.md)

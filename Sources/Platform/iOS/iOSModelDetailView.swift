@@ -181,7 +181,7 @@ struct iOSModelDetailView: View {
             // Large model icon
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.lg)
-                    .fill(isActiveModel ? AppColors.accentPrimary.opacity(0.12) : AppColors.backgroundTertiary)
+                    .fill(isActiveModel ? AppColors.accentPrimary.opacity(AppOpacity.fill) : AppColors.backgroundTertiary)
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.lg)
                             .stroke(isActiveModel ? AppColors.accentPrimaryBorder : AppColors.border, lineWidth: AppLineWidth.hairline)
@@ -263,7 +263,7 @@ struct iOSModelDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
-                    .background(AppColors.success.opacity(0.1))
+                    .background(AppColors.success.opacity(AppOpacity.faint))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .accessibilityIdentifier("modelDetail_running")
 
@@ -346,7 +346,7 @@ struct iOSModelDetailView: View {
                             .foregroundStyle(AppColors.warning)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
-                            .background(AppColors.warning.opacity(0.1))
+                            .background(AppColors.warning.opacity(AppOpacity.faint))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .accessibilityIdentifier("modelDetail_pauseButton")
@@ -359,7 +359,7 @@ struct iOSModelDetailView: View {
                             .foregroundStyle(AppColors.destructive)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
-                            .background(AppColors.destructive.opacity(0.1))
+                            .background(AppColors.destructive.opacity(AppOpacity.faint))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     }
                     .accessibilityIdentifier("modelDetail_cancelButton")
@@ -596,7 +596,7 @@ struct iOSModelDetailView: View {
                     .foregroundStyle(AppColors.destructive)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
-                    .background(AppColors.destructive.opacity(0.08))
+                    .background(AppColors.destructive.opacity(AppOpacity.tint))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
             }
             .accessibilityIdentifier("modelDetail_deleteButton")
@@ -630,7 +630,7 @@ struct iOSModelDetailView: View {
             .foregroundStyle(enabled ? color : AppColors.textTertiary)
             .padding(.horizontal, AppSpacing.sm)
             .padding(.vertical, AppSpacing.xs)
-            .background(enabled ? color.opacity(0.12) : AppColors.backgroundTertiary)
+            .background(enabled ? color.opacity(AppOpacity.fill) : AppColors.backgroundTertiary)
             .clipShape(Capsule())
             .opacity(enabled ? 1.0 : 0.5)
             .accessibilityLabel("\(label): \(enabled ? "supported" : "not supported")")

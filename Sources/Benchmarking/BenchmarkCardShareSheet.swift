@@ -75,7 +75,7 @@ struct BenchmarkCardShareSheet: View {
                             height: selectedSize.height * cardScale
                         )
                         .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg))
-                        .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
+                        .appShadow(.cardPreview)
                         .padding(.top, AppSpacing.md)
 
                     // Action buttons
@@ -300,10 +300,10 @@ struct BenchmarkCardShareSheet: View {
         .frame(width: 90, height: 70)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.md)
-                .fill(color.opacity(0.08))
+                .fill(color.opacity(AppOpacity.tint))
                 .overlay(
                     RoundedRectangle(cornerRadius: AppRadius.md)
-                        .stroke(color.opacity(0.15), lineWidth: AppLineWidth.hairline)
+                        .stroke(color.opacity(AppOpacity.rinse), lineWidth: AppLineWidth.hairline)
                 )
         )
     }

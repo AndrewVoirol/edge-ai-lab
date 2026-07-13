@@ -43,7 +43,7 @@ struct SettingsImpactLabel: View {
                     Text("Reload")
                         .font(AppTypography.badge)
                 }
-                .foregroundStyle(AppColors.warning.opacity(0.8))
+                .foregroundStyle(AppColors.warning.opacity(AppOpacity.emphasis))
                 .accessibilityLabel("Requires engine reload")
             }
         }
@@ -61,7 +61,7 @@ struct SettingsImpactLabel: View {
             }
             Text(engineNames)
                 .font(AppTypography.badge)
-                .foregroundStyle(supported ? AppColors.textTertiary : AppColors.warning.opacity(0.8))
+                .foregroundStyle(supported ? AppColors.textTertiary : AppColors.warning.opacity(AppOpacity.emphasis))
         }
         .accessibilityLabel(supported
             ? "Supported on \(engineNames)"
@@ -94,7 +94,7 @@ private struct ImpactPill: View {
         .padding(.vertical, AppSpacing.xxs)
         .background(
             Capsule()
-                .fill(pillColor.opacity(0.1))
+                .fill(pillColor.opacity(AppOpacity.faint))
         )
         .accessibilityLabel("\(area.rawValue) impact")
     }

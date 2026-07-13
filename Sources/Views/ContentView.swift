@@ -351,8 +351,8 @@ struct ContentView: View {
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.sm)
                         #endif
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.3), value: viewModel.agentHarness.isRunning)
+                        .transition(.slideUp)
+                        .animation(AppAnimation.standard, value: viewModel.agentHarness.isRunning)
                 }
 
                 // Input area with multimodal attachments

@@ -522,7 +522,7 @@ private struct ConversationDetailPlaceholder: View {
                 .font(AppIconSize.hero)
                 .foregroundStyle(
                     LinearGradient(
-                        colors: [AppColors.accentSecondary, AppColors.accentSecondary.opacity(0.6)],
+                        colors: [AppColors.accentSecondary, AppColors.accentSecondary.opacity(AppOpacity.prominent)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -608,7 +608,7 @@ private struct ExperimentDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(AppColors.accentPrimary.opacity(0.4), lineWidth: AppLineWidth.regular)
+                            .stroke(AppColors.accentPrimary.opacity(AppOpacity.dim), lineWidth: AppLineWidth.regular)
                     )
                 }
                 .buttonStyle(.plain)

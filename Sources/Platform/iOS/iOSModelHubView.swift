@@ -400,10 +400,10 @@ struct iOSModelHubView: View {
             // Format icon
             ZStack {
                 RoundedRectangle(cornerRadius: AppRadius.sm)
-                    .fill(formatColor(format).opacity(0.15))
+                    .fill(formatColor(format).opacity(AppOpacity.rinse))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.sm)
-                            .stroke(formatColor(format).opacity(0.3), lineWidth: AppLineWidth.hairline)
+                            .stroke(formatColor(format).opacity(AppOpacity.medium), lineWidth: AppLineWidth.hairline)
                     )
                 Image(systemName: format == .mlx ? "cpu" : "shippingbox")
                     .font(AppIconSize.md)

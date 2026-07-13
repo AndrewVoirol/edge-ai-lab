@@ -206,7 +206,7 @@ struct iOSSuiteEditorSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveSuite() }
                         .foregroundStyle(isValid ? AppColors.accentPrimary : AppColors.textTertiary)
-                        .fontWeight(.semibold)
+                        .font(AppTypography.bodySemibold)
                         .disabled(!isValid)
                         .accessibilityIdentifier("suiteEditor_saveButton")
                 }
@@ -293,7 +293,7 @@ struct iOSSuiteEditorSheet: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
-                                        isSelected ? AppColors.accentPrimary.opacity(0.4) : AppColors.border,
+                                        isSelected ? AppColors.accentPrimary.opacity(AppOpacity.dim) : AppColors.border,
                                         lineWidth: AppLineWidth.regular
                                     )
                             )

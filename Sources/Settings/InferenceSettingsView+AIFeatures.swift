@@ -87,7 +87,7 @@ extension InferenceSettingsView {
                             .foregroundStyle(AppColors.warning)
                             .padding(.horizontal, AppSpacing.xs)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColors.warning.opacity(0.15))
+                            .background(AppColors.warning.opacity(AppOpacity.rinse))
                             .clipShape(Capsule())
                     }
                 }
@@ -142,7 +142,7 @@ extension InferenceSettingsView {
                         HStack {
                             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                                 Text(config.name)
-                                    .fontWeight(.medium)
+                                    .font(AppTypography.subtitle)
                                 if expandedServerID != config.id {
                                     Text("\(config.command) \(config.args.joined(separator: " "))")
                                         .font(AppTypography.caption)
@@ -218,7 +218,7 @@ extension InferenceSettingsView {
                                     ))
                                     .frame(minHeight: 60)
                                     .font(AppTypography.mono)
-                                    .overlay(RoundedRectangle(cornerRadius: AppRadius.xs).stroke(AppColors.textSecondary.opacity(0.5), lineWidth: AppLineWidth.hairline))
+                                    .overlay(RoundedRectangle(cornerRadius: AppRadius.xs).stroke(AppColors.textSecondary.opacity(AppOpacity.half), lineWidth: AppLineWidth.hairline))
                                 }
 
                                 HStack {
@@ -231,7 +231,7 @@ extension InferenceSettingsView {
                                 }
                             }
                             .padding()
-                            .background(AppColors.textSecondary.opacity(0.05))
+                            .background(AppColors.textSecondary.opacity(AppOpacity.ghost))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                         } else {
                             // Tools list if connected

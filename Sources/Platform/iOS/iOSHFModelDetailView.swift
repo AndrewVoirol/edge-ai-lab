@@ -116,7 +116,7 @@ struct iOSHFModelDetailView: View {
         .foregroundStyle(color)
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, AppSpacing.xs)
-        .background(color.opacity(0.15))
+        .background(color.opacity(AppOpacity.rinse))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         .accessibilityIdentifier("hfDetail_formatBadge")
     }
@@ -197,7 +197,7 @@ struct iOSHFModelDetailView: View {
                             .foregroundStyle(AppColors.textSecondary)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColors.backgroundTertiary.opacity(0.6))
+                            .background(AppColors.backgroundTertiary.opacity(AppOpacity.prominent))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                             .accessibilityIdentifier("hfDetail_tag_\(tag)")
                     }

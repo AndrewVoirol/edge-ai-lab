@@ -117,7 +117,7 @@ struct CommunityModelsBrowser: View {
         }
         .padding(AppSpacing.sm)
         .padding(.horizontal, AppSpacing.xs)
-        .background(AppColors.backgroundTertiary.opacity(0.5))
+        .background(AppColors.backgroundTertiary.opacity(AppOpacity.half))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
 
         // Content
@@ -364,7 +364,7 @@ struct CommunityModelsBrowser: View {
         .foregroundStyle(color)
         .padding(.horizontal, AppSpacing.sm)
         .padding(.vertical, AppSpacing.xs)
-        .background(color.opacity(0.15))
+        .background(color.opacity(AppOpacity.rinse))
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
         .accessibilityIdentifier("browserDetail_formatBadge")
     }
@@ -414,7 +414,7 @@ struct CommunityModelsBrowser: View {
                             .foregroundStyle(AppColors.textSecondary)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColors.backgroundTertiary.opacity(0.6))
+                            .background(AppColors.backgroundTertiary.opacity(AppOpacity.prominent))
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                     }
                 }

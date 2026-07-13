@@ -322,7 +322,7 @@ struct EvalSuiteEditorView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: AppRadius.md)
                                     .stroke(
-                                        isSelected ? AppColors.accentPrimary.opacity(0.4) : AppColors.border,
+                                        isSelected ? AppColors.accentPrimary.opacity(AppOpacity.dim) : AppColors.border,
                                         lineWidth: AppLineWidth.regular
                                     )
                             )

@@ -36,8 +36,10 @@ struct LoadingShimmerView: View {
     /// Cached check: are we running inside an XCTest host?
     private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || CommandLine.arguments.contains("-DisableAnimations")
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        if Self.isRunningTests {
+        if Self.isRunningTests || reduceMotion {
             // Static placeholder — no animation cycle to saturate the runloop
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 shimmerBar(width: 200)
@@ -103,8 +105,10 @@ struct BlinkingCursor: View {
     /// Cached check: are we running inside an XCTest host?
     private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || CommandLine.arguments.contains("-DisableAnimations")
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        if Self.isRunningTests {
+        if Self.isRunningTests || reduceMotion {
             // Static cursor — no animation cycle to saturate the runloop
             Text("▊")
                 .font(AppTypography.mono)

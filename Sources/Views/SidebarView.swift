@@ -533,7 +533,7 @@ struct SidebarView: View {
         .contentShape(Rectangle())
         .overlay(
             RoundedRectangle(cornerRadius: AppRadius.sm)
-                .strokeBorder(isActive ? AppColors.accentPrimary.opacity(0.4) : .clear, lineWidth: AppLineWidth.regular)
+                .strokeBorder(isActive ? AppColors.accentPrimary.opacity(AppOpacity.dim) : .clear, lineWidth: AppLineWidth.regular)
         )
         .contextMenu {
             Button {
@@ -695,7 +695,7 @@ private struct SidebarModelRow: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(AppIconSize.xxs)
-                            .foregroundStyle(AppColors.destructive.opacity(0.7))
+                            .foregroundStyle(AppColors.destructive.opacity(AppOpacity.strong))
                     }
                     .buttonStyle(.plain)
                     .transition(.opacity)

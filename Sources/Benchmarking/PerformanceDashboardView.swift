@@ -137,7 +137,7 @@ struct PerformanceDashboardView: View {
                         .foregroundStyle(AppColors.accentSecondary)
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.sm)
-                        .background(AppColors.accentSecondary.opacity(0.1))
+                        .background(AppColors.accentSecondary.opacity(AppOpacity.faint))
                         .clipShape(Capsule())
                     }
                     .menuStyle(.borderlessButton)
@@ -294,7 +294,7 @@ struct PerformanceDashboardView: View {
                                     yStart: .value("Start", end),
                                     yEnd: .value("End", start)
                                 )
-                                .foregroundStyle(AppColors.warning.opacity(0.6))
+                                .foregroundStyle(AppColors.warning.opacity(AppOpacity.prominent))
                             }
                         }
                     }

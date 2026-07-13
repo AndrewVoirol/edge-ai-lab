@@ -71,6 +71,34 @@ Special:  .metric, .metricLarge, .mono
 .tapTarget (44pt)
 ```
 
+### AppOpacity — Semantic Opacity Tiers
+```
+whisper (0.03) → ghost (0.05) → mist (0.06) → tint (0.08) → faint (0.1)
+→ fill (0.12) → rinse (0.15) → medium (0.3) → dim (0.4) → half (0.5)
+→ prominent (0.6) → strong (0.7) → emphasis (0.8) → glass (0.85) → opaque (0.9)
+```
+
+### AppShadow — Semantic Shadow Tokens (via AppShadowStyle)
+```
+.cardPreview (black@0.4, R=20, Y=8)    — share sheet card depth
+.floatingBar (bgPrimary@0.5, R=8, Y=-2) — input bar edge fade
+.fab (accentPrimary@0.2, R=20, Y=4)     — hero icon glow
+.ctaGlow (accentBorder@1.0, R=12, Y=4)  — CTA button glow
+```
+
+### AppAnimation — Animation Timing Tokens
+```
+.micro (0.1s ease) → .quick (0.15s ease) → .standard (0.25s easeInOut)
+.spring (0.4/0.75) → .gentleSpring (0.5/0.85) → .messageEntrance (0.35/0.8)
+```
+
+### AppTransition — Enter/Exit Transition Tokens
+```
+.slideDown — opacity + move(top), detail panels
+.slideUp — move(bottom) + opacity, floating controls
+.contentReveal — asymmetric scale-in/fade-out, expandable sections
+```
+
 ## Exemption Convention
 
 When a value intentionally bypasses the design system, mark it with a comment:
@@ -111,6 +139,12 @@ grep -rn "Color(red:" Sources/ --include="*.swift" | grep -v "DesignSystem\.swif
 
 # Check for raw font sizes
 grep -rn "\.font(.system(size:" Sources/ --include="*.swift" | grep -v "DesignSystem\.swift\|design-system-exempt"
+
+# Check for raw opacity values
+grep -rn '\.opacity(0\.' Sources/ --include="*.swift" | grep -v "AppOpacity\|design-system-exempt\|DesignSystem\.swift\|BenchmarkCardView\.swift"
+
+# Check for raw shadow calls
+grep -rn '\.shadow(' Sources/ --include="*.swift" | grep -v "appShadow\|AppShadow\|design-system-exempt\|DesignSystem\.swift\|GlowModifier"
 ```
 
 ## Adding New Views
@@ -122,9 +156,47 @@ When creating a new SwiftUI view:
 4. Use `AppRadius` for all corner radii
 5. Use `AppLineWidth` for all stroke/border widths
 6. Use `AppSize` for indicator dots and tap targets
-7. Layout `.frame()` values (column widths, panel sizes) stay as literals
+7. Use `AppOpacity` for all opacity values — never `.opacity(0.3)`
+8. Use `AppShadow` via `.appShadow()` for shadows — never raw `.shadow(color:radius:x:y:)`
+9. Use `AppTransition` for transitions — never raw `.transition(.opacity.combined(with:))`
+10. Layout `.frame()` values (column widths, panel sizes) stay as literals
 
 If you need a value that doesn't exist in the token catalog, add a new token to the appropriate enum in `DesignSystem.swift` with a doc comment — don't use a raw literal.
+
+## Dot-Syntax Convenience Pattern
+
+When creating a new `App*` token enum whose values are consumed by a View extension method, Swift resolves leading-dot syntax against the **parameter type**, not the enum. You MUST add convenience static accessors on the parameter type.
+
+```swift
+// 1. Define the value type
+struct AppShadowStyle { ... }
+
+// 2. Define tokens on the App* enum
+enum AppShadow {
+    static let cardPreview = AppShadowStyle(...)
+}
+
+// 3. Define View extension taking the value type
+extension View {
+    func appShadow(_ style: AppShadowStyle) -> some View { ... }
+}
+
+// 4. REQUIRED: Bridge statics for dot-syntax
+extension AppShadowStyle {
+    static let cardPreview = AppShadow.cardPreview
+}
+// Now `.appShadow(.cardPreview)` works.
+```
+
+For system types (e.g., `AnyTransition`), extend the system type:
+```swift
+extension AnyTransition {
+    static let slideDown = AppTransition.slideDown
+}
+// Now `.transition(.slideDown)` works.
+```
+
+Without the bridge extension, `.appShadow(.cardPreview)` fails with `'AppShadowStyle' has no member 'cardPreview'`.
 
 ## Light/Dark Palette Verification
 
