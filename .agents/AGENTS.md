@@ -200,3 +200,28 @@ When adding a new UI element that needs a visual value:
 - **After any commit that changes design system architecture, grep all `.agents/` and `.agents/skills/` files for terms referencing the old architecture.** Minimum sweep terms: old function names, old file paths, old patterns (e.g., `Color(red:`, `Color(.systemBackground)`). Stale rules cause future agents to undo the change.
 - **Opacity changes need visual verification, not just contrast math.** WCAG tests verify ratios but don't catch "this background is too transparent." Flag opacity modifications for visual spot-check.
 
+### Perceptual Validation (Color Values)
+- **Before changing any color value in `Assets.xcassets/*.colorset/Contents.json`**, run `python3 scripts/validate_color_distinctness.py` and verify zero failures. This script validates CIE76 ΔE distances between functionally-related colors and WCAG contrast ratios in both light and dark mode.
+- **Minimum ΔE thresholds by functional group:**
+  - Capability badges (capabilityVision, capabilityAudio, toolAction, capabilityThinking): **ΔE ≥ 25** (small badge size needs high separation)
+  - Brand vs semantic (accentPrimary ↔ success, reasoning ↔ capabilityThinking): **ΔE ≥ 20**
+  - Engine badges and neighbor colors (engineLiteRT, engineGGUF, MTP↔brand): **ΔE ≥ 15**
+  - Semantic status chain (accentSecondary ↔ warning ↔ destructive): **ΔE ≥ 12**
+  - Text hierarchy (textPrimary, textSecondary, textTertiary): **ΔE ≥ 8**
+  - Chat surfaces (assistantBubble vs backgrounds, bubble gradient endpoints): **ΔE ≥ 4**
+- **`AccentColor` must stay identical to `accentPrimary`.** `AccentColor` is the system accent (used by Toggle, NavigationLink, etc.) and `accentPrimary` is the design system token. The `DesignSystemDistinctnessTests` suite asserts RGBA component equality. Update both colorsets together.
+- **When adding a new color token**, compute ΔE against every existing color in the same functional group (use the validation script or compute manually). Document the closest neighbor and its ΔE in the doc comment. Colors that cannot maintain the group threshold should not be added — either merge with an existing token or shift the hue.
+- **"Distinct from" doc comments must include measured ΔE values**, not just hue angles. Hue angle differences are meaningless at low saturation (the textSecondary/textTertiary lesson: 30° hue shift at 1-3% saturation is invisible).
+- **Validate both light AND dark mode independently.** A pair can be well-separated in one mode and collide in the other (textSecondary/textTertiary was ΔE 4.5 light, 12.7 dark).
+- **Engine badge colors (`engineLiteRT`, `engineGGUF`, `engineMLX`) must be outside the green hue family (80°-200°).** Engine format is NOT a status concept — it identifies the runtime, not success/failure.
+- **`reasoning` (307° dusty mauve) and `capabilityThinking` (341° hot pink) are in the same hue family by design** — same concept at different UI layers. They must maintain ΔE ≥ 20 through lightness/saturation differences.
+
+### Semantic Color Balance
+- **Brand accent is deep steel teal (195°), NOT green.** Green is exclusively `success`/`done`/`healthy`. This was changed in July 2026 to eliminate "green overload."
+- **Before adding a color to a semantic concept, count how many concepts already share that hue family.** No more than 2 semantic concepts should share a 120° hue arc. The teal family (135°-255°) holds: `accentPrimary` (brand), `capabilityMTP` (172°), `capabilityVision` (210°), `engineGGUF` (225°). That's the densest arc — adding more here requires ΔE verification against all neighbors.
+- **Engine badges are identity, not status.** Use `engineLiteRT`/`engineGGUF`/`engineMLX` — never `success`/`accentPrimary`/`accentSecondary`. This is enforced by `DesignSystemDistinctnessTests` which asserts ΔE ≥ 15 between engine colors and brand/status.
+
+### Validation Runner Discipline
+- **`python3 scripts/validate_color_distinctness.py` must pass before any color-related commit.** This is not optional — it is the structural guard against the class of bugs that pairwise documentation misses. The script checks 26 distinctness rules + 14 contrast rules in both light and dark mode (40 total checks per mode).
+- **When adding new color assets**, add corresponding rules to BOTH `scripts/validate_color_distinctness.py` (CI script) AND `Tests/DesignSystem/DesignSystemDistinctnessTests.swift` (runtime tests). A color without validation rules will drift silently.
+

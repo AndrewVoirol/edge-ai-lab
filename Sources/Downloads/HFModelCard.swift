@@ -169,14 +169,15 @@ struct HFModelCard: View {
 
     // MARK: - Format Badge
 
-    /// Format badge colored by runtime: LiteRT = green, MLX = amber, Unknown = gray.
+    /// Format badge colored by runtime identity (NOT status — engine colors are intentionally outside green family).
     @ViewBuilder
     private var formatBadge: some View {
         let (text, color): (String, Color) = switch format {
-        case .litertlm: ("LiteRT", AppColors.success)
-        case .mlx: ("MLX", AppColors.accentSecondary)
-        case .gguf: ("GGUF", AppColors.accentPrimary)
+        case .litertlm: ("LiteRT", AppColors.engineLiteRT)
+        case .mlx: ("MLX", AppColors.engineMLX)
+        case .gguf: ("GGUF", AppColors.engineGGUF)
         case .unknown: ("Unknown", AppColors.textTertiary)
+
         }
         Text(text)
             .font(AppTypography.badge)

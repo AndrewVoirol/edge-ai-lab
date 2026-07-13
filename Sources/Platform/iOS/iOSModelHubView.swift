@@ -717,9 +717,9 @@ struct iOSModelHubView: View {
     /// Format color for a model format.
     private func formatColor(_ format: HFModelFormat) -> Color {
         switch format {
-        case .litertlm: AppColors.success
-        case .mlx: AppColors.accentSecondary
-        case .gguf: AppColors.accentPrimary
+        case .litertlm: AppColors.engineLiteRT
+        case .mlx: AppColors.engineMLX
+        case .gguf: AppColors.engineGGUF
         case .unknown: AppColors.textTertiary
         }
     }

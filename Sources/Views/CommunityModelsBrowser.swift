@@ -350,9 +350,9 @@ struct CommunityModelsBrowser: View {
     @ViewBuilder
     private var browserFormatBadge: some View {
         let (text, color): (String, Color) = switch browserFormat {
-        case .litertlm: ("LiteRT", AppColors.success)
-        case .mlx: ("MLX", AppColors.accentSecondary)
-        case .gguf: ("GGUF", AppColors.accentPrimary)
+        case .litertlm: ("LiteRT", AppColors.engineLiteRT)
+        case .mlx: ("MLX", AppColors.engineMLX)
+        case .gguf: ("GGUF", AppColors.engineGGUF)
         case .unknown: ("Unknown", AppColors.textTertiary)
         }
         HStack(spacing: AppSpacing.xs) {

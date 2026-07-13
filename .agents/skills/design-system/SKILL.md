@@ -31,6 +31,7 @@ Status:       .success, .warning, .destructive, .reasoning, .toolAction
 Borders:      .border, .borderActive
 Chat:         .userBubbleStart, .userBubbleEnd, .assistantBubble
 Capability:   .capabilityVision, .capabilityAudio, .capabilityCD, .capabilityMTP, .capabilityThinking
+Engine:       .engineLiteRT, .engineGGUF, .engineMLX (alias for accentSecondary)
 ```
 
 ### AppTypography — Dynamic Type Font Styles
@@ -155,3 +156,60 @@ When authoring or modifying colorset values, verify WCAG AA contrast for BOTH mo
 ```
 
 The **first entry** (no `appearances` key) is the light/universal value. The **second entry** (with `appearances: luminosity: dark`) is the dark value. Never set identical values in both — that defeats light/dark theming.
+
+## Color Hue Map (July 2026 Redistribution)
+
+All semantic colors are spaced across the full 360° hue wheel to prevent visual confusion, especially at small badge size. **The brand accent is deep steel teal (195°), NOT green.** Green is reserved exclusively for `success`/`done`/`healthy`.
+
+```
+  Hue°  Token                   Semantic Role
+  ─────────────────────────────────────────────────────
+    2°   destructive             Error / critical / danger
+    9°   engineLiteRT            LiteRT engine format badge
+   28°   warning                 Attention / caution / beta
+   38°   accentSecondary         Gold accent / Benchmark icon
+   55°   capabilityCD            Constrained Decoding badge
+   91°   success                 Downloaded / ready / healthy (ONLY green)
+  172°   capabilityMTP           Multi-Token Prediction badge
+  195°   accentPrimary           Brand accent (buttons, links, selections)
+  210°   capabilityVision        Vision capability badge
+  225°   engineGGUF              GGUF engine format badge
+  260°   toolAction              Tool calling / function execution
+  300°   capabilityAudio         Audio capability badge
+  307°   reasoning               Thinking mode state (chat bubbles, text)
+  341°   capabilityThinking      Thinking capability badge
+```
+
+### ΔE Threshold Tiers
+
+| Context | Min ΔE | Rationale |
+|---------|--------|-----------|
+| Badge-size elements (capabilities, engines) | ≥ 25 | Small elements need high chromatic separation |
+| Brand vs semantic (brand ↔ success, brand ↔ accent) | ≥ 20 | Large elements with clear context |
+| Neighbor colors (engines, MTP↔brand) | ≥ 15 | Labels provide context, moderate sep OK |
+| Text hierarchy | ≥ 8 | Subtle but readable gradient |
+| Surface layers (bubbles, backgrounds) | ≥ 4 | Intentionally subtle tinting |
+
+### Reasoning ↔ Thinking Relationship
+
+`reasoning` (307° dusty mauve) and `capabilityThinking` (341° hot pink) are in the same hue family **by design** — they represent the same concept at different UI layers:
+- `capabilityThinking` = vivid badge for model capability tags
+- `reasoning` = muted tint for chat bubble backgrounds, toggle labels, thinking indicators
+
+They must maintain ΔE ≥ 20 despite the shared family. The separation comes from lightness/saturation differences, not hue.
+
+## Validation (MANDATORY)
+
+After ANY change to color assets or `DesignSystem.swift`:
+
+1. Run `python3 scripts/validate_color_distinctness.py` — must show "All checks passed"
+2. If adding a new color, add rules to BOTH the Python script AND `Tests/DesignSystem/DesignSystemDistinctnessTests.swift`
+3. Check semantic balance: no hue family (120° arc) should carry more than 2 semantic concepts
+4. Verify both light AND dark mode values are set and distinct
+
+The validation script checks:
+- 26 distinctness rules (CIE76 ΔE) in both modes
+- 14 contrast ratio rules (WCAG AA) in both modes
+
+It reads colorset JSON directly — no Xcode build required.
+

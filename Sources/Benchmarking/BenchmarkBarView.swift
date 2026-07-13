@@ -227,10 +227,10 @@ struct BenchmarkBarView: View {
         HStack(spacing: AppSpacing.xs) {
             if metrics.runtimeType == .mlx {
                 Image(systemName: "bolt.fill")
-                    .foregroundStyle(AppColors.accentPrimary)
+                    .foregroundStyle(AppColors.engineMLX)
                 Text("MLX")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.accentPrimary)
+                    .foregroundStyle(AppColors.engineMLX)
             } else if let result = viewModel.backendResult {
                 Image(systemName: result.activeBackend == .gpu ? "bolt.fill" : "cpu")
                     .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
@@ -239,10 +239,10 @@ struct BenchmarkBarView: View {
                     .foregroundStyle(result.activeBackend == .gpu ? AppColors.success : AppColors.warning)
             } else {
                 Image(systemName: "cpu")
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(AppColors.engineLiteRT)
                 Text("LiteRT")
                     .font(AppTypography.badge)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(AppColors.engineLiteRT)
             }
         }
     }

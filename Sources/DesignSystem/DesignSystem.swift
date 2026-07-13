@@ -51,19 +51,21 @@ enum AppColors {
 
     // MARK: Accent Colors
     /// Primary brand accent — interactive elements, buttons, active states, progress indicators.
+    /// 195° deep steel teal — intentionally NOT green to avoid collision with `success`.
+    /// ΔE ≥ 68 from `success`, ≥ 73 from `accentSecondary`, ≥ 27 from `capabilityMTP`.
     /// Never use for: binary status indicators (use `success`), warnings/errors, thinking mode.
-    /// Distinct from: `success` (same hue family but different saturation and intent — style vs. status).
-    /// History: Merged from `accentTeal` + `accentCyan`, which were used interchangeably.
+    /// History: Was 150° green until July 2026 retheme (green overload — brand and success both green).
     static let accentPrimary = Color("accentPrimary")
-    /// Secondary accent — user-side actions, role labels, send button, code language tags.
+    /// Secondary accent — user-side actions, role labels, send button, code language tags, Benchmark icon.
+    /// 38° gold/amber.
     /// Never use for: warnings (use `warning`), machine actions (use `toolAction`).
     /// Distinct from: `warning` (gold is warmer; warning is more orange with higher saturation).
     static let accentSecondary = Color("accentSecondary")
 
     // MARK: Semantic State
     /// Success / ready / healthy / downloaded / verified / passed.
-    /// 91° lime-green — visually distinct from accentPrimary (151° green).
-    /// Never use for: interactive buttons (use `accentPrimary`), navigation text.
+    /// 91° lime-green — the ONLY green in the palette (brand moved to teal).
+    /// Never use for: interactive buttons (use `accentPrimary`), navigation text, engine badges.
     static let success = Color("success")
     /// Warning / attention needed / loading / paused / beta / restart required.
     /// 22° orange — distinct from accentSecondary (38° gold) by higher saturation and lower hue.
@@ -74,12 +76,13 @@ enum AppColors {
     /// Never use for: decorative red, attention-getting non-errors.
     static let destructive = Color("destructive")
     /// Thinking / reasoning mode — active contemplation state.
-    /// 195° slate-blue — moved out of green family entirely.
+    /// 307° dusty mauve — same hue family as `capabilityThinking` (341° pink).
+    /// Used for chat bubble tint, thinking indicator text, toggle labels.
     /// Never use for: general success (use `success`), primary accent (use `accentPrimary`).
     static let reasoning = Color("reasoning")
     /// Tool calling / function execution / agent actions.
+    /// 260° deep indigo — ΔE ≥ 31 from capabilityAudio, ≥ 41 from capabilityVision.
     /// Never use for: user actions (use `accentPrimary` or `accentSecondary`), warnings.
-    /// Distinct from: `warning` (toolAction is cool/blue, warning is warm/amber — unmistakable).
     static let toolAction = Color("toolAction")
 
     // MARK: Text
@@ -89,16 +92,19 @@ enum AppColors {
     /// Tuned to ≥ 4.5:1 on backgroundPrimary/Secondary even with Liquid Glass.
     static let textSecondary = Color("textSecondary")
     /// Tertiary text — timestamps, hints, metadata, disabled states.
-    /// 5.4:1 contrast on backgroundPrimary. Gap from textSecondary: 4× wider than before.
+    /// 30° warm gray — 4.6:1 contrast on backgroundPrimary (WCAG AA). ΔE ≥ 8.5 from textSecondary.
     /// Never apply .opacity() to this — already the dimmest readable text. Use as-is.
     static let textTertiary = Color("textTertiary")
 
     // MARK: Chat Bubbles
-    /// User message bubble gradient start.
+    /// User message bubble gradient start — lighter warm neutral.
+    /// Gradient ΔE ≥ 5.9 from userBubbleEnd (light), ≥ 10.8 (dark).
     static let userBubbleStart = Color("userBubbleStart")
-    /// User message bubble gradient end.
+    /// User message bubble gradient end — darker warm neutral.
     static let userBubbleEnd = Color("userBubbleEnd")
     /// Assistant message bubble background.
+    /// 138° green tint at 33% saturation (light) / 36% (dark) — distinct from warm neutral surfaces.
+    /// ΔE ≥ 5.7 from backgroundSecondary (light), ≥ 10.3 (dark).
     static let assistantBubble = Color("assistantBubble")
 
     // MARK: Borders
@@ -108,20 +114,40 @@ enum AppColors {
     static let borderActive = Color("borderActive")
 
     // MARK: Capability Indicators (distinct per model feature)
-    /// Vision capability — bright sky blue.
+    // July 2026 redistribution: spaced across full hue wheel with ≥30° gaps.
+    // Each badge must be visually distinct at small badge size (≥25 ΔE between neighbors).
+
+    /// Vision capability — 210° vivid sky blue. ΔE ≥ 29 from engineGGUF, ≥ 41 from toolAction.
     static let capabilityVision = Color("capabilityVision")
-    /// Audio capability — vivid purple.
-    /// Distinct from: `capabilityThinking` (280° purple vs 310° pink-magenta).
+    /// Audio capability — 300° orchid purple. ΔE ≥ 31 from toolAction (260°), ≥ 34 from thinking (341°).
     static let capabilityAudio = Color("capabilityAudio")
-    /// Multi-Token Prediction capability.
-    /// 180° cyan — moved out of green family.
+    /// Multi-Token Prediction capability — 172° teal-cyan. ΔE ≥ 27 from brand (195°).
     static let capabilityMTP = Color("capabilityMTP")
-    /// Thinking/reasoning capability indicator.
-    /// 310° pink-magenta — distinct from capabilityAudio (280° purple).
+    /// Thinking/reasoning capability — 341° hot pink. ΔE ≥ 34 from audio (300°), ≥ 35 from reasoning (307°).
     static let capabilityThinking = Color("capabilityThinking")
     /// Constrained Decoding capability.
     /// 55° yellow — distinct from accentSecondary (38°) and warning (22°).
     static let capabilityCD = Color("capabilityCD")
+
+    // MARK: Engine Badge Colors (distinct per runtime format)
+    // Engine badges identify the inference runtime/format — NOT status.
+    // These MUST be outside the green family to avoid collapsing with
+    // accentPrimary (brand green) and success (status green).
+    //
+    // July 2026: Previously LiteRT used `success` and GGUF used `accentPrimary`,
+    // causing model cards to show three green elements (badge + download + brand).
+
+    /// LiteRT runtime badge — warm coral/terra cotta (15° hue).
+    /// ΔE ≥ 30 from accentPrimary, ≥ 25 from success, ≥ 20 from destructive.
+    /// Never use for: status indicators (use `success`/`destructive`).
+    static let engineLiteRT = Color("engineLiteRT")
+    /// GGUF (llama.cpp) format badge — muted slate-blue (225° hue).
+    /// ΔE ≥ 15 from toolAction (248°), ≥ 20 from capabilityVision (214°).
+    /// Never use for: capability indicators or interactive elements.
+    static let engineGGUF = Color("engineGGUF")
+    /// MLX runtime badge — reuses accentSecondary (gold/amber, 38° hue).
+    /// Already visually distinct from green family. No separate asset needed.
+    static let engineMLX = accentSecondary
 
     // MARK: Gradient Support
     /// Deep midnight-sky tint for showcase/dashboard gradient endpoint.
@@ -143,8 +169,9 @@ enum AppColors {
     // MARK: Accessible Dim Text
     /// Quaternary text — divider dots, watermarks, deeply de-emphasized decorative text.
     /// Dimmer than textTertiary but still WCAG AA compliant at ≥ 3:1 on backgroundPrimary.
+    /// Opacity 0.80 (not 0.70) — calibrated after textTertiary lightened in July 2026 audit.
     /// Use instead of applying .opacity() to textTertiary (which drops below readable contrast).
-    static let textQuaternary = textTertiary.opacity(0.7)
+    static let textQuaternary = textTertiary.opacity(0.80)
 }
 
 // MARK: - Gradients
