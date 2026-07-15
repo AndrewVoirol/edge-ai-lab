@@ -46,10 +46,15 @@ struct iOSEvalTabView: View {
     @State private var exportShareItem: ExportShareItem?
     @State private var showSuiteEditor = false
     @State private var editingSuite: EvalSuite?
+    @State private var batchOrchestrator: BatchEvalOrchestrator?
+    @State private var showBatchConfirm = false
+    @State private var isBatchRunning = false
 
     // MARK: - Computed Properties
 
-    private var allSuites: [EvalSuite] { BuiltInEvalSuites.allBuiltIn + customSuites }
+    private var allSuites: [EvalSuite] {
+        EvalRunnerLogic.allSuites(builtIn: BuiltInEvalSuites.allBuiltIn, custom: customSuites)
+    }
 
     private var selectedSuite: EvalSuite? {
         guard let id = selectedSuiteId else { return nil }
@@ -57,7 +62,7 @@ struct iOSEvalTabView: View {
     }
 
     private var canRun: Bool {
-        selectedSuiteId != nil && !selectedModelFiles.isEmpty && !isRunning
+        EvalRunnerLogic.canRun(selectedSuiteId: selectedSuiteId, selectedModelFiles: selectedModelFiles, isRunning: isRunning)
     }
 
     // MARK: - Body
@@ -187,6 +192,42 @@ struct iOSEvalTabView: View {
                 .accessibilityIdentifier("evalTab_runButton")
             }
 
+            // MARK: Run All Button
+            Section {
+                Button {
+                    showBatchConfirm = true
+                } label: {
+                    Label("Run All Suites", systemImage: "forward.fill")
+                        .frame(maxWidth: .infinity)
+                        .font(AppTypography.sectionHeader)
+                        .foregroundStyle(
+                            EvalRunnerLogic.batchCanRun(
+                                isRunning: isRunning,
+                                isBatchRunning: isBatchRunning,
+                                modelCount: viewModel.discoveredModels.count
+                            ) ? AppColors.accentPrimary : AppColors.textTertiary
+                        )
+                }
+                .disabled(!EvalRunnerLogic.batchCanRun(
+                    isRunning: isRunning,
+                    isBatchRunning: isBatchRunning,
+                    modelCount: viewModel.discoveredModels.count
+                ))
+                .accessibilityIdentifier("evalTab_runAllButton")
+                .alert("Run All Evaluations?", isPresented: $showBatchConfirm) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Run All") {
+                        Task { await startBatchEvaluation() }
+                    }
+                } message: {
+                    let plan = buildBatchPlan()
+                    Text(plan.description)
+                }
+            } footer: {
+                Text("Runs all suites against all on-disk models sequentially.")
+                    .font(AppTypography.caption)
+            }
+
             // MARK: Progress
             if isRunning {
                 Section("Progress") {
@@ -208,6 +249,33 @@ struct iOSEvalTabView: View {
                             .foregroundStyle(AppColors.destructive)
                     }
                     .accessibilityIdentifier("evalTab_cancelButton")
+                }
+            }
+
+            // MARK: Batch Progress
+            if isBatchRunning, let orchestrator = batchOrchestrator {
+                Section("Batch Progress") {
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        ProgressView(value: orchestrator.overallProgress)
+                            .tint(AppColors.accentSecondary)
+                            .accessibilityIdentifier("evalTab_batchProgressBar")
+                        Text(orchestrator.state.displayLabel)
+                            .font(AppTypography.listSubtitle)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .accessibilityIdentifier("evalTab_batchProgressLabel")
+                        Text("\(orchestrator.completedRuns)/\(orchestrator.totalRuns) runs complete")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+
+                    Button {
+                        orchestrator.cancel()
+                        isBatchRunning = false
+                    } label: {
+                        Label("Cancel Batch", systemImage: "xmark.circle")
+                            .foregroundStyle(AppColors.destructive)
+                    }
+                    .accessibilityIdentifier("evalTab_batchCancelButton")
                 }
             }
 
@@ -316,22 +384,22 @@ struct iOSEvalTabView: View {
     private func startEvaluation() async {
         guard let suite = selectedSuite else { return }
 
-        // Build model entries from selected filenames
+        // Build model entries from selected filenames.
+        // Use resolvedMetadata (never nil) instead of metadata (nil for imported models)
+        // to ensure all discovered models can participate in evaluation.
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
             .filter { selectedModelFiles.contains($0.filename) }
-            .compactMap { discovered in
-                guard let metadata = discovered.metadata else { return nil }
-                return EvalModelEntry(
-                    metadata: metadata,
+            .map { discovered in
+                EvalModelEntry(
+                    metadata: discovered.resolvedMetadata,
                     modelPath: discovered.url.path
                 )
             }
 
         guard !modelEntries.isEmpty else { return }
 
-        // Create the runner — uses InferenceEngine directly
+        // Create the runner — creates its own engine per model based on runtimeType
         let runner = EvalRunner(
-            engine: viewModel.engine,
             store: evalStore,
             exportPersistence: EvalResultPersistence()
         )
@@ -422,6 +490,51 @@ struct iOSEvalTabView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    // MARK: - Batch Eval Execution
+
+    /// Build a plan using all available suites and all discovered models.
+    /// Uses resolvedMetadata so imported/community models without registry
+    /// entries are included in the batch plan and model count.
+    private func buildBatchPlan() -> BatchEvalPlan {
+        let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
+            .map { discovered in
+                EvalModelEntry(
+                    metadata: discovered.resolvedMetadata,
+                    modelPath: discovered.url.path
+                )
+            }
+
+        return BatchEvalPlan(
+            suites: allSuites,
+            models: modelEntries
+        )
+    }
+
+    /// Run all suites against all models sequentially.
+    private func startBatchEvaluation() async {
+        let plan = buildBatchPlan()
+        guard plan.totalRuns > 0 else { return }
+
+        isBatchRunning = true
+
+        let orchestrator = BatchEvalOrchestrator(
+            store: evalStore
+        )
+        batchOrchestrator = orchestrator
+
+        _ = await orchestrator.runAll(
+            plan: plan,
+            flags: viewModel.runtimeFlags,
+            cacheDir: FileManager.default.urls(
+                for: .cachesDirectory, in: .userDomainMask
+            ).first?.path ?? NSTemporaryDirectory()
+        )
+
+        batchOrchestrator = nil
+        isBatchRunning = false
+        evalStore.refresh()
     }
 }
 

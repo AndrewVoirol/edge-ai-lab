@@ -101,10 +101,10 @@ extension BuiltInEvalSuites {
                 expectedBehavior: .containsText("analogy")
             ),
 
-            // 15. Alphabetical sentence starts — manual review
+            // 15. Alphabetical sentence starts — verify A through E
             EvalPrompt(
                 prompt: "Write a response where every sentence starts with a different letter of the alphabet, in order from A to E",
-                expectedBehavior: .custom(description: "Manual review: check alphabetical sentence starts")
+                expectedBehavior: .matchesRegex("(?i)\\bA\\w.*\\..*\\bB\\w.*\\..*\\bC\\w.*\\..*\\bD\\w.*\\..*\\bE\\w")
             ),
         ],
         isBuiltIn: true

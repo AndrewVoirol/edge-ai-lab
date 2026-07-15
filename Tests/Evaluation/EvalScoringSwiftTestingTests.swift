@@ -348,4 +348,66 @@ struct EvalScoringSwiftTestingTests {
             Issue.record("Expected .fail, got: \(result)")
         }
     }
+
+    // MARK: - Regression Tests for Harness Fixes
+
+    @Test("matchesRegex with dotMatchesLineSeparators — multi-line lowercase check passes")
+    func regexDotAllLowercasePass() {
+        // Simulates IF P2: model responds "paris" which is all lowercase but may include newlines
+        let response = "paris\n"
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .matchesRegex("^[^A-Z]*$")
+        )
+        #expect(result.isPass, "All-lowercase multi-line response should pass ^[^A-Z]*$ regex")
+    }
+
+    @Test("matchesRegex preserves case sensitivity — uppercase detected")
+    func regexCaseSensitivityPreserved() {
+        // Uppercase "P" should fail the ^[^A-Z]*$ regex — case sensitivity must be preserved
+        let response = "Paris is the capital"
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .matchesRegex("^[^A-Z]*$")
+        )
+        #expect(result.isFailure, "Response with uppercase letters should fail ^[^A-Z]*$ regex")
+    }
+
+    @Test("containsAny matches number word 'four' when expected alternatives include it")
+    func containsAnyNumberWord() {
+        // Simulates Reasoning P17: model says "four" instead of "4"
+        let response = "You have **four** apples."
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .containsAny(["4", "four"])
+        )
+        #expect(result.isPass, "'four' should match when in the alternatives list")
+    }
+
+    @Test("containsAny matches digit when expected alternatives include both forms")
+    func containsAnyDigit() {
+        // Ensures digit form also works when alternatives include both
+        let response = "You have 4 apples."
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .containsAny(["4", "four"])
+        )
+        #expect(result.isPass, "'4' should match when in the alternatives list")
+    }
+
+    @Test("matchesRegex with inline case-insensitive flag (?i) works")
+    func regexInlineCaseInsensitive() {
+        // The IF P15 regex uses (?i) for case-insensitive matching inline
+        let response = "Always try your best. Being kind matters. Creating joy helps. Doing good counts. Every day is a gift."
+        let result = EvalScorer.score(
+            response: response,
+            toolCallEvents: [],
+            against: .matchesRegex("(?i)\\bA\\w.*\\..*\\bB\\w.*\\..*\\bC\\w.*\\..*\\bD\\w.*\\..*\\bE\\w")
+        )
+        #expect(result.isPass, "Response with sentences starting A-E should pass the (?i) regex")
+    }
 }

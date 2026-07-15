@@ -282,7 +282,7 @@ final class ViewModelE2ETests: XCTestCase {
     func testEvalRunnerFullSuite() async throws {
         let engine = makeEngine(responseChunks: ["Four", "."])
         let evalStore = makeEvalStore()
-        let runner = EvalRunner(engine: engine, store: evalStore)
+        let runner = EvalRunner(store: evalStore)
 
         // Verify initial state
         XCTAssertEqual(runner.state, .idle, "Runner should start in idle state")

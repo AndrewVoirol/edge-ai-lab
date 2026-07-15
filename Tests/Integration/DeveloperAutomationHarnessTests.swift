@@ -239,8 +239,8 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
     }
 
     func testPersistEvalHistoryCreatesFile() {
-        let results: [(suiteName: String, passRate: Double, promptCount: Int)] = [
-            ("TestSuite", 0.85, 10)
+        let results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = [
+            ("TestSuite", 0.85, 10, [])
         ]
 
         EvalAutomationPipeline.persistEvalHistory(results: results, model: "test-model-create")
@@ -273,14 +273,14 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
         }
 
         // First call
-        let results1: [(suiteName: String, passRate: Double, promptCount: Int)] = [
-            ("Suite1", 0.9, 5)
+        let results1: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = [
+            ("Suite1", 0.9, 5, [])
         ]
         EvalAutomationPipeline.persistEvalHistory(results: results1, model: "model-a-append")
 
         // Second call
-        let results2: [(suiteName: String, passRate: Double, promptCount: Int)] = [
-            ("Suite2", 0.75, 8)
+        let results2: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = [
+            ("Suite2", 0.75, 8, [])
         ]
         EvalAutomationPipeline.persistEvalHistory(results: results2, model: "model-b-append")
 
@@ -297,9 +297,9 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
 
     func testPersistEvalHistoryHandlesNonFinitePassRate() {
         // The isFinite guard should sanitize Infinity/NaN to 0.0
-        let results: [(suiteName: String, passRate: Double, promptCount: Int)] = [
-            ("InfinitySuite", Double.infinity, 3),
-            ("NaNSuite", Double.nan, 2)
+        let results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = [
+            ("InfinitySuite", Double.infinity, 3, []),
+            ("NaNSuite", Double.nan, 2, [])
         ]
 
         // This should NOT crash — the isFinite guard sanitizes non-finite values to 0.0
@@ -325,8 +325,8 @@ final class DeveloperAutomationHarnessTests: XCTestCase {
 
     func testPersistEvalHistorySkippedSuite() {
         // Negative passRate signals a skipped suite
-        let results: [(suiteName: String, passRate: Double, promptCount: Int)] = [
-            ("SkippedSuite", -1.0, 0)
+        let results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = [
+            ("SkippedSuite", -1.0, 0, [])
         ]
 
         EvalAutomationPipeline.persistEvalHistory(results: results, model: "skipped-test")

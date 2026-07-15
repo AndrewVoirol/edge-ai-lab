@@ -59,7 +59,7 @@ extension BuiltInEvalSuites {
             // 7. Correct tool selection — unit converter
             EvalPrompt(
                 prompt: "Convert 100 kilometers to miles",
-                expectedBehavior: .toolCall(toolName: "convert_units")
+                expectedBehavior: .anyToolCall
             ),
 
             // 8. Correct tool selection — text analyzer

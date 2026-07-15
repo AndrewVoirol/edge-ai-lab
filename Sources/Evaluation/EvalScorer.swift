@@ -71,6 +71,12 @@ struct EvalScorer {
             }
             return .fail(reason: "Expected tool '\(expected)' but called: \(calledTools)")
 
+        case .anyToolCall:
+            if toolCallEvents.contains(where: \.succeeded) {
+                return .pass
+            }
+            return .fail(reason: "Expected any tool call but no tools were called")
+
         case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let expectedValue):
             guard let event = toolCallEvents.first(where: { $0.toolName == name && $0.succeeded }) else {
                 return .fail(reason: "Tool '\(name)' was not called")
@@ -111,7 +117,7 @@ struct EvalScorer {
 
         case .matchesRegex(let pattern):
             do {
-                let regex = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+                let regex = try NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators])
                 let range = NSRange(response.startIndex..., in: response)
                 if regex.firstMatch(in: response, range: range) != nil {
                     return .pass

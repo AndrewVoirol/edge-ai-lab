@@ -97,6 +97,7 @@ struct iOSSuiteEditorSheet: View {
         case containsAny([String])
         case containsAll([String])
         case toolCall(String)
+        case anyToolCall
         case toolCallWithArgs(String, String, String)
         case toolCallChain([String])
         case matchesRegex(String)
@@ -117,6 +118,8 @@ struct iOSSuiteEditorSheet: View {
                 self = .toolCall(name)
             case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let value):
                 self = .toolCallWithArgs(name, key, value)
+            case .anyToolCall:
+                self = .anyToolCall
             case .toolCallChain(let chain):
                 self = .toolCallChain(chain)
             case .matchesRegex(let pattern):
@@ -140,6 +143,8 @@ struct iOSSuiteEditorSheet: View {
                 return .containsAll(required)
             case .toolCall(let name):
                 return .toolCall(toolName: name)
+            case .anyToolCall:
+                return .anyToolCall
             case .toolCallWithArgs(let name, let key, let value):
                 return .toolCallWithArgs(toolName: name, key: key, expectedValue: value)
             case .toolCallChain(let chain):
@@ -160,6 +165,7 @@ struct iOSSuiteEditorSheet: View {
             case .containsAny: return "Contains any of"
             case .containsAll: return "Contains all of"
             case .toolCall: return "Tool call"
+            case .anyToolCall: return "Any tool call"
             case .toolCallWithArgs: return "Tool call (args)"
             case .toolCallChain: return "Tool chain"
             case .matchesRegex: return "Regex match"

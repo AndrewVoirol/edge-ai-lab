@@ -92,6 +92,14 @@ struct DiscoveredModel: Identifiable, Sendable {
             .replacingOccurrences(of: "--", with: " / ")
             .replacingOccurrences(of: "-", with: " ")
 
+        // Detect multimodal support from filename.
+        // Gemma 4 Standard variants (E2B, E4B, 12B) support image + audio.
+        // Web/Mobile variants (filename contains "-web") do NOT support multimodal.
+        let lowerStem = stem.lowercased()
+        let isGemma4Standard = lowerStem.contains("gemma") && lowerStem.contains("4")
+            && !lowerStem.contains("web") && !lowerStem.contains("mobile")
+        let hasMultimodal = isGemma4Standard
+
         return ModelMetadata(
             name: displayName,
             modelId: "local/\(filename)",
@@ -103,8 +111,8 @@ struct DiscoveredModel: Identifiable, Sendable {
             contextWindowSize: 8192,  // Conservative default
             architectureType: runtime.displayName,
             recommendedFor: "Local inference",
-            supportsImage: false,
-            supportsAudio: false,
+            supportsImage: hasMultimodal,
+            supportsAudio: hasMultimodal,
             capabilities: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 40,
@@ -113,7 +121,7 @@ struct DiscoveredModel: Identifiable, Sendable {
                 maxContextLength: 8192,
                 maxTokens: 2048,
                 accelerators: "gpu",
-                visionAccelerator: nil
+                visionAccelerator: hasMultimodal ? "gpu" : nil
             ),
             platformSupport: PlatformSupport(
                 macOS: .gpuAndCpu,

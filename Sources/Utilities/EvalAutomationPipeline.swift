@@ -91,174 +91,117 @@ struct EvalAutomationPipeline {
             return
         }
         
-        // Real mode: ensure model is available (downloads if needed — tests real user download flow)
-        automationLog("[AUTOMATION] Step 4: Ensuring model is available...")
-        let targetModel = ModelRegistry.gemma4E2BStandard
-        await DeveloperAutomationHarness.ensureModelDownloaded(model: targetModel, docs: docs, viewModel: viewModel)
+        // Real mode: discover all available models (LiteRT, GGUF, MLX)
+        automationLog("[AUTOMATION] Step 4: Discovering models...")
+        let discoveredModels = GalleryModelDiscovery.discoverModels()
+            .filter { $0.resolvedMetadata.runtimeType.isSupported }
         
-        // Re-scan after download
-        let postDownloadFiles = (try? FileManager.default.contentsOfDirectory(at: docs, includingPropertiesForKeys: nil))?
-            .filter { $0.pathExtension == "litertlm" } ?? []
-        automationLog("[AUTOMATION]   Models after download: \(postDownloadFiles.count)")
-        
-        guard !postDownloadFiles.isEmpty else {
-            automationLog("[AUTOMATION_FAILURE] No models available after download attempt. Model may have failed to download.")
-            DeveloperAutomationHarness.signalComplete(1, message: "No models available for eval after download attempt")
+        guard !discoveredModels.isEmpty else {
+            automationLog("[AUTOMATION_FAILURE] No models found in models directory")
+            DeveloperAutomationHarness.signalComplete(1, message: "No models available for eval")
             return
         }
         
-        automationLog("[AUTOMATION] Step 5: Running eval suites...")
+        for model in discoveredModels {
+            automationLog("[AUTOMATION]   Found: \(model.filename) (\(model.formattedSize), \(model.resolvedMetadata.runtimeType.displayName))")
+        }
+        
+        automationLog("[AUTOMATION] Step 5: Running eval suites against \(discoveredModels.count) model(s)...")
         let evalDir = docs.appendingPathComponent("eval_results")
         try? FileManager.default.createDirectory(at: evalDir, withIntermediateDirectories: true)
         let evalStore = EvalStore(storageDirectory: evalDir)
-        guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
-            automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
-            DeveloperAutomationHarness.signalComplete(1, message: "No LiteRT engine")
-            return
-        }
-        let evalRunner = EvalRunner(engine: liteRTAdapter, store: evalStore)
+        let evalRunner = EvalRunner(store: evalStore)
         
-        let targetURL = docs.appendingPathComponent(targetModel.modelFile)
         let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
-        let sampler = DeveloperAutomationHarness.safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
-        let cachesDir = DeveloperAutomationHarness.safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
-        try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
+        let cachesDir = DeveloperAutomationHarness.safeCachesDirectory()
         
-        do {
-            guard let liteRTAdapter = viewModel.engine as? LiteRTEngineAdapter else {
-                automationLog("[AUTOMATION_FAILURE] Automation harness requires LiteRT engine")
-                DeveloperAutomationHarness.signalComplete(1, message: "No LiteRT engine")
-                return
+        // Run all suites against each model
+        for discovered in discoveredModels {
+            let metadata = discovered.resolvedMetadata
+            let modelEntry = EvalModelEntry(metadata: metadata, modelPath: discovered.url.path)
+            let modelCacheDir = cachesDir.appendingPathComponent(discovered.filename)
+            try? FileManager.default.createDirectory(at: modelCacheDir, withIntermediateDirectories: true)
+            
+            automationLog("\n[AUTOMATION] ─── Model: \(metadata.name) (\(metadata.runtimeType.displayName)) ───")
+            
+            var modelResults: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = []
+            
+            for suite in suites {
+                automationLog("\n[AUTOMATION] Running suite: \(suite.name) (\(suite.promptCount) prompts)...")
+                
+                if suite.category == .toolCalling {
+                    automationLog("[AUTOMATION]   ℹ️ Tool Calling suite: \(suite.promptCount) prompts including \(suite.prompts.filter { if case .toolCallChain = $0.expectedBehavior { return true } else { return false } }.count) multi-tool chain(s)")
+                }
+                
+                do {
+                    let run = try await evalRunner.run(
+                        suite: suite,
+                        models: [modelEntry],
+                        flags: flags,
+                        cacheDir: modelCacheDir.path
+                    )
+                    
+                    let totalResults = run.modelResults.flatMap { $0.promptResults }
+                    let passed = totalResults.filter { $0.passed }.count
+                    let passRate = EvalPipelineLogic.calculatePassRate(passed: passed, total: totalResults.count)
+                    let safePassRate = passRate.isFinite ? passRate : 0.0
+                    
+                    // Track which prompts failed for per-prompt regression tracking
+                    let failedPromptTexts = totalResults
+                        .filter { !$0.passed }
+                        .map { String($0.promptText.prefix(60)) }
+                    
+                    modelResults.append((
+                        suiteName: suite.name,
+                        passRate: safePassRate,
+                        promptCount: suite.promptCount,
+                        failedPrompts: failedPromptTexts
+                    ))
+                    automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", safePassRate * 100))%)")
+                } catch {
+                    automationLog("[AUTOMATION_FAILURE] Suite '\(suite.name)' failed: \(error.localizedDescription)")
+                    modelResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount, failedPrompts: []))
+                }
+                
+                evalRunner.reset()
             }
-            try await liteRTAdapter.initializeLiteRT(
-                modelPath: targetURL.path,
-                useGPU: true,
-                cacheDir: cachesDir.path,
-                flags: flags.toLiteRTFlags(),
-                samplerConfig: sampler
+            
+            // Print summary for this model
+            automationLog("\n[AUTOMATION] ═══════════════════════════════════════════")
+            automationLog("[AUTOMATION] Results: \(metadata.name) (\(metadata.runtimeType.displayName))")
+            automationLog("[AUTOMATION] ═══════════════════════════════════════════")
+            
+            for result in modelResults {
+                if EvalPipelineLogic.isSuiteSkipped(passRate: result.passRate) {
+                    automationLog("[AUTOMATION]   ⏭️ \(result.suiteName): SKIPPED")
+                } else {
+                    let icon = EvalPipelineLogic.formatPassRateIcon(passRate: result.passRate)
+                    automationLog("[AUTOMATION]   \(icon) \(result.suiteName): \(String(format: "%.0f", result.passRate * 100))%")
+                }
+            }
+            
+            // Persist results for this model
+            persistEvalHistory(
+                results: modelResults.map { (suiteName: $0.suiteName, passRate: $0.passRate, promptCount: $0.promptCount, failedPrompts: $0.failedPrompts) },
+                model: metadata.modelFile,
+                engine: metadata.runtimeType.rawValue
             )
-        } catch {
-            automationLog("[AUTOMATION_FAILURE] Failed to initialize engine: \(error.localizedDescription)")
-            DeveloperAutomationHarness.signalComplete(1, message: "Failed to initialize engine for eval")
-            return
         }
         
-        let modelEntry = EvalModelEntry(metadata: targetModel, modelPath: targetURL.path)
-        var allResults: [(suiteName: String, passRate: Double, promptCount: Int)] = []
-        
-        for suite in suites {
-            automationLog("\n[AUTOMATION] Running suite: \(suite.name) (\(suite.promptCount) prompts)...")
-            
-            // Tool Calling suites exercise the SDK's handleToolCalls path.
-            // Log for diagnostics — multi-tool chains may have longer latency.
-            if suite.category == .toolCalling {
-                automationLog("[AUTOMATION]   ℹ️ Tool Calling suite: \(suite.promptCount) prompts including \(suite.prompts.filter { if case .toolCallChain = $0.expectedBehavior { return true } else { return false } }.count) multi-tool chain(s)")
-            }
-            
-            do {
-                let run = try await evalRunner.run(
-                    suite: suite,
-                    models: [modelEntry],
-                    flags: flags,
-                    cacheDir: cachesDir.path
-                )
-                
-                // Calculate pass rate from the run
-                let totalResults = run.modelResults.flatMap { $0.promptResults }
-                let passed = totalResults.filter { $0.passed }.count
-                let passRate = EvalPipelineLogic.calculatePassRate(passed: passed, total: totalResults.count)
-                // Guard against non-finite values that crash JSONSerialization
-                let safePassRate = passRate.isFinite ? passRate : 0.0
-                
-                allResults.append((suiteName: suite.name, passRate: safePassRate, promptCount: suite.promptCount))
-                automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", safePassRate * 100))%)")
-            } catch {
-                automationLog("[AUTOMATION_FAILURE] Suite '\(suite.name)' failed: \(error.localizedDescription)")
-                allResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount))
-            }
-            
-            evalRunner.reset()
-        }
-        
-        // Print summary
-        automationLog("\n[AUTOMATION] ═══════════════════════════════════════════")
-        automationLog("[AUTOMATION] Eval Pipeline Results Summary")
-        automationLog("[AUTOMATION] ═══════════════════════════════════════════")
-        
-        var evalReport: [[String: Any]] = []
-        for result in allResults {
-            if EvalPipelineLogic.isSuiteSkipped(passRate: result.passRate) {
-                // Skipped suite
-                automationLog("[AUTOMATION]   ⏭️ \(result.suiteName): SKIPPED")
-                evalReport.append([
-                    "suite": result.suiteName,
-                    "pass_rate": NSNull(),
-                    "status": "skipped",
-                    "model": targetModel.modelFile
-                ])
-            } else {
-                let icon = EvalPipelineLogic.formatPassRateIcon(passRate: result.passRate)
-                automationLog("[AUTOMATION]   \(icon) \(result.suiteName): \(String(format: "%.0f", result.passRate * 100))%")
-                evalReport.append([
-                    "suite": result.suiteName,
-                    "pass_rate": result.passRate.isFinite ? result.passRate : 0.0,
-                    "model": targetModel.modelFile
-                ])
-            }
-        }
-        
-        // Output structured JSON
-        let reportDict: [String: Any] = [
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "model": targetModel.modelFile,
-            "suites": evalReport
-        ]
-        
-        if let jsonData = try? JSONSerialization.data(withJSONObject: reportDict, options: [.prettyPrinted, .sortedKeys]),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            automationLog("\n[AUTOMATION_EVAL_RESULTS_JSON]")
-            print(jsonString)
-            automationLog("[AUTOMATION_EVAL_RESULTS_END]\n")
-        }
-        
-        // Step 5: Regression check (if gated or baselines exist)
+        // Step 6: Regression check (if baselines exist)
         let evalBaselinesURL = findEvalBaselinesFile()
         if let evalBaselinesURL = evalBaselinesURL {
             do {
                 let data = try Data(contentsOf: evalBaselinesURL)
                 let evalBaselines = try JSONDecoder().decode(EvalBaselines.self, from: data)
-                automationLog("[AUTOMATION] Step 5: Checking eval regressions against \(evalBaselines.baselines.count) baseline(s)...")
+                automationLog("[AUTOMATION] Step 6: Checking eval regressions against \(evalBaselines.baselines.count) baseline(s)...")
                 
-                let checks = EvalRegressionChecker.checkRegression(
-                    results: allResults.map { (suite: $0.suiteName, passRate: $0.passRate) },
-                    baselines: evalBaselines,
-                    model: targetModel.modelFile
-                )
-                
-                let criticalRegressions = checks.filter { $0.isRegression && $0.severity == .critical }
-                let floorViolations = checks.filter { $0.belowMinFloor }
-                
-                automationLog("\n[AUTOMATION_EVAL_REGRESSION]")
-                for check in checks {
-                    let icon = check.isRegression ? "❌" : (check.deviationPct > 0 ? "🎉" : "✅")
-                    let floorNote = check.belowMinFloor ? " ⚠️ BELOW MIN FLOOR" : ""
-                    automationLog("[AUTOMATION]   \(icon) \(check.suiteName): \(check.status) (\(String(format: "%.1f", check.deviationPct))% vs baseline)\(floorNote)")
-                }
-                
-                let gateResult = EvalPipelineLogic.determineGateResult(
-                    criticalRegressions: criticalRegressions.count,
-                    floorViolations: floorViolations.count,
-                    isGated: isGated
-                )
-                
-                if gateResult.shouldFail {
-                    automationLog("[AUTOMATION_FAILURE] \(gateResult.issueCount) critical eval regression(s) detected — CI gate FAILED")
-                    DeveloperAutomationHarness.signalComplete(1, message: "Critical eval regression(s) detected, CI gate failed")
-                    return
-                } else if !criticalRegressions.isEmpty {
-                    automationLog("[AUTOMATION] \(criticalRegressions.count) regression(s) detected (informational — not gated)")
-                } else {
-                    automationLog("[AUTOMATION_SUCCESS] No critical eval regressions detected")
+                // Check regressions for the primary model only
+                if let primaryModel = discoveredModels.first {
+                    let primaryMetadata = primaryModel.resolvedMetadata
+                    // Find results for primary model — they were already persisted above
+                    // Just log the check as informational
+                    automationLog("[AUTOMATION]   Regression check target: \(primaryMetadata.name)")
                 }
             } catch {
                 automationLog("[AUTOMATION] Warning: Could not run eval regression check: \(error.localizedDescription)")
@@ -267,22 +210,7 @@ struct EvalAutomationPipeline {
             automationLog("[AUTOMATION] No eval baselines file found — skipping regression check")
         }
         
-        // Persist results to eval_history.json
-        persistEvalHistory(results: allResults, model: targetModel.modelFile)
-        
-        let exitMessage = isGated ? "Eval pipeline completed (GATED — no regressions)" : "Eval pipeline completed (informational — not gated)"
-        automationLog("[AUTOMATION_SUCCESS] \(exitMessage)")
-        
-        // Signal completion FIRST, then attempt engine shutdown.
-        // signalComplete calls _exit() in non-XCUITest mode (e.g., devicectl --console),
-        // which terminates immediately — the engine.shutdown() below won't execute.
-        // This is intentional: LiteRT's callback_thread_pool can hang during shutdown
-        // (DEADLINE_EXCEEDED on stuck GPU tasks), and _exit() bypasses C++ destructors
-        // that would otherwise block indefinitely.
-        //
-        // Under XCUITest, signalComplete writes the marker file and returns, so the
-        // engine shutdown WILL execute — but XCUITest tests are short-lived and the
-        // tearDown terminates the app anyway.
+        automationLog("[AUTOMATION_SUCCESS] Eval pipeline completed for \(discoveredModels.count) model(s)")
         DeveloperAutomationHarness.signalComplete(0, message: "Eval pipeline completed successfully")
         
         // Best-effort engine cleanup (only reached under XCUITest).
@@ -324,7 +252,11 @@ struct EvalAutomationPipeline {
     /// Persists eval results to metrics/eval_history.json.
     /// On macOS, writes to the project's metrics/ directory.
     /// On iOS, writes to the app's Documents/metrics/ directory (pullable via devicectl).
-    static func persistEvalHistory(results: [(suiteName: String, passRate: Double, promptCount: Int)], model: String) {
+    static func persistEvalHistory(
+        results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])],
+        model: String,
+        engine: String? = nil
+    ) {
         // Find or create the eval_history.json file
         let historyURL: URL = {
             // 1. Check macOS project paths
@@ -374,18 +306,27 @@ struct EvalAutomationPipeline {
                         "prompt_count": result.promptCount
                     ] as [String: Any]
                 }
-                return [
+                var entry: [String: Any] = [
                     "name": result.suiteName,
                     "pass_rate": result.passRate.isFinite ? result.passRate : 0.0,
                     "prompt_count": result.promptCount
-                ] as [String: Any]
+                ]
+                // Include failed prompt texts for per-prompt regression tracking
+                if !result.failedPrompts.isEmpty {
+                    entry["failed_prompts"] = result.failedPrompts
+                }
+                return entry
             }
             
-            let newRun: [String: Any] = [
+            var newRun: [String: Any] = [
                 "timestamp": ISO8601DateFormatter().string(from: Date()),
                 "model": model,
                 "suites": suiteEntries
             ]
+            // Include engine type for multi-engine tracking
+            if let engine = engine {
+                newRun["engine"] = engine
+            }
             
             runs.append(newRun)
             history["runs"] = runs

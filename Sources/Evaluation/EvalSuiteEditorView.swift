@@ -94,6 +94,7 @@ struct EvalSuiteEditorView: View {
         case containsAny([String])
         case containsAll([String])
         case toolCall(String)
+        case anyToolCall
         case toolCallWithArgs(String, String, String)
         case toolCallChain([String])
         case matchesRegex(String)
@@ -112,6 +113,8 @@ struct EvalSuiteEditorView: View {
                 self = .containsAll(required)
             case .toolCall(toolName: let name):
                 self = .toolCall(name)
+            case .anyToolCall:
+                self = .anyToolCall
             case .toolCallWithArgs(toolName: let name, key: let key, expectedValue: let value):
                 self = .toolCallWithArgs(name, key, value)
             case .toolCallChain(let chain):
@@ -137,6 +140,8 @@ struct EvalSuiteEditorView: View {
                 return .containsAll(required)
             case .toolCall(let name):
                 return .toolCall(toolName: name)
+            case .anyToolCall:
+                return .anyToolCall
             case .toolCallWithArgs(let name, let key, let value):
                 return .toolCallWithArgs(toolName: name, key: key, expectedValue: value)
             case .toolCallChain(let chain):
@@ -157,6 +162,7 @@ struct EvalSuiteEditorView: View {
             case .containsAny: return "Contains any of"
             case .containsAll: return "Contains all of"
             case .toolCall: return "Tool call"
+            case .anyToolCall: return "Any tool call"
             case .toolCallWithArgs: return "Tool call (args)"
             case .toolCallChain: return "Tool chain"
             case .matchesRegex: return "Regex match"
@@ -544,6 +550,7 @@ struct EvalSuiteEditorView: View {
             ("Non-empty", .nonEmpty),
             ("Contains", .containsText("")),
             ("Tool Call", .toolCall("")),
+            ("Any Tool", .anyToolCall),
             ("Regex", .matchesRegex("")),
             ("Custom", .custom("")),
         ]

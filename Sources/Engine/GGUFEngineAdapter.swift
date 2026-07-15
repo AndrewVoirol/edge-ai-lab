@@ -67,6 +67,9 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     private var _lastMetrics: EnginePerformanceMetrics?
     private var _cancelled = false
 
+    /// Registered tools for function calling dispatch.
+    private var registeredTools: [any AppTool] = []
+
     /// Serial queue for all llama.cpp operations.
     private let llamaQueue = DispatchQueue(label: "com.andrewvoirol.EdgeAILab.gguf", qos: .userInitiated)
 
@@ -82,7 +85,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
     var lastBackendResult: BackendResult? { nil }
     var lastInferenceMetrics: InferenceMetrics? { nil }
     var supportsVision: Bool { false }
-    var supportsToolCalling: Bool { false }
+    var supportsToolCalling: Bool { !registeredTools.isEmpty }
 
     /// Rich metadata extracted from the loaded GGUF model via llama.cpp API.
     /// Available after `loadModel()` succeeds. `nil` before loading.
@@ -131,7 +134,10 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 } else {
                     ctxParams.n_ctx = 4096  // Reasonable default for chat
                 }
-                ctxParams.n_batch = 512
+                // n_batch must be large enough to handle tool-augmented system prompts.
+                // With 13 tools and JSON schemas, prompts can easily exceed 512 tokens.
+                // Setting n_batch = n_ctx allows processing the full prompt in one batch.
+                ctxParams.n_batch = ctxParams.n_ctx
 
                 // Create context
                 guard let ctx = llama_init_from_model(loadedModel, ctxParams) else {
@@ -210,10 +216,22 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                 self._isLoaded = true
 
-                // Seed conversation with system message if provided
+                // Store registered tools for function calling dispatch
+                if let tools = config.tools, !tools.isEmpty {
+                    self.registeredTools = tools
+                } else {
+                    self.registeredTools = []
+                }
+
+                // Seed conversation with system message if provided,
+                // appending tool descriptions when tools are registered.
                 self.conversationHistory.removeAll()
-                if let systemMsg = config.systemMessage, !systemMsg.isEmpty {
-                    self.conversationHistory.append((role: "system", content: systemMsg))
+                var systemContent = config.systemMessage ?? ""
+                if let toolPrompt = GGUFToolCallParser.toolSystemPrompt(for: self.registeredTools) {
+                    systemContent += toolPrompt
+                }
+                if !systemContent.isEmpty {
+                    self.conversationHistory.append((role: "system", content: systemContent))
                 }
 
                 Self.signposter.endInterval("ModelLoad", loadState, "name=\(modelName), params=\(paramDisplay), ctx=\(nCtx), quant=\(quantization ?? "none")")
@@ -231,6 +249,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         prompt: String,
         config: GenerationConfig
     ) -> AsyncThrowingStream<GenerationEvent, Error> {
+        // TODO: GGUF multimodal piping — needs llama.cpp vision support (llava)
         AsyncThrowingStream<GenerationEvent, Error>(bufferingPolicy: .unbounded) { (continuation: AsyncThrowingStream<GenerationEvent, Error>.Continuation) in
             #if canImport(llama)
             llamaQueue.async { [weak self] in
@@ -283,32 +302,43 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 // Reset KV cache position tracking for this generation
                 llama_memory_clear(llama_get_memory(ctx), true)
 
-                // Create batch and process prompt
-                var batch = llama_batch_init(Int32(promptTokens.count), 0, 1)
-                defer { llama_batch_free(batch) }
-
-                // Fill batch with prompt tokens
-                batch.n_tokens = Int32(promptTokens.count)
-                for i in 0..<promptTokens.count {
-                    batch.token[i] = promptTokens[i]
-                    batch.pos[i] = Int32(i)
-                    batch.n_seq_id[i] = 1
-                    if let seqIds = batch.seq_id, let seqId = seqIds[i] {
-                        seqId[0] = 0
-                    }
-                    batch.logits[i] = 0
-                }
-                // Only compute logits for the last token
-                if batch.n_tokens > 0 {
-                    batch.logits[Int(batch.n_tokens) - 1] = 1
-                }
-
-                // Evaluate prompt
+                // Process prompt in chunks of n_batch to avoid exceeding llama.cpp's
+                // batch size limit. This is critical when tool descriptions inflate the
+                // system prompt beyond n_batch tokens.
+                let nBatch = Int(llama_n_batch(ctx))
                 let promptStartTime = CFAbsoluteTimeGetCurrent()
-                guard llama_decode(ctx, batch) == 0 else {
-                    Self.signposter.endInterval("Inference", inferenceState, "FAILED — decode")
-                    continuation.finish(throwing: EngineError.generationFailed("llama_decode failed on prompt"))
-                    return
+                var nProcessed = 0
+                // Track the logit index from the last chunk for the first sampler call.
+                // llama_sampler_sample uses this index into the decoded batch's logits.
+                var lastChunkLogitIdx: Int32 = 0
+
+                while nProcessed < promptTokens.count {
+                    let chunkSize = min(nBatch, promptTokens.count - nProcessed)
+                    let isLastChunk = (nProcessed + chunkSize) >= promptTokens.count
+
+                    var batch = llama_batch_init(Int32(chunkSize), 0, 1)
+                    batch.n_tokens = Int32(chunkSize)
+                    for i in 0..<chunkSize {
+                        batch.token[i] = promptTokens[nProcessed + i]
+                        batch.pos[i] = Int32(nProcessed + i)
+                        batch.n_seq_id[i] = 1
+                        if let seqIds = batch.seq_id, let seqId = seqIds[i] {
+                            seqId[0] = 0
+                        }
+                        // Only compute logits for the very last token of the entire prompt
+                        batch.logits[i] = (isLastChunk && i == chunkSize - 1) ? 1 : 0
+                    }
+
+                    guard llama_decode(ctx, batch) == 0 else {
+                        llama_batch_free(batch)
+                        Self.signposter.endInterval("Inference", inferenceState, "FAILED — decode")
+                        continuation.finish(throwing: EngineError.generationFailed("llama_decode failed on prompt chunk"))
+                        return
+                    }
+                    // The logit index for sampling is the last token position in this batch
+                    lastChunkLogitIdx = batch.n_tokens - 1
+                    llama_batch_free(batch)
+                    nProcessed += chunkSize
                 }
 
                 // Build sampler chain
@@ -320,8 +350,17 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 var firstTokenTime: CFAbsoluteTime?
                 var generatedText = ""
                 var nGenerated = 0
-                var nCur = batch.n_tokens
+                var nCur = Int32(promptTokens.count)
                 let maxGenTokens = min(config.maxTokens, nCtx - Int(nCur))
+
+                // Single-token batch for autoregressive generation
+                var genBatch = llama_batch_init(1, 0, 1)
+                defer { llama_batch_free(genBatch) }
+
+                // The sampler needs the index of the last logits position.
+                // After prompt processing, that's the last token in the last chunk.
+                // After each generation step, it's always index 0 in genBatch.
+                var samplerIdx: Int32 = lastChunkLogitIdx
 
                 for _ in 0..<maxGenTokens {
                     // Check cancellation
@@ -330,17 +369,26 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     }
 
                     // Sample next token
-                    let nextToken = llama_sampler_sample(sampler, ctx, batch.n_tokens - 1)
+                    let nextToken = llama_sampler_sample(sampler, ctx, samplerIdx)
 
                     // Check for EOS
                     if llama_vocab_is_eog(vocab, nextToken) {
                         break
                     }
 
-                    // Skip control tokens that aren't marked as EOG
-                    // (e.g., <bos>, <pad>, <mask>, <|think|>).
+                    // Skip control tokens that aren't marked as EOG.
+                    // These include <bos>, <pad>, <mask>, <|think|>, <|tool|>, etc.
+                    // Important: do NOT break here — Gemma 4 emits <|think|> at the
+                    // start of responses (thinking mode). Breaking on it would produce
+                    // empty responses. Only EOG tokens (checked above) should terminate.
                     if llama_vocab_is_control(vocab, nextToken) {
-                        break
+                        // BOS re-emission is always wrong — stop to prevent loops.
+                        let vocab_bos = llama_vocab_bos(vocab)
+                        if nextToken == vocab_bos {
+                            break
+                        }
+                        // All other control tokens: skip (don't include in output).
+                        continue
                     }
 
                     // Record TTFT and emit FirstToken signpost event
@@ -366,19 +414,20 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                         continuation.yield(.text(tokenText))
                     }
 
-                    // Prepare batch for next token
-                    batch.n_tokens = 1
-                    batch.token[0] = nextToken
-                    batch.pos[0] = nCur
-                    batch.n_seq_id[0] = 1
-                    if let seqIds = batch.seq_id, let seqId = seqIds[0] {
+                    // Prepare single-token batch for next decode step
+                    genBatch.n_tokens = 1
+                    genBatch.token[0] = nextToken
+                    genBatch.pos[0] = nCur
+                    genBatch.n_seq_id[0] = 1
+                    if let seqIds = genBatch.seq_id, let seqId = seqIds[0] {
                         seqId[0] = 0
                     }
-                    batch.logits[0] = 1
+                    genBatch.logits[0] = 1
                     nCur += 1
+                    samplerIdx = 0  // After first decode, logits are at index 0
 
                     // Decode
-                    guard llama_decode(ctx, batch) == 0 else {
+                    guard llama_decode(ctx, genBatch) == 0 else {
                         continuation.finish(throwing: EngineError.generationFailed("llama_decode failed during generation"))
                         return
                     }
@@ -408,6 +457,25 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
 
                 // Add assistant response to history
                 self.conversationHistory.append((role: "assistant", content: generatedText))
+
+                // Parse tool calls from generated text and yield events.
+                // The model may embed function_call JSON in its response when tools
+                // are registered. We detect and dispatch them here, yielding
+                // .toolCall events before .metrics/.done.
+                // NOTE: Tool execution is the responsibility of the consumer
+                // (EvalRunner, ConversationViewModel), not the engine adapter.
+                // The adapter only detects and yields tool call events.
+                if !self.registeredTools.isEmpty,
+                   GGUFToolCallParser.mightContainToolCall(generatedText) {
+                    let toolCalls = GGUFToolCallParser.parseToolCalls(from: generatedText)
+                    for toolCall in toolCalls {
+                        Self.signposter.emitEvent(
+                            "ToolCall",
+                            "name=\(toolCall.toolName), args=\(toolCall.arguments.count)"
+                        )
+                        continuation.yield(.toolCall(toolCall))
+                    }
+                }
 
                 // Yield metrics and done
                 continuation.yield(.metrics(metrics))
@@ -465,6 +533,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         self._lastMetrics = nil
         self._ggufMetadata = nil
         self.conversationHistory.removeAll()
+        self.registeredTools = []
         #endif
     }
 
@@ -474,6 +543,26 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
             guard let self, let ctx = self.context else { return }
             llama_memory_clear(llama_get_memory(ctx), true)
             self.conversationHistory.removeAll()
+        }
+        #endif
+    }
+
+    /// Reset conversation state but preserve the system message.
+    ///
+    /// Used by the eval runner to give each prompt a clean context while
+    /// retaining tool descriptions in the system prompt. The standard
+    /// `resetConversation()` wipes everything including the system message.
+    func resetConversationKeepingSystem() async {
+        #if canImport(llama)
+        llamaQueue.sync { [weak self] in
+            guard let self, let ctx = self.context else { return }
+            llama_memory_clear(llama_get_memory(ctx), true)
+            // Keep only the system message (index 0), remove user/assistant turns
+            if let systemMsg = self.conversationHistory.first, systemMsg.role == "system" {
+                self.conversationHistory = [systemMsg]
+            } else {
+                self.conversationHistory.removeAll()
+            }
         }
         #endif
     }
@@ -551,7 +640,13 @@ enum GemmaChatTemplateFallback {
     static func apply(messages: [(role: String, content: String)], addGenerationPrompt: Bool) -> String {
         var result = ""
         for msg in messages {
-            let role = msg.role == "assistant" ? "model" : msg.role
+            // Map roles: assistant → model, tool → user (tool results are user-side context)
+            let role: String
+            switch msg.role {
+            case "assistant": role = "model"
+            case "tool": role = "user"  // Tool responses go as user context for next model turn
+            default: role = msg.role
+            }
             result += "<|turn>\(role)\n\(msg.content.trimmingCharacters(in: .whitespaces))<turn|>\n"
         }
         if addGenerationPrompt {

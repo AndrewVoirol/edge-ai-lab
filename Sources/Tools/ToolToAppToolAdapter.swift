@@ -97,15 +97,40 @@ struct ToolToAppToolAdapter: AppTool {
 
         let appSchema = AppToolSchema(properties: appParams, required: required)
 
+        // Capture as let for @Sendable closure safety
+        let paramTypes = appParams
+
         return ToolToAppToolAdapter(
             name: toolName,
             toolDescription: toolDesc,
             parameterSchema: appSchema,
             executeClosure: { arguments in
+                // Coerce argument types based on schema.
+                // Models often send numbers as strings (e.g., "3" instead of 3),
+                // which causes JSONDecoder.decode to fail on @ToolParam var value: Double.
+                var coerced = arguments
+                for (key, value) in arguments {
+                    guard let paramInfo = paramTypes[key] else { continue }
+                    if let strValue = value as? String {
+                        switch paramInfo.type {
+                        case "number":
+                            if let num = Double(strValue) {
+                                coerced[key] = num
+                            }
+                        case "integer":
+                            if let num = Int(strValue) {
+                                coerced[key] = num
+                            }
+                        default:
+                            break
+                        }
+                    }
+                }
+
                 // JSON round-trip: encode arguments → JSON → decode as T (concrete Tool type).
                 // This populates @ToolParam properties via Tool's Decodable conformance.
                 let jsonData = try JSONSerialization.data(
-                    withJSONObject: arguments,
+                    withJSONObject: coerced,
                     options: []
                 )
                 let instance = try JSONDecoder().decode(T.self, from: jsonData)

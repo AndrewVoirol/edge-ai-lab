@@ -29,7 +29,7 @@ final class BuiltInEvalSuitesTests: XCTestCase {
     // MARK: - Suite Count & Built-In Flag
 
     func testAllBuiltInCount() {
-        XCTAssertEqual(BuiltInEvalSuites.allBuiltIn.count, 8)
+        XCTAssertEqual(BuiltInEvalSuites.allBuiltIn.count, 9)
     }
 
     func testAllSuitesAreBuiltIn() {
@@ -94,15 +94,23 @@ final class BuiltInEvalSuitesTests: XCTestCase {
 
     // MARK: - Expected Behavior Patterns
 
-    func testMathSuiteHasOnlyToolCallExpectations() {
+    func testMathSuiteHasMixedExpectations() {
         let suite = BuiltInEvalSuites.mathAccuracy
-        for prompt in suite.prompts {
-            if case .toolCall = prompt.expectedBehavior {
-                // Expected — all math prompts should call a tool
-            } else {
-                XCTFail("Math suite prompt should have .toolCall expected behavior, got: \(prompt.expectedBehavior.displayDescription)")
-            }
-        }
+        let toolCallPrompts = suite.prompts.filter { $0.expectedBehavior.involvesToolCalling }
+        let textScoredPrompts = suite.prompts.filter { !$0.expectedBehavior.involvesToolCalling }
+
+        // Majority should be tool-call prompts (26 of 30)
+        XCTAssertGreaterThanOrEqual(
+            toolCallPrompts.count, 20,
+            "Math suite should have at least 20 tool-calling prompts"
+        )
+
+        // 4 prompts use text scoring for tool-limitation edge cases
+        // (sqrt, div-by-zero, exponentiation, compound unit conversion)
+        XCTAssertEqual(
+            textScoredPrompts.count, 4,
+            "Math suite should have exactly 4 text-scored edge-case prompts"
+        )
     }
 
     func testReasoningSuiteCategories() {

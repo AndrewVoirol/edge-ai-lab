@@ -45,6 +45,7 @@ struct EvalRunnerView: View {
     @State private var batchOrchestrator: BatchEvalOrchestrator?
     @State private var showBatchConfirm = false
     @State private var isBatchRunning = false
+    @State private var evalErrorMessage: String?
 
     // MARK: - Computed Properties
 
@@ -79,7 +80,7 @@ struct EvalRunnerView: View {
                 modelPicker
 
                 // MARK: Run Button
-                HStack(spacing: AppSpacing.md) {
+                VStack(spacing: AppSpacing.sm) {
                     runButton
                     runAllButton
                 }
@@ -87,6 +88,35 @@ struct EvalRunnerView: View {
                 // MARK: Progress (during eval)
                 if isRunning, let runner = evalRunner {
                     progressView(runner: runner)
+                }
+
+                // MARK: Batch Progress
+                if isBatchRunning, let orchestrator = batchOrchestrator {
+                    batchProgressView(orchestrator: orchestrator)
+                }
+
+                // MARK: Error Banner
+                if let errorMsg = evalErrorMessage {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColors.destructive)
+                        Text(errorMsg)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .lineLimit(3)
+                        Spacer()
+                        Button {
+                            evalErrorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(AppColors.textTertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(AppSpacing.md)
+                    .background(AppColors.destructive.opacity(0.15)) // design-system-exempt: error banner background needs partial opacity
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                    .accessibilityIdentifier("evalRunner_errorBanner")
                 }
 
                 // MARK: Results List
@@ -390,13 +420,21 @@ struct EvalRunnerView: View {
         Button {
             Task { await startEvaluation() }
         } label: {
-            HStack(spacing: AppSpacing.sm) {
-                Image(systemName: isRunning ? "stop.fill" : "play.fill")
-                    .font(AppIconSize.sm)
-                Text(isRunning ? "Running…" : "Run Evaluation")
-                    .font(AppTypography.subtitle)
+            VStack(spacing: AppSpacing.xxs) {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: isRunning ? "stop.fill" : "play.fill")
+                        .font(AppIconSize.sm)
+                    Text(isRunning ? "Running…" : "Run Evaluation")
+                        .font(AppTypography.subtitle)
+                }
+                .foregroundStyle(AppColors.textPrimary)
+
+                if !isRunning {
+                    Text("Selected suite · selected models")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textPrimary.opacity(AppOpacity.dim))
+                }
             }
-            .foregroundStyle(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
@@ -424,35 +462,42 @@ struct EvalRunnerView: View {
     // MARK: - Run All Button
 
     private var runAllButton: some View {
-        Button {
-            showBatchConfirm = true
-        } label: {
-            HStack(spacing: AppSpacing.sm) {
-                Image(systemName: isBatchRunning ? "stop.fill" : "forward.fill")
-                    .font(AppIconSize.sm)
-                Text(isBatchRunning ? "Batch Running…" : "Run All")
-                    .font(AppTypography.subtitle)
-            }
-            .foregroundStyle(AppColors.textPrimary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, AppSpacing.md)
-            .background(
-                LinearGradient(
-                    colors: (!isRunning && !isBatchRunning && !viewModel.discoveredModels.isEmpty)
-                        ? [AppColors.accentSecondary, AppColors.accentPrimary]
-                        : [AppColors.textTertiary.opacity(0.3), AppColors.textTertiary.opacity(0.2)], // design-system-exempt: gradient stops for disabled button
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
-        }
-        .buttonStyle(.plain)
-        .disabled(!EvalRunnerLogic.batchCanRun(
+        let batchEnabled = EvalRunnerLogic.batchCanRun(
             isRunning: isRunning,
             isBatchRunning: isBatchRunning,
             modelCount: viewModel.discoveredModels.count
-        ))
+        )
+
+        return Button {
+            showBatchConfirm = true
+        } label: {
+            VStack(spacing: AppSpacing.xxs) {
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: isBatchRunning ? "stop.fill" : "forward.fill")
+                        .font(AppIconSize.xs)
+                    Text(isBatchRunning ? "Batch Running…" : "Run All Suites")
+                        .font(AppTypography.sectionHeader)
+                }
+                .foregroundStyle(batchEnabled ? AppColors.accentPrimary : AppColors.textTertiary)
+
+                if !isBatchRunning {
+                    Text("All suites · all models")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.md)
+                    .stroke(
+                        batchEnabled ? AppColors.accentPrimary.opacity(AppOpacity.dim) : AppColors.textTertiary.opacity(0.2), // design-system-exempt: outline button border opacity
+                        lineWidth: AppLineWidth.regular
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!batchEnabled)
         .accessibilityIdentifier("evalRunner_runAllButton")
         .alert("Run All Evaluations?", isPresented: $showBatchConfirm) {
             Button("Cancel", role: .cancel) {}
@@ -554,6 +599,77 @@ struct EvalRunnerView: View {
             }
         }
         .accessibilityIdentifier("evalRunner_progressSection")
+    }
+
+    // MARK: - Batch Progress View
+
+    private func batchProgressView(orchestrator: BatchEvalOrchestrator) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            // Section header
+            HStack {
+                Text("Running All Suites")
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textSecondary)
+                Spacer()
+                Button {
+                    orchestrator.cancel()
+                    isBatchRunning = false
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "xmark.circle.fill")
+                        Text("Cancel Batch")
+                            .font(AppTypography.caption)
+                    }
+                    .foregroundStyle(AppColors.destructive)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("evalRunner_batchCancelButton")
+            }
+
+            // Overall progress bar
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                ProgressView(value: orchestrator.overallProgress)
+                    .tint(AppColors.accentSecondary)
+                    .accessibilityIdentifier("evalRunner_batchProgressBar")
+
+                HStack {
+                    // Current status
+                    Text(orchestrator.state.displayLabel)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    // Runs completed count
+                    Text("\(orchestrator.completedRuns)/\(orchestrator.totalRuns) runs")
+                        .font(AppTypography.mono)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+            }
+            .padding(AppSpacing.md)
+            .glassCard(cornerRadius: AppRadius.md)
+
+            // Current runner progress (nested)
+            if let currentRunner = orchestrator.currentRunner {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("Current Suite Progress")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+
+                    ProgressView(value: currentRunner.overallProgress)
+                        .tint(AppColors.accentPrimary)
+
+                    Text(currentRunner.progressDescription)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(1)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+            }
+        }
+        .accessibilityIdentifier("evalRunner_batchProgressSection")
     }
 
     // MARK: - Results List
@@ -681,24 +797,36 @@ struct EvalRunnerView: View {
     // MARK: - Eval Execution
 
     private func startEvaluation() async {
-        guard let suite = selectedSuite else { return }
+        guard let suite = selectedSuite else {
+            print("[EvalRunner] ⚠️ startEvaluation() — no suite selected, returning early")
+            return
+        }
 
-        // Build model entries from selected filenames
+        // Clear any previous error
+        evalErrorMessage = nil
+
+        // Build model entries from selected filenames.
+        // Use resolvedMetadata (never nil) instead of metadata (nil for imported models)
+        // to ensure all discovered models can participate in evaluation.
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
             .filter { selectedModelFiles.contains($0.filename) }
-            .compactMap { discovered in
-                guard let metadata = discovered.metadata else { return nil }
-                return EvalModelEntry(
-                    metadata: metadata,
+            .map { discovered in
+                EvalModelEntry(
+                    metadata: discovered.resolvedMetadata,
                     modelPath: discovered.url.path
                 )
             }
 
-        guard !modelEntries.isEmpty else { return }
+        guard !modelEntries.isEmpty else {
+            print("[EvalRunner] ⚠️ startEvaluation() — no models selected (selectedModelFiles: \(selectedModelFiles), discoveredModels: \(viewModel.discoveredModels.map { $0.filename }))")
+            return
+        }
 
-        // Create the runner — uses InferenceEngine directly
+        print("[EvalRunner] ▶️ Starting eval: suite='\(suite.name)' (\(suite.promptCount) prompts), models=\(modelEntries.map { $0.metadata.name })")
+        print("[EvalRunner] 📂 Model paths: \(modelEntries.map { $0.modelPath })")
+
+        // Create the runner — creates its own engine per model based on runtimeType
         let runner = EvalRunner(
-            engine: viewModel.engine,
             store: evalStore,
             exportPersistence: EvalResultPersistence()
         )
@@ -715,14 +843,19 @@ struct EvalRunnerView: View {
                 for: .cachesDirectory, in: .userDomainMask
             ).first?.path ?? NSTemporaryDirectory()
 
+            print("[EvalRunner] 🚀 Calling runner.run() with cacheDir='\(cacheDir)'")
+
             _ = try await runner.run(
                 suite: suite,
                 models: modelEntries,
                 flags: viewModel.runtimeFlags,
                 cacheDir: cacheDir
             )
+
+            print("[EvalRunner] ✅ runner.run() completed successfully")
         } catch {
-            // Runner handles its own error state
+            print("[EvalRunner] ❌ runner.run() threw: \(error)")
+            evalErrorMessage = "Evaluation failed: \(error.localizedDescription)"
         }
 
         isRunning = false
@@ -732,12 +865,13 @@ struct EvalRunnerView: View {
     // MARK: - Batch Eval Execution
 
     /// Build a plan using all available suites and all discovered models.
+    /// Uses resolvedMetadata so imported/community models without registry
+    /// entries are included in the batch plan and model count.
     private func buildBatchPlan() -> BatchEvalPlan {
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
-            .compactMap { discovered in
-                guard let metadata = discovered.metadata else { return nil }
-                return EvalModelEntry(
-                    metadata: metadata,
+            .map { discovered in
+                EvalModelEntry(
+                    metadata: discovered.resolvedMetadata,
                     modelPath: discovered.url.path
                 )
             }
@@ -751,12 +885,21 @@ struct EvalRunnerView: View {
     /// Run all suites against all models sequentially.
     private func startBatchEvaluation() async {
         let plan = buildBatchPlan()
-        guard plan.totalRuns > 0 else { return }
+        guard plan.totalRuns > 0 else {
+            print("[BatchEval] ⚠️ startBatchEvaluation() — totalRuns is 0, returning early")
+            return
+        }
+
+        // Clear any previous error
+        evalErrorMessage = nil
+
+        print("[BatchEval] ▶️ Starting batch eval: \(plan.description)")
+        print("[BatchEval] 📦 Models: \(plan.models.map { $0.metadata.name })")
+        print("[BatchEval] 📋 Suites: \(plan.suites.map { $0.name })")
 
         isBatchRunning = true
 
         let orchestrator = BatchEvalOrchestrator(
-            engine: viewModel.engine,
             store: evalStore
         )
         batchOrchestrator = orchestrator
@@ -768,6 +911,8 @@ struct EvalRunnerView: View {
                 for: .cachesDirectory, in: .userDomainMask
             ).first?.path ?? NSTemporaryDirectory()
         )
+
+        print("[BatchEval] 🏁 Batch eval finished: state=\(orchestrator.state.displayLabel), completed=\(orchestrator.completedRuns)/\(orchestrator.totalRuns)")
 
         batchOrchestrator = nil
         isBatchRunning = false

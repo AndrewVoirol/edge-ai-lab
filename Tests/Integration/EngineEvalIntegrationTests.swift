@@ -115,7 +115,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["The answer is ", "4", "."]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Math Test",
@@ -155,7 +155,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["Some", " response"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "NonEmpty Test",
@@ -189,7 +189,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["I don't know the answer"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Mismatch Test",
@@ -224,7 +224,7 @@ struct EngineEvalIntegrationTests {
         let engine = MockInferenceEngine.failingEngine()
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Init Failure Suite",
@@ -264,7 +264,7 @@ struct EngineEvalIntegrationTests {
         engine.errorAtChunkIndex = 2  // Error after emitting chunks 0 and 1
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Mid-Stream Error Suite",
@@ -304,7 +304,7 @@ struct EngineEvalIntegrationTests {
         )
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Inference Error Suite",
@@ -346,7 +346,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = []  // No chunks at all
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Empty Response Suite",
@@ -382,7 +382,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["  ", "\n", "\t"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Whitespace Suite",
@@ -419,7 +419,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["Hello", ", ", "world", "!"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let prompts = [
             EvalPrompt(
@@ -480,7 +480,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["hello", " world"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let prompts = [
             EvalPrompt(
@@ -539,7 +539,7 @@ struct EngineEvalIntegrationTests {
     func testRunnerStateCompletesAfterRun() async throws {
         let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "State Test",
@@ -570,7 +570,7 @@ struct EngineEvalIntegrationTests {
     func testEmptyModelListThrowsNoModels() async throws {
         let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "No Models Suite",
@@ -602,7 +602,7 @@ struct EngineEvalIntegrationTests {
     func testEngineShutdownAfterEval() async throws {
         let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Shutdown Test",
@@ -640,7 +640,7 @@ struct EngineEvalIntegrationTests {
         engine.mockResponseChunks = ["The result is 42 units"]
 
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Regex Suite",
@@ -673,7 +673,7 @@ struct EngineEvalIntegrationTests {
     func testRunPersistedToStore() async throws {
         let engine = MockInferenceEngine.happyPath()
         let store = Self.makeTempStore()
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         let suite = EvalSuite(
             name: "Persistence Test",

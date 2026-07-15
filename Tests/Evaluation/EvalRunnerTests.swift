@@ -40,7 +40,7 @@ final class EvalRunnerTests: XCTestCase {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         mockEngine = MockInferenceEngine()
         evalStore = EvalStore(storageDirectory: tempDir)
-        evalRunner = EvalRunner(engine: mockEngine, store: evalStore)
+        evalRunner = EvalRunner(store: evalStore)
     }
 
     override func tearDown() {

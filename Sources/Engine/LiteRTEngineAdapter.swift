@@ -113,16 +113,24 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
         // Determine cache directory.
         let cacheDir = config.cacheDir ?? NSTemporaryDirectory()
 
-        // Bridge AppTool → LiteRTLM.Tool if tools are provided.
-        // AppTool → LiteRT Tool bridging deferred until AppTool rollout is complete.
-        // Tools are currently assembled by ModelSessionController.buildActiveTools()
-        // and passed via loadWithLiteRTConfig(). This path is for future direct
-        // InferenceEngine consumers that bypass the session controller.
+        // Bridge AppTool → LiteRTLM.Tool for the SDK.
+        // LiteRT-LM requires native Tool objects in its conversation initialization
+        // to include tool definitions in the prompt template. The AppTool instances
+        // are registered for execution lookup, and we filter ToolRegistry.defaultTools
+        // to the names matching the provided AppTools.
         let tools: [Tool]?
-        if let appTools = config.tools {
-            // Register tools for lookup during execution
+        if let appTools = config.tools, !appTools.isEmpty {
+            // Register for execution lookup
             LiteRTToolBridgeRegistry.shared.registerAll(appTools)
-            tools = nil
+            // Map AppTool names back to native LiteRT Tool objects
+            let appToolNames = Set(appTools.map(\.name))
+            let nativeTools = ToolRegistry.defaultTools.filter { tool in
+                let schema = tool.getSchema()
+                let function = schema["function"] as? [String: Any] ?? [:]
+                let name = function["name"] as? String ?? ""
+                return appToolNames.contains(name)
+            }
+            tools = nativeTools.isEmpty ? nil : nativeTools
         } else {
             tools = nil
         }
@@ -163,11 +171,19 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
             }
         }
 
-        // Wrap the existing String stream into GenerationEvent stream.
-        // Note: LiteRT-LM binds sampling parameters to the conversation at creation time,
-        // not per-turn. If the caller needs different parameters, they would need to
-        // call loadModel() again with a new config.
-        let textStream = engine.sendMessageStream(prompt)
+        // Route through InstrumentedEngine's multimodal overload when image
+        // data is present. This uses Content.imageData() under the hood,
+        // matching the conversation view's multimodal inference path.
+        let textStream: AsyncThrowingStream<String, Error>
+        if let imageData = config.imageData?.first {
+            textStream = engine.sendMessageStream(
+                prompt,
+                imageData: imageData,
+                audioData: nil
+            )
+        } else {
+            textStream = engine.sendMessageStream(prompt)
+        }
 
         return AsyncThrowingStream { continuation in
             Task { [weak self] in

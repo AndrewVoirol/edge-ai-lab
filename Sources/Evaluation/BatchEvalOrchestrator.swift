@@ -122,7 +122,7 @@ enum BatchEvalState: Sendable, Equatable {
 ///
 /// Usage:
 /// ```swift
-/// let orchestrator = BatchEvalOrchestrator(engine: engine, store: store)
+/// let orchestrator = BatchEvalOrchestrator(store: store)
 /// let results = await orchestrator.runAll(plan: plan, flags: flags, cacheDir: dir)
 /// ```
 @Observable
@@ -162,12 +162,10 @@ final class BatchEvalOrchestrator {
 
     // MARK: - Dependencies
 
-    private let engine: any InferenceEngine
     private let store: EvalStore
     private var isCancelled = false
 
-    init(engine: any InferenceEngine, store: EvalStore) {
-        self.engine = engine
+    init(store: EvalStore) {
         self.store = store
     }
 
@@ -199,7 +197,6 @@ final class BatchEvalOrchestrator {
             state = .running(suiteIndex: suiteIndex, suiteName: suite.name)
 
             let runner = EvalRunner(
-                engine: engine,
                 store: store,
                 exportPersistence: EvalResultPersistence()
             )

@@ -137,8 +137,10 @@ final class EvalRunner {
 
     // MARK: - Dependencies
 
-    /// The inference engine used to run models.
-    private let engine: any InferenceEngine
+    /// The inference engine currently in use for the active model evaluation.
+    /// Created fresh per-model inside `evaluateModel()` via `EngineFactory`.
+    /// Stored at class level so `cancel()` can invoke `cancelGeneration()`.
+    private var engine: (any InferenceEngine)?
 
     /// Store for persisting completed runs.
     private let store: EvalStore
@@ -154,17 +156,18 @@ final class EvalRunner {
 
     // MARK: - Init
 
-    /// Initialize the eval runner with an engine, store, and optional export persistence.
+    /// Initialize the eval runner with a store and optional export persistence.
+    ///
+    /// The runner creates its own inference engine per model based on the
+    /// model's `runtimeType`, so no engine parameter is needed.
+    ///
     /// - Parameters:
-    ///   - engine: The inference engine to use for inference.
     ///   - store: The eval store for persisting results.
     ///   - exportPersistence: Optional portable export persistence for timestamped JSON exports.
     init(
-        engine: any InferenceEngine,
         store: EvalStore,
         exportPersistence: EvalResultPersistence? = nil
     ) {
-        self.engine = engine
         self.store = store
         self.exportPersistence = exportPersistence
     }
@@ -184,7 +187,8 @@ final class EvalRunner {
         suite: EvalSuite,
         models: [EvalModelEntry],
         flags: RuntimeFlags,
-        cacheDir: String
+        cacheDir: String,
+        runsPerPrompt: Int = 1
     ) async throws -> EvalRun {
         guard !models.isEmpty else {
             throw EvalRunnerError.noModels
@@ -229,7 +233,8 @@ final class EvalRunner {
                     modelEntry: modelEntry,
                     suite: suite,
                     flags: flags,
-                    cacheDir: cacheDir
+                    cacheDir: cacheDir,
+                    runsPerPrompt: max(1, runsPerPrompt)
                 )
                 allModelResults.append(modelResult)
             } catch {
@@ -254,8 +259,8 @@ final class EvalRunner {
         }
 
         // Shut down the engine after eval so it's not left initialized with the last model.
-        // The user will need to re-select their model, but the engine won't be in an unexpected state.
-        await engine.shutdown()
+        await engine?.shutdown()
+        engine = nil
 
         // Finalize the run
         state = .scoring
@@ -298,7 +303,7 @@ final class EvalRunner {
         guard state.isActive else { return }
         Self.logger.info("🛑 Cancelling eval run")
         isCancelled = true
-        engine.cancelGeneration()
+        engine?.cancelGeneration()
         runTask?.cancel()
         state = .failed("Cancelled by user")
     }
@@ -323,22 +328,49 @@ final class EvalRunner {
         modelEntry: EvalModelEntry,
         suite: EvalSuite,
         flags: RuntimeFlags,
-        cacheDir: String
+        cacheDir: String,
+        runsPerPrompt: Int = 1
     ) async throws -> ModelEvalResult {
         let metadata = modelEntry.metadata
 
-        // Shut down any existing engine session
-        await engine.shutdown()
+        // Shut down any existing engine session from a previous model
+        await engine?.shutdown()
+        engine = nil
+
+        // Create a fresh engine for this model's runtime type.
+        // Each model gets its own engine instance — no reuse across models.
+        let requiredRuntime = metadata.runtimeType
+        Self.logger.info("🔧 Creating \(requiredRuntime.displayName, privacy: .public) engine for \(metadata.name, privacy: .public)")
+
+        let engine: any InferenceEngine
+        do {
+            engine = try EngineFactory.createEngine(for: requiredRuntime)
+        } catch {
+            Self.logger.error("❌ Failed to create \(requiredRuntime.displayName, privacy: .public) engine: \(error.localizedDescription, privacy: .public)")
+            throw EvalRunnerError.engineInitFailed("Cannot create \(requiredRuntime.displayName) engine: \(error.localizedDescription)")
+        }
+        self.engine = engine  // Store for cancellation
+        defer {
+            Task { [weak engine] in
+                await engine?.shutdown()
+            }
+        }
 
         // Initialize the engine with this model
-        // Configure flags for eval: enable benchmarks, enable tool calling for tool suites
+        // Configure flags for eval: enable benchmarks, enable tool calling when any prompt expects it
         var evalFlags = flags
         evalFlags.enableBenchmark = true
-        evalFlags.enableToolCalling = suite.category == .toolCalling || suite.category == .math
+        // Load tools if ANY prompt in the suite expects tool-calling behavior.
+        // This is more accurate than checking the category, because suites like
+        // Gemma 4 Capabilities (.general) include tool prompts, and suites like
+        // Math Knowledge (.math) use text-only scoring and break when tools are loaded.
+        evalFlags.enableToolCalling = suite.prompts.contains { $0.expectedBehavior.involvesToolCalling }
 
-        // Build tools as AppTool for the generic InferenceEngine path
+        // Build tools as AppTool for the generic InferenceEngine path.
+        // ToolRegistry.defaultTools are LiteRTLM.Tool instances — use the adapter
+        // to bridge them to AppTool for engine-agnostic consumption.
         let tools: [any AppTool]? = evalFlags.enableToolCalling
-            ? ToolRegistry.defaultTools.compactMap { $0 as? (any AppTool) }
+            ? ToolToAppToolAdapter.adaptAll(ToolRegistry.defaultTools)
             : nil
 
         let loadConfig = ModelLoadConfig(
@@ -354,6 +386,7 @@ final class EvalRunner {
         try await engine.loadModel(config: loadConfig)
 
         Self.logger.info("✅ Engine initialized for eval: \(metadata.name, privacy: .public)")
+        print("[EvalRunner] 🔧 Engine loaded: runtime=\(engine.runtimeType.displayName), supportsToolCalling=\(engine.supportsToolCalling), tools=\(tools?.count ?? 0)")
 
         // Track metrics across prompts
         let modelStartTime = CFAbsoluteTimeGetCurrent()
@@ -381,27 +414,111 @@ final class EvalRunner {
 
             Self.logger.info("🔄 Prompt \(promptIdx + 1)/\(suite.promptCount): \(prompt.truncatedPrompt, privacy: .public)")
 
-            // Reset conversation between prompts to get clean context
+            // Skip tool-call-scored prompts when the engine doesn't support tool calling.
+            // Instead of running inference that will always produce 0 tool call events,
+            // mark the prompt as skipped with a clear reason.
+            if prompt.expectedBehavior.involvesToolCalling && !engine.supportsToolCalling {
+                let skipReason = "Skipped: \(engine.runtimeType.displayName) engine does not support tool calling"
+                Self.logger.info("⏭️ Skipping tool-call prompt: \(skipReason, privacy: .public)")
+                let skippedResult = PromptEvalResult(
+                    promptId: prompt.id,
+                    promptText: prompt.prompt,
+                    response: "",
+                    passed: false,
+                    score: .fail(reason: skipReason),
+                    duration: 0
+                )
+                promptResults.append(skippedResult)
+                onPromptComplete?(skippedResult)
+                continue
+            }
+
+            // Reset conversation between prompts to get clean context.
+            // Use system-preserving reset for GGUF to keep tool descriptions.
             if promptIdx > 0 {
-                try await engine.resetConversation()
+                if let ggufEngine = engine as? GGUFEngineAdapter {
+                    await ggufEngine.resetConversationKeepingSystem()
+                } else {
+                    try await engine.resetConversation()
+                }
             }
 
             let promptResult = await evaluatePrompt(
                 prompt: prompt,
                 metadata: metadata,
-                timeout: prompt.timeoutSeconds
+                timeout: prompt.timeoutSeconds,
+                tools: tools ?? []
             )
 
-            promptResults.append(promptResult)
-            onPromptComplete?(promptResult)
-            promptDurations.append(promptResult.duration)
+            // If runsPerPrompt > 1, run additional repetitions and aggregate.
+            // First run already completed above. Run remaining N-1 times.
+            if runsPerPrompt > 1 {
+                var passCount = promptResult.passed ? 1 : 0
+                var allSpeeds: [Double] = []
+                if let s = promptResult.decodeSpeed { allSpeeds.append(s) }
+                var allTTFTs: [Double] = []
+                if let t = promptResult.ttft { allTTFTs.append(t) }
 
-            // Aggregate metrics
-            if let speed = promptResult.decodeSpeed {
-                decodeSpeeds.append(speed)
-            }
-            if let t = promptResult.ttft {
-                ttfts.append(t)
+                for runIdx in 2...runsPerPrompt {
+                    guard !isCancelled else { throw EvalRunnerError.cancelled }
+
+                    progressDescription = "Model \(currentModelIndex + 1)/\(totalModels) · Prompt \(promptIdx + 1)/\(totalPrompts) · Run \(runIdx)/\(runsPerPrompt)"
+
+                    // Reset conversation between repetitions
+                    if let ggufEngine = engine as? GGUFEngineAdapter {
+                        await ggufEngine.resetConversationKeepingSystem()
+                    } else {
+                        try await engine.resetConversation()
+                    }
+
+                    let repResult = await evaluatePrompt(
+                        prompt: prompt,
+                        metadata: metadata,
+                        timeout: prompt.timeoutSeconds,
+                        tools: tools ?? []
+                    )
+
+                    if repResult.passed { passCount += 1 }
+                    if let s = repResult.decodeSpeed { allSpeeds.append(s) }
+                    if let t = repResult.ttft { allTTFTs.append(t) }
+                }
+
+                // Majority vote: passed if > 50% of runs passed
+                let aggregatePassed = passCount > runsPerPrompt / 2
+                let avgSpeed = allSpeeds.isEmpty ? nil : allSpeeds.reduce(0, +) / Double(allSpeeds.count)
+                let avgTTFT = allTTFTs.isEmpty ? nil : allTTFTs.reduce(0, +) / Double(allTTFTs.count)
+
+                let aggregatedResult = PromptEvalResult(
+                    promptId: prompt.id,
+                    promptText: prompt.prompt,
+                    response: promptResult.response,
+                    passed: aggregatePassed,
+                    score: aggregatePassed
+                        ? .pass
+                        : .fail(reason: "Passed \(passCount)/\(runsPerPrompt) runs (majority vote)"),
+                    decodeSpeed: avgSpeed,
+                    ttft: avgTTFT,
+                    toolCallEvents: promptResult.toolCallEvents,
+                    duration: promptResult.duration
+                )
+
+                promptResults.append(aggregatedResult)
+                onPromptComplete?(aggregatedResult)
+                promptDurations.append(aggregatedResult.duration)
+
+                if let speed = avgSpeed { decodeSpeeds.append(speed) }
+                if let t = avgTTFT { ttfts.append(t) }
+            } else {
+                promptResults.append(promptResult)
+                onPromptComplete?(promptResult)
+                promptDurations.append(promptResult.duration)
+
+                if let speed = promptResult.decodeSpeed {
+                    decodeSpeeds.append(speed)
+                }
+                if let t = promptResult.ttft {
+                    ttfts.append(t)
+                }
             }
 
 
@@ -484,11 +601,23 @@ final class EvalRunner {
     private func evaluatePrompt(
         prompt: EvalPrompt,
         metadata: ModelMetadata,
-        timeout: Int
+        timeout: Int,
+        tools: [any AppTool]
     ) async -> PromptEvalResult {
         let promptStartTime = CFAbsoluteTimeGetCurrent()
-        var collectedResponse = ""
         var capturedToolEvents: [ToolCallEvent] = []
+
+        // Engine must be loaded by evaluateModel() before calling this method
+        guard let engine = engine else {
+            return PromptEvalResult(
+                promptId: prompt.id,
+                promptText: prompt.prompt,
+                response: "",
+                passed: false,
+                score: .fail(reason: "Engine not loaded — internal error"),
+                duration: 0
+            )
+        }
 
         // Register tool call tracker to capture events during this prompt
         ToolExecutionTracker.shared.registerCallback { event in
@@ -518,96 +647,243 @@ final class EvalRunner {
             )
         }
 
+        // Build a tool lookup table for dispatching
+        let toolLookup = Dictionary(uniqueKeysWithValues: tools.map { ($0.name, $0) })
+
+        // Multi-turn tool execution loop.
+        // Each turn: send prompt → model generates → if tool call, execute tool,
+        // feed result back → repeat. Max 5 turns to prevent infinite loops.
+        //
+        // Uses a task group with a result enum: the inference task returns
+        // .completed with the response and events, the timeout task throws.
+        // First task to finish wins.
+        let maxTurns = 5
+
+        enum InferenceResult: Sendable {
+            case completed(response: String, toolEvents: [ToolCallEvent])
+            case timeout
+        }
+
         do {
-            // Run inference with timeout
-            try await withThrowingTaskGroup(of: String.self) { group in
-                // Inference task
-                group.addTask { [engine] in
-                    var fullResponse = ""
-                    let stream = engine.generateStream(
-                        prompt: prompt.prompt,
-                        config: .default
-                    )
-
-                    for try await event in stream {
-                        if case .text(let chunk) = event {
-                            fullResponse += chunk
-                        }
-                    }
-                    return fullResponse
-                }
-
+            let result = try await withThrowingTaskGroup(
+                of: InferenceResult.self
+            ) { group -> InferenceResult in
                 // Timeout task
                 group.addTask {
                     try await Task.sleep(for: .seconds(timeout))
-                    throw EvalRunnerError.promptTimeout(prompt.id)
+                    return .timeout
                 }
 
-                // Take the first result (either inference completes or timeout fires)
-                if let result = try await group.next() {
-                    collectedResponse = result
+                // Multi-turn inference task
+                group.addTask { [engine] in
+                    var currentPrompt = prompt.prompt
+                    var localToolEvents: [ToolCallEvent] = []
+                    var lastTextResponse = ""
+                    var isFirstTurn = true
+
+                    for _ in 1...maxTurns {
+                        try Task.checkCancellation()
+
+                        // Run one inference turn
+                        var turnResponse = ""
+                        var turnToolCalls: [AppToolCall] = []
+
+                        // Pass image data only on the first turn — subsequent turns
+                        // are tool-result feedback where re-sending the image is
+                        // unnecessary and wastes prefill budget.
+                        var evalConfig = GenerationConfig.default
+                        if isFirstTurn, let imgData = prompt.imageData {
+                            evalConfig.imageData = [imgData]
+                        }
+                        let stream = engine.generateStream(
+                            prompt: currentPrompt,
+                            config: evalConfig
+                        )
+
+                        for try await event in stream {
+                            switch event {
+                            case .text(let chunk):
+                                turnResponse += chunk
+                            case .toolCall(let call):
+                                turnToolCalls.append(call)
+                            default:
+                                break
+                            }
+                        }
+
+                        isFirstTurn = false
+
+                        if turnToolCalls.isEmpty {
+                            // No tool calls — model produced a text response. Done.
+                            return .completed(
+                                response: turnResponse,
+                                toolEvents: localToolEvents
+                            )
+                        }
+
+                        lastTextResponse = turnResponse
+
+                        // Execute each tool call and build a result summary
+                        var toolResultParts: [String] = []
+                        for call in turnToolCalls {
+                            // Convert AnyCodable arguments to [String: Any]
+                            let argsJSON: String
+                            if let data = try? JSONEncoder().encode(call.arguments) {
+                                argsJSON = String(data: data, encoding: .utf8) ?? "{}"
+                            } else {
+                                argsJSON = "{}"
+                            }
+
+                            let argsDict: [String: Any]
+                            if let data = argsJSON.data(using: .utf8),
+                               let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                argsDict = parsed
+                            } else {
+                                argsDict = [:]
+                            }
+
+                            if let tool = toolLookup[call.toolName] {
+                                let startTime = CFAbsoluteTimeGetCurrent()
+                                do {
+                                    let result = try await tool.execute(arguments: argsDict)
+                                    let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+                                    localToolEvents.append(ToolCallEvent(
+                                        toolName: call.toolName,
+                                        arguments: argsJSON,
+                                        result: result,
+                                        durationMs: elapsed,
+                                        timestamp: Date(),
+                                        succeeded: true
+                                    ))
+                                    toolResultParts.append("Tool \(call.toolName) returned: \(result)")
+                                } catch {
+                                    let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+                                    localToolEvents.append(ToolCallEvent(
+                                        toolName: call.toolName,
+                                        arguments: argsJSON,
+                                        result: "Error: \(error.localizedDescription)",
+                                        durationMs: elapsed,
+                                        timestamp: Date(),
+                                        succeeded: false
+                                    ))
+                                    toolResultParts.append("Tool \(call.toolName) failed: \(error.localizedDescription)")
+                                }
+                            } else {
+                                // Tool not found — record as failed
+                                localToolEvents.append(ToolCallEvent(
+                                    toolName: call.toolName,
+                                    arguments: argsJSON,
+                                    result: "Unknown tool",
+                                    durationMs: 0,
+                                    timestamp: Date(),
+                                    succeeded: false
+                                ))
+                                toolResultParts.append("Tool \(call.toolName) is not available")
+                            }
+                        }
+
+                        // Feed tool results back as the next prompt for the model
+                        currentPrompt = toolResultParts.joined(separator: "\n")
+                    }
+
+                    // Exhausted max turns — return whatever text we have
+                    return .completed(
+                        response: lastTextResponse,
+                        toolEvents: localToolEvents
+                    )
+                }
+
+                // First result wins
+                guard let first = try await group.next() else {
+                    throw EvalRunnerError.promptTimeout(prompt.id)
                 }
                 group.cancelAll()
+                return first
             }
-        } catch is EvalRunnerError {
-            // Timeout
+
+            // Unpack the result
+            let finalResponse: String
+            switch result {
+            case .completed(let response, let toolEvents):
+                finalResponse = response
+                // Merge events from both sources:
+                // 1. capturedToolEvents — populated by ToolExecutionTracker callback
+                //    (used by LiteRT-LM which handles tools internally, never emitting .toolCall in the stream)
+                // 2. toolEvents — populated by the multi-turn loop when it receives .toolCall events
+                //    (used by engines like GGUF that emit tool calls in the GenerationEvent stream)
+                capturedToolEvents.append(contentsOf: toolEvents)
+            case .timeout:
+                let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
+                return PromptEvalResult(
+                    promptId: prompt.id,
+                    promptText: prompt.prompt,
+                    response: "",
+                    passed: false,
+                    score: .timeout,
+                    duration: duration
+                )
+            }
+
+            // --- Success path: inference completed within timeout ---
+
+            let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
+
+            // Capture performance metrics from the engine
+            let decodeSpeed = engine.lastPerformanceMetrics?.tokensPerSecond
+            let ttft = engine.lastPerformanceMetrics?.timeToFirstToken
+
+            // Score the response
+            let evalScore = EvalScorer.score(
+                response: finalResponse,
+                toolCallEvents: capturedToolEvents,
+                against: prompt.expectedBehavior
+            )
+
+            let passed: Bool
+            if case .pass = evalScore {
+                passed = true
+            } else {
+                passed = false
+            }
+
+            Self.logger.info(
+                "\(passed ? "✅" : "❌", privacy: .public) Prompt scored: \(evalScore.displayLabel, privacy: .public) — \(prompt.truncatedPrompt, privacy: .public)"
+            )
+
+            return PromptEvalResult(
+                promptId: prompt.id,
+                promptText: prompt.prompt,
+                response: finalResponse,
+                passed: passed,
+                score: evalScore,
+                decodeSpeed: decodeSpeed,
+                ttft: ttft,
+                toolCallEvents: capturedToolEvents,
+                duration: duration
+            )
+        } catch is CancellationError {
+            // Timeout via task group cancellation
             let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
             return PromptEvalResult(
                 promptId: prompt.id,
                 promptText: prompt.prompt,
-                response: collectedResponse,
+                response: "",
                 passed: false,
                 score: .timeout,
                 duration: duration
             )
         } catch {
-            // Inference error
+            // Inference or other error
             let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
             return PromptEvalResult(
                 promptId: prompt.id,
                 promptText: prompt.prompt,
-                response: collectedResponse,
+                response: "",
                 passed: false,
                 score: .error(error.localizedDescription),
                 duration: duration
             )
         }
-
-        let duration = CFAbsoluteTimeGetCurrent() - promptStartTime
-
-        // Capture performance metrics from the engine
-        let decodeSpeed = engine.lastPerformanceMetrics?.tokensPerSecond
-        let ttft = engine.lastPerformanceMetrics?.timeToFirstToken
-
-        // Score the response
-        let evalScore = EvalScorer.score(
-            response: collectedResponse,
-            toolCallEvents: capturedToolEvents,
-            against: prompt.expectedBehavior
-        )
-
-        let passed: Bool
-        if case .pass = evalScore {
-            passed = true
-        } else {
-            passed = false
-        }
-
-        Self.logger.info(
-            "\(passed ? "✅" : "❌", privacy: .public) Prompt scored: \(evalScore.displayLabel, privacy: .public) — \(prompt.truncatedPrompt, privacy: .public)"
-        )
-
-        return PromptEvalResult(
-            promptId: prompt.id,
-            promptText: prompt.prompt,
-            response: collectedResponse,
-            passed: passed,
-            score: evalScore,
-            decodeSpeed: decodeSpeed,
-            ttft: ttft,
-            toolCallEvents: capturedToolEvents,
-            duration: duration
-        )
     }
 
 }

@@ -62,7 +62,7 @@ final class EvalRunnerLifecycleTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeRunner() -> EvalRunner {
-        EvalRunner(engine: mockEngine, store: evalStore)
+        EvalRunner(store: evalStore)
     }
 
     private func makeModelEntry() -> EvalModelEntry {

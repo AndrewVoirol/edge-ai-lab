@@ -131,11 +131,10 @@ struct BatchEvalOrchestratorTests {
 
     /// Create an orchestrator backed by a mock engine and temp-dir store.
     private func makeOrchestrator() -> BatchEvalOrchestrator {
-        let engine = MockInferenceEngine.happyPath()
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("BatchEvalOrchestratorTests-\(UUID().uuidString)")
         let store = EvalStore(storageDirectory: tempDir)
-        return BatchEvalOrchestrator(engine: engine, store: store)
+        return BatchEvalOrchestrator(store: store)
     }
 
     // MARK: - Initial State
@@ -183,11 +182,10 @@ struct BatchEvalOrchestratorTests {
         orch.completedRuns = 0
 
         // Create a mock EvalRunner to simulate partial progress
-        let engine = MockInferenceEngine.happyPath()
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("BatchEvalOrchestratorTests-runner-\(UUID().uuidString)")
         let store = EvalStore(storageDirectory: tempDir)
-        let runner = EvalRunner(engine: engine, store: store)
+        let runner = EvalRunner(store: store)
 
         // Simulate the runner being partway through: 1 of 2 models, 1 of 4 prompts
         runner.totalModels = 2

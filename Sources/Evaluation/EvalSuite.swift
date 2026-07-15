@@ -84,6 +84,22 @@ struct EvalSuite: Codable, Sendable, Identifiable {
     var estimatedDurationSeconds: Int {
         prompts.reduce(0) { $0 + $1.timeoutSeconds }
     }
+
+    /// Whether ALL prompts in this suite require tool calling.
+    ///
+    /// When true, the entire suite is incompatible with engines that don't support
+    /// tool calling (e.g., GGUF). Use this to skip the suite entirely.
+    var requiresToolCalling: Bool {
+        !prompts.isEmpty && prompts.allSatisfy { $0.expectedBehavior.involvesToolCalling }
+    }
+
+    /// Whether ANY prompts in this suite require tool calling.
+    ///
+    /// Mixed suites (some tool-call, some text-based) can run on non-tool-calling
+    /// engines — the tool-call prompts are individually skipped.
+    var hasToolCallingPrompts: Bool {
+        prompts.contains { $0.expectedBehavior.involvesToolCalling }
+    }
 }
 
 // MARK: - Eval Category
@@ -219,6 +235,12 @@ enum ExpectedBehavior: Codable, Sendable {
     /// Model must invoke a chain of tools in the specified order.
     case toolCallChain([String])
 
+    /// Model must invoke any tool — passes regardless of which tool is called.
+    ///
+    /// Use for prompts where multiple tools could validly solve the problem
+    /// (e.g., a unit conversion could use either `calculate` or `convert_units`).
+    case anyToolCall
+
     /// Response must be non-empty (at least some text generated).
     case nonEmpty
 
@@ -254,6 +276,8 @@ enum ExpectedBehavior: Codable, Sendable {
             return "Calls \(name) with \(key)=\"\(value)\""
         case .toolCallChain(let tools):
             return "Tool chain: \(tools.joined(separator: " → "))"
+        case .anyToolCall:
+            return "Calls any tool"
         case .nonEmpty:
             return "Non-empty response"
         case .matchesRegex(let pattern):
@@ -279,7 +303,7 @@ enum ExpectedBehavior: Codable, Sendable {
     /// Whether this expectation involves tool calling.
     var involvesToolCalling: Bool {
         switch self {
-        case .toolCall, .toolCallWithArgs, .toolCallChain:
+        case .toolCall, .toolCallWithArgs, .toolCallChain, .anyToolCall:
             return true
         default:
             return false
