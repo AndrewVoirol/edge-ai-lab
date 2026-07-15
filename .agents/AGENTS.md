@@ -64,6 +64,7 @@
 - **Subagent file operations require directory-level verification.** When subagents copy directories, verify the complete tree (not just the primary file). Use `find <dir> -type f | wc -l` to confirm file counts match the source. Subagents commonly miss companion directories (e.g., `scripts/`, `examples/`) and file permissions.
 - **Large subagent file batches should be split into groups of ≤15 files.** Subagents that process more than ~15 files in a single task are prone to context overflow, incomplete work, and silent failures. Split into multiple subagents with non-overlapping file lists and verify each independently.
 - **After subagent "replace all X with Y" work, verify the outcome, not just the report.** Run `grep -rn "X" Sources/` yourself and confirm zero results (or only exempt instances). Subagents accurately report what they changed but cannot report what they missed. Build success does not prove completeness — only a post-hoc grep does.
+- **Never ask the user to run eval suites or test flows when you can run them yourself.** If you can `xcodebuild build` and `xcodebuild test`, you can also run the app and trigger automation flows via the harness. Exhaust all autonomous verification before asking the user for manual testing. The user is a collaborator, not a test runner. If you cannot run a test autonomously, explain specifically what blocks you (e.g., "requires physical device," "needs UI interaction I can't automate") rather than defaulting to "please run this and send me the logs."
 
 ## Strategic Recommendations
 - **Never project numeric outcomes without evidence.** If you haven't measured it, say "unknown — requires measurement" instead of estimating a range. Fabricated projections (e.g., "expected 50-80%") erode trust when reality doesn't match.
@@ -139,6 +140,12 @@
 - **Settings must be engine-agnostic.** Use `FlagDescriptor.supportedEngines` and `FlagDescriptor.isSupported(on:)` to gate features. Never hardcode engine-specific text like "Switch to LiteRT-LM" — use dynamic text from the descriptor.
 - **`import LiteRTLM` should NOT appear in shared UI code.** Settings views, conversation views, and badges should import only the app module. Engine-specific imports belong in adapter files only.
 - **When adding a new engine capability**, update `FlagDescriptor` entries empirically (test the actual behavior), not speculatively. The `supportedEngines` set is a contract — inaccurate values erode user trust.
+- **Before claiming an engine "doesn't support" a feature, distinguish between three levels:**
+  1. **Our adapter doesn't implement it** — the upstream SDK supports it, but our `*EngineAdapter.swift` hasn't wired it up. Say "not yet implemented" and cite what's needed.
+  2. **The upstream SDK doesn't support it** — verified by searching SDK headers, docs, and issue trackers. Say "not supported by [SDK]" with source.
+  3. **The model architecture doesn't support it** — the model itself lacks the capability (e.g., text-only model can't do vision). Say "model doesn't support [X]."
+  Never collapse these into a single "doesn't support" claim. Run `grep -rn '<feature>' Sources/Engine/<Adapter>.swift` AND search upstream SDK docs before making any capability statement.
+- **When building features that span engines, always enumerate via `RuntimeType.allCases` or `RuntimeType.supportedCases` — never hardcode file extensions or engine names.** Before marking a cross-engine feature complete, verify it handles all cases by grepping: `grep -c 'case .litertlm\|case .mlx\|case .gguf' <file>` or filtering by `runtimeType.isSupported`. Missing an engine in a filter or switch is a common omission — especially MLX, which uses directories instead of single files.
 
 ## SDK Header Verification
 - **Before using any Apple framework API introduced in iOS 26+/macOS 26+, verify against actual SDK headers** — not documentation pages, not AI summaries, not WWDC session descriptions. The canonical source is the `.swiftinterface` files in the SDK:
@@ -236,3 +243,10 @@ When adding a new UI element that needs a visual value:
 - **`python3 scripts/validate_color_distinctness.py` must pass before any color-related commit.** This is not optional — it is the structural guard against the class of bugs that pairwise documentation misses. The script checks 26 distinctness rules + 14 contrast rules in both light and dark mode (40 total checks per mode).
 - **When adding new color assets**, add corresponding rules to BOTH `scripts/validate_color_distinctness.py` (CI script) AND `Tests/DesignSystem/DesignSystemDistinctnessTests.swift` (runtime tests). A color without validation rules will drift silently.
 
+## Evaluation Harness
+- **Before fixing a failing eval prompt, categorize the failure root cause:**
+  1. **Scorer limitation** — the scorer can't match valid model output (e.g., expects digit "1" but model writes "one"). Fix: widen the scorer.
+  2. **Tool limitation** — the model correctly calls the tool, but the tool can't handle the input (e.g., calculator doesn't support `sqrt()`). Fix: improve the tool OR switch to text-based scoring with a comment explaining the tool gap.
+  3. **Prompt ambiguity** — the prompt is unclear or has multiple valid interpretations. Fix: reword the prompt.
+  4. **Genuine model limitation** — the model gets it wrong (e.g., arithmetic errors). Fix: **do not change the scorer** — this is a correct eval signal. Document it.
+  Document the category in a code comment on the scorer line. Never change a scorer without stating which category applies.
