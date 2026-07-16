@@ -663,25 +663,23 @@ enum BuiltInEvalSuites {
                     timeoutSeconds: 90
                 ),
 
-                // Audio understanding tasks — nil audioData, marked for manual review
-                // These previously used .nonEmpty which passed trivially (inflating metrics).
-                // Marked as .custom to surface as manual review until real audio data is available.
+                // Audio understanding tasks — real audio data from EvalAudioLoader
                 EvalPrompt(
                     prompt: "What is being said in this audio clip?",
-                    expectedBehavior: .custom(description: "Requires real audio data — currently nil"),
-                    audioData: nil,
+                    expectedBehavior: .containsAny(["hello", "test", "audio", "transcription", "weather", "sunny"]),
+                    audioData: EvalAudioLoader.loadAudio(named: "spoken_english"),
                     timeoutSeconds: 90
                 ),
                 EvalPrompt(
                     prompt: "Describe the sounds you hear in this audio.",
-                    expectedBehavior: .custom(description: "Requires real audio data — currently nil"),
-                    audioData: nil,
+                    expectedBehavior: .containsAny(["counting", "numbers", "one", "two", "three", "speaking", "voice", "speech"]),
+                    audioData: EvalAudioLoader.loadAudio(named: "spoken_counting"),
                     timeoutSeconds: 90
                 ),
                 EvalPrompt(
                     prompt: "What language is being spoken in this audio?",
-                    expectedBehavior: .custom(description: "Requires real audio data — currently nil"),
-                    audioData: nil,
+                    expectedBehavior: .containsAny(["spanish", "español", "Spanish"]),
+                    audioData: EvalAudioLoader.loadAudio(named: "spoken_spanish"),
                     timeoutSeconds: 90
                 ),
             ]

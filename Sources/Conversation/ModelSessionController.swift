@@ -153,7 +153,7 @@ final class ModelSessionController {
     /// - Parameters:
     ///   - url: File URL to the model file or directory.
     ///   - metadata: Pre-resolved metadata from DiscoveredModel (avoids re-lookup for community models).
-    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil) async {
+    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil, mmProjPath: String? = nil) async {
         Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
@@ -170,7 +170,7 @@ final class ModelSessionController {
         // Bookmark Gallery models for future auto-discovery
         GalleryModelDiscovery.bookmarkGalleryModel(url)
 
-        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata)
+        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata, mmProjPath: mmProjPath)
     }
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
@@ -185,7 +185,8 @@ final class ModelSessionController {
         discoveredMetadata: ModelMetadata? = nil,
         runtimeFlags: RuntimeFlags? = nil,
         useGPU: Bool? = nil,
-        mcpClients: [UUID: Any] = [:]
+        mcpClients: [UUID: Any] = [:],
+        mmProjPath: String? = nil
     ) async {
         // Cancel any in-progress load
         modelLoadTask?.cancel()
@@ -332,7 +333,8 @@ final class ModelSessionController {
                     supportsAudio: activeModelMetadata?.supportsAudio ?? false,
                     generationConfig: genConfig,
                     runtimeFlags: activeFlags,
-                    maxNumTokens: maxNumTokens
+                    maxNumTokens: maxNumTokens,
+                    mmProjPath: mmProjPath
                 )
                 try await engine.loadModel(config: loadConfig)
                 // Generic engines may populate lastBackendResult via protocol

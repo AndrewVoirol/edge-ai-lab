@@ -568,11 +568,10 @@ final class ConversationViewModel {
         // Resolve metadata from discoveredModels for community/imported models
         // that aren't in the static ModelRegistry. resolvedMetadata synthesizes
         // from filename heuristics when registry lookup returns nil.
-        let discoveredMeta = discoveredModels
-            .first { $0.url == url }?
-            .resolvedMetadata
+        let discoveredMatch = discoveredModels.first { $0.url == url }
+        let discoveredMeta = discoveredMatch?.resolvedMetadata
 
-        await sessionController.handleModelSelection(url, metadata: discoveredMeta)
+        await sessionController.handleModelSelection(url, metadata: discoveredMeta, mmProjPath: discoveredMatch?.mmProjPath)
         // Sync sampler config from model defaults that the controller may have applied.
         // Use isSyncingSettings to suppress the didSet → reinitializeEngineIfNeeded() cascade.
         // Without this guard, each property set fires a full engine shutdown + re-init,

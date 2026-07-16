@@ -36,6 +36,10 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// Matched metadata from ModelRegistry, if available.
     let metadata: ModelMetadata?
 
+    /// Path to a companion multimodal projector file (mmproj-*.gguf), if found.
+    /// Populated during discovery by scanning the same directory for mmproj files.
+    let mmProjPath: String?
+
     enum DiscoverySource: String, Sendable {
         /// Found in the app's own Documents directory.
         case local
@@ -53,10 +57,24 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// detail panel, load/unload buttons, and model card always render —
     /// even for user-imported GGUF or community models with no registry entry.
     var resolvedMetadata: ModelMetadata {
-        if let metadata { return metadata }
+        if let metadata {
+            // If we have registry metadata but the mmproj status should override
+            // the multimodal flags, create a copy with corrected flags.
+            if metadata.runtimeType == .gguf {
+                let hasProj = mmProjPath != nil
+                if metadata.supportsImage != hasProj || metadata.supportsAudio != hasProj {
+                    var corrected = metadata
+                    corrected.supportsImage = hasProj
+                    corrected.supportsAudio = hasProj
+                    return corrected
+                }
+            }
+            return metadata
+        }
         return DiscoveredModel.synthesizeMetadata(
             filename: filename,
-            sizeInBytes: sizeInBytes
+            sizeInBytes: sizeInBytes,
+            hasMMProj: mmProjPath != nil
         )
     }
 
@@ -64,7 +82,8 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// Parses quantization (Q4_K_M, Q8_0, etc.) and runtime from extension.
     private static func synthesizeMetadata(
         filename: String,
-        sizeInBytes: Int64
+        sizeInBytes: Int64,
+        hasMMProj: Bool = false
     ) -> ModelMetadata {
         let ext = (filename as NSString).pathExtension.lowercased()
         let stem = (filename as NSString).deletingPathExtension
@@ -98,7 +117,17 @@ struct DiscoveredModel: Identifiable, Sendable {
         let lowerStem = stem.lowercased()
         let isGemma4Standard = lowerStem.contains("gemma") && lowerStem.contains("4")
             && !lowerStem.contains("web") && !lowerStem.contains("mobile")
-        let hasMultimodal = isGemma4Standard
+        // For GGUF models, multimodal requires an mmproj file — family detection alone is insufficient.
+        // For LiteRT-LM models, multimodal is built into the model file itself.
+        let hasMultimodal: Bool
+        switch runtime {
+        case .gguf:
+            hasMultimodal = isGemma4Standard && hasMMProj
+        case .litertlm:
+            hasMultimodal = isGemma4Standard
+        default:
+            hasMultimodal = isGemma4Standard
+        }
 
         return ModelMetadata(
             name: displayName,
@@ -262,8 +291,19 @@ enum GalleryModelDiscovery {
             return []
         }
 
+        // Scan for mmproj companion files in the same directory
+        let mmprojFiles = contents.filter { url in
+            let name = url.lastPathComponent.lowercased()
+            return name.hasPrefix("mmproj") && name.hasSuffix(".gguf")
+        }
+        // Pick the first mmproj file (prefer F16 over others if multiple exist)
+        let mmprojURL = mmprojFiles.first(where: { $0.lastPathComponent.lowercased().contains("f16") })
+            ?? mmprojFiles.first
+
         return contents.compactMap { url -> DiscoveredModel? in
             guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return nil }
+            // Skip mmproj files — they are companion files, not loadable models
+            guard !url.lastPathComponent.lowercased().hasPrefix("mmproj") else { return nil }
 
             // Resolve symlinks so we check the actual target file
             let resolvedURL = url.resolvingSymlinksInPath()
@@ -273,11 +313,15 @@ enum GalleryModelDiscovery {
             let size = Int64(resourceValues?.fileSize ?? 0)
             let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
 
+            // Only attach mmproj path to GGUF models
+            let projPath: String? = url.pathExtension.lowercased() == "gguf" ? mmprojURL?.path : nil
+
             return DiscoveredModel(
                 url: url,
                 sizeInBytes: size,
                 source: source,
-                metadata: metadata
+                metadata: metadata,
+                mmProjPath: projPath
             )
         }
     }
@@ -327,7 +371,8 @@ enum GalleryModelDiscovery {
                 url: url,
                 sizeInBytes: totalSize,
                 source: source,
-                metadata: metadata
+                metadata: metadata,
+                mmProjPath: nil
             )
         }
     }
@@ -443,7 +488,8 @@ enum GalleryModelDiscovery {
                     url: url,
                     sizeInBytes: totalSize,
                     source: .edgeGallery,
-                    metadata: metadata
+                    metadata: metadata,
+                    mmProjPath: nil
                 )
             }
 
@@ -457,7 +503,8 @@ enum GalleryModelDiscovery {
                 url: url,
                 sizeInBytes: size,
                 source: .edgeGallery,
-                metadata: metadata
+                metadata: metadata,
+                mmProjPath: nil
             )
         }
     }

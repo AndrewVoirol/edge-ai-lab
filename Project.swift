@@ -56,7 +56,7 @@ let project = Project(
                 "NSLocationWhenInUseUsageDescription": "Edge AI Lab uses your location to provide context-aware responses when you ask location-related questions.",
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**", "Tests/Resources/audio/**"],
             // Increased Memory Limit entitlement for large model inference.
             // NOTE: extended-virtual-addressing requires paid Apple Developer Program;
             // increased-memory-limit works with personal teams (matches zealous-bose config).
@@ -98,7 +98,7 @@ let project = Project(
                 "NSLocationUsageDescription": "Edge AI Lab uses your location to provide context-aware responses when you ask location-related questions.",
             ]),
             sources: ["Sources/**"],
-            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**"],
+            resources: ["Sources/Assets.xcassets", "automation/flows/**/*.json", "Tests/Resources/images/**", "Tests/Resources/audio/**"],
             entitlements: .file(path: "EdgeAILab_macOS.entitlements"),
             dependencies: [
                 .package(product: "LiteRTLM"),

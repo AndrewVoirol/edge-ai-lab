@@ -46,6 +46,7 @@ struct EvalRunnerView: View {
     @State private var showBatchConfirm = false
     @State private var isBatchRunning = false
     @State private var evalErrorMessage: String?
+    @State private var runsPerPrompt: Int = 1
 
     // MARK: - Computed Properties
 
@@ -78,6 +79,9 @@ struct EvalRunnerView: View {
 
                 // MARK: Model Picker
                 modelPicker
+
+                // MARK: Eval Settings
+                evalSettings
 
                 // MARK: Run Button
                 VStack(spacing: AppSpacing.sm) {
@@ -412,6 +416,40 @@ struct EvalRunnerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("evalRunner_modelRow_\(model.filename)")
+    }
+
+    // MARK: - Eval Settings
+
+    private var evalSettings: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("Settings")
+                .font(AppTypography.subtitle)
+                .foregroundStyle(AppColors.textPrimary)
+
+            HStack {
+                Label("Runs per prompt", systemImage: "repeat")
+                    .font(AppTypography.body)
+                    .foregroundStyle(AppColors.textSecondary)
+
+                Spacer()
+
+                Stepper(
+                    "\(runsPerPrompt)×",
+                    value: $runsPerPrompt,
+                    in: 1...5
+                )
+                .font(AppTypography.body)
+                .accessibilityIdentifier("evalRunner_runsPerPromptStepper")
+            }
+
+            if runsPerPrompt > 1 {
+                Text("Each prompt runs \(runsPerPrompt)× with majority-vote scoring. Estimated time increases proportionally.")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+        }
+        .padding(AppSpacing.md)
+        .glassCard(cornerRadius: AppRadius.md)
     }
 
     // MARK: - Run Button
@@ -813,7 +851,8 @@ struct EvalRunnerView: View {
             .map { discovered in
                 EvalModelEntry(
                     metadata: discovered.resolvedMetadata,
-                    modelPath: discovered.url.path
+                    modelPath: discovered.url.path,
+                    mmProjPath: discovered.mmProjPath
                 )
             }
 
@@ -849,7 +888,8 @@ struct EvalRunnerView: View {
                 suite: suite,
                 models: modelEntries,
                 flags: viewModel.runtimeFlags,
-                cacheDir: cacheDir
+                cacheDir: cacheDir,
+                runsPerPrompt: runsPerPrompt
             )
 
             print("[EvalRunner] ✅ runner.run() completed successfully")
@@ -872,7 +912,8 @@ struct EvalRunnerView: View {
             .map { discovered in
                 EvalModelEntry(
                     metadata: discovered.resolvedMetadata,
-                    modelPath: discovered.url.path
+                    modelPath: discovered.url.path,
+                    mmProjPath: discovered.mmProjPath
                 )
             }
 
@@ -909,7 +950,8 @@ struct EvalRunnerView: View {
             flags: viewModel.runtimeFlags,
             cacheDir: FileManager.default.urls(
                 for: .cachesDirectory, in: .userDomainMask
-            ).first?.path ?? NSTemporaryDirectory()
+            ).first?.path ?? NSTemporaryDirectory(),
+            runsPerPrompt: runsPerPrompt
         )
 
         print("[BatchEval] 🏁 Batch eval finished: state=\(orchestrator.state.displayLabel), completed=\(orchestrator.completedRuns)/\(orchestrator.totalRuns)")

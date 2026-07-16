@@ -118,7 +118,7 @@ struct EvalAutomationPipeline {
         // Run all suites against each model
         for discovered in discoveredModels {
             let metadata = discovered.resolvedMetadata
-            let modelEntry = EvalModelEntry(metadata: metadata, modelPath: discovered.url.path)
+            let modelEntry = EvalModelEntry(metadata: metadata, modelPath: discovered.url.path, mmProjPath: discovered.mmProjPath)
             let modelCacheDir = cachesDir.appendingPathComponent(discovered.filename)
             try? FileManager.default.createDirectory(at: modelCacheDir, withIntermediateDirectories: true)
             
@@ -138,7 +138,8 @@ struct EvalAutomationPipeline {
                         suite: suite,
                         models: [modelEntry],
                         flags: flags,
-                        cacheDir: modelCacheDir.path
+                        cacheDir: modelCacheDir.path,
+                        runsPerPrompt: 5
                     )
                     
                     let totalResults = run.modelResults.flatMap { $0.promptResults }

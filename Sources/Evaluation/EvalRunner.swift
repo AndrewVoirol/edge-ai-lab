@@ -69,6 +69,10 @@ struct EvalModelEntry: Sendable {
 
     /// Absolute path to the model file on disk.
     let modelPath: String
+
+    /// Path to the companion multimodal projector file (mmproj-*.gguf), if available.
+    /// Only used by GGUF engine for vision/audio support via libmtmd.
+    var mmProjPath: String? = nil
 }
 
 // MARK: - Eval Runner
@@ -381,7 +385,8 @@ final class EvalRunner {
             tools: tools,
             supportsVision: metadata.supportsImage,
             supportsAudio: metadata.supportsAudio,
-            runtimeFlags: evalFlags
+            runtimeFlags: evalFlags,
+            mmProjPath: modelEntry.mmProjPath
         )
         try await engine.loadModel(config: loadConfig)
 
@@ -688,12 +693,15 @@ final class EvalRunner {
                         var turnResponse = ""
                         var turnToolCalls: [AppToolCall] = []
 
-                        // Pass image data only on the first turn — subsequent turns
-                        // are tool-result feedback where re-sending the image is
+                        // Pass image/audio data only on the first turn — subsequent turns
+                        // are tool-result feedback where re-sending media is
                         // unnecessary and wastes prefill budget.
                         var evalConfig = GenerationConfig.default
                         if isFirstTurn, let imgData = prompt.imageData {
                             evalConfig.imageData = [imgData]
+                        }
+                        if isFirstTurn, let audData = prompt.audioData {
+                            evalConfig.audioData = [audData]
                         }
                         let stream = engine.generateStream(
                             prompt: currentPrompt,

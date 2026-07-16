@@ -153,10 +153,10 @@ struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
     let recommendedFor: String
 
     /// Whether the model supports image input
-    let supportsImage: Bool
+    var supportsImage: Bool
 
     /// Whether the model supports audio input
-    let supportsAudio: Bool
+    var supportsAudio: Bool
 
     /// Supported capabilities (e.g., "speculative_decoding", "llm_thinking")
     let capabilities: [String]

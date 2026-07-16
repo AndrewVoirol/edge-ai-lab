@@ -172,14 +172,16 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
         }
 
         // Route through InstrumentedEngine's multimodal overload when image
-        // data is present. This uses Content.imageData() under the hood,
-        // matching the conversation view's multimodal inference path.
+        // or audio data is present. This uses Content.imageData() / Content.audioData()
+        // under the hood, matching the conversation view's multimodal inference path.
         let textStream: AsyncThrowingStream<String, Error>
-        if let imageData = config.imageData?.first {
+        let hasImage = config.imageData?.first != nil
+        let hasAudio = config.audioData?.first != nil
+        if hasImage || hasAudio {
             textStream = engine.sendMessageStream(
                 prompt,
-                imageData: imageData,
-                audioData: nil
+                imageData: config.imageData?.first,
+                audioData: config.audioData?.first
             )
         } else {
             textStream = engine.sendMessageStream(prompt)

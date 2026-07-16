@@ -191,7 +191,8 @@ final class GalleryModelDiscoveryTests: XCTestCase {
                 url: url,
                 sizeInBytes: size,
                 source: .local,
-                metadata: metadata
+                metadata: metadata,
+                mmProjPath: nil
             )
         }
     }
@@ -282,7 +283,8 @@ final class GalleryModelDiscoveryTests: XCTestCase {
                 url: url,
                 sizeInBytes: totalSize,
                 source: .local,
-                metadata: nil
+                metadata: nil,
+                mmProjPath: nil
             )
         }
     }

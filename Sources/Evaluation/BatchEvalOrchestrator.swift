@@ -181,7 +181,8 @@ final class BatchEvalOrchestrator {
     func runAll(
         plan: BatchEvalPlan,
         flags: RuntimeFlags,
-        cacheDir: String
+        cacheDir: String,
+        runsPerPrompt: Int = 1
     ) async -> [EvalRun] {
         isCancelled = false
         completedRuns = 0
@@ -207,7 +208,8 @@ final class BatchEvalOrchestrator {
                     suite: suite,
                     models: plan.models,
                     flags: flags,
-                    cacheDir: cacheDir
+                    cacheDir: cacheDir,
+                    runsPerPrompt: runsPerPrompt
                 )
                 results.append(run)
                 completedRuns += 1

@@ -353,6 +353,16 @@ struct GenerationConfig: Sendable, Equatable {
     /// Ignored by engines that don't support vision (`supportsVision == false`).
     var imageData: [Data]?
 
+    /// Audio data for audio-language models.
+    ///
+    /// When non-nil, the adapter passes these audio clips alongside the text prompt.
+    /// For LiteRT-LM, audio is forwarded via `sendMessageStream(text:imageData:audioData:)`.
+    /// For GGUF, audio is processed via `mtmd_helper_bitmap_init_from_buf()` (auto-detects
+    /// audio by magic bytes).
+    ///
+    /// Ignored by engines that don't support audio.
+    var audioData: [Data]?
+
     // MARK: - Diffusion-Specific (Optional)
 
     /// Number of denoising steps for diffusion models. Ignored by autoregressive engines.
@@ -371,6 +381,7 @@ struct GenerationConfig: Sendable, Equatable {
         repetitionPenalty: nil,
         seed: nil,
         imageData: nil,
+        audioData: nil,
         diffusionSteps: nil,
         diffusionSchedule: nil
     )
@@ -383,6 +394,7 @@ struct GenerationConfig: Sendable, Equatable {
         repetitionPenalty: Double? = nil,
         seed: UInt64? = nil,
         imageData: [Data]? = nil,
+        audioData: [Data]? = nil,
         diffusionSteps: Int? = nil,
         diffusionSchedule: String? = nil
     ) {
@@ -393,6 +405,7 @@ struct GenerationConfig: Sendable, Equatable {
         self.repetitionPenalty = repetitionPenalty
         self.seed = seed
         self.imageData = imageData
+        self.audioData = audioData
         self.diffusionSteps = diffusionSteps
         self.diffusionSchedule = diffusionSchedule
     }
@@ -439,6 +452,11 @@ struct ModelLoadConfig: Sendable, Equatable {
     /// `nil` means auto-sized (SDK default). Must be positive when set.
     var maxNumTokens: Int?
 
+    /// Path to a companion multimodal projector file (mmproj-*.gguf).
+    /// Used by GGUF engine for vision/audio support via `mtmd_init_from_file()`.
+    /// `nil` means no multimodal projector is available (text-only inference).
+    var mmProjPath: String?
+
     init(
         modelPath: String,
         preferGPU: Bool = true,
@@ -449,7 +467,8 @@ struct ModelLoadConfig: Sendable, Equatable {
         supportsAudio: Bool = false,
         generationConfig: GenerationConfig? = nil,
         runtimeFlags: RuntimeFlags? = nil,
-        maxNumTokens: Int? = nil
+        maxNumTokens: Int? = nil,
+        mmProjPath: String? = nil
     ) {
         self.modelPath = modelPath
         self.preferGPU = preferGPU
@@ -461,6 +480,7 @@ struct ModelLoadConfig: Sendable, Equatable {
         self.generationConfig = generationConfig
         self.runtimeFlags = runtimeFlags
         self.maxNumTokens = maxNumTokens
+        self.mmProjPath = mmProjPath
     }
 
     /// Manual Equatable — `tools: [any AppTool]?` can't auto-synthesize.
@@ -475,6 +495,7 @@ struct ModelLoadConfig: Sendable, Equatable {
             && lhs.generationConfig == rhs.generationConfig
             && lhs.runtimeFlags == rhs.runtimeFlags
             && lhs.maxNumTokens == rhs.maxNumTokens
+            && lhs.mmProjPath == rhs.mmProjPath
     }
 }
 

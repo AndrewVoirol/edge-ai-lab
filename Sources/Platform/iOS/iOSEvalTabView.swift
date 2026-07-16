@@ -49,6 +49,7 @@ struct iOSEvalTabView: View {
     @State private var batchOrchestrator: BatchEvalOrchestrator?
     @State private var showBatchConfirm = false
     @State private var isBatchRunning = false
+    @State private var runsPerPrompt: Int = 1
 
     // MARK: - Computed Properties
 
@@ -176,6 +177,24 @@ struct iOSEvalTabView: View {
                         .font(AppTypography.listSubtitle)
                         .accessibilityIdentifier("evalTab_noModels")
                 }
+            }
+
+            // MARK: Eval Settings
+            Section {
+                Stepper(
+                    "Runs per prompt: \(runsPerPrompt)×",
+                    value: $runsPerPrompt,
+                    in: 1...5
+                )
+                .accessibilityIdentifier("evalTab_runsPerPromptStepper")
+
+                if runsPerPrompt > 1 {
+                    Text("Each prompt runs \(runsPerPrompt)× with majority-vote scoring.")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
+            } header: {
+                Text("Settings")
             }
 
             // MARK: Run Button
@@ -392,7 +411,8 @@ struct iOSEvalTabView: View {
             .map { discovered in
                 EvalModelEntry(
                     metadata: discovered.resolvedMetadata,
-                    modelPath: discovered.url.path
+                    modelPath: discovered.url.path,
+                    mmProjPath: discovered.mmProjPath
                 )
             }
 
@@ -426,7 +446,8 @@ struct iOSEvalTabView: View {
                 suite: suite,
                 models: modelEntries,
                 flags: viewModel.runtimeFlags,
-                cacheDir: cacheDir
+                cacheDir: cacheDir,
+                runsPerPrompt: runsPerPrompt
             )
 
             progressTask.cancel()
@@ -502,7 +523,8 @@ struct iOSEvalTabView: View {
             .map { discovered in
                 EvalModelEntry(
                     metadata: discovered.resolvedMetadata,
-                    modelPath: discovered.url.path
+                    modelPath: discovered.url.path,
+                    mmProjPath: discovered.mmProjPath
                 )
             }
 
@@ -529,7 +551,8 @@ struct iOSEvalTabView: View {
             flags: viewModel.runtimeFlags,
             cacheDir: FileManager.default.urls(
                 for: .cachesDirectory, in: .userDomainMask
-            ).first?.path ?? NSTemporaryDirectory()
+            ).first?.path ?? NSTemporaryDirectory(),
+            runsPerPrompt: runsPerPrompt
         )
 
         batchOrchestrator = nil
