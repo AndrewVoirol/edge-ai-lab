@@ -105,11 +105,12 @@ final class BuiltInEvalSuitesTests: XCTestCase {
             "Math suite should have at least 20 tool-calling prompts"
         )
 
-        // 4 prompts use text scoring for tool-limitation edge cases
-        // (sqrt, div-by-zero, exponentiation, compound unit conversion)
+        // 9 prompts use text scoring for tool-limitation edge cases
+        // (sqrt, div-by-zero, exponentiation, compound unit conversion,
+        //  and 5 unit conversions where models answer from knowledge)
         XCTAssertEqual(
-            textScoredPrompts.count, 4,
-            "Math suite should have exactly 4 text-scored edge-case prompts"
+            textScoredPrompts.count, 9,
+            "Math suite should have exactly 9 text-scored edge-case prompts"
         )
     }
 

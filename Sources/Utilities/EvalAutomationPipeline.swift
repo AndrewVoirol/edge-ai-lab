@@ -164,6 +164,11 @@ struct EvalAutomationPipeline {
             try? FileManager.default.createDirectory(at: modelCacheDir, withIntermediateDirectories: true)
             
             automationLog("\n[AUTOMATION] ─── Model: \(metadata.name) (\(metadata.runtimeType.displayName)) ───")
+            let multimodalInfo = [
+                metadata.supportsImage ? "vision" : nil,
+                metadata.supportsAudio ? "audio" : nil
+            ].compactMap { $0 }.joined(separator: "+")
+            automationLog("[AUTOMATION]   Engine: \(metadata.runtimeType.displayName) | Multimodal: \(multimodalInfo.isEmpty ? "text-only" : multimodalInfo) | Start: cold (fresh engine per suite)")
             
             var modelResults: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = []
             
@@ -208,7 +213,9 @@ struct EvalAutomationPipeline {
                         let durationStr = String(format: "%.1f", suiteDuration)
                         let speedStr = modelResult.avgDecodeSpeed > 0 ? String(format: "%.1f tok/s", modelResult.avgDecodeSpeed) : "N/A"
                         let ttftStr = modelResult.avgTTFT > 0 ? String(format: "%.0f ms", modelResult.avgTTFT * 1000) : "N/A"
-                        automationLog("[AUTOMATION]   ⏱️ Duration: \(durationStr)s | Speed: \(speedStr) | TTFT: \(ttftStr)")
+                        let p95Str = modelResult.p95Latency > 0 ? String(format: "%.1f ms/tok", modelResult.p95Latency) : "N/A"
+                        automationLog("[AUTOMATION]   ⏱️ Duration: \(durationStr)s | Decode: \(speedStr) | TTFT: \(ttftStr) | P95: \(p95Str)")
+                        automationLog("[AUTOMATION]   📊 Tokens: \(modelResult.totalTokensGenerated) | Memory Δ: \(modelResult.peakMemoryDeltaMB.map { String(format: "%.1f MB", $0) } ?? "N/A") | Thermal: \(modelResult.thermalTransitions) transition(s)")
                     }
                     
                     // Log failed prompts for diagnostic value

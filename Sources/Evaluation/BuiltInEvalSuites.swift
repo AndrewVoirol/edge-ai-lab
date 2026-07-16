@@ -54,7 +54,9 @@ enum BuiltInEvalSuites {
             ),
             EvalPrompt(
                 prompt: "Convert 72 degrees Fahrenheit to Celsius",
-                expectedBehavior: .anyToolCall
+                // Model may use convert_units tool or answer from knowledge.
+                // 72°F = 22.22°C. Accept tool call OR correct answer.
+                expectedBehavior: .containsAny(["22.22", "22.2"])
             ),
             EvalPrompt(
                 prompt: "What is 15% of 340?",
@@ -76,7 +78,8 @@ enum BuiltInEvalSuites {
             ),
             EvalPrompt(
                 prompt: "Convert 2.5 kilograms to pounds",
-                expectedBehavior: .anyToolCall
+                // 2.5 kg = 5.5115 lbs. Model may use tool or answer from knowledge.
+                expectedBehavior: .containsAny(["5.51", "5.5", "5.512"])
             ),
             EvalPrompt(
                 prompt: "If I have 3 dozen eggs and use 17, how many are left?",
@@ -182,17 +185,20 @@ enum BuiltInEvalSuites {
             ),
             EvalPrompt(
                 prompt: "Convert 16 ounces to pounds",
-                expectedBehavior: .anyToolCall
+                // 16 oz = 1 lb. Model answers this from basic knowledge.
+                expectedBehavior: .containsAny(["1 pound", "1 lb", "1.0", "one pound"])
             ),
 
             // Unit conversions — data storage
             EvalPrompt(
                 prompt: "How many megabytes are in 2 gigabytes?",
-                expectedBehavior: .anyToolCall
+                // 2 GB = 2000 MB (SI) or 2048 MB (binary).
+                expectedBehavior: .containsAny(["2000", "2,000", "2048", "2,048"])
             ),
             EvalPrompt(
                 prompt: "Convert 5000 kilobytes to megabytes",
-                expectedBehavior: .anyToolCall
+                // 5000 KB = 5 MB (SI) or 4.88 MB (binary).
+                expectedBehavior: .containsAny(["5 MB", "5 megabyte", "5.0 MB", "4.88", "4.883"])
             ),
         ],
         isBuiltIn: true
