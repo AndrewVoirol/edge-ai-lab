@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Darwin
 import os
 
 // MARK: - Automation Logging
@@ -27,5 +28,6 @@ let automationLogger = Logger(subsystem: "com.andrewvoirol.EdgeAILab", category:
 /// (for iOS device log capture without --console).
 func automationLog(_ message: String) {
     print(message)
+    fflush(stdout)
     automationLogger.notice("\(message, privacy: .public)")
 }
