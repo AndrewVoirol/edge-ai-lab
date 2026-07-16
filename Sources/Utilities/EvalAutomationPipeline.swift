@@ -36,6 +36,7 @@ struct EvalAutomationPipeline {
         automationLog("[AUTOMATION] ═══════════════════════════════════════════")
         automationLog("[AUTOMATION] Eval Pipeline \(isDryRun ? "(DRY RUN)" : "")")
         automationLog("[AUTOMATION] ═══════════════════════════════════════════")
+        let pipelineStartTime = CFAbsoluteTimeGetCurrent()
         
         // Step 1: Load built-in suites
         automationLog("[AUTOMATION] Step 1: Loading built-in eval suites...")
@@ -57,6 +58,15 @@ struct EvalAutomationPipeline {
             }
             suites = filtered
             automationLog("[AUTOMATION] Suite filter active: running only \(filtered.map(\.name).joined(separator: ", "))")
+        }
+        
+        // Optional runs-per-prompt: -EvalRunsPerPrompt 1 (default 5)
+        var runsPerPrompt = 5
+        if let rppIdx = CommandLine.arguments.firstIndex(of: "-EvalRunsPerPrompt"),
+           rppIdx + 1 < CommandLine.arguments.count,
+           let rpp = Int(CommandLine.arguments[rppIdx + 1]), rpp > 0 {
+            runsPerPrompt = rpp
+            automationLog("[AUTOMATION] Runs per prompt: \(rpp)")
         }
         
         // Step 2: Validate suites
@@ -119,8 +129,25 @@ struct EvalAutomationPipeline {
         for model in discoveredModels {
             automationLog("[AUTOMATION]   Found: \(model.filename) (\(model.formattedSize), \(model.resolvedMetadata.runtimeType.displayName))")
         }
+        // Optional model filter: -EvalModelFilter "GGUF" filters by engine name
+        var modelsToRun = discoveredModels
+        if let mfIdx = CommandLine.arguments.firstIndex(of: "-EvalModelFilter"),
+           mfIdx + 1 < CommandLine.arguments.count {
+            let modelFilter = CommandLine.arguments[mfIdx + 1]
+            let filtered = discoveredModels.filter {
+                $0.resolvedMetadata.runtimeType.displayName.localizedCaseInsensitiveContains(modelFilter)
+                || $0.filename.localizedCaseInsensitiveContains(modelFilter)
+            }
+            if filtered.isEmpty {
+                automationLog("[AUTOMATION_FAILURE] No model matches filter '\(modelFilter)'. Available: \(discoveredModels.map { $0.filename }.joined(separator: ", "))")
+                DeveloperAutomationHarness.signalComplete(1, message: "No model matches filter '\(modelFilter)'")
+                return
+            }
+            modelsToRun = filtered
+            automationLog("[AUTOMATION] Model filter active: running only \(filtered.map { $0.filename }.joined(separator: ", "))")
+        }
         
-        automationLog("[AUTOMATION] Step 5: Running eval suites against \(discoveredModels.count) model(s)...")
+        automationLog("[AUTOMATION] Step 5: Running eval suites against \(modelsToRun.count) model(s)...")
         let evalDir = docs.appendingPathComponent("eval_results")
         try? FileManager.default.createDirectory(at: evalDir, withIntermediateDirectories: true)
         let evalStore = EvalStore(storageDirectory: evalDir)
@@ -130,7 +157,7 @@ struct EvalAutomationPipeline {
         let cachesDir = DeveloperAutomationHarness.safeCachesDirectory()
         
         // Run all suites against each model
-        for discovered in discoveredModels {
+        for discovered in modelsToRun {
             let metadata = discovered.resolvedMetadata
             let modelEntry = EvalModelEntry(metadata: metadata, modelPath: discovered.url.path, mmProjPath: discovered.mmProjPath)
             let modelCacheDir = cachesDir.appendingPathComponent(discovered.filename)
@@ -148,13 +175,15 @@ struct EvalAutomationPipeline {
                 }
                 
                 do {
+                    let suiteStartTime = CFAbsoluteTimeGetCurrent()
                     let run = try await evalRunner.run(
                         suite: suite,
                         models: [modelEntry],
                         flags: flags,
                         cacheDir: modelCacheDir.path,
-                        runsPerPrompt: 5
+                        runsPerPrompt: runsPerPrompt
                     )
+                    let suiteDuration = CFAbsoluteTimeGetCurrent() - suiteStartTime
                     
                     let totalResults = run.modelResults.flatMap { $0.promptResults }
                     let passed = totalResults.filter { $0.passed }.count
@@ -173,6 +202,25 @@ struct EvalAutomationPipeline {
                         failedPrompts: failedPromptTexts
                     ))
                     automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", safePassRate * 100))%)")
+                    
+                    // Log performance metrics from the ModelEvalResult
+                    if let modelResult = run.modelResults.first {
+                        let durationStr = String(format: "%.1f", suiteDuration)
+                        let speedStr = modelResult.avgDecodeSpeed > 0 ? String(format: "%.1f tok/s", modelResult.avgDecodeSpeed) : "N/A"
+                        let ttftStr = modelResult.avgTTFT > 0 ? String(format: "%.0f ms", modelResult.avgTTFT * 1000) : "N/A"
+                        automationLog("[AUTOMATION]   ⏱️ Duration: \(durationStr)s | Speed: \(speedStr) | TTFT: \(ttftStr)")
+                    }
+                    
+                    // Log failed prompts for diagnostic value
+                    if !failedPromptTexts.isEmpty {
+                        automationLog("[AUTOMATION]   ❌ Failed prompts (\(failedPromptTexts.count)):")
+                        for failedPrompt in failedPromptTexts.prefix(10) {
+                            automationLog("[AUTOMATION]      - \(failedPrompt)")
+                        }
+                        if failedPromptTexts.count > 10 {
+                            automationLog("[AUTOMATION]      ... and \(failedPromptTexts.count - 10) more")
+                        }
+                    }
                 } catch {
                     automationLog("[AUTOMATION_FAILURE] Suite '\(suite.name)' failed: \(error.localizedDescription)")
                     modelResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount, failedPrompts: []))
@@ -225,7 +273,10 @@ struct EvalAutomationPipeline {
             automationLog("[AUTOMATION] No eval baselines file found — skipping regression check")
         }
         
-        automationLog("[AUTOMATION_SUCCESS] Eval pipeline completed for \(discoveredModels.count) model(s)")
+        let pipelineElapsed = CFAbsoluteTimeGetCurrent() - pipelineStartTime
+        let minutes = Int(pipelineElapsed) / 60
+        let seconds = Int(pipelineElapsed) % 60
+        automationLog("[AUTOMATION_SUCCESS] Eval pipeline completed for \(modelsToRun.count) model(s) in \(minutes)m \(seconds)s")
         DeveloperAutomationHarness.signalComplete(0, message: "Eval pipeline completed successfully")
         
         // Best-effort engine cleanup (only reached under XCUITest).
