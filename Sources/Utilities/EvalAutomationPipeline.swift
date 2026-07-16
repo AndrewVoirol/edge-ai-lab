@@ -39,10 +39,24 @@ struct EvalAutomationPipeline {
         
         // Step 1: Load built-in suites
         automationLog("[AUTOMATION] Step 1: Loading built-in eval suites...")
-        let suites = BuiltInEvalSuites.allBuiltIn
+        var suites = BuiltInEvalSuites.allBuiltIn
         automationLog("[AUTOMATION_SUCCESS] Loaded \(suites.count) built-in suite(s):")
         for suite in suites {
             automationLog("[AUTOMATION]   - \(suite.name) (\(suite.category.displayName)): \(suite.promptCount) prompts")
+        }
+        
+        // Optional suite filter: -EvalSuiteFilter "Multimodal" runs only that suite
+        if let filterIdx = CommandLine.arguments.firstIndex(of: "-EvalSuiteFilter"),
+           filterIdx + 1 < CommandLine.arguments.count {
+            let filterName = CommandLine.arguments[filterIdx + 1]
+            let filtered = suites.filter { $0.name.localizedCaseInsensitiveContains(filterName) }
+            if filtered.isEmpty {
+                automationLog("[AUTOMATION_FAILURE] No suite matches filter '\(filterName)'. Available: \(suites.map(\.name).joined(separator: ", "))")
+                DeveloperAutomationHarness.signalComplete(1, message: "No suite matches filter '\(filterName)'")
+                return
+            }
+            suites = filtered
+            automationLog("[AUTOMATION] Suite filter active: running only \(filtered.map(\.name).joined(separator: ", "))")
         }
         
         // Step 2: Validate suites
