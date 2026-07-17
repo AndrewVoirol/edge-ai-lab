@@ -216,6 +216,12 @@ let project = Project(
             runAction: .runAction(configuration: .debug)
         ),
         .scheme(
+            name: "Edge AI Lab (Release)",
+            shared: true,
+            buildAction: .buildAction(targets: ["EdgeAILab_macOS"]),
+            runAction: .runAction(configuration: .release)
+        ),
+        .scheme(
             name: "RawBenchmark",
             shared: true,
             buildAction: .buildAction(targets: ["RawBenchmark"]),
