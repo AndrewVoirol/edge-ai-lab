@@ -397,6 +397,7 @@ final class EvalRunner {
         let modelStartTime = CFAbsoluteTimeGetCurrent()
         var promptResults: [PromptEvalResult] = []
         var decodeSpeeds: [Double] = []
+        var prefillSpeeds: [Double] = []
         var ttfts: [Double] = []
         var peakMemoryDelta: Double = 0
         var thermalTransitions = 0
@@ -538,6 +539,9 @@ final class EvalRunner {
                 if metrics.thermalStateChanged == true {
                     thermalTransitions += 1
                 }
+                if let prefill = metrics.promptTokensPerSecond, prefill > 0 {
+                    prefillSpeeds.append(prefill)
+                }
             }
         }
 
@@ -546,6 +550,7 @@ final class EvalRunner {
         // Compute aggregated speed metrics
         let avgSpeed = decodeSpeeds.isEmpty ? 0 : decodeSpeeds.reduce(0, +) / Double(decodeSpeeds.count)
         let avgTTFT = ttfts.isEmpty ? 0 : ttfts.reduce(0, +) / Double(ttfts.count)
+        let avgPrefill: Double? = prefillSpeeds.isEmpty ? nil : prefillSpeeds.reduce(0, +) / Double(prefillSpeeds.count)
 
         // Compute p95 latency from all prompt latencies
         let allLatencies = decodeSpeeds.sorted()
@@ -589,6 +594,7 @@ final class EvalRunner {
             modelFile: metadata.modelFile,
             avgDecodeSpeed: avgSpeed,
             avgTTFT: avgTTFT,
+            avgPrefillSpeed: avgPrefill,
             p95Latency: p95Latency,
             totalTokensGenerated: computedTotalTokens,
             totalDuration: modelDuration,

@@ -17,6 +17,8 @@ import Foundation
 import Metal
 #if os(macOS)
 import IOKit.ps
+#elseif os(iOS)
+import UIKit
 #endif
 
 // MARK: - Thermal State

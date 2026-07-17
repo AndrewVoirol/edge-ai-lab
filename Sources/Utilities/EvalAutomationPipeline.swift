@@ -219,9 +219,10 @@ struct EvalAutomationPipeline {
                     if let modelResult = run.modelResults.first {
                         let durationStr = String(format: "%.1f", suiteDuration)
                         let speedStr = modelResult.avgDecodeSpeed > 0 ? String(format: "%.1f tok/s", modelResult.avgDecodeSpeed) : "N/A"
+                        let prefillStr = modelResult.avgPrefillSpeed.map { String(format: "%.0f tok/s", $0) } ?? "N/A"
                         let ttftStr = modelResult.avgTTFT > 0 ? String(format: "%.0f ms", modelResult.avgTTFT * 1000) : "N/A"
                         let p95Str = modelResult.p95Latency > 0 ? String(format: "%.1f ms/tok", modelResult.p95Latency) : "N/A"
-                        automationLog("[AUTOMATION]   ⏱️ Duration: \(durationStr)s | Decode: \(speedStr) | TTFT: \(ttftStr) | P95: \(p95Str)")
+                        automationLog("[AUTOMATION]   ⏱️ Duration: \(durationStr)s | Decode: \(speedStr) | Prefill: \(prefillStr) | TTFT: \(ttftStr) | P95: \(p95Str)")
                         automationLog("[AUTOMATION]   📊 Tokens: \(modelResult.totalTokensGenerated) | Memory Δ: \(modelResult.peakMemoryDeltaMB.map { String(format: "%.1f MB", $0) } ?? "N/A") | Thermal: \(modelResult.thermalTransitions) transition(s)")
                     }
                     

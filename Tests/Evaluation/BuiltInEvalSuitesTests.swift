@@ -99,18 +99,19 @@ final class BuiltInEvalSuitesTests: XCTestCase {
         let toolCallPrompts = suite.prompts.filter { $0.expectedBehavior.involvesToolCalling }
         let textScoredPrompts = suite.prompts.filter { !$0.expectedBehavior.involvesToolCalling }
 
-        // Majority should be tool-call prompts (26 of 30)
+        // 15 prompts use .toolCall(toolName: "calculate") — reliable calculator
         XCTAssertGreaterThanOrEqual(
-            toolCallPrompts.count, 20,
-            "Math suite should have at least 20 tool-calling prompts"
+            toolCallPrompts.count, 15,
+            "Math suite should have at least 15 tool-calling prompts"
         )
 
-        // 9 prompts use text scoring for tool-limitation edge cases
-        // (sqrt, div-by-zero, exponentiation, compound unit conversion,
-        //  and 5 unit conversions where models answer from knowledge)
+        // 15 prompts use text scoring (.containsAny / .containsText)
+        // for unit conversions and edge cases where models answer from knowledge.
+        // Scoring by answer text instead of tool call makes Math Accuracy
+        // engine-agnostic — no GGUF tool bridge dependency.
         XCTAssertEqual(
-            textScoredPrompts.count, 9,
-            "Math suite should have exactly 9 text-scored edge-case prompts"
+            textScoredPrompts.count, 15,
+            "Math suite should have exactly 15 text-scored prompts"
         )
     }
 

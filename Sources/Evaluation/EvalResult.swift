@@ -162,6 +162,9 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
     /// Average time to first token in seconds across all prompts.
     let avgTTFT: Double
 
+    /// Average prefill (prompt processing) speed in tokens per second.
+    let avgPrefillSpeed: Double?
+
     /// 95th percentile token latency in milliseconds across all prompts.
     let p95Latency: Double
 
@@ -199,6 +202,7 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
         modelFile: String,
         avgDecodeSpeed: Double,
         avgTTFT: Double,
+        avgPrefillSpeed: Double? = nil,
         p95Latency: Double,
         totalTokensGenerated: Int,
         totalDuration: TimeInterval,
@@ -213,6 +217,7 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
         self.modelFile = modelFile
         self.avgDecodeSpeed = avgDecodeSpeed
         self.avgTTFT = avgTTFT
+        self.avgPrefillSpeed = avgPrefillSpeed
         self.p95Latency = p95Latency
         self.totalTokensGenerated = totalTokensGenerated
         self.totalDuration = totalDuration

@@ -78,33 +78,18 @@ struct SystemHealthTool: Tool {
             "active_processor_count": ProcessInfo.processInfo.activeProcessorCount
         ]
 
-        // Battery info — iOS only via UIDevice
+        // Battery info — cross-platform via DeviceMetrics
         #if os(iOS)
         await MainActor.run {
             UIDevice.current.isBatteryMonitoringEnabled = true
         }
-        let batteryLevel = await MainActor.run { UIDevice.current.batteryLevel }
-        let batteryState = await MainActor.run { UIDevice.current.batteryState }
-
-        if batteryLevel >= 0 {
-            result["battery_level_percent"] = Int(batteryLevel * 100)
+        #endif
+        if let level = DeviceMetrics.batteryLevelPercent {
+            result["battery_level_percent"] = level
         } else {
             result["battery_level_percent"] = "unavailable"
         }
-
-        let batteryStateString: String
-        switch batteryState {
-        case .unknown:    batteryStateString = "unknown"
-        case .unplugged:  batteryStateString = "unplugged"
-        case .charging:   batteryStateString = "charging"
-        case .full:       batteryStateString = "full"
-        @unknown default: batteryStateString = "unknown"
-        }
-        result["battery_state"] = batteryStateString
-        #else
-        result["battery_level_percent"] = "not_available_on_macos"
-        result["battery_state"] = "not_available_on_macos"
-        #endif
+        result["battery_state"] = DeviceMetrics.powerSourceState
 
         // Disk space available
         if let attributes = try? FileManager.default.attributesOfFileSystem(

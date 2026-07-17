@@ -70,7 +70,8 @@ enum BuiltInEvalSuites {
             ),
             EvalPrompt(
                 prompt: "How many kilometers is 26.2 miles?",
-                expectedBehavior: .anyToolCall
+                // 26.2 miles = 42.16 km (marathon distance). Model may use tool or knowledge.
+                expectedBehavior: .containsAny(["42.16", "42.2", "42.195", "42.165"])
             ),
             EvalPrompt(
                 prompt: "What is (125 + 375) / 10?",
@@ -161,27 +162,32 @@ enum BuiltInEvalSuites {
             // Unit conversions — temperature
             EvalPrompt(
                 prompt: "Convert absolute zero (0 Kelvin) to Celsius",
-                expectedBehavior: .anyToolCall
+                // 0 K = -273.15°C. Accept common rounding variations.
+                expectedBehavior: .containsAny(["-273.15", "-273"])
             ),
             EvalPrompt(
                 prompt: "What is body temperature (98.6°F) in Celsius?",
-                expectedBehavior: .anyToolCall
+                // 98.6°F = 37°C exactly.
+                expectedBehavior: .containsAny(["37", "37.0"])
             ),
 
             // Unit conversions — distance
             EvalPrompt(
                 prompt: "How many inches are in 3 yards?",
-                expectedBehavior: .anyToolCall
+                // 3 yards = 108 inches (3 × 36).
+                expectedBehavior: .containsAny(["108"])
             ),
             EvalPrompt(
                 prompt: "Convert 5280 feet to miles",
-                expectedBehavior: .anyToolCall
+                // 5280 ft = exactly 1 mile.
+                expectedBehavior: .containsAny(["1 mile", "1.0", "one mile", "exactly 1"])
             ),
 
             // Unit conversions — weight
             EvalPrompt(
                 prompt: "How many grams are in 3.5 kilograms?",
-                expectedBehavior: .anyToolCall
+                // 3.5 kg = 3500 g.
+                expectedBehavior: .containsAny(["3500", "3,500"])
             ),
             EvalPrompt(
                 prompt: "Convert 16 ounces to pounds",
