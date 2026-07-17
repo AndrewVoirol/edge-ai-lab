@@ -253,18 +253,38 @@ enum GalleryModelDiscovery {
     }
 
     /// Returns the primary directory where the app expects to read/write models.
+    ///
+    /// On macOS, prefers the project-root `models/` directory (detected via `#filePath`
+    /// at compile time) for development builds — this works in both Debug and Release
+    /// configurations. Falls back to `~/Library/Application Support/<bundleId>/models/`
+    /// when the project root doesn't exist (e.g., distributed app bundles).
+    ///
+    /// On iOS, uses the Documents directory so models are visible in Files.app.
+    ///
+    /// The eval pipeline can override this with `-EvalModelsDir <path>`.
     static func getAppModelsDirectory() -> URL {
-        #if DEBUG && os(macOS)
+        // CLI override: -EvalModelsDir /path/to/models
+        if let idx = CommandLine.arguments.firstIndex(of: "-EvalModelsDir"),
+           idx + 1 < CommandLine.arguments.count {
+            return URL(fileURLWithPath: CommandLine.arguments[idx + 1])
+        }
+
+        #if os(macOS)
+        // Try project-root/models/ first (works in both Debug and Release via #filePath).
+        // #filePath is a compile-time literal — it resolves to the source file's absolute
+        // path at build time, regardless of optimization level.
         let sourceFileURL = URL(fileURLWithPath: #filePath)
-        // Path: .../Sources/Models/GalleryModelDiscovery.swift
         let projectRoot = sourceFileURL
             .deletingLastPathComponent() // removes GalleryModelDiscovery.swift → .../Sources/Models/
             .deletingLastPathComponent() // removes Models/                      → .../Sources/
             .deletingLastPathComponent() // removes Sources/                     → .../  (project root)
-        return projectRoot.appendingPathComponent("models")
-        #else
-        #if os(macOS)
-        // Use Application Support on macOS to avoid TCC prompts for Documents
+        let projectModels = projectRoot.appendingPathComponent("models")
+
+        if FileManager.default.fileExists(atPath: projectModels.path) {
+            return projectModels
+        }
+
+        // Fallback: Application Support (for distributed app bundles)
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.EdgeAILab")
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
@@ -272,7 +292,6 @@ enum GalleryModelDiscovery {
         #else
         // Use Documents on iOS so it shows up in the Files app
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        #endif
         #endif
     }
 

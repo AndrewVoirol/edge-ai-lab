@@ -14,6 +14,21 @@
 
 import Foundation
 
+// MARK: - Suite Performance Metrics
+
+/// Performance data captured per-suite during an eval run.
+/// Persisted to eval_history.json alongside quality scores.
+struct SuitePerformanceMetrics: Sendable {
+    let durationSeconds: Double
+    let decodeSpeed: Double // tok/s
+    let prefillSpeed: Double? // tok/s
+    let ttftSeconds: Double // time to first token
+    let p95Latency: Double // ms per token
+    let totalTokens: Int
+    let peakMemoryDeltaMB: Double?
+    let thermalTransitions: Int
+}
+
 // MARK: - Eval Pipeline Logic
 
 /// Pure-function logic extracted from `EvalAutomationPipeline` for testability.

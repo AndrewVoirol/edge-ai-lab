@@ -177,7 +177,7 @@ struct EvalAutomationPipeline {
             let powerStr = DeviceMetrics.formattedPowerStatus
             automationLog("[AUTOMATION]   🌡️ Thermal: \(thermalState.label) | RAM: \(availMem) | GPU: \(gpuMemStr) | Power: \(powerStr)")
             
-            var modelResults: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = []
+            var modelResults: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String], perf: SuitePerformanceMetrics?)] = []
             
             for suite in suites {
                 automationLog("\n[AUTOMATION] Running suite: \(suite.name) (\(suite.promptCount) prompts)...")
@@ -207,11 +207,26 @@ struct EvalAutomationPipeline {
                         .filter { !$0.passed }
                         .map { String($0.promptText.prefix(60)) }
                     
+                    // Capture performance metrics for persistence
+                    let perfMetrics: SuitePerformanceMetrics? = run.modelResults.first.map { mr in
+                        SuitePerformanceMetrics(
+                            durationSeconds: suiteDuration,
+                            decodeSpeed: mr.avgDecodeSpeed,
+                            prefillSpeed: mr.avgPrefillSpeed,
+                            ttftSeconds: mr.avgTTFT,
+                            p95Latency: mr.p95Latency,
+                            totalTokens: mr.totalTokensGenerated,
+                            peakMemoryDeltaMB: mr.peakMemoryDeltaMB,
+                            thermalTransitions: mr.thermalTransitions
+                        )
+                    }
+                    
                     modelResults.append((
                         suiteName: suite.name,
                         passRate: safePassRate,
                         promptCount: suite.promptCount,
-                        failedPrompts: failedPromptTexts
+                        failedPrompts: failedPromptTexts,
+                        perf: perfMetrics
                     ))
                     automationLog("[AUTOMATION]   Score: \(passed)/\(totalResults.count) (\(String(format: "%.0f", safePassRate * 100))%)")
                     
@@ -246,7 +261,7 @@ struct EvalAutomationPipeline {
                     }
                 } catch {
                     automationLog("[AUTOMATION_FAILURE] Suite '\(suite.name)' failed: \(error.localizedDescription)")
-                    modelResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount, failedPrompts: []))
+                    modelResults.append((suiteName: suite.name, passRate: 0.0, promptCount: suite.promptCount, failedPrompts: [], perf: nil))
                 }
                 
                 evalRunner.reset()
@@ -268,7 +283,7 @@ struct EvalAutomationPipeline {
             
             // Persist results for this model
             persistEvalHistory(
-                results: modelResults.map { (suiteName: $0.suiteName, passRate: $0.passRate, promptCount: $0.promptCount, failedPrompts: $0.failedPrompts) },
+                results: modelResults.map { (suiteName: $0.suiteName, passRate: $0.passRate, promptCount: $0.promptCount, failedPrompts: $0.failedPrompts, perf: $0.perf) },
                 model: metadata.modelFile,
                 engine: metadata.runtimeType.rawValue
             )
@@ -342,7 +357,7 @@ struct EvalAutomationPipeline {
     /// On macOS, writes to the project's metrics/ directory.
     /// On iOS, writes to the app's Documents/metrics/ directory (pullable via devicectl).
     static func persistEvalHistory(
-        results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])],
+        results: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String], perf: SuitePerformanceMetrics?)],
         model: String,
         engine: String? = nil
     ) {
@@ -403,6 +418,20 @@ struct EvalAutomationPipeline {
                 // Include failed prompt texts for per-prompt regression tracking
                 if !result.failedPrompts.isEmpty {
                     entry["failed_prompts"] = result.failedPrompts
+                }
+                // Persist performance metrics alongside quality scores
+                if let perf = result.perf {
+                    var perfDict: [String: Any] = [
+                        "duration_seconds": perf.durationSeconds
+                    ]
+                    if perf.decodeSpeed > 0 { perfDict["decode_tok_s"] = perf.decodeSpeed }
+                    if let prefill = perf.prefillSpeed { perfDict["prefill_tok_s"] = prefill }
+                    if perf.ttftSeconds > 0 { perfDict["ttft_ms"] = perf.ttftSeconds * 1000 }
+                    if perf.p95Latency > 0 { perfDict["p95_ms_per_tok"] = perf.p95Latency }
+                    if perf.totalTokens > 0 { perfDict["total_tokens"] = perf.totalTokens }
+                    if let memDelta = perf.peakMemoryDeltaMB { perfDict["peak_memory_delta_mb"] = memDelta }
+                    perfDict["thermal_transitions"] = perf.thermalTransitions
+                    entry["performance"] = perfDict
                 }
                 return entry
             }
