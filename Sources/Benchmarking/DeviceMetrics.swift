@@ -15,6 +15,9 @@
 
 import Foundation
 import Metal
+#if os(macOS)
+import IOKit.ps
+#endif
 
 // MARK: - Thermal State
 
@@ -340,5 +343,88 @@ enum DeviceMetrics {
             return String(format: "%.1f GB free", mb / 1024.0)
         }
         return String(format: "%.0f MB free", mb)
+    }
+
+    // MARK: - Battery Info
+
+    /// Battery level as a percentage (0–100), or nil if unavailable.
+    /// Uses IOPSCopyPowerSourcesInfo on macOS, UIDevice on iOS.
+    static var batteryLevelPercent: Int? {
+        #if os(macOS)
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
+        for ps in sources {
+            // swiftlint:disable:next force_cast
+            let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as! [String: AnyObject]
+            if let capacity = info[kIOPSCurrentCapacityKey] as? Int,
+               let maxCapacity = info[kIOPSMaxCapacityKey] as? Int,
+               maxCapacity > 0 {
+                return Int((Double(capacity) / Double(maxCapacity)) * 100)
+            }
+        }
+        return nil  // Desktop Mac with no battery
+        #elseif os(iOS)
+        let level = UIDevice.current.batteryLevel
+        return level >= 0 ? Int(level * 100) : nil
+        #else
+        return nil
+        #endif
+    }
+
+    /// Power source state: "battery", "ac", "charging", "full", or "unknown".
+    static var powerSourceState: String {
+        #if os(macOS)
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
+        for ps in sources {
+            // swiftlint:disable:next force_cast
+            let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as! [String: AnyObject]
+            if let source = info[kIOPSPowerSourceStateKey] as? String {
+                if source == kIOPSACPowerValue {
+                    // Check if charging or full
+                    if let isCharging = info[kIOPSIsChargingKey] as? Bool {
+                        if isCharging { return "charging" }
+                        if let capacity = info[kIOPSCurrentCapacityKey] as? Int,
+                           let maxCapacity = info[kIOPSMaxCapacityKey] as? Int,
+                           capacity >= maxCapacity {
+                            return "full"
+                        }
+                        return "ac"
+                    }
+                    return "ac"
+                } else if source == kIOPSBatteryPowerValue {
+                    return "battery"
+                }
+            }
+        }
+        return "ac"  // Desktop Mac — always on AC
+        #elseif os(iOS)
+        switch UIDevice.current.batteryState {
+        case .unplugged:  return "battery"
+        case .charging:   return "charging"
+        case .full:       return "full"
+        default:          return "unknown"
+        }
+        #else
+        return "unknown"
+        #endif
+    }
+
+    /// Compact power status string for logging.
+    /// Example: "🔋 72% (battery)" or "🔌 100% (ac)" or "⚡ 85% (charging)"
+    static var formattedPowerStatus: String {
+        let state = powerSourceState
+        let icon: String
+        switch state {
+        case "battery":  icon = "🔋"
+        case "charging": icon = "⚡"
+        case "full":     icon = "🔌"
+        case "ac":       icon = "🔌"
+        default:         icon = "❓"
+        }
+        if let level = batteryLevelPercent {
+            return "\(icon) \(level)% (\(state))"
+        }
+        return "\(icon) (\(state))"
     }
 }

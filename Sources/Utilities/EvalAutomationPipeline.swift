@@ -170,6 +170,13 @@ struct EvalAutomationPipeline {
             ].compactMap { $0 }.joined(separator: "+")
             automationLog("[AUTOMATION]   Engine: \(metadata.runtimeType.displayName) | Multimodal: \(multimodalInfo.isEmpty ? "text-only" : multimodalInfo) | Start: cold (fresh engine per suite)")
             
+            // Device state snapshot at model start
+            let thermalState = DeviceMetrics.currentThermalLevel
+            let availMem = DeviceMetrics.formattedAvailableMemory
+            let gpuMemStr = DeviceMetrics.gpuAllocatedMemoryMB.map { String(format: "%.0f MB", $0) } ?? "N/A"
+            let powerStr = DeviceMetrics.formattedPowerStatus
+            automationLog("[AUTOMATION]   🌡️ Thermal: \(thermalState.label) | RAM: \(availMem) | GPU: \(gpuMemStr) | Power: \(powerStr)")
+            
             var modelResults: [(suiteName: String, passRate: Double, promptCount: Int, failedPrompts: [String])] = []
             
             for suite in suites {
@@ -218,14 +225,22 @@ struct EvalAutomationPipeline {
                         automationLog("[AUTOMATION]   📊 Tokens: \(modelResult.totalTokensGenerated) | Memory Δ: \(modelResult.peakMemoryDeltaMB.map { String(format: "%.1f MB", $0) } ?? "N/A") | Thermal: \(modelResult.thermalTransitions) transition(s)")
                     }
                     
-                    // Log failed prompts for diagnostic value
-                    if !failedPromptTexts.isEmpty {
-                        automationLog("[AUTOMATION]   ❌ Failed prompts (\(failedPromptTexts.count)):")
-                        for failedPrompt in failedPromptTexts.prefix(10) {
-                            automationLog("[AUTOMATION]      - \(failedPrompt)")
+                    // Log failed prompts with response snippets for diagnostic value
+                    let failedResults = totalResults.filter { !$0.passed }
+                    if !failedResults.isEmpty {
+                        automationLog("[AUTOMATION]   ❌ Failed prompts (\(failedResults.count)):")
+                        for failedResult in failedResults.prefix(10) {
+                            let promptSnippet = String(failedResult.promptText.prefix(60))
+                            let responseSnippet = String(failedResult.response.prefix(80))
+                                .replacingOccurrences(of: "\n", with: " ")
+                            automationLog("[AUTOMATION]      - Q: \(promptSnippet)")
+                            automationLog("[AUTOMATION]        A: \(responseSnippet)")
+                            if let reason = failedResult.score.reason {
+                                automationLog("[AUTOMATION]        ⚠️ \(reason)")
+                            }
                         }
-                        if failedPromptTexts.count > 10 {
-                            automationLog("[AUTOMATION]      ... and \(failedPromptTexts.count - 10) more")
+                        if failedResults.count > 10 {
+                            automationLog("[AUTOMATION]      ... and \(failedResults.count - 10) more")
                         }
                     }
                 } catch {
