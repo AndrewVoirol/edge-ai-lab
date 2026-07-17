@@ -79,6 +79,7 @@
 ## Verification Integrity
 - **Never write speculative failure diagnoses into AGENTS.md.** Phrases like "likely an iOS 27 issue" or "probably a compatibility problem" are opinions, not evidence. If you haven't verified the root cause, write "status unknown — not verified" instead. Rules in AGENTS.md are treated as facts by future sessions — speculation in rules compounds into persistent misinformation.
 - **Diagnose before planning, not after.** When asked to create a plan for investigation or verification, run diagnostic commands FIRST (check device connectivity, model presence, cache state, test plan contents) and present findings in the plan. A plan full of "if X is present..." and "we may need to..." signals that research was skipped. The user should see answers in the plan, not questions.
+- **Never attribute eval failures to "model non-determinism" without response-level evidence.** If more than 2-3 prompts consistently fail in a suite, the cause is almost certainly a scoring bug, tool bridge issue, or tool execution error — not the model being random. Add response-snippet diagnostics and read the actual model output before diagnosing. "Non-determinism" explains ~5% score variance (1-2 prompts in a 30-prompt suite), not 20%+ failure rates.
 
 ## Feature Gap Verification
 - **Before listing any feature as "missing" or "not integrated" in a plan, verify against the live codebase:**
@@ -108,6 +109,7 @@
 - **Before using any system framework API (Core ML, MapKit, CoreLocation, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
 - **Known non-existent APIs agents have invented:** `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`). When in doubt, verify against SDK headers in Xcode.
 - **Known SDK availability corrections:** Foundation Models `LanguageModel` protocol requires iOS 27.0/macOS 27.0 (not 26). SwiftUI `.glassEffect()` lives in SwiftUICore module. Always verify against `.swiftinterface` files, not documentation alone.
+- **Known API availability corrections:** `IOPSCopyPowerSourcesInfo()` and `IOPSGetPowerSourceDescription()` are available on macOS via `import IOKit.ps`. Battery level and power source state ARE accessible on macOS — do not hardcode "not available" stubs. Use `DeviceMetrics.batteryLevelPercent` and `DeviceMetrics.powerSourceState` for cross-platform battery data.
 
 ## Apple Developer Team Limitations
 - **This project uses a FREE personal Apple Developer team** (Team ID: `Y7J7WUK693`, holder: Andrew Voirol).
@@ -250,3 +252,5 @@ When adding a new UI element that needs a visual value:
   3. **Prompt ambiguity** — the prompt is unclear or has multiple valid interpretations. Fix: reword the prompt.
   4. **Genuine model limitation** — the model gets it wrong (e.g., arithmetic errors). Fix: **do not change the scorer** — this is a correct eval signal. Document it.
   Document the category in a code comment on the scorer line. Never change a scorer without stating which category applies.
+- **Match scorer type to suite purpose.** Accuracy suites (Math Accuracy, Reasoning) should score by answer text (`.containsAny`, `.containsText`), not by tool invocation (`.anyToolCall`, `.toolCall`). Tool calling suites (Tool Calling Reliability) should score by tool invocation. Mixing scorer types causes infrastructure failures (e.g., GGUF tool bridge parsing) to inflate accuracy failure counts. When a prompt's "correct" path involves both calling a tool AND producing a correct answer, prefer scoring the answer text unless the suite's explicit purpose is to test tool calling.
+- **When eval prompts fail, always check the model's actual response before diagnosing.** Use the pipeline's response-snippet diagnostics (`❌ Failed prompts` section) to distinguish between: (a) model gave wrong answer, (b) model gave right answer but scorer didn't match it, (c) model tried to call a tool but the bridge didn't parse it, (d) tool executed but returned an error. Never attribute failures to "non-determinism" without reading the response text.
