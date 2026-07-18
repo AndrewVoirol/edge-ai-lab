@@ -371,8 +371,13 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     print("[MLXEngine] ✅ Tool \(name) returned: \(result.prefix(200))")
                     return result
                 } catch {
-                    print("[MLXEngine] ❌ Tool \(name) failed: \(error)")
-                    throw error
+                    // Return the error as a string result instead of throwing.
+                    // ChatSession feeds tool results back to the model — if we throw,
+                    // the entire generation stream dies and produces an empty response.
+                    // By returning an error string, the model can retry or compute manually.
+                    let errorMsg = "Error executing \(name): \(error.localizedDescription)"
+                    print("[MLXEngine] ⚠️ Tool \(name) failed, returning error to model: \(errorMsg)")
+                    return errorMsg
                 }
             }
         }
