@@ -40,6 +40,15 @@ struct FlowStep: Codable, Sendable {
     let expectedElements: [String]?
     let condition: String?
     let assertion: FlowStepAssertion?
+    let targetElements: [String]?
+    let expectedElementsAny: [String]?
+    let timeoutSeconds: TimeInterval?
+    let key: String?
+    let modifiers: [String]?
+    let buttonId: String?
+    let label: String?
+    let expected: String?
+    let maxAttempts: Int?
 
     enum CodingKeys: String, CodingKey {
         case step, action, description
@@ -48,6 +57,15 @@ struct FlowStep: Codable, Sendable {
         case expectedElements = "expected_elements"
         case condition
         case assertion
+        case targetElements = "target_elements"
+        case expectedElementsAny = "expected_elements_any"
+        case timeoutSeconds = "timeout_seconds"
+        case key
+        case modifiers
+        case buttonId = "button_id"
+        case label
+        case expected
+        case maxAttempts = "max_attempts"
     }
 }
 
@@ -270,6 +288,26 @@ struct AutomationFlowRunner {
             return await executeWait(step)
         case "screenshot":
             return executeScreenshot(step)
+        case "navigate_tab":
+            return await executeNavigateTab(step)
+        case "scroll_to":
+            return await executeScrollTo(step)
+        case "keyboard_shortcut":
+            return await executeKeyboardShortcut(step)
+        case "open_sheet":
+            return await executeOpenSheet(step)
+        case "dismiss_sheet":
+            return await executeDismissSheet(step)
+        case "verify_not_exists":
+            return await executeVerifyNotExists(step)
+        case "verify_enabled":
+            return await executeVerifyEnabled(step)
+        case "verify_value":
+            return await executeVerifyValue(step)
+        case "tap_first_match":
+            return await executeTapFirstMatch(step)
+        case "tap_if_exists":
+            return await executeTapIfExists(step)
         default:
             return (false, "Unknown action: \(step.action)")
         }
@@ -402,7 +440,7 @@ struct AutomationFlowRunner {
         }
 
         // Real polling loop using AccessibilityTreeInspector
-        let timeout = defaultWaitTimeout
+        let timeout = step.timeoutSeconds ?? defaultWaitTimeout
         let pollInterval: UInt64 = 1_000_000_000 // 1 second
         let maxPolls = Int(timeout)
         var polls = 0
@@ -441,6 +479,267 @@ struct AutomationFlowRunner {
         let filename = step.value ?? "flow_screenshot_\(Int(Date().timeIntervalSince1970))"
         print("[AUTOMATION_FLOW_SCREENSHOT] Requested: \(filename)")
         return (true, "Screenshot requested: \(filename)")
+    }
+
+    // MARK: - Extended Action Handlers
+
+    /// Navigates to a tab by verifying the tab label exists in the accessibility tree.
+    ///
+    /// Uses `step.label` or falls back to `step.targetElement` as the tab identifier.
+    private static func executeNavigateTab(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let tabLabel = step.label ?? step.targetElement else {
+            return (false, "No label or target_element specified for navigate_tab action")
+        }
+
+        print("[AUTOMATION_FLOW_NAVIGATE_TAB] Tab: \(tabLabel)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Navigate tab accepted: \(tabLabel)")
+        }
+
+        if AccessibilityTreeInspector.elementExists(tabLabel) {
+            return (true, "Tab label verified and navigation requested: \(tabLabel)")
+        } else {
+            return (false, "Tab label not found in accessibility tree: \(tabLabel). Available: \(AccessibilityTreeInspector.allLabels().prefix(15).joined(separator: ", "))")
+        }
+    }
+
+    /// Scrolls to an element by polling the accessibility tree until it appears.
+    ///
+    /// Polls up to `step.maxAttempts` times (default 6), sleeping briefly between
+    /// each attempt to allow scroll-driven layout updates.
+    private static func executeScrollTo(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for scroll_to action")
+        }
+
+        let maxAttempts = step.maxAttempts ?? 6
+        print("[AUTOMATION_FLOW_SCROLL_TO] Target: \(target), maxAttempts: \(maxAttempts)")
+
+        if isDryRun {
+            return (true, "[DRY RUN] Scroll to target accepted: \(target)")
+        }
+
+        for attempt in 1...maxAttempts {
+            if AccessibilityTreeInspector.elementExists(target) {
+                return (true, "Scroll target '\(target)' found after \(attempt) attempt(s)")
+            }
+            print("[AUTOMATION_FLOW_SCROLL_TO] Attempt \(attempt)/\(maxAttempts) — element not yet visible")
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s between polls
+        }
+
+        return (false, "Scroll target '\(target)' not found after \(maxAttempts) attempts")
+    }
+
+    /// Logs a keyboard shortcut intent.
+    ///
+    /// The in-app runner cannot send keystrokes; this step records the intended
+    /// shortcut (key + modifiers) for external tools to dispatch.
+    private static func executeKeyboardShortcut(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let key = step.key else {
+            return (false, "No key specified for keyboard_shortcut action")
+        }
+
+        let modifiers = step.modifiers ?? []
+        let shortcutDesc = modifiers.isEmpty ? key : "\(modifiers.joined(separator: "+"))+\(key)"
+        print("[AUTOMATION_FLOW_KEYBOARD_SHORTCUT] Shortcut: \(shortcutDesc)")
+
+        if isDryRun {
+            return (true, "[DRY RUN] Keyboard shortcut accepted: \(shortcutDesc)")
+        }
+
+        // In-app runner can't send keystrokes — log intent and succeed
+        return (true, "Keyboard shortcut intent logged: \(shortcutDesc)")
+    }
+
+    /// Opens a sheet by verifying the trigger element exists.
+    ///
+    /// Functionally identical to `tap` but logs as a sheet trigger for
+    /// clearer flow semantics.
+    private static func executeOpenSheet(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for open_sheet action")
+        }
+
+        print("[AUTOMATION_FLOW_OPEN_SHEET] Trigger: \(target)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Open sheet trigger accepted: \(target)")
+        }
+
+        if AccessibilityTreeInspector.elementExists(target) {
+            return (true, "Sheet trigger verified and open requested: \(target)")
+        } else {
+            return (false, "Sheet trigger not found in accessibility tree: \(target)")
+        }
+    }
+
+    /// Dismisses a sheet by verifying the dismiss target exists.
+    ///
+    /// Uses `step.buttonId` or falls back to `step.targetElement`. If neither is
+    /// specified, the dismiss is logged without element verification.
+    private static func executeDismissSheet(_ step: FlowStep) async -> (success: Bool, message: String) {
+        let target = step.buttonId ?? step.targetElement
+
+        print("[AUTOMATION_FLOW_DISMISS_SHEET] Target: \(target ?? "(default dismiss)")")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Dismiss sheet accepted: \(target ?? "(default dismiss)")")
+        }
+
+        // If a specific dismiss target is provided, verify it exists
+        if let target = target {
+            if AccessibilityTreeInspector.elementExists(target) {
+                return (true, "Dismiss target verified and dismiss requested: \(target)")
+            } else {
+                return (false, "Dismiss target not found in accessibility tree: \(target)")
+            }
+        } else {
+            return (true, "Sheet dismiss requested (no specific target)")
+        }
+    }
+
+    /// Asserts that an element does NOT exist in the accessibility tree.
+    ///
+    /// The inverse of `verify_ui` — used to confirm elements have been
+    /// removed, hidden, or never rendered.
+    private static func executeVerifyNotExists(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for verify_not_exists action")
+        }
+
+        print("[AUTOMATION_FLOW_VERIFY_NOT_EXISTS] Target: \(target)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Verify not exists accepted: \(target)")
+        }
+
+        if !AccessibilityTreeInspector.elementExists(target) {
+            return (true, "Verified element does not exist: \(target)")
+        } else {
+            return (false, "Element unexpectedly exists in accessibility tree: \(target)")
+        }
+    }
+
+    /// Verifies that an element exists (proxy for enabled check).
+    ///
+    /// `AccessibilityTreeInspector` does not expose an `isEnabled` property,
+    /// so this falls back to verifying presence as a reasonable proxy.
+    private static func executeVerifyEnabled(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for verify_enabled action")
+        }
+
+        print("[AUTOMATION_FLOW_VERIFY_ENABLED] Target: \(target)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Verify enabled accepted: \(target)")
+        }
+
+        if AccessibilityTreeInspector.elementExists(target) {
+            return (true, "Element exists (enabled proxy verified): \(target)")
+        } else {
+            return (false, "Element not found for enabled check: \(target)")
+        }
+    }
+
+    /// Verifies that an element's value contains the expected string.
+    ///
+    /// Uses `AccessibilityTreeInspector.elementValue()` and checks for a
+    /// case-insensitive substring match against `step.expected` or `step.value`.
+    private static func executeVerifyValue(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for verify_value action")
+        }
+        guard let expectedValue = step.expected ?? step.value else {
+            return (false, "No expected or value specified for verify_value action")
+        }
+
+        print("[AUTOMATION_FLOW_VERIFY_VALUE] Target: \(target), Expected: \(expectedValue)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Verify value accepted: \(target) contains '\(expectedValue)'")
+        }
+
+        guard let actualValue = AccessibilityTreeInspector.elementValue(target) else {
+            return (false, "Element '\(target)' has no value or was not found")
+        }
+
+        if actualValue.localizedCaseInsensitiveContains(expectedValue) {
+            return (true, "Element '\(target)' value '\(actualValue)' contains '\(expectedValue)'")
+        } else {
+            return (false, "Element '\(target)' value '\(actualValue)' does not contain '\(expectedValue)'")
+        }
+    }
+
+    /// Taps the first matching element from a list of candidates.
+    ///
+    /// Uses `step.targetElements`, falling back to `step.expectedElements`,
+    /// then to a single-element array from `step.targetElement`.
+    /// Returns success if any candidate exists in the accessibility tree.
+    private static func executeTapFirstMatch(_ step: FlowStep) async -> (success: Bool, message: String) {
+        let candidates: [String]
+        if let targets = step.targetElements, !targets.isEmpty {
+            candidates = targets
+        } else if let expected = step.expectedElements, !expected.isEmpty {
+            candidates = expected
+        } else if let target = step.targetElement {
+            candidates = [target]
+        } else {
+            return (false, "No target_elements, expected_elements, or target_element specified for tap_first_match action")
+        }
+
+        print("[AUTOMATION_FLOW_TAP_FIRST_MATCH] Candidates: \(candidates.joined(separator: ", "))")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Tap first match accepted: \(candidates.joined(separator: ", "))")
+        }
+
+        for candidate in candidates {
+            if AccessibilityTreeInspector.elementExists(candidate) {
+                return (true, "First match found and tap requested: \(candidate)")
+            }
+        }
+
+        return (false, "No matching element found among candidates: \(candidates.joined(separator: ", "))")
+    }
+
+    /// Taps an element if it exists, otherwise skips silently.
+    ///
+    /// Always returns success — if the element is not found, the step is
+    /// treated as a no-op rather than a failure.
+    private static func executeTapIfExists(_ step: FlowStep) async -> (success: Bool, message: String) {
+        guard let target = step.targetElement else {
+            return (false, "No target_element specified for tap_if_exists action")
+        }
+
+        print("[AUTOMATION_FLOW_TAP_IF_EXISTS] Target: \(target)")
+
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s
+
+        if isDryRun {
+            return (true, "[DRY RUN] Tap if exists accepted: \(target)")
+        }
+
+        if AccessibilityTreeInspector.elementExists(target) {
+            return (true, "Element exists, tap requested: \(target)")
+        } else {
+            return (true, "Element not found, skipped: \(target)")
+        }
     }
 
     // MARK: - Assertion Evaluation

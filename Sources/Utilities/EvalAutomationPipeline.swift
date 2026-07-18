@@ -182,6 +182,25 @@ struct EvalAutomationPipeline {
             for suite in suites {
                 automationLog("\n[AUTOMATION] Running suite: \(suite.name) (\(suite.promptCount) prompts)...")
                 
+                // Suite-level multimodal skip: avoid confusing 0% scores for text-only models.
+                // If a suite contains image prompts and the model doesn't support vision,
+                // or audio prompts and no audio support, skip the entire suite with a clear
+                // "skipped" status rather than running and reporting 0%.
+                let suiteHasImagePrompts = suite.prompts.contains { $0.isImagePrompt }
+                let suiteHasAudioPrompts = suite.prompts.contains { $0.isAudioPrompt }
+                let suiteIsMultimodalOnly = suiteHasImagePrompts || suiteHasAudioPrompts
+                
+                if suiteIsMultimodalOnly && suiteHasImagePrompts && !metadata.supportsImage {
+                    automationLog("[AUTOMATION]   ⏭️ Skipping '\(suite.name)': model does not support image input")
+                    modelResults.append((suiteName: suite.name, passRate: -1.0, promptCount: suite.promptCount, failedPrompts: [], perf: nil))
+                    continue
+                }
+                if suiteIsMultimodalOnly && suiteHasAudioPrompts && !metadata.supportsAudio {
+                    automationLog("[AUTOMATION]   ⏭️ Skipping '\(suite.name)': model does not support audio input")
+                    modelResults.append((suiteName: suite.name, passRate: -1.0, promptCount: suite.promptCount, failedPrompts: [], perf: nil))
+                    continue
+                }
+                
                 if suite.category == .toolCalling {
                     automationLog("[AUTOMATION]   ℹ️ Tool Calling suite: \(suite.promptCount) prompts including \(suite.prompts.filter { if case .toolCallChain = $0.expectedBehavior { return true } else { return false } }.count) multi-tool chain(s)")
                 }

@@ -18,8 +18,14 @@ let project = Project(
         // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
         // mlx-swift-lm: MLX inference (Apple Silicon Metal GPU) for macOS/iOS.
-        // Pinned to semver — 3.x series has proper tagged releases (unlike LiteRT-LM).
-        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .upToNextMajor(from: "3.31.3")),
+        // Pinned to commit d2424294 which includes all Gemma4 VLM fixes:
+        //   - 09deb8c4: Fix VLM load KV-shared layers (k_proj/v_proj)
+        //   - 68947ccd: Fix E-series num_kv_shared_layers
+        //   - d14cf3da: Gemma tool parameter conversion by schema type
+        //   - 2a2bdf4c: E-series MTP centroid embedder
+        // Later commits require unreleased mlx-swift >= 0.31.5 APIs.
+        // Switch back to .upToNextMajor when 3.32.0 ships.
+        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .revision("d2424294a6c3")),
         // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
         .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
