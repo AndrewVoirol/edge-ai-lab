@@ -656,9 +656,13 @@ final class HFModelBrowser: @unchecked Sendable {
     /// Detect the model format from file listing, metadata, or naming conventions.
     ///
     /// Priority:
-    /// 1. If `siblings` is populated, inspect filenames (.litertlm, .safetensors)
+    /// 1. If `siblings` is populated, inspect filenames (.litertlm, .gguf, .safetensors)
     /// 2. Otherwise, infer from `libraryName` and `tags` metadata
     /// 3. Fall back to model ID pattern matching
+    ///
+    /// **MLX disambiguation:** `config.json + *.safetensors` alone does NOT indicate
+    /// an MLX model — every raw transformers repo has the same layout. We require
+    /// additional MLX signals (author, tags, library_name) to classify as MLX.
     func detectFormat(_ model: HFModelInfo) -> HFModelFormat {
         // 1. Check siblings if available (detail endpoint)
         if let siblings = model.siblings {
@@ -668,10 +672,24 @@ final class HFModelBrowser: @unchecked Sendable {
                 return .litertlm
             }
 
+            // Check for GGUF files
+            if filenames.contains(where: { $0.hasSuffix(".gguf") }) {
+                return .gguf
+            }
+
+            // config.json + safetensors requires positive MLX signal
             let hasConfig = filenames.contains("config.json")
             let hasSafetensors = filenames.contains(where: { $0.hasSuffix(".safetensors") })
             if hasConfig && hasSafetensors {
-                return .mlx
+                let hasMLXSignal = model.author.lowercased() == "mlx-community"
+                    || model.tags.contains(where: { $0.lowercased() == "mlx" })
+                    || model.libraryName?.lowercased() == "mlx"
+                    || model.id.lowercased().contains("-mlx")
+                    || model.id.lowercased().contains("mlx-")
+                if hasMLXSignal {
+                    return .mlx
+                }
+                // No MLX signal — don't classify as MLX, fall through to metadata checks.
             }
         }
 
@@ -683,6 +701,9 @@ final class HFModelBrowser: @unchecked Sendable {
             if lib == "mlx" {
                 return .mlx
             }
+            if lib == "gguf" || lib.contains("llama.cpp") {
+                return .gguf
+            }
         }
 
         // 3. Infer from tags
@@ -692,6 +713,9 @@ final class HFModelBrowser: @unchecked Sendable {
         if model.tags.contains(where: { $0.lowercased() == "mlx" }) {
             return .mlx
         }
+        if model.tags.contains(where: { $0.lowercased() == "gguf" }) {
+            return .gguf
+        }
 
         // 4. Infer from model ID naming convention
         if model.id.lowercased().contains("litert-lm") || model.id.lowercased().contains("litert_lm") {
@@ -699,6 +723,9 @@ final class HFModelBrowser: @unchecked Sendable {
         }
         if model.author.lowercased() == "mlx-community" {
             return .mlx
+        }
+        if model.id.lowercased().contains("-gguf") || model.id.lowercased().hasSuffix(".gguf") {
+            return .gguf
         }
 
         return .unknown

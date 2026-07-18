@@ -56,6 +56,17 @@ final class URLImportCoordinator {
         }
     }
 
+    /// Whether an import is actively in progress (parsing, fetching, analyzing).
+    var isImporting: Bool {
+        guard let manager = importManager else { return false }
+        switch manager.state {
+        case .parsing, .fetching, .analyzing:
+            return true
+        default:
+            return false
+        }
+    }
+
     // MARK: - Actions
 
     /// Start a new import session from the given URL text.

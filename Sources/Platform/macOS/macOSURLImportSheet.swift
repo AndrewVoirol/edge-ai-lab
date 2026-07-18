@@ -56,15 +56,18 @@ struct macOSURLImportSheet: View {
                     .padding(.horizontal, AppSpacing.xl)
                     .padding(.top, AppSpacing.lg)
 
-                if let manager = coordinator.importManager {
-                    stateContent(manager)
-                        .padding(.horizontal, AppSpacing.xl)
-                        .padding(.top, AppSpacing.lg)
-                } else {
-                    idleContent
+                ScrollView {
+                    VStack(spacing: AppSpacing.md) {
+                        if let manager = coordinator.importManager {
+                            stateContent(manager)
+                        } else {
+                            idleContent
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.xl)
+                    .padding(.vertical, AppSpacing.lg)
+                    .animation(AppAnimation.standard, value: coordinator.importManager?.state.stateKey)
                 }
-
-                Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .appBackground()
@@ -75,11 +78,11 @@ struct macOSURLImportSheet: View {
                         coordinator.cancelObservation()
                         dismiss()
                     }
-                    .accessibilityIdentifier("urlImport_done")
+                    .accessibilityIdentifier(coordinator.isTerminalState ? "urlImport_done" : "urlImport_cancel")
                 }
             }
         }
-        .frame(minWidth: 500, minHeight: 450)
+        .frame(minWidth: 540, idealHeight: 550, maxHeight: 750)
         .onAppear {
             // Pick up pending URL from inline quick-paste
             if let pending = viewModel.pendingImportURL {
@@ -119,8 +122,9 @@ struct macOSURLImportSheet: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppColors.accentPrimary)
-            .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .glow(AppColors.accentPrimary, radius: 8, opacity: 0.25)
+            .disabled(urlText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                      || coordinator.isImporting)
+            .glow(AppColors.accentPrimary, radius: 8, opacity: AppOpacity.rinse)
             .accessibilityIdentifier("urlImport_importButton")
         }
     }
@@ -129,17 +133,16 @@ struct macOSURLImportSheet: View {
 
     private var idleContent: some View {
         VStack(spacing: AppSpacing.md) {
-            Spacer()
             Image(systemName: "link.badge.plus")
-                .font(AppIconSize.xxl)
+                .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.textTertiary)
             Text("Paste a HuggingFace model URL above to get started.")
-                .font(AppTypography.listSubtitle)
+                .font(AppTypography.body)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-            Spacer()
         }
-        .padding(AppSpacing.xl)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.xxl)
         .accessibilityIdentifier("urlImport_idle")
     }
 
@@ -181,42 +184,41 @@ struct macOSURLImportSheet: View {
             ProgressView()
                 .controlSize(.small)
             Text(text)
-                .font(AppTypography.listSubtitle)
+                .font(AppTypography.body)
                 .foregroundStyle(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.xl)
         .glassCard()
+        .transition(.contentReveal)
         .accessibilityIdentifier(identifier)
     }
 
     // MARK: - Ready to Download Card
 
+    @ViewBuilder
     private func readyToDownloadCard(meta: DynamicModelMetadata, files: [HFSibling]) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
-            // Model summary
+            // ── Model Identity Card ──
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 Text(meta.metadata.name)
-                    .font(AppTypography.listTitle)
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(meta.metadata.description)
                     .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
-                    .lineLimit(3)
+                    .lineLimit(2)
 
-                // Confidence badge
-                HStack(spacing: AppSpacing.xs) {
-                    Text(meta.confidence.emoji)
-                    Text(meta.confidence.label)
-                        .badge(ConfidenceTier.color(for: meta.confidence))
-                }
+                Label(meta.confidence.label,
+                      systemImage: meta.confidence.symbolName)
+                    .badge(ConfidenceTier.color(for: meta.confidence))
             }
             .accessibilityIdentifier("urlImport_modelInfo")
 
             Divider().overlay(AppColors.border)
 
-            // Progressive disclosure — full metadata
+            // Progressive disclosure — collapsed by default to save space
             DisclosureGroup(isExpanded: $isMetadataExpanded) {
                 metadataDetails(meta: meta)
                     .padding(.top, AppSpacing.sm)
@@ -226,44 +228,54 @@ struct macOSURLImportSheet: View {
                     .foregroundStyle(AppColors.textSecondary)
             }
             .accessibilityIdentifier("urlImport_detailsDisclosure")
-
-            // File picker (multi-file repos)
-            if files.count > 1 {
-                Divider().overlay(AppColors.border)
-                filePicker(files: files)
-            }
-
-            Divider().overlay(AppColors.border)
-
-            // Download action
-            if let file = selectedFile(from: files) {
-                Button {
-                    coordinator.importManager?.confirmDownload(
-                        metadata: meta,
-                        file: file,
-                        downloadManager: viewModel.downloadManager
-                    )
-                    coordinator.observeDownloadCompletion(
-                        filename: file.rfilename,
-                        metadata: meta,
-                        downloadManager: viewModel.downloadManager,
-                        onComplete: nil,
-                        onFail: nil
-                    )
-                } label: {
-                    Label("Download \(file.rfilename)", systemImage: "icloud.and.arrow.down")
-                        .frame(maxWidth: .infinity)
-                        .font(AppTypography.subtitle)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColors.accentPrimary)
-                .controlSize(.large)
-                .glow(AppColors.accentPrimary, radius: 10, opacity: 0.3)
-                .accessibilityIdentifier("urlImport_downloadButton")
-            }
         }
         .padding(AppSpacing.xl)
         .glassCard()
+        .transition(.contentReveal)
+
+        // ── File Picker Card (separate from model info) ──
+        if files.count > 1 {
+            filePicker(files: files)
+                .padding(AppSpacing.xl)
+                .glassCard()
+                .transition(.contentReveal)
+        }
+
+        // ── Download Action ──
+        if let file = selectedFile(from: files) {
+            // Show file size when available (especially useful for single-file repos)
+            if let size = file.size ?? file.lfs?.size {
+                Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+
+            Button {
+                coordinator.importManager?.confirmDownload(
+                    metadata: meta,
+                    file: file,
+                    downloadManager: viewModel.downloadManager
+                )
+                coordinator.observeDownloadCompletion(
+                    filename: file.rfilename,
+                    metadata: meta,
+                    downloadManager: viewModel.downloadManager,
+                    onComplete: nil,
+                    onFail: nil
+                )
+            } label: {
+                Label("Download \(Self.quantLabel(for: file.rfilename))",
+                      systemImage: "icloud.and.arrow.down")
+                    .frame(maxWidth: .infinity)
+                    .font(AppTypography.subtitle)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accentPrimary)
+            .controlSize(.large)
+            .glow(AppColors.accentPrimary, radius: 10, opacity: AppOpacity.medium)
+            .accessibilityIdentifier("urlImport_downloadButton")
+        }
     }
 
     // MARK: - Metadata Details (Progressive Disclosure)
@@ -296,7 +308,7 @@ struct macOSURLImportSheet: View {
             Text(label)
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textTertiary)
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 100, alignment: .trailing) // design-system-exempt: structural label column width
             Text(value)
                 .font(AppTypography.listSubtitle)
                 .foregroundStyle(AppColors.textPrimary)
@@ -307,28 +319,96 @@ struct macOSURLImportSheet: View {
 
     private func filePicker(files: [HFSibling]) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("Select File")
+            Text("Select Quantization")
                 .font(AppTypography.sectionHeader)
                 .foregroundStyle(AppColors.textSecondary)
 
-            Picker("Model file", selection: $selectedFileIndex) {
-                ForEach(Array(files.enumerated()), id: \.offset) { index, file in
-                    HStack {
-                        Text(file.rfilename)
-                            .font(AppTypography.mono)
-                        if let size = file.size ?? file.lfs?.size {
-                            Spacer()
-                            Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.textTertiary)
+            Text("\(files.count) variants available")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+
+            // Scrollable list for repos with many quantization variants
+            ScrollView {
+                VStack(spacing: 2) { // design-system-exempt: tight packing for compact list
+                    ForEach(Array(files.enumerated()), id: \.offset) { index, file in
+                        Button {
+                            selectedFileIndex = index
+                        } label: {
+                            HStack(spacing: AppSpacing.sm) {
+                                Image(systemName: selectedFileIndex == index
+                                      ? "checkmark.circle.fill"
+                                      : "circle")
+                                    .foregroundStyle(selectedFileIndex == index
+                                                     ? AppColors.accentPrimary
+                                                     : AppColors.textTertiary)
+                                    .font(AppIconSize.sm)
+
+                                VStack(alignment: .leading, spacing: 2) { // design-system-exempt: tight label packing
+                                    Text(Self.quantLabel(for: file.rfilename))
+                                        .font(AppTypography.subtitle)
+                                        .foregroundStyle(AppColors.textPrimary)
+                                    Text(file.rfilename)
+                                        .font(AppTypography.mono)
+                                        .foregroundStyle(AppColors.textTertiary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+
+                                Spacer()
+
+                                if let size = file.size ?? file.lfs?.size {
+                                    Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                                        .font(AppTypography.mono)
+                                        .foregroundStyle(AppColors.textSecondary)
+                                }
+                            }
+                            .padding(.horizontal, AppSpacing.md)
+                            .padding(.vertical, AppSpacing.sm)
+                            .background(
+                                selectedFileIndex == index
+                                    ? AppColors.accentPrimary.opacity(AppOpacity.faint)
+                                    : Color.clear
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
                         }
+                        .buttonStyle(.plain)
+                        .interactiveHover()
+                        .accessibilityIdentifier("urlImport_fileOption_\(index)")
                     }
-                    .tag(index)
                 }
             }
-            .pickerStyle(.radioGroup)
-            .accessibilityIdentifier("urlImport_filePicker")
+            .frame(maxHeight: 280) // design-system-exempt: limit file list height to prevent sheet overflow
         }
+        .accessibilityIdentifier("urlImport_filePicker")
+    }
+
+    /// Extract a human-readable quantization label from a GGUF filename.
+    ///
+    /// Examples:
+    /// - `"gemma-4-E2B-it-Q4_K_M.gguf"` → `"Q4_K_M"`
+    /// - `"gemma-4-E2B-it-BF16.gguf"` → `"BF16"`
+    /// - `"model.safetensors"` → `"model.safetensors"` (no quant pattern found)
+    private static func quantLabel(for filename: String) -> String {
+        // Known quantization patterns (ordered by specificity)
+        let patterns = [
+            "UD-IQ2_M", "UD-IQ3_XXS",
+            "UD-Q2_K_XL", "UD-Q3_K_XL", "UD-Q4_K_XL", "UD-Q5_K_XL", "UD-Q6_K_XL", "UD-Q8_K_XL",
+            "IQ4_NL", "IQ4_XS", "IQ3_XXS", "IQ2_M",
+            "Q3_K_S", "Q3_K_M", "Q3_K_L",
+            "Q4_K_S", "Q4_K_M", "Q4_K_L",
+            "Q5_K_S", "Q5_K_M", "Q5_K_L",
+            "Q6_K", "Q8_0", "Q4_0", "Q4_1", "Q5_0", "Q5_1",
+            "BF16", "F16", "F32",
+        ]
+        for pattern in patterns {
+            if filename.contains(pattern) {
+                return pattern
+            }
+        }
+        // Readable fallback for non-GGUF files
+        if filename.hasSuffix(".safetensors") { return "Model Weights" }
+        if filename.hasSuffix(".bin") { return "Model Binary" }
+        return filename
     }
 
     // MARK: - Complete Card
@@ -338,10 +418,10 @@ struct macOSURLImportSheet: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(AppIconSize.hero)
                 .foregroundStyle(AppColors.success)
-                .glow(AppColors.success, radius: 14, opacity: 0.5)
+                .glow(AppColors.success, radius: 10, opacity: AppOpacity.half)
 
             Text(meta.metadata.name)
-                .font(AppTypography.listTitle)
+                .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.textPrimary)
 
             Text("Model imported successfully.")
@@ -359,42 +439,55 @@ struct macOSURLImportSheet: View {
             .buttonStyle(.borderedProminent)
             .tint(AppColors.accentSecondary)
             .controlSize(.large)
-            .glow(AppColors.accentSecondary, radius: 10, opacity: 0.3)
+            .glow(AppColors.accentSecondary, radius: 10, opacity: AppOpacity.medium)
             .accessibilityIdentifier("urlImport_loadButton")
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.xl)
         .glassCard()
         .accessibilityIdentifier("urlImport_complete")
+        .transition(.contentReveal)
     }
 
     // MARK: - Failed Card
 
     private func failedCard(error: String) -> some View {
-        VStack(spacing: AppSpacing.lg) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(AppIconSize.xxl)
-                .foregroundStyle(AppColors.destructive)
+        VStack(alignment: .leading, spacing: AppSpacing.lg) {
+            // Header row
+            HStack(spacing: AppSpacing.md) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppIconSize.xl)
+                    .foregroundStyle(AppColors.warning)
 
+                Text("Import Failed")
+                    .font(AppTypography.cardTitle)
+                    .foregroundStyle(AppColors.textPrimary)
+            }
+
+            // Error explanation — left-aligned, readable secondary text
             Text(error)
-                .font(AppTypography.listSubtitle)
-                .foregroundStyle(AppColors.destructive)
-                .multilineTextAlignment(.center)
+                .font(AppTypography.body)
+                .foregroundStyle(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
+            Divider().overlay(AppColors.border)
+
+            // Action: clear and re-import
             Button {
                 coordinator.importManager?.reset()
                 coordinator = URLImportCoordinator()
             } label: {
-                Label("Try Again", systemImage: "arrow.counterclockwise")
+                Label("Try a Different URL", systemImage: "arrow.counterclockwise")
                     .font(AppTypography.subtitle)
             }
             .buttonStyle(.bordered)
             .accessibilityIdentifier("urlImport_retryButton")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.xl)
         .glassCard()
         .accessibilityIdentifier("urlImport_error")
+        .transition(.contentReveal)
     }
 
     // MARK: - Helpers

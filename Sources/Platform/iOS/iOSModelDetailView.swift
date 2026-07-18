@@ -218,13 +218,10 @@ struct iOSModelDetailView: View {
                 // Confidence badge for dynamically-imported models
                 if let dynamicEntry = viewModel.dynamicModelCatalog.allModels().first(where: { $0.metadata.modelFile == metadata.modelFile }),
                    dynamicEntry.source != .knownRegistry {
-                    HStack(spacing: AppSpacing.xs) {
-                        Text(dynamicEntry.confidence.emoji)
-                        Text(dynamicEntry.confidence.label)
-                            .font(AppTypography.badge)
-                            .foregroundStyle(ConfidenceTier.color(for: dynamicEntry.confidence))
-                    }
-                    .accessibilityIdentifier("modelDetail_confidenceBadge")
+                    Label(dynamicEntry.confidence.label,
+                          systemImage: dynamicEntry.confidence.symbolName)
+                        .badge(ConfidenceTier.color(for: dynamicEntry.confidence))
+                        .accessibilityIdentifier("modelDetail_confidenceBadge")
                 }
 
                 HStack(spacing: AppSpacing.sm) {

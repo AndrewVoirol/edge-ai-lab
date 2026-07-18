@@ -90,22 +90,22 @@ final class DynamicModelMetadataTests: XCTestCase {
     }
   }
 
-  // MARK: - MetadataConfidence — Emoji
+  // MARK: - MetadataConfidence — Symbol Name
 
-  func testMetadataConfidence_emoji() {
-    XCTAssertEqual(MetadataConfidence.verified.emoji, "✅")
-    XCTAssertEqual(MetadataConfidence.high.emoji, "🟢")
-    XCTAssertEqual(MetadataConfidence.medium.emoji, "🟡")
-    XCTAssertEqual(MetadataConfidence.low.emoji, "🔴")
+  func testMetadataConfidence_symbolName() {
+    XCTAssertEqual(MetadataConfidence.verified.symbolName, "checkmark.seal.fill")
+    XCTAssertEqual(MetadataConfidence.high.symbolName, "checkmark.circle.fill")
+    XCTAssertEqual(MetadataConfidence.medium.symbolName, "questionmark.circle.fill")
+    XCTAssertEqual(MetadataConfidence.low.symbolName, "exclamationmark.triangle.fill")
   }
 
   // MARK: - MetadataConfidence — Label
 
   func testMetadataConfidence_label() {
-    XCTAssertEqual(MetadataConfidence.verified.label, "Verified")
-    XCTAssertEqual(MetadataConfidence.high.label, "High Confidence")
-    XCTAssertEqual(MetadataConfidence.medium.label, "Medium Confidence")
-    XCTAssertEqual(MetadataConfidence.low.label, "Low Confidence")
+    XCTAssertEqual(MetadataConfidence.verified.label, "Verified Compatible")
+    XCTAssertEqual(MetadataConfidence.high.label, "Likely Compatible")
+    XCTAssertEqual(MetadataConfidence.medium.label, "Review Recommended")
+    XCTAssertEqual(MetadataConfidence.low.label, "Compatibility Unknown")
   }
 
   // MARK: - MetadataConfidence — Comparable

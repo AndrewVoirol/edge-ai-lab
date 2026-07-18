@@ -65,19 +65,19 @@ struct DynamicModelMetadataExpandedTests {
             #expect(sorted == [.low, .medium, .high, .verified])
         }
 
-        @Test("Emoji is non-empty for all cases")
-        func emojis() {
+        @Test("Symbol name is non-empty for all cases")
+        func symbolNames() {
             for conf in [MetadataConfidence.verified, .high, .medium, .low] {
-                #expect(!conf.emoji.isEmpty)
+                #expect(!conf.symbolName.isEmpty)
             }
         }
 
         @Test("Label is non-empty for all cases")
         func labels() {
-            #expect(MetadataConfidence.verified.label == "Verified")
-            #expect(MetadataConfidence.high.label == "High Confidence")
-            #expect(MetadataConfidence.medium.label == "Medium Confidence")
-            #expect(MetadataConfidence.low.label == "Low Confidence")
+            #expect(MetadataConfidence.verified.label == "Verified Compatible")
+            #expect(MetadataConfidence.high.label == "Likely Compatible")
+            #expect(MetadataConfidence.medium.label == "Review Recommended")
+            #expect(MetadataConfidence.low.label == "Compatibility Unknown")
         }
 
         @Test("Codable round-trip")

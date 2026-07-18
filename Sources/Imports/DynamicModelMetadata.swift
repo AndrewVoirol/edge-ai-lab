@@ -50,23 +50,23 @@ enum MetadataConfidence: String, Codable, Sendable, Comparable {
 
     // MARK: - Display
 
-    /// Emoji indicator for inline UI display.
-    var emoji: String {
+    /// SF Symbol name for inline UI display.
+    var symbolName: String {
         switch self {
-        case .verified: return "✅"
-        case .high: return "🟢"
-        case .medium: return "🟡"
-        case .low: return "🔴"
+        case .verified: return "checkmark.seal.fill"
+        case .high: return "checkmark.circle.fill"
+        case .medium: return "questionmark.circle.fill"
+        case .low: return "exclamationmark.triangle.fill"
         }
     }
 
-    /// Human-readable label for settings/detail views.
+    /// Human-readable label describing compatibility expectation.
     var label: String {
         switch self {
-        case .verified: return "Verified"
-        case .high: return "High Confidence"
-        case .medium: return "Medium Confidence"
-        case .low: return "Low Confidence"
+        case .verified: return "Verified Compatible"
+        case .high: return "Likely Compatible"
+        case .medium: return "Review Recommended"
+        case .low: return "Compatibility Unknown"
         }
     }
 

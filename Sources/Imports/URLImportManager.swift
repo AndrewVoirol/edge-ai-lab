@@ -83,6 +83,20 @@ final class URLImportManager {
         case complete(metadata: DynamicModelMetadata)
         /// Import failed with an error message.
         case failed(error: String)
+
+        /// A stable key for each state case, used as an `.animation(value:)` trigger.
+        var stateKey: String {
+            switch self {
+            case .idle: return "idle"
+            case .parsing: return "parsing"
+            case .fetching: return "fetching"
+            case .analyzing: return "analyzing"
+            case .readyToDownload: return "readyToDownload"
+            case .downloading: return "downloading"
+            case .complete: return "complete"
+            case .failed: return "failed"
+            }
+        }
     }
 
     /// Parsed URL components extracted from a HuggingFace URL.
@@ -231,6 +245,40 @@ final class URLImportManager {
             readmeContent: readmeContent
         )
 
+        // Step 5b: Detect unsupported formats (raw transformers/safetensors repos)
+        // If the metadata parser couldn't find any runnable format (.litertlm, .gguf, .mlx)
+        // and the repo only has safetensors + config.json, this is a raw transformers repo.
+        if let siblings = modelDetail.siblings {
+            let filenames = siblings.map(\.rfilename)
+            let hasLitertlm = filenames.contains(where: { $0.hasSuffix(".litertlm") })
+            let hasGGUF = filenames.contains(where: { $0.hasSuffix(".gguf") })
+            let hasSafetensors = filenames.contains(where: { $0.hasSuffix(".safetensors") })
+            let hasConfig = filenames.contains("config.json")
+
+            // If the repo has safetensors but NO on-device format (.litertlm, .gguf),
+            // and no positive MLX signal, it's a raw transformers repo.
+            if hasSafetensors && hasConfig && !hasLitertlm && !hasGGUF {
+                let hasMLXSignal = modelDetail.author.lowercased() == "mlx-community"
+                    || modelDetail.tags.contains(where: { $0.lowercased() == "mlx" })
+                    || modelDetail.libraryName?.lowercased() == "mlx"
+                    || modelDetail.id.lowercased().contains("-mlx")
+                    || modelDetail.id.lowercased().contains("mlx-")
+                if !hasMLXSignal {
+                    state = .failed(
+                        error: "This repository contains raw model weights (SafeTensors/transformers format) "
+                        + "that cannot be run on-device. Look for a GGUF, MLX, or LiteRT-LM version of this model instead.\n\n"
+                        + "Try searching for:\n"
+                        + "• \(modelDetail.displayName)-GGUF\n"
+                        + "• mlx-community/\(modelDetail.displayName)"
+                    )
+                    Self.logger.warning(
+                        "⚠️ Unsupported format: \\(parsed.repoId, privacy: .public) is a raw transformers repo"
+                    )
+                    return
+                }
+            }
+        }
+
         let dynamicMeta = DynamicModelMetadata.fromHuggingFace(
             repoId: parsed.repoId,
             metadata: metadata,
@@ -244,7 +292,26 @@ final class URLImportManager {
             downloadableFiles = [sibling]
         } else {
             downloadableFiles = modelDetail.siblings?.filter { sibling in
-                sibling.rfilename.hasSuffix(".\(metadata.runtimeType.fileExtension)")
+                let filename = sibling.rfilename
+                // Must match the target file extension
+                guard filename.hasSuffix(".\(metadata.runtimeType.fileExtension)") else {
+                    return false
+                }
+                // Filter out companion files that are not standalone models:
+                // - MTP (Multi-Token Prediction) draft model shards
+                // - mmproj (vision projection files for multimodal)
+                // - imatrix (importance matrix data files)
+                let lower = filename.lowercased()
+                if lower.hasPrefix("mtp/") || lower.hasPrefix("mtp-") || lower.hasPrefix("mtp_") {
+                    return false
+                }
+                if lower.hasPrefix("mmproj") {
+                    return false
+                }
+                if lower.contains("imatrix") {
+                    return false
+                }
+                return true
             } ?? []
         }
 

@@ -42,6 +42,7 @@ struct iOSURLImportSheet: View {
 
     @State private var urlText = ""
     @State private var coordinator = URLImportCoordinator()
+    @State private var selectedFileIndex = 0
 
     // MARK: - Body
 
@@ -66,6 +67,7 @@ struct iOSURLImportSheet: View {
                 Section {
                     Button {
                         coordinator.startImport(urlText: urlText, catalog: viewModel.dynamicModelCatalog)
+                        selectedFileIndex = 0
                     } label: {
                         Label("Import Model", systemImage: "arrow.down.circle")
                             .frame(maxWidth: .infinity)
@@ -154,16 +156,33 @@ struct iOSURLImportSheet: View {
                         .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(3)
-                    HStack(spacing: AppSpacing.xs) {
-                        Text(meta.confidence.emoji)
-                        Text(meta.confidence.label)
-                            .font(AppTypography.badge)
-                            .foregroundStyle(ConfidenceTier.color(for: meta.confidence))
-                    }
+                    Label(meta.confidence.label,
+                          systemImage: meta.confidence.symbolName)
+                        .badge(ConfidenceTier.color(for: meta.confidence))
                 }
                 .accessibilityIdentifier("urlImport_modelInfo")
 
-                if let file = files.first {
+                // File picker for multi-file repos
+                if files.count > 1 {
+                    Picker("Quantization", selection: $selectedFileIndex) {
+                        ForEach(Array(files.enumerated()), id: \.offset) { index, file in
+                            HStack {
+                                Text(Self.quantLabel(for: file.rfilename))
+                                Spacer()
+                                if let size = file.size ?? file.lfs?.size {
+                                    Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppColors.textTertiary)
+                                }
+                            }
+                            .tag(index)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .accessibilityIdentifier("urlImport_filePicker")
+                }
+
+                if let file = selectedFile(from: files) {
                     Button {
                         coordinator.importManager?.confirmDownload(
                             metadata: meta,
@@ -178,7 +197,7 @@ struct iOSURLImportSheet: View {
                             onFail: nil
                         )
                     } label: {
-                        Label("Download \(file.rfilename)", systemImage: "icloud.and.arrow.down")
+                        Label("Download \(Self.quantLabel(for: file.rfilename))", systemImage: "icloud.and.arrow.down")
                             .frame(maxWidth: .infinity)
                             .font(AppTypography.subtitle)
                     }
@@ -212,6 +231,34 @@ struct iOSURLImportSheet: View {
                     .accessibilityIdentifier("urlImport_error")
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private func selectedFile(from files: [HFSibling]) -> HFSibling? {
+        guard !files.isEmpty else { return nil }
+        let index = min(selectedFileIndex, files.count - 1)
+        return files[index]
+    }
+
+    /// Extract a human-readable quantization label from a GGUF filename.
+    private static func quantLabel(for filename: String) -> String {
+        let patterns = [
+            "UD-IQ2_M", "UD-IQ3_XXS",
+            "UD-Q2_K_XL", "UD-Q3_K_XL", "UD-Q4_K_XL", "UD-Q5_K_XL", "UD-Q6_K_XL", "UD-Q8_K_XL",
+            "IQ4_NL", "IQ4_XS", "IQ3_XXS", "IQ2_M",
+            "Q3_K_S", "Q3_K_M", "Q3_K_L",
+            "Q4_K_S", "Q4_K_M", "Q4_K_L",
+            "Q5_K_S", "Q5_K_M", "Q5_K_L",
+            "Q6_K", "Q8_0", "Q4_0", "Q4_1", "Q5_0", "Q5_1",
+            "BF16", "F16", "F32",
+        ]
+        for pattern in patterns {
+            if filename.contains(pattern) {
+                return pattern
+            }
+        }
+        return filename
     }
 }
 #endif

@@ -92,6 +92,23 @@
   3. Read the actual source files, not skill file gap tables (which become stale as features ship)
 - **When proposing SDK feature integration work**, always state which SDK API is being used and verify it exists in the resolved dependency, not just in skill file documentation.
 
+## Upstream Dependency Investigation Protocol
+- **Before analyzing upstream SDK source code for a limitation or bug**, check the repo's open PRs and recent issues FIRST:
+  1. `curl -s "https://api.github.com/repos/<org>/<repo>/pulls?state=open&sort=updated&per_page=30"` — scan for related PRs
+  2. `curl -s "https://api.github.com/repos/<org>/<repo>/issues?state=open&sort=updated&per_page=30"` — scan for related issues
+  3. Check closed PRs in the last 30 days for recently-merged fixes
+- **Only after confirming no upstream fix exists** should you proceed to source-level root cause analysis.
+- When a relevant upstream PR is found, report: title, author, status, dependency chain, merge velocity estimate (use repo's median time-to-merge from recent merged PRs), and what it means for Edge AI Lab.
+- **Never produce a "this can't be fixed from our side" conclusion without first verifying the upstream repo's PR queue.**
+
+## Upstream Ecosystem Mapping
+- **When investigating an upstream SDK limitation**, don't just check the single repo. Map the ecosystem:
+  1. Check the parent organization's other repos (e.g., `ml-explore` has `mlx`, `mlx-swift`, `mlx-lm`, `mlx-swift-lm`)
+  2. Check community forks and parallel implementations (search GitHub for the feature + the framework name)
+  3. Check if the feature works in a different language binding (e.g., Python `mlx-vlm` vs Swift `mlx-swift-lm`)
+  4. Check HuggingFace model cards for the model in question — they often link to working implementations
+- **If a feature works in one binding but not another, the gap is a port issue, not an architectural impossibility.** Frame it accordingly.
+
 ## Subagent Research Integrity
 - **Never forward subagent findings about feature existence to the user without independent verification.** Subagents fabricate data (e.g., inventing TODO comments, reporting APIs as "not integrated" when they are shipped). Before including subagent claims in plans or reports:
   1. Verify any "TODO" or "FIXME" claims with `grep -rn 'TODO\|FIXME' Sources/`

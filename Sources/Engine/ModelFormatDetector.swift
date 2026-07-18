@@ -149,6 +149,12 @@ enum ModelFormatDetector {
     }
 
     /// Inspect file siblings (repository file listing) for format-specific files.
+    ///
+    /// **MLX disambiguation:** `config.json + *.safetensors` is necessary but NOT sufficient
+    /// for MLX — every raw transformers repo has the same layout. This method only returns
+    /// `.mlx` if the repo also lacks `.litertlm`/`.gguf` files (i.e., the ONLY runnable
+    /// format present is the safetensors layout). Callers should cross-reference with
+    /// model-level signals (author, tags) for definitive classification.
     private static func detectFromSiblings(_ siblings: [HFSibling]) -> RuntimeType? {
         let filenames = siblings.map(\.rfilename)
 
@@ -162,11 +168,17 @@ enum ModelFormatDetector {
             return .gguf
         }
 
-        // MLX: config.json + *.safetensors weight shards
+        // MLX: config.json + *.safetensors weight shards.
+        // However, raw transformers repos also have this layout (e.g., unsloth/gemma-4-E2B-it).
+        // Without model-level metadata (author, tags), we can't distinguish here reliably.
+        // Return nil and let higher-level detection (detectFromModelId) handle it.
+        // The caller (detectFormat(from:)) checks author/tags before reaching siblings.
         let hasConfig = filenames.contains("config.json")
         let hasSafetensors = filenames.contains(where: { $0.hasSuffix(".safetensors") })
         if hasConfig && hasSafetensors {
-            return .mlx
+            // Only classify as MLX if there's no other runnable format detected.
+            // This is still ambiguous — return nil to defer to model-level signals.
+            return nil
         }
 
         return nil

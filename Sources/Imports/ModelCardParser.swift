@@ -173,9 +173,28 @@ enum ModelCardParser {
             let filenames = siblings.map(\.rfilename)
             if filenames.contains(where: { $0.hasSuffix(".litertlm") }) { return .litertlm }
             if filenames.contains(where: { $0.hasSuffix(".gguf") }) { return .gguf }
+
+            // config.json + *.safetensors is necessary but NOT sufficient for MLX.
+            // Every raw transformers repo (BF16/FP32 weights) also has this layout.
+            // Only classify as MLX if we also have a positive MLX signal:
+            //   - author is mlx-community
+            //   - tags include "mlx"
+            //   - library_name is "mlx"
+            //   - repo ID contains "-mlx" or "mlx-"
             let hasConfig = filenames.contains("config.json")
             let hasSafetensors = filenames.contains(where: { $0.hasSuffix(".safetensors") })
-            if hasConfig && hasSafetensors { return .mlx }
+            if hasConfig && hasSafetensors {
+                let hasMLXSignal = model.author.lowercased() == "mlx-community"
+                    || model.tags.contains(where: { $0.lowercased() == "mlx" })
+                    || model.libraryName?.lowercased() == "mlx"
+                    || model.id.lowercased().contains("-mlx")
+                    || model.id.lowercased().contains("mlx-")
+                if hasMLXSignal {
+                    return .mlx
+                }
+                // No MLX signal → this is a raw transformers repo, not runnable on-device.
+                // Fall through to model ID check, then return nil.
+            }
         }
 
         // Check model ID
