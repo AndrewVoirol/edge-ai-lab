@@ -636,14 +636,27 @@ final class EvalRunner {
         }
         defer { ToolExecutionTracker.shared.clearCallback() }
 
-        // Skip multimodal prompts if the model doesn't support them
-        if prompt.isImagePrompt && !metadata.supportsImage {
+        // Skip multimodal prompts if the engine doesn't actually support them.
+        // Use engine capabilities (ground truth after model load) instead of metadata
+        // flags, which can be incorrect — e.g., GGUF models without an mmproj file
+        // have metadata.supportsImage forced to false even when the model family
+        // supports vision.
+        if prompt.isImagePrompt && !engine.supportsVision {
+            // Surface diagnostic info about WHY vision isn't available
+            var reason = "Engine does not support image input (supportsVision=false)"
+            if let mlxEngine = engine as? MLXEngineAdapter, let err = mlxEngine.vlmLoadError {
+                reason += ". VLM load error: \(err)"
+                Self.logger.warning("⚠️ VLM was expected but load failed: \(String(describing: err), privacy: .public)")
+            } else if engine.runtimeType == .gguf {
+                reason += ". GGUF vision requires mmproj companion file alongside the model."
+                Self.logger.warning("⚠️ GGUF model skipping image prompt — no mmproj file found.")
+            }
             return PromptEvalResult(
                 promptId: prompt.id,
                 promptText: prompt.prompt,
                 response: "",
                 passed: false,
-                score: .fail(reason: "Model does not support image input"),
+                score: .fail(reason: reason),
                 duration: 0
             )
         }
@@ -727,8 +740,18 @@ final class EvalRunner {
 
                         isFirstTurn = false
 
-                        if turnToolCalls.isEmpty {
-                            // No tool calls — model produced a text response. Done.
+                        // Determine if the engine handles tool dispatch natively.
+                        // MLX: ChatSession.toolDispatch executes tools internally and
+                        //   yields .toolCall events for observability only. The stream
+                        //   already contains the final text response after tool execution.
+                        // LiteRT-LM: Handles tools internally, never emits .toolCall events.
+                        // GGUF: Emits .toolCall events and relies on the caller (this loop)
+                        //   to execute tools and feed results back.
+                        let engineHandlesToolsNatively = engine.runtimeType != .gguf
+
+                        if turnToolCalls.isEmpty || engineHandlesToolsNatively {
+                            // No tool calls, or the engine already executed them natively.
+                            // Return the text response as-is.
                             return .completed(
                                 response: turnResponse,
                                 toolEvents: localToolEvents

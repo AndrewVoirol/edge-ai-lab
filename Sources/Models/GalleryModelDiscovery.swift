@@ -56,19 +56,14 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// metadata from the filename, file size, and extension. This ensures the
     /// detail panel, load/unload buttons, and model card always render —
     /// even for user-imported GGUF or community models with no registry entry.
+    ///
+    /// Note: For GGUF models, the metadata reflects the model family's inherent
+    /// capabilities (e.g., Gemma 4 supports vision). Whether the engine can
+    /// actually USE those capabilities at runtime depends on the mmproj companion
+    /// file — this is checked by the engine after loading (engine.supportsVision),
+    /// not by metadata. This separation keeps discovery and runtime concerns clean.
     var resolvedMetadata: ModelMetadata {
         if let metadata {
-            // If we have registry metadata but the mmproj status should override
-            // the multimodal flags, create a copy with corrected flags.
-            if metadata.runtimeType == .gguf {
-                let hasProj = mmProjPath != nil
-                if metadata.supportsImage != hasProj || metadata.supportsAudio != hasProj {
-                    var corrected = metadata
-                    corrected.supportsImage = hasProj
-                    corrected.supportsAudio = hasProj
-                    return corrected
-                }
-            }
             return metadata
         }
         return DiscoveredModel.synthesizeMetadata(
@@ -310,10 +305,13 @@ enum GalleryModelDiscovery {
             return []
         }
 
-        // Scan for mmproj companion files in the same directory
+        // Scan for mmproj companion files in the same directory.
+        // Two naming patterns exist in the wild:
+        //   1. Prefix: "mmproj-model-f16.gguf" (llama.cpp convention)
+        //   2. Infix:  "gemma-4-E2B-mmproj-f16.gguf" (HuggingFace convention)
         let mmprojFiles = contents.filter { url in
             let name = url.lastPathComponent.lowercased()
-            return name.hasPrefix("mmproj") && name.hasSuffix(".gguf")
+            return name.hasSuffix(".gguf") && name.contains("mmproj")
         }
         // Pick the first mmproj file (prefer F16 over others if multiple exist)
         let mmprojURL = mmprojFiles.first(where: { $0.lastPathComponent.lowercased().contains("f16") })
@@ -321,8 +319,10 @@ enum GalleryModelDiscovery {
 
         return contents.compactMap { url -> DiscoveredModel? in
             guard supportedExtensions.contains(url.pathExtension.lowercased()) else { return nil }
-            // Skip mmproj files — they are companion files, not loadable models
-            guard !url.lastPathComponent.lowercased().hasPrefix("mmproj") else { return nil }
+            // Skip mmproj files — they are companion files, not loadable models.
+            // Matches both prefix ("mmproj-model.gguf") and infix ("model-mmproj-f16.gguf") patterns.
+            let lowerName = url.lastPathComponent.lowercased()
+            guard !(lowerName.hasSuffix(".gguf") && lowerName.contains("mmproj")) else { return nil }
 
             // Resolve symlinks so we check the actual target file
             let resolvedURL = url.resolvingSymlinksInPath()
@@ -425,6 +425,22 @@ enum GalleryModelDiscovery {
         // Reconstruct model ID from directory name: "mlx-community--gemma-4-E2B-it-4bit" → "mlx-community/gemma-4-E2B-it-4bit"
         let modelId = dirName.replacingOccurrences(of: "--", with: "/")
 
+        // Detect multimodal capability from model config.
+        // VLMs (Gemma 4, Qwen-VL, PaliGemma) include vision_config in config.json
+        // and ship with processor_config.json alongside their weights.
+        let hasVisionConfig = config["vision_config"] != nil
+        let modelDir = configURL.deletingLastPathComponent()
+        let hasProcessorConfig = FileManager.default.fileExists(
+            atPath: modelDir.appendingPathComponent("processor_config.json").path
+        )
+        let supportsImage = hasVisionConfig || hasProcessorConfig
+        // Audio: detect from audio_config in config.json. mlx-swift-lm's Swift API
+        // supports audio via UserInput.Audio (AVFoundation-based processing) and
+        // Chat.Message's audios parameter. Gemma 4 Standard variants include
+        // audio_config in their model configs.
+        let hasAudioConfig = config["audio_config"] != nil
+        let supportsAudio = hasAudioConfig
+
         return ModelMetadata(
             name: humanName,
             modelId: modelId,
@@ -435,8 +451,8 @@ enum GalleryModelDiscovery {
             contextWindowSize: 128_000,
             architectureType: modelType,
             recommendedFor: "Apple Silicon inference",
-            supportsImage: false,
-            supportsAudio: false,
+            supportsImage: supportsImage,
+            supportsAudio: supportsAudio,
             capabilities: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 40,
@@ -445,7 +461,7 @@ enum GalleryModelDiscovery {
                 maxContextLength: 32_000,
                 maxTokens: 4_000,
                 accelerators: "gpu",
-                visionAccelerator: nil
+                visionAccelerator: supportsImage ? "gpu" : nil
             ),
             platformSupport: PlatformSupport(
                 macOS: .gpuOnly,

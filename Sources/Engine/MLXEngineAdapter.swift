@@ -194,6 +194,11 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
 
     private(set) var supportsVision: Bool = false
 
+    /// Error from VLM loading attempt, if VLM loading failed and fell back to text-only LLM.
+    /// Nil if VLM loaded successfully or if the model isn't a VLM.
+    /// Used by EvalRunner and diagnostics to surface why vision isn't available.
+    private(set) var vlmLoadError: Error?
+
     // MARK: - Loading
 
     /// Detects whether a local model directory is a VLM by checking for vision processor configs.
@@ -222,6 +227,8 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         let isLocalPath = config.modelPath.hasPrefix("/") || config.modelPath.hasPrefix("~")
         let modelURL = URL(fileURLWithPath: config.modelPath)
 
+        var vlmLoadedSuccessfully = false
+
         if isLocalPath {
             // Local path — must be a valid directory with MLX model files
             var isDir: ObjCBool = false
@@ -236,9 +243,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             }
 
             // Try VLMModelFactory first for models with vision processor configs.
-            // Fall back to LLMModelFactory if VLM loading fails — this handles the
-            // mlx-swift-lm ≤3.31.4 bug where VLMModelFactory's Gemma4 class doesn't
-            // support KV-shared layers (k_norm/v_norm absent in shared layers).
+            // Fall back to LLMModelFactory if VLM loading fails.
             // LLMModelFactory's Gemma4Model has a sanitize(weights:) method that
             // strips the language_model. prefix and drops vision/audio keys, so it
             // can load VLM-structured weights for text-only inference.
@@ -248,9 +253,13 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                         from: modelURL,
                         using: TransformersTokenizerLoader()
                     )
+                    vlmLoadedSuccessfully = true
+                    Self.logger.info("✅ VLM loaded: vision pipeline active for \(modelLabel, privacy: .public)")
                 } catch {
-                    // VLM loading failed (likely KV-shared layer bug) — fall back to LLM.
+                    // VLM loading failed — fall back to text-only LLM.
                     // This loses multimodal (image/audio) input but preserves text inference.
+                    self.vlmLoadError = error
+                    Self.logger.warning("⚠️ VLM load failed (\(String(describing: error), privacy: .public)), falling back to text-only LLM for \(modelLabel, privacy: .public)")
                     container = try await LLMModelFactory.shared.loadContainer(
                         from: modelURL,
                         using: TransformersTokenizerLoader()
@@ -276,7 +285,11 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     ) { [weak self] progress in
                         self?.downloadProgress = progress.fractionCompleted
                     }
+                    vlmLoadedSuccessfully = true
+                    Self.logger.info("✅ VLM loaded (HF): vision pipeline active for \(modelLabel, privacy: .public)")
                 } catch {
+                    self.vlmLoadError = error
+                    Self.logger.warning("⚠️ VLM load failed (HF) (\(String(describing: error), privacy: .public)), falling back to text-only LLM for \(modelLabel, privacy: .public)")
                     container = try await LLMModelFactory.shared.loadContainer(
                         from: HubDownloader(),
                         using: TransformersTokenizerLoader(),
@@ -376,9 +389,11 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             runtimeType: .mlx
         )
 
-        // Set vision capability from model config.
-        // VLMs (e.g., Gemma 4, Qwen-VL) report supportsVision = true in ModelLoadConfig.
-        self.supportsVision = config.supportsVision
+        // Set vision capability: only true if the metadata says vision is supported
+        // AND the VLM model factory actually loaded successfully. If VLM loading
+        // fell back to LLMModelFactory, the vision weights were stripped —
+        // claiming vision support would cause silent failures on image prompts.
+        self.supportsVision = config.supportsVision && vlmLoadedSuccessfully
 
         Self.logger.info("✅ MLX ready: \(modelLabel, privacy: .public)")
         Self.signposter.endInterval("ModelLoad", signpostState, "Model loaded successfully")
@@ -437,9 +452,27 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                         return .ciImage(ciImage)
                     }
 
+                    // Convert raw audio Data to UserInput.Audio for the audio pipeline.
+                    // UserInput.Audio only supports .url(URL) and .array(MLXArray) — no
+                    // direct Data case. Write each audio clip to a temp WAV file and pass
+                    // via .url(). The SDK's AVFoundation-based AudioProcessing reads from
+                    // the file URL and resamples as needed.
+                    let audios: [UserInput.Audio] = (config.audioData ?? []).compactMap { data in
+                        let tempDir = FileManager.default.temporaryDirectory
+                        let tempURL = tempDir.appendingPathComponent(UUID().uuidString + ".wav")
+                        do {
+                            try data.write(to: tempURL)
+                            return .url(tempURL)
+                        } catch {
+                            Self.logger.warning("⚠️ Failed to write temp audio file: \(error.localizedDescription, privacy: .public)")
+                            return nil
+                        }
+                    }
+
                     for try await generation in session.streamDetails(
                         to: prompt,
-                        images: images
+                        images: images,
+                        audios: audios
                     ) {
                         if Task.isCancelled { break }
 
