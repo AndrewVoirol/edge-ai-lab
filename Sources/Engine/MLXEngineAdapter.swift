@@ -361,11 +361,19 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                 let name = toolCall.function.name
                 // Convert [String: JSONValue] → [String: Any] for AppTool.execute
                 let arguments = toolCall.function.arguments.mapValues { $0.anyValue }
-                return try await MLXToolBridge.executeToolCall(
-                    toolName: name,
-                    arguments: arguments,
-                    tools: tools
-                )
+                print("[MLXEngine] 🔧 Tool dispatch: \(name) with args: \(arguments)")
+                do {
+                    let result = try await MLXToolBridge.executeToolCall(
+                        toolName: name,
+                        arguments: arguments,
+                        tools: tools
+                    )
+                    print("[MLXEngine] ✅ Tool \(name) returned: \(result.prefix(200))")
+                    return result
+                } catch {
+                    print("[MLXEngine] ❌ Tool \(name) failed: \(error)")
+                    throw error
+                }
             }
         }
 

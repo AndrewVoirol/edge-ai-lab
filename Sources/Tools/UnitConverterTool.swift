@@ -116,16 +116,20 @@ struct UnitConverterTool: Tool {
     private static func resolveUnit(_ name: String) -> Dimension? {
         switch name {
         // Temperature
-        case "celsius", "c":
+        case "celsius", "c", "°c", "degrees celsius":
             return UnitTemperature.celsius
-        case "fahrenheit", "f":
+        case "fahrenheit", "f", "°f", "degrees fahrenheit":
             return UnitTemperature.fahrenheit
         case "kelvin", "k":
             return UnitTemperature.kelvin
 
-        // Distance
+        // Distance / Length
         case "meters", "meter", "m":
             return UnitLength.meters
+        case "centimeters", "centimeter", "cm":
+            return UnitLength.centimeters
+        case "millimeters", "millimeter", "mm":
+            return UnitLength.millimeters
         case "kilometers", "kilometer", "km":
             return UnitLength.kilometers
         case "miles", "mile", "mi":
@@ -138,7 +142,7 @@ struct UnitConverterTool: Tool {
             return UnitLength.yards
 
         // Weight / Mass
-        case "kilograms", "kilogram", "kg":
+        case "kilograms", "kilogram", "kg", "kgs":
             return UnitMass.kilograms
         case "pounds", "pound", "lbs", "lb":
             return UnitMass.pounds
@@ -146,6 +150,18 @@ struct UnitConverterTool: Tool {
             return UnitMass.ounces
         case "grams", "gram", "g":
             return UnitMass.grams
+        case "milligrams", "milligram", "mg":
+            return UnitMass.milligrams
+
+        // Speed
+        case "meters per second", "m/s", "mps", "meters/second", "meter per second":
+            return UnitSpeed.metersPerSecond
+        case "kilometers per hour", "km/h", "kph", "kmh", "kilometers/hour", "kilometer per hour":
+            return UnitSpeed.kilometersPerHour
+        case "miles per hour", "mph", "mi/h", "miles/hour", "mile per hour":
+            return UnitSpeed.milesPerHour
+        case "knots", "knot", "kn", "kt":
+            return UnitSpeed.knots
 
         // Data Storage
         case "bytes", "byte", "b":

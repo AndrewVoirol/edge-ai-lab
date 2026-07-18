@@ -55,6 +55,10 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
     /// The model info extracted after loading.
     private(set) var modelInfo: InferenceModelInfo?
 
+    /// Whether the loaded model supports vision (image input).
+    /// Set from ModelLoadConfig during loadModel().
+    private(set) var supportsVision: Bool = false
+
     /// The sampler config applied to the current conversation.
     private var activeSamplerConfig: SamplerConfig?
 
@@ -147,6 +151,11 @@ final class LiteRTEngineAdapter: InferenceEngine, @unchecked Sendable {
             supportsVision: config.supportsVision,
             supportsAudio: config.supportsAudio
         )
+
+        // Store capability flags so the InferenceEngine protocol exposes
+        // the correct values. Without this, the default extension returns
+        // false and EvalRunner skips all multimodal prompts.
+        self.supportsVision = config.supportsVision
 
         // Extract model info from the path.
         let filename = (config.modelPath as NSString).lastPathComponent

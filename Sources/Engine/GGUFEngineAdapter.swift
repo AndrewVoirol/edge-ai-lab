@@ -341,6 +341,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                 // multimodal tokenize→eval path. Otherwise fall through to the
                 // standard text-only tokenize→decode loop.
                 let mediaItems: [Data] = (config.imageData ?? []) + (config.audioData ?? [])
+                let imageCount = config.imageData?.count ?? 0
                 let useMultimodal = !mediaItems.isEmpty && self.mtmdContext != nil
 
                 var nProcessed = 0
@@ -368,11 +369,14 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     }
 
                     for (index, data) in mediaItems.enumerated() {
+                        // Items at indices [0..<imageCount] are image data,
+                        // items at indices [imageCount...] are audio data.
+                        let isAudio = index >= imageCount
                         let bitmap: OpaquePointer? = data.withUnsafeBytes { rawBuf -> OpaquePointer? in
                             guard let baseAddr = rawBuf.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
                                 return nil
                             }
-                            let wrapper = mtmd_helper_bitmap_init_from_buf(mtmd, baseAddr, rawBuf.count, false)
+                            let wrapper = mtmd_helper_bitmap_init_from_buf(mtmd, baseAddr, rawBuf.count, isAudio)
                             return wrapper.bitmap
                         }
                         guard let bmp = bitmap else {

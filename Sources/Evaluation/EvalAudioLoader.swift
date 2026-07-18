@@ -57,12 +57,16 @@ enum EvalAudioLoader {
 
         // Strategy 1: Flat lookup
         if let url = bundle.url(forResource: name, withExtension: "wav") {
-            return try? Data(contentsOf: url)
+            let data = try? Data(contentsOf: url)
+            print("[EvalAudioLoader] ✅ Found '\(name).wav' at \(url.lastPathComponent) (\(data?.count ?? 0) bytes)")
+            return data
         }
 
         // Strategy 2: Subdirectory lookup
         if let url = bundle.url(forResource: name, withExtension: "wav", subdirectory: "audio") {
-            return try? Data(contentsOf: url)
+            let data = try? Data(contentsOf: url)
+            print("[EvalAudioLoader] ✅ Found '\(name).wav' in audio/ (\(data?.count ?? 0) bytes)")
+            return data
         }
 
         // Strategy 3: Enumerator fallback — walk entire bundle
@@ -70,11 +74,14 @@ enum EvalAudioLoader {
             let targetFilename = "\(name).wav"
             while let fileURL = enumerator.nextObject() as? URL {
                 if fileURL.lastPathComponent == targetFilename {
-                    return try? Data(contentsOf: fileURL)
+                    let data = try? Data(contentsOf: fileURL)
+                    print("[EvalAudioLoader] ✅ Found '\(name).wav' via enumerator (\(data?.count ?? 0) bytes)")
+                    return data
                 }
             }
         }
 
+        print("[EvalAudioLoader] ❌ Audio file '\(name).wav' not found in bundle: \(bundle.bundleURL.path)")
         return nil
     }
 
