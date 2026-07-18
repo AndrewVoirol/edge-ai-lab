@@ -251,3 +251,56 @@ Package source: `https://github.com/ml-explore/mlx-swift-lm.git` pinned to `.upT
 
 Minimum platform requirements: macOS 14+ / iOS 17+ (but project targets macOS 27 / iOS 27).
 
+## Model Architecture Mapping — config.json `model_type`
+
+The `model_type` field in a model's `config.json` controls which architecture class the SDK loads. **Never patch this field** — the architectures have fundamentally different weight structures:
+
+| `model_type` | SDK Architecture | Vision Pipeline | Audio Weights | Weight Sanitization |
+|---|---|---|---|---|
+| `gemma4` | `Gemma4` | SigLIP (standard) | **Stripped** by `sanitize()` | Drops `audio_tower`, `embed_audio` keys |
+| `gemma4_unified` | `Gemma4Unified` | Patchify + position IDs | **Preserved** | Keeps all weight keys |
+
+**Critical rule:** Do NOT change `model_type` to "fix" audio support. The `Gemma4` and `Gemma4Unified` architectures expect different weight tensor shapes for vision encoding. Switching model_type causes all vision prompts to return empty responses (tested: 92%→4% Multimodal regression).
+
+### Tool Call Format Inference
+
+The `ToolCallFormat.infer(from:)` method uses prefix matching on `model_type`:
+- `"gemma4"` prefix → `.gemma4` format (matches both `gemma4` and `gemma4_unified`)
+- `"gemma"` exact → `.gemma` format
+
+Tool calling format is preserved regardless of model_type value, as long as the prefix matches.
+
+## MLX Audio Status (Pinned Commit d2424294a6c3)
+
+Audio inference is a **known SDK limitation** at the pinned commit:
+
+1. `Gemma4.sanitize(weights:)` strips `audio_tower` and `embed_audio` weight keys (line 2131-2133)
+2. `Gemma4UnifiedProcessor.prepare()` only processes images — no mel spectrogram/STFT extraction exists (line 3060-3110)
+3. No audio processing code exists in `Libraries/MLXVLM/` or `Libraries/MLXLMCommon/`
+4. Audio `Data` is correctly written to temp WAV files and passed to `UserInput.Audio`, but the processor ignores it
+
+**Audio prompts will return:** `"Please provide the audio you are referring to."` — This is NOT our infrastructure; it's the SDK's processor not extracting audio features.
+
+**Do NOT attempt:** Config.json model_type patches, custom audio processors, or workarounds that modify the model's configuration. Wait for upstream `mlx-swift-lm` to implement mel spectrogram extraction in `Gemma4Processor`.
+
+## Multimodal Diagnostics
+
+The adapter includes diagnostic logging for multimodal inputs:
+```
+[MLXEngine] 🎵 Wrote temp audio: <UUID>.wav (<bytes> bytes)
+[MLXEngine] 📎 Multimodal input: <N> image(s), <M> audio(s)
+```
+If audio prompts fail, check these logs first to verify data reaches the engine before investigating the SDK.
+
+## Engine Capability Flags
+
+MLXEngineAdapter exposes capability properties that gate eval prompt routing:
+
+| Flag | Current Value | Effect |
+|---|---|---|
+| `supportsVision` | `true` (VLM models) | Image prompts sent to engine |
+| `supportsAudio` | `true` (declared) | Audio data passed to SDK (but SDK ignores it) |
+| `supportsToolCalling` | `true` | Tool schemas registered, toolDispatch wired |
+
+**A missing capability flag causes SILENT eval failures** — empty responses scored as 0%. Always verify all three flags when adding or modifying engine adapters.
+
