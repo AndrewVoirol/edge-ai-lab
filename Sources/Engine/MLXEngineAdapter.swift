@@ -207,40 +207,6 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
         MLXVLMDetectionHelper.isVLMModel(at: directory)
     }
 
-    /// Patches config.json to upgrade `model_type` from `"gemma4"` to `"gemma4_unified"`
-    /// when the config contains an `audio_config` section.
-    ///
-    /// ## Why
-    /// mlx-community quantized Gemma 4 models declare `"model_type": "gemma4"` in their
-    /// config.json. The mlx-swift-lm SDK maps this to the `Gemma4` VLM architecture, whose
-    /// `sanitize(weights:)` strips `audio_tower` and `embed_audio` weights — disabling audio.
-    /// The `Gemma4Unified` architecture preserves these weights and supports full audio inference.
-    ///
-    /// The patch is idempotent: if `model_type` is already `"gemma4_unified"`, no write occurs.
-    /// If config.json can't be read or parsed, the method logs a warning and returns silently.
-    private static func patchConfigForAudioSupport(at directory: URL) {
-        let configURL = directory.appendingPathComponent("config.json")
-        guard let data = try? Data(contentsOf: configURL),
-              var json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let modelType = json["model_type"] as? String,
-              modelType == "gemma4",
-              json["audio_config"] != nil
-        else { return }
-
-        // Upgrade model_type to gemma4_unified so the SDK loads Gemma4Unified
-        // with audio tower weights preserved.
-        json["model_type"] = "gemma4_unified"
-        guard let updatedData = try? JSONSerialization.data(
-            withJSONObject: json, options: [.prettyPrinted, .sortedKeys]
-        ) else { return }
-
-        do {
-            try updatedData.write(to: configURL, options: .atomic)
-            logger.info("🔧 Patched config.json: model_type gemma4 → gemma4_unified (audio support enabled)")
-        } catch {
-            logger.warning("⚠️ Failed to patch config.json for audio: \(error.localizedDescription, privacy: .public)")
-        }
-    }
 
     func loadModel(config: ModelLoadConfig) async throws {
         let modelLabel = config.modelPath.split(separator: "/").last.map(String.init) ?? config.modelPath
@@ -283,12 +249,6 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
             // strips the language_model. prefix and drops vision/audio keys, so it
             // can load VLM-structured weights for text-only inference.
             if Self.isVLMModel(at: modelURL) {
-                // Pre-load fix: upgrade "gemma4" → "gemma4_unified" when audio_config is present.
-                // mlx-community quantized models declare model_type "gemma4" which maps to the
-                // vision-only Gemma4 architecture. That architecture's sanitize() strips
-                // audio_tower and embed_audio weights. The Gemma4Unified architecture
-                // preserves them and supports full vision+audio inference.
-                Self.patchConfigForAudioSupport(at: modelURL)
 
                 do {
                     container = try await VLMModelFactory.shared.loadContainer(
