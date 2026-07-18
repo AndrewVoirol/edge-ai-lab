@@ -99,6 +99,7 @@ struct ToolToAppToolAdapter: AppTool {
 
         // Capture as let for @Sendable closure safety
         let paramTypes = appParams
+        let requiredParams = Set(required)
 
         return ToolToAppToolAdapter(
             name: toolName,
@@ -123,6 +124,30 @@ struct ToolToAppToolAdapter: AppTool {
                             }
                         default:
                             break
+                        }
+                    }
+                }
+
+                // Inject type-appropriate defaults for missing non-required parameters.
+                // Swift's auto-synthesized Decodable for structs with @ToolParam property
+                // wrappers expects ALL keys to be present in the JSON — even optional ones
+                // with defaults. If a key is missing entirely, Swift throws
+                // DecodingError.keyNotFound before the ToolParam's init(from:) can apply
+                // its default. This is the root cause of MLX tool dispatch failures when
+                // the model omits optional arguments like "timezone".
+                for (key, paramInfo) in paramTypes where !requiredParams.contains(key) {
+                    if coerced[key] == nil {
+                        switch paramInfo.type {
+                        case "string":
+                            coerced[key] = ""
+                        case "number":
+                            coerced[key] = 0.0
+                        case "integer":
+                            coerced[key] = 0
+                        case "boolean":
+                            coerced[key] = false
+                        default:
+                            coerced[key] = ""
                         }
                     }
                 }
