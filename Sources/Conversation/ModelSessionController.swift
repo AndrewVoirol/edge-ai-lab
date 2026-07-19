@@ -51,6 +51,11 @@ final class ModelSessionController {
     /// Metadata for the currently loaded model, if known.
     private(set) var activeModelMetadata: ModelMetadata?
 
+    /// Capability profile for the currently loaded model.
+    /// Built from ModelMetadata via `ModelCapabilityProfileBuilder`.
+    /// New code should prefer this over `activeModelMetadata` for capability checks.
+    private(set) var activeCapabilityProfile: ModelCapabilityProfile?
+
     /// Result of the last backend initialization (active backend, fallback info).
     private(set) var backendResult: BackendResult?
 
@@ -141,6 +146,7 @@ final class ModelSessionController {
         engine = newEngine
         backendResult = nil
         activeModelMetadata = nil
+        activeCapabilityProfile = nil
         onActiveModelChanged?(nil, activeModelURL)
         onEngineReadyChanged?(false)
 
@@ -209,6 +215,16 @@ final class ModelSessionController {
         // Look up model metadata — prefer caller-provided metadata (from DiscoveredModel)
         // over static registry lookup. Community MLX models aren't in ModelRegistry.
         activeModelMetadata = ModelRegistry.lookup(path: modelPath) ?? discoveredMetadata
+        // Build capability profile from metadata for new capability-aware subsystems
+        if let metadata = activeModelMetadata {
+            activeCapabilityProfile = ModelCapabilityProfileBuilder.fromModelMetadata(
+                metadata,
+                source: ModelRegistry.lookup(path: modelPath) != nil ? .knownRegistry : .huggingFaceInferred,
+                confidence: ModelRegistry.lookup(path: modelPath) != nil ? .verified : .medium
+            )
+        } else {
+            activeCapabilityProfile = nil
+        }
         onActiveModelChanged?(activeModelMetadata, activeModelURL)
         if let metadata = activeModelMetadata {
             onStatusMessage("Loading \(metadata.name)...")
@@ -426,6 +442,7 @@ final class ModelSessionController {
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
         activeModelMetadata = nil
+        activeCapabilityProfile = nil
         backendResult = nil
         await engine.shutdown()
         onActiveModelChanged?(nil, nil)

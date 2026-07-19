@@ -127,6 +127,11 @@ final class ConversationViewModel {
     /// Synced from ModelSessionController via `onActiveModelChanged` callback.
     var activeModelMetadata: ModelMetadata?
 
+    /// Capability profile for the currently loaded model.
+    /// Built from ModelMetadata, provides sourced capability checks.
+    /// New UI code should prefer this for capability gating.
+    var activeCapabilityProfile: ModelCapabilityProfile?
+
     /// Current runtime flags configuration (user-toggleable, default ON).
     var runtimeFlags = RuntimeFlags(
         enableBenchmark: true,
@@ -430,6 +435,7 @@ final class ConversationViewModel {
         // Sync active model identity so SwiftUI observes changes
         controller.onActiveModelChanged = { [weak self] metadata, url in
             self?.activeModelMetadata = metadata
+            self?.activeCapabilityProfile = controller.activeCapabilityProfile
             self?.activeModelURL = url
             self?.backendResult = controller.backendResult
         }
@@ -705,6 +711,7 @@ final class ConversationViewModel {
         isEngineReady = false
         performanceMetrics = nil
         activeModelMetadata = nil
+        activeCapabilityProfile = nil
         activeModelURL = nil
         backendResult = nil
         statusMessage = "Model unloaded. Select a model to get started."
