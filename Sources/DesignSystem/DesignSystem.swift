@@ -678,6 +678,29 @@ extension View {
         modifier(ForestGlassModifier(cornerRadius: cornerRadius))
     }
 
+    /// Glass card with interactive affordances — slightly more opaque fill
+    /// and subtle accent border tint on hover. Use for clickable surfaces.
+    func interactiveGlassCard(cornerRadius: CGFloat = AppRadius.standard) -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(AppColors.backgroundSecondary.opacity(AppOpacity.half))
+                    .background(.ultraThinMaterial)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(AppColors.border, lineWidth: AppLineWidth.hairline)
+            }
+            .interactiveHover()
+    }
+
+    /// Glass card for input fields (URL paste, search, text entry).
+    /// Alias for forestGlass with standard radius.
+    func inputGlassCard(cornerRadius: CGFloat = AppRadius.md) -> some View {
+        self.forestGlass(cornerRadius: cornerRadius)
+    }
+
     /// Add a subtle colored glow.
     func glow(_ color: Color, radius: CGFloat = 12, opacity: Double = 0.4) -> some View {
         modifier(GlowModifier(color: color, radius: radius, opacity: opacity))

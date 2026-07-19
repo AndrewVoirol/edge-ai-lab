@@ -102,9 +102,22 @@ struct DiscoveredModel: Identifiable, Sendable {
         // Generate a human-readable name from the stem.
         // GGUF filenames use hyphens as word separators (e.g., "gemma-4-E2B-it-Q4_K_M").
         // Underscores are meaningful within quantization identifiers — preserve them.
-        let displayName = stem
+        let rawName = stem
             .replacingOccurrences(of: "--", with: " / ")
             .replacingOccurrences(of: "-", with: " ")
+
+        // Title-case known model family prefixes
+        let displayName = rawName
+            .replacingOccurrences(of: "gemma ", with: "Gemma ", options: .caseInsensitive)
+            .replacingOccurrences(of: "llama ", with: "Llama ", options: .caseInsensitive)
+            .replacingOccurrences(of: "mistral ", with: "Mistral ", options: .caseInsensitive)
+            .replacingOccurrences(of: "phi ", with: "Phi ", options: .caseInsensitive)
+            .replacingOccurrences(of: "qwen ", with: "Qwen ", options: .caseInsensitive)
+            // Normalize common component casing
+            .replacingOccurrences(of: " it ", with: " IT ", options: .caseInsensitive)
+            .replacingOccurrences(of: " it$", with: " IT", options: [.caseInsensitive, .regularExpression])
+            .replacingOccurrences(of: " e2b", with: " E2B", options: .caseInsensitive)
+            .replacingOccurrences(of: " e4b", with: " E4B", options: .caseInsensitive)
 
         // Detect multimodal support from filename.
         // Gemma 4 Standard variants (E2B, E4B, 12B) support image + audio.

@@ -47,6 +47,13 @@ struct macOSURLImportSheet: View {
     @State private var selectedFileIndex = 0
     @State private var isMetadataExpanded = false
 
+    /// Whether the import state is `.readyToDownload` (the bottom action bar is visible).
+    private var isReadyToDownload: Bool {
+        guard let manager = coordinator.importManager else { return false }
+        if case .readyToDownload = manager.state { return true }
+        return false
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -68,17 +75,80 @@ struct macOSURLImportSheet: View {
                     .padding(.vertical, AppSpacing.lg)
                     .animation(AppAnimation.standard, value: coordinator.importManager?.state.stateKey)
                 }
+
+                // ── Persistent bottom action bar ──
+                if let manager = coordinator.importManager,
+                   case .readyToDownload(let meta, let files) = manager.state,
+                   let file = selectedFile(from: files) {
+                    VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing
+                        Divider().overlay(AppColors.border)
+
+                        HStack(spacing: AppSpacing.md) {
+                            // File size
+                            if let size = file.size ?? file.lfs?.size {
+                                Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.textTertiary)
+                            }
+
+                            Spacer()
+
+                            // Cancel
+                            Button("Cancel") {
+                                coordinator.cancelObservation()
+                                dismiss()
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("urlImport_cancel_bottom")
+
+                            // Download
+                            Button {
+                                coordinator.importManager?.confirmDownload(
+                                    metadata: meta,
+                                    file: file,
+                                    downloadManager: viewModel.downloadManager
+                                )
+                                coordinator.observeDownloadCompletion(
+                                    filename: file.rfilename,
+                                    metadata: meta,
+                                    downloadManager: viewModel.downloadManager,
+                                    onComplete: nil,
+                                    onFail: nil
+                                )
+                            } label: {
+                                Label("Download \(Self.quantLabel(for: file.rfilename))",
+                                      systemImage: "icloud.and.arrow.down")
+                                    .font(AppTypography.subtitle)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColors.accentPrimary)
+                            .controlSize(.large)
+                            .accessibilityIdentifier("urlImport_downloadButton")
+                        }
+                        .padding(AppSpacing.lg)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .appBackground()
             .navigationTitle("Import from URL")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(coordinator.isTerminalState ? "Done" : "Cancel") {
-                        coordinator.cancelObservation()
-                        dismiss()
+                    // Show "Done" in terminal state, or "Cancel" when bottom bar isn't visible
+                    // (bottom bar only appears in .readyToDownload state)
+                    if coordinator.isTerminalState {
+                        Button("Done") {
+                            coordinator.cancelObservation()
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("urlImport_done")
+                    } else if !isReadyToDownload {
+                        Button("Cancel") {
+                            coordinator.cancelObservation()
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("urlImport_cancel")
                     }
-                    .accessibilityIdentifier(coordinator.isTerminalState ? "urlImport_done" : "urlImport_cancel")
                 }
             }
         }
@@ -241,41 +311,7 @@ struct macOSURLImportSheet: View {
                 .transition(.contentReveal)
         }
 
-        // ── Download Action ──
-        if let file = selectedFile(from: files) {
-            // Show file size when available (especially useful for single-file repos)
-            if let size = file.size ?? file.lfs?.size {
-                Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
 
-            Button {
-                coordinator.importManager?.confirmDownload(
-                    metadata: meta,
-                    file: file,
-                    downloadManager: viewModel.downloadManager
-                )
-                coordinator.observeDownloadCompletion(
-                    filename: file.rfilename,
-                    metadata: meta,
-                    downloadManager: viewModel.downloadManager,
-                    onComplete: nil,
-                    onFail: nil
-                )
-            } label: {
-                Label("Download \(Self.quantLabel(for: file.rfilename))",
-                      systemImage: "icloud.and.arrow.down")
-                    .frame(maxWidth: .infinity)
-                    .font(AppTypography.subtitle)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accentPrimary)
-            .controlSize(.large)
-            .glow(AppColors.accentPrimary, radius: 10, opacity: AppOpacity.medium)
-            .accessibilityIdentifier("urlImport_downloadButton")
-        }
     }
 
     // MARK: - Metadata Details (Progressive Disclosure)
@@ -360,6 +396,10 @@ struct macOSURLImportSheet: View {
                                     Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                                         .font(AppTypography.mono)
                                         .foregroundStyle(AppColors.textSecondary)
+                                } else {
+                                    Text("Size unknown")
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppColors.textQuaternary)
                                 }
                             }
                             .padding(.horizontal, AppSpacing.md)
@@ -401,8 +441,8 @@ struct macOSURLImportSheet: View {
             "BF16", "F16", "F32",
         ]
         for pattern in patterns {
-            if filename.contains(pattern) {
-                return pattern
+            if filename.range(of: pattern, options: .caseInsensitive) != nil {
+                return pattern  // Always return canonical uppercase
             }
         }
         // Readable fallback for non-GGUF files

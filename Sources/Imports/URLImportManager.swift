@@ -314,10 +314,35 @@ final class URLImportManager {
                 return true
             } ?? []
         }
+        // Step 7: Enrich file sizes from tree API
+        // The model detail endpoint's siblings don't include sizes — the tree endpoint does.
+        var enrichedFiles = downloadableFiles
+        do {
+            let treeEntries = try await browser.fetchFileManifest(for: parsed.repoId)
+            let sizeLookup = Dictionary(
+                treeEntries.compactMap { entry -> (String, Int64)? in
+                    // Prefer LFS size (actual file size) over entry size (pointer size)
+                    guard let size = entry.lfs?.size ?? entry.size else { return nil }
+                    return (entry.path, size)
+                },
+                uniquingKeysWith: { first, _ in first }
+            )
+            enrichedFiles = downloadableFiles.map { sibling in
+                if sibling.size != nil || sibling.lfs != nil {
+                    return sibling // Already has size data
+                }
+                guard let treeSize = sizeLookup[sibling.rfilename] else { return sibling }
+                // Create a new HFSibling with the size from tree API
+                return HFSibling(rfilename: sibling.rfilename, size: treeSize, lfs: sibling.lfs)
+            }
+        } catch {
+            // Non-fatal: show files without sizes rather than failing the import
+            Self.logger.warning("⚠️ Could not fetch file manifest for size enrichment: \(error.localizedDescription, privacy: .public)")
+        }
 
-        state = .readyToDownload(metadata: dynamicMeta, files: downloadableFiles)
+        state = .readyToDownload(metadata: dynamicMeta, files: enrichedFiles)
         Self.logger.info(
-            "📦 Ready to download \(parsed.repoId, privacy: .public): \(downloadableFiles.count) file(s), confidence=\(confidence.label, privacy: .public)"
+            "📦 Ready to download \(parsed.repoId, privacy: .public): \(enrichedFiles.count) file(s), confidence=\(confidence.label, privacy: .public)"
         )
     }
 

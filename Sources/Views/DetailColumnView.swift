@@ -364,81 +364,97 @@ private struct ModelDetailPanel: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        ScrollView {
-            VStack(spacing: AppSpacing.xl) {
-                // Welcome header
-                VStack(spacing: AppSpacing.md) {
-                    Image(systemName: "tree")
-                        .font(AppIconSize.hero)
-                        .foregroundStyle(AppColors.accentPrimary)
-                        .accessibilityIdentifier("modelDetail_emptyIcon")
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: AppSpacing.xl) {
+                    // Welcome header
+                    VStack(spacing: AppSpacing.md) {
+                        Image(systemName: "tree")
+                            .font(AppIconSize.hero)
+                            .foregroundStyle(AppColors.accentPrimary)
+                            .accessibilityIdentifier("modelDetail_emptyIcon")
 
-                    Text("Welcome to Edge AI Lab")
-                        .font(AppTypography.pageTitle)
-                        .foregroundStyle(AppColors.textPrimary)
+                        Text("Welcome to Edge AI Lab")
+                            .font(AppTypography.pageTitle)
+                            .foregroundStyle(AppColors.textPrimary)
 
-                    Text("A research instrument for running Gemma models entirely on-device.\nNo cloud. No API keys. Full control.")
-                        .font(AppTypography.listSubtitle)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, AppSpacing.xxl)
-                }
-                .padding(.top, AppSpacing.xl)
-
-                // Getting Started cards
-                VStack(spacing: AppSpacing.md) {
-                    Text("Get Started")
-                        .font(AppTypography.sectionHeader)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    HStack(spacing: AppSpacing.md) {
-                        // Card 1: Browse community models
-                        gettingStartedCard(
-                            icon: "arrow.down.circle",
-                            iconColor: AppColors.accentPrimary,
-                            title: "Browse Models",
-                            subtitle: "Download Gemma models from HuggingFace below"
-                        )
-
-                        // Card 2: Load from disk
-                        gettingStartedCard(
-                            icon: "folder",
-                            iconColor: AppColors.accentSecondary,
-                            title: "Load from Disk",
-                            subtitle: "Open a .litertlm file (⌘O)"
-                        )
-
-                        // Card 3: Drag & Drop
-                        gettingStartedCard(
-                            icon: "arrow.down.doc",
-                            iconColor: AppColors.accentPrimary,
-                            title: "Drag & Drop",
-                            subtitle: "Drop a .litertlm file onto the window"
-                        )
+                        Text("A research instrument for running Gemma models entirely on-device.\nNo cloud. No API keys. Full control.")
+                            .font(AppTypography.listSubtitle)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, AppSpacing.xxl)
                     }
-                }
-                .padding(.horizontal, AppSpacing.lg)
+                    .padding(.top, AppSpacing.xl)
 
-                // Feature highlights
-                VStack(spacing: AppSpacing.md) {
-                    Text("What You Can Do")
-                        .font(AppTypography.sectionHeader)
-                        .foregroundStyle(AppColors.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    // Getting Started cards
+                    VStack(spacing: AppSpacing.md) {
+                        Text("Get Started")
+                            .font(AppTypography.sectionHeader)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.sm) {
-                        featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.accentSecondary)
-                        featureHighlight(icon: "brain.head.profile", title: "Thinking Mode", subtitle: "See the model reason step-by-step", iconColor: AppColors.capabilityThinking)
-                        featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.toolAction)
-                        featureHighlight(icon: "photo.on.rectangle", title: "Multimodal", subtitle: "Images and audio with vision models", iconColor: AppColors.capabilityVision)
+                        HStack(spacing: AppSpacing.md) {
+                            // Card 1: Browse community models
+                            gettingStartedCard(
+                                icon: "arrow.down.circle",
+                                iconColor: AppColors.accentPrimary,
+                                title: "Browse Models",
+                                subtitle: "Download Gemma models from HuggingFace below"
+                            )
+                            .onTapGesture {
+                                withAnimation(AppAnimation.spring) {
+                                    proxy.scrollTo("communityModelsBrowser", anchor: .top)
+                                }
+                            }
+                            .accessibilityIdentifier("gettingStarted_browseModels")
+
+                            // Card 2: Load from disk
+                            gettingStartedCard(
+                                icon: "folder",
+                                iconColor: AppColors.accentSecondary,
+                                title: "Load from Disk",
+                                subtitle: "Open a .litertlm file (⌘O)"
+                            )
+                            .accessibilityIdentifier("gettingStarted_loadFromDisk")
+
+                            // Card 3: Drag & Drop
+                            gettingStartedCard(
+                                icon: "arrow.down.doc",
+                                iconColor: AppColors.accentPrimary,
+                                title: "Drag & Drop",
+                                subtitle: "Drop a .litertlm file onto the window",
+                                isInteractive: false
+                            )
+                            .accessibilityIdentifier("gettingStarted_dragDrop")
+                        }
                     }
-                }
-                .padding(.horizontal, AppSpacing.lg)
-
-                // Community Models Browser
-                CommunityModelsBrowser()
                     .padding(.horizontal, AppSpacing.lg)
+
+                    // Feature highlights
+                    VStack(spacing: AppSpacing.md) {
+                        Text("What You Can Do")
+                            .font(AppTypography.sectionHeader)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.sm) {
+                            featureHighlight(icon: "gauge.open.with.lines.needle.67percent.and.arrowtriangle", title: "Benchmark", subtitle: "Real-time tok/s, TTFT, memory", iconColor: AppColors.accentSecondary)
+                            featureHighlight(icon: "brain.head.profile", title: "Thinking Mode", subtitle: "See the model reason step-by-step", iconColor: AppColors.capabilityThinking)
+                            featureHighlight(icon: "wrench.and.screwdriver", title: "Tool Calling", subtitle: "Calculator, device info, and more", iconColor: AppColors.toolAction)
+                            featureHighlight(icon: "photo.on.rectangle", title: "Multimodal", subtitle: "Images and audio with vision models", iconColor: AppColors.capabilityVision)
+                        }
+                    }
+                    .padding(.horizontal, AppSpacing.lg)
+
+                    // ── Community Models ──
+                    Divider()
+                        .overlay(AppColors.border)
+                        .padding(.horizontal, AppSpacing.lg)
+
+                    CommunityModelsBrowser()
+                        .id("communityModelsBrowser")
+                        .padding(.horizontal, AppSpacing.lg)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -446,16 +462,23 @@ private struct ModelDetailPanel: View {
     }
 
     /// A card for the Getting Started section.
+    ///
+    /// - Parameter isInteractive: When `true` (default), renders with a solid glass card
+    ///   and `.interactiveHover()`. When `false`, uses a dashed border to signal
+    ///   a passive/informational card (e.g. "Drag & Drop").
+    @ViewBuilder
     private func gettingStartedCard(
         icon: String,
         iconColor: Color,
         title: String,
-        subtitle: String
+        subtitle: String,
+        isInteractive: Bool = true
     ) -> some View {
-        VStack(spacing: AppSpacing.sm) {
+        let content = VStack(spacing: AppSpacing.sm) {
             Image(systemName: icon)
                 .font(AppIconSize.xl)
                 .foregroundStyle(iconColor)
+                .opacity(isInteractive ? 1.0 : AppOpacity.prominent)
 
             Text(title)
                 .font(AppTypography.cardTitle)
@@ -469,7 +492,23 @@ private struct ModelDetailPanel: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.md)
-        .glassCard(cornerRadius: AppRadius.lg)
+
+        if isInteractive {
+            content
+                .glassCard(cornerRadius: AppRadius.lg)
+                .interactiveHover()
+        } else {
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .fill(AppColors.backgroundSecondary.opacity(AppOpacity.mist))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppRadius.lg)
+                        .strokeBorder(style: StrokeStyle(lineWidth: AppLineWidth.regular, dash: [6, 4]))
+                        .foregroundStyle(AppColors.border)
+                }
+        }
     }
 
     /// A compact feature highlight chip.
@@ -487,7 +526,7 @@ private struct ModelDetailPanel: View {
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(title)
-                    .font(AppTypography.sectionHeader)
+                    .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
                 Text(subtitle)
                     .font(AppTypography.caption)

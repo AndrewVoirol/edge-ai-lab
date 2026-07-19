@@ -37,6 +37,32 @@ struct PerformanceDashboardView: View {
 
     private let store = MetricsStore()
 
+    // Chart layout constants
+    private let decodeChartHeight: CGFloat = 220
+    private let memoryChartHeight: CGFloat = 160
+    private let emptyStateMinHeight: CGFloat = 200
+
+    /// ISO 8601 date formatter for parsing entry timestamps.
+    private static let timestampFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    /// Fallback formatter without fractional seconds.
+    private static let timestampFormatterFallback: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// Parse an entry's timestamp string into a Date.
+    private func parseDate(_ timestamp: String) -> Date {
+        Self.timestampFormatter.date(from: timestamp)
+            ?? Self.timestampFormatterFallback.date(from: timestamp)
+            ?? Date.distantPast
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: AppSpacing.xl) {
@@ -73,7 +99,8 @@ struct PerformanceDashboardView: View {
 
                 if isLoading {
                     ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 200)
+                        .frame(maxWidth: .infinity, minHeight: emptyStateMinHeight)
+                        .accessibilityIdentifier("dashboard_loading")
                 } else if entries.isEmpty {
                     emptyState
                 } else {
@@ -169,8 +196,9 @@ struct PerformanceDashboardView: View {
                 .foregroundStyle(AppColors.textTertiary)
                 .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, minHeight: 200)
+        .frame(maxWidth: .infinity, minHeight: emptyStateMinHeight)
         .padding(AppSpacing.xl)
+        .accessibilityIdentifier("dashboard_emptyState")
     }
 
     // MARK: - Decode Speed Chart
@@ -183,9 +211,9 @@ struct PerformanceDashboardView: View {
 
             Chart {
                 ForEach(entries, id: \.timestamp) { entry in
-                    let index = entries.firstIndex(where: { $0.timestamp == entry.timestamp }) ?? 0
+                    let date = parseDate(entry.timestamp)
                     LineMark(
-                        x: .value("Run", index),
+                        x: .value("Date", date),
                         y: .value("tok/s", entry.metrics.decodeTokensPerSecond)
                     )
                     .foregroundStyle(by: .value("Model", entry.model))
@@ -193,17 +221,22 @@ struct PerformanceDashboardView: View {
                     .lineStyle(StrokeStyle(lineWidth: AppLineWidth.thick))
 
                     PointMark(
-                        x: .value("Run", index),
+                        x: .value("Date", date),
                         y: .value("tok/s", entry.metrics.decodeTokensPerSecond)
                     )
                     .foregroundStyle(by: .value("Model", entry.model))
-                    .symbolSize(20)
+                    .symbolSize(30) // design-system-exempt: chart symbol size
                 }
             }
             .chartYAxisLabel("Tokens/sec")
-            .chartXAxisLabel("Run #")
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                    AxisGridLine()
+                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                }
+            }
             .accessibilityLabel("Decode speed trend chart showing \(entries.count) runs. Average speed: \(String(format: "%.1f", averageDecodeSpeed)) tokens per second.")
-            .frame(height: 200)
+            .frame(height: decodeChartHeight)
             .padding(AppSpacing.md)
             .glassCard()
         }
@@ -286,11 +319,11 @@ struct PerformanceDashboardView: View {
 
                     Chart {
                         ForEach(memoryEntries, id: \.timestamp) { entry in
-                            let index = memoryEntries.firstIndex(where: { $0.timestamp == entry.timestamp }) ?? 0
+                            let date = parseDate(entry.timestamp)
                             if let start = entry.metrics.availableMemoryAtStartMB,
                                let end = entry.metrics.availableMemoryAtEndMB {
                                 BarMark(
-                                    x: .value("Run", index),
+                                    x: .value("Date", date),
                                     yStart: .value("Start", end),
                                     yEnd: .value("End", start)
                                 )
@@ -299,8 +332,14 @@ struct PerformanceDashboardView: View {
                         }
                     }
                     .chartYAxisLabel("Available MB")
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                        }
+                    }
                     .accessibilityLabel("Memory usage chart showing available memory across \(memoryEntries.count) runs.")
-                    .frame(height: 150)
+                    .frame(height: memoryChartHeight)
                     .padding(AppSpacing.md)
                     .glassCard()
                 }

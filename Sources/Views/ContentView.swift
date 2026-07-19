@@ -55,10 +55,23 @@ struct ContentView: View {
     #if os(macOS)
     /// Whether the chat panel (right column) is collapsed.
     @State private var isChatCollapsed = false
+    /// Tracks whether the user explicitly collapsed the chat panel via the toolbar toggle.
+    @State private var userExplicitlyCollapsed = false
     /// Persisted chat panel width (macOS only).
     @AppStorage("chatPanelWidth") private var chatPanelWidth: Double = 420
     /// Width snapshot at drag start for computing absolute position from gesture deltas.
     @State private var chatWidthAtDragStart: Double = 420
+    #endif
+
+    #if os(macOS)
+    /// Chat panel should auto-hide when no model is loaded, unless the user explicitly toggled it open.
+    private var shouldHideChatPanel: Bool {
+        if userExplicitlyCollapsed { return true }
+        if isChatCollapsed { return true }
+        // Auto-collapse when no model is loaded
+        if !viewModel.isEngineReady && viewModel.activeModelMetadata == nil { return true }
+        return false
+    }
     #endif
 
 
@@ -94,7 +107,7 @@ struct ContentView: View {
                     .frame(minWidth: 300)
 
                     // Right: Chat panel (collapsible independently)
-                    if !isChatCollapsed {
+                    if !shouldHideChatPanel {
                         PanelResizeHandle(
                             onDragStart: {
                                 chatWidthAtDragStart = chatPanelWidth
@@ -172,6 +185,7 @@ struct ContentView: View {
                 Button {
                     withAnimation(AppAnimation.standard) {
                         isChatCollapsed.toggle()
+                        userExplicitlyCollapsed = isChatCollapsed
                     }
                 } label: {
                     Image(systemName: "sidebar.right")
@@ -223,6 +237,14 @@ struct ContentView: View {
                     viewModel.activeCanvasContent = nil
                 } else if let last = viewModel.lastCanvasContent {
                     viewModel.activeCanvasContent = last
+                }
+            }
+        }
+        .onChange(of: viewModel.isEngineReady) { _, isReady in
+            if isReady {
+                withAnimation(AppAnimation.standard) {
+                    isChatCollapsed = false
+                    userExplicitlyCollapsed = false
                 }
             }
         }

@@ -166,11 +166,11 @@ struct CommunityModelsBrowser: View {
             }
             // Inline URL import — paste a HuggingFace URL to import any model
             HStack(spacing: AppSpacing.sm) {
-                Image(systemName: "link.badge.plus")
+                Image(systemName: "doc.on.clipboard")
                     .foregroundStyle(AppColors.accentPrimary)
                 TextField("Paste a HuggingFace URL…", text: $inlineURL)
                     .textFieldStyle(.plain)
-                    .font(AppTypography.listSubtitle)
+                    .font(AppTypography.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .onSubmit {
                         guard !inlineURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -183,20 +183,17 @@ struct CommunityModelsBrowser: View {
                         viewModel.startURLImport(inlineURL)
                         inlineURL = ""
                     } label: {
-                        Text("Import")
+                        Label("Import", systemImage: "arrow.down.circle.fill")
                             .font(AppTypography.badge)
-                            .foregroundStyle(AppColors.textPrimary)
-                            .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, AppSpacing.xs)
-                            .background(AppColors.accentPrimary)
-                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColors.accentPrimary)
+                    .controlSize(.mini)
                     .accessibilityIdentifier("urlPaste_importButton")
                 }
             }
             .padding(AppSpacing.md)
-            .glassCard(cornerRadius: AppRadius.md)
+            .forestGlass(cornerRadius: AppRadius.md)
             .accessibilityIdentifier("urlPaste_inlineContainer")
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppSpacing.md) {

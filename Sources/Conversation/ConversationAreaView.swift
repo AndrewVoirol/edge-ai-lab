@@ -104,9 +104,9 @@ struct ConversationAreaView: View {
                 if !viewModel.isEngineReady {
                     HStack(spacing: AppSpacing.xs) {
                         #if os(macOS)
-                        Image(systemName: "arrow.left")
+                        Image(systemName: "arrow.up.left")
                             .font(AppIconSize.xs)
-                        Text("Select a model from the sidebar to get started")
+                        Text("Load a model to start chatting")
                             .font(AppTypography.caption)
                         #else
                         Image(systemName: "arrow.up")
