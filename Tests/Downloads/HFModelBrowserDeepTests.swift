@@ -585,9 +585,10 @@ struct HFModelBrowserInstanceTests {
         @MainActor
         func detectMlxFromSiblings() {
             let browser = HFModelBrowser()
+            // detectFormat requires a positive MLX signal for config.json + safetensors
             let model = HFModelInfo(
-                id: "org/model",
-                author: "org",
+                id: "mlx-community/model",
+                author: "mlx-community",
                 siblings: [
                     HFSibling(rfilename: "config.json", size: 512, lfs: nil),
                     HFSibling(rfilename: "model-00001-of-00002.safetensors", size: 1_000_000_000, lfs: nil),

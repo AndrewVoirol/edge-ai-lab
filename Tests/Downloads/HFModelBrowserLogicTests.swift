@@ -55,9 +55,12 @@ struct HFModelBrowserLogicTests {
         @MainActor
         func mlxSiblingsOverLitertLibrary() {
             let browser = HFModelBrowser()
+            // config.json + safetensors + MLX tag signal should detect as .mlx
+            // even when libraryName says "litert"
             let model = HFModelInfo(
                 id: "org/ambiguous-model",
                 author: "org",
+                tags: ["mlx"],
                 libraryName: "litert",
                 siblings: [
                     HFSibling(rfilename: "config.json", size: 512, lfs: nil),

@@ -547,7 +547,7 @@ struct ModelCardParserAPIDataTests {
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         // Architecture should contain cleaned-up name with "(Text)" suffix
-        #expect(metadata.description.contains("Gemma4") == true)
+        #expect(metadata.architectureType.contains("Gemma4") == true)
     }
 
     @MainActor
