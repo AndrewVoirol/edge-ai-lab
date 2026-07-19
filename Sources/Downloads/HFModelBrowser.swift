@@ -17,6 +17,233 @@ import Foundation
 import Observation
 import os
 
+// MARK: - HuggingFace API Enrichment Types
+
+/// Inline model configuration from the HuggingFace API.
+///
+/// When a model repository contains a `config.json`, the HuggingFace API inlines its contents
+/// in the `/api/models/{id}` response. This is the full model architecture configuration.
+///
+/// **Not all repos have this.** LiteRT-LM repos typically omit `config.json` entirely, so
+/// `HFModelInfo.config` will be `nil` for those. MLX and GGUF repos reliably include it.
+///
+/// Per AGENTS.md: all fields MUST be optional — external APIs change without notice.
+struct HFModelConfig: Codable, Sendable, Hashable {
+    /// Model architecture classes (e.g., `["Gemma4ForConditionalGeneration"]`).
+    let architectures: [String]?
+    /// Model type identifier (e.g., `"gemma4"`, `"llama"`).
+    let modelType: String?
+    /// Quantization configuration, present for quantized models (e.g., MLX 4-bit).
+    let quantizationConfig: HFQuantizationConfig?
+    /// Tokenizer configuration with special token definitions.
+    let tokenizerConfig: HFTokenizerConfig?
+
+    enum CodingKeys: String, CodingKey {
+        case architectures
+        case modelType = "model_type"
+        case quantizationConfig = "quantization_config"
+        case tokenizerConfig = "tokenizer_config"
+    }
+}
+
+/// Quantization configuration from a model's `config.json`.
+///
+/// Present for quantized models (e.g., MLX 4-bit models include `{"bits": 4}`).
+struct HFQuantizationConfig: Codable, Sendable, Hashable {
+    /// Number of bits used for quantization (e.g., 4 for 4-bit).
+    let bits: Int?
+    /// Quantization method identifier (e.g., `"awq"`, `"gptq"`).
+    let quantMethod: String?
+
+    enum CodingKeys: String, CodingKey {
+        case bits
+        case quantMethod = "quant_method"
+    }
+}
+
+/// Tokenizer configuration from a model's `config.json`.
+struct HFTokenizerConfig: Codable, Sendable, Hashable {
+    /// Beginning-of-sequence token.
+    let bosToken: String?
+    /// End-of-sequence token.
+    let eosToken: String?
+
+    enum CodingKeys: String, CodingKey {
+        case bosToken = "bos_token"
+        case eosToken = "eos_token"
+    }
+}
+
+/// Safetensors metadata from the HuggingFace API.
+///
+/// Only present for repos containing `.safetensors` files (MLX, transformers).
+/// Provides the most reliable source for exact parameter counts.
+///
+/// Example API response:
+/// ```json
+/// {
+///   "parameters": {"BF16": 617219651, "U32": 578977792},
+///   "total": 1196197443
+/// }
+/// ```
+struct HFSafetensorsInfo: Codable, Sendable, Hashable {
+    /// Parameter counts by dtype (e.g., `{"BF16": 617219651, "U32": 578977792}`).
+    let parameters: [String: Int64]?
+    /// Total parameters across all dtypes.
+    let total: Int64?
+}
+
+/// GGUF metadata from the HuggingFace API.
+///
+/// Only present for GGUF repositories. Provides architecture, context length,
+/// and total file size — data that would otherwise require parsing the GGUF header.
+///
+/// Example API response:
+/// ```json
+/// {
+///   "total": 4647450147,
+///   "architecture": "gemma4",
+///   "context_length": 131072
+/// }
+/// ```
+struct HFGGUFInfo: Codable, Sendable, Hashable {
+    /// Total size across all GGUF files in the repository, in bytes.
+    let total: Int64?
+    /// Architecture identifier (e.g., `"gemma4"`, `"llama"`).
+    let architecture: String?
+    /// Maximum context length in tokens (e.g., `131072`).
+    let contextLength: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case total, architecture
+        case contextLength = "context_length"
+    }
+}
+
+/// Parsed YAML frontmatter from a model's README.md.
+///
+/// The HuggingFace API parses the YAML frontmatter and returns it as structured JSON.
+/// Contains license, base model, tags, and other metadata declared by the model author.
+struct HFCardData: Codable, Sendable, Hashable {
+    /// License identifier (e.g., `"apache-2.0"`, `"gemma"`).
+    let license: String?
+    /// URL to the full license text.
+    let licenseLink: String?
+    /// Base model(s) this model was derived from.
+    /// Can be a single string or array of strings in the HF API — decoded via `HFFlexibleStringArray`.
+    let baseModel: HFFlexibleStringArray?
+    /// Tags declared in the model card frontmatter.
+    let tags: [String]?
+    /// Pipeline tag from the model card (e.g., `"image-text-to-text"`).
+    let pipelineTag: String?
+    /// Training datasets used.
+    let datasets: HFFlexibleStringArray?
+    /// Languages the model supports.
+    let language: HFFlexibleStringArray?
+    /// Library name from card metadata.
+    let libraryName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case license
+        case licenseLink = "license_link"
+        case baseModel = "base_model"
+        case tags
+        case pipelineTag = "pipeline_tag"
+        case datasets
+        case language
+        case libraryName = "library_name"
+    }
+}
+
+/// A flexible decoder for HuggingFace fields that can be either a single string or an array of strings.
+///
+/// The HuggingFace API is inconsistent: `base_model`, `language`, and `datasets` may appear as
+/// `"value"` (a single string) or `["value1", "value2"]` (an array). This type normalizes both
+/// shapes to `[String]` for uniform downstream access.
+///
+/// Usage:
+/// ```swift
+/// let languages = cardData.language?.values ?? []  // Always [String]
+/// let baseModel = cardData.baseModel?.first        // First value or nil
+/// ```
+struct HFFlexibleStringArray: Codable, Sendable, Hashable {
+    /// The normalized array of values.
+    let values: [String]
+
+    /// The first value, or nil if empty.
+    var first: String? { values.first }
+
+    init(values: [String]) {
+        self.values = values
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        // Try array first, then single string
+        if let array = try? container.decode([String].self) {
+            values = array
+        } else if let single = try? container.decode(String.self) {
+            values = [single]
+        } else {
+            values = []
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(values)
+    }
+}
+
+/// Flexible decoder for the HuggingFace `gated` field.
+///
+/// The HuggingFace API returns `gated` as:
+/// - `false` (Bool) — model is not gated
+/// - `"auto"` (String) — auto-gated, requires token
+/// - `"manual"` (String) — manually gated, requires approval
+///
+/// This type normalizes the polymorphic JSON to a consistent Swift type.
+enum HFGatedStatus: Codable, Sendable, Hashable {
+    case notGated
+    case auto
+    case manual
+    case unknown(String)
+
+    /// Whether the model requires any form of gating/authentication.
+    var isGated: Bool {
+        switch self {
+        case .notGated: return false
+        case .auto, .manual, .unknown: return true
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let boolValue = try? container.decode(Bool.self) {
+            self = boolValue ? .unknown("true") : .notGated
+        } else if let stringValue = try? container.decode(String.self) {
+            switch stringValue.lowercased() {
+            case "auto": self = .auto
+            case "manual": self = .manual
+            case "false": self = .notGated
+            default: self = .unknown(stringValue)
+            }
+        } else {
+            self = .notGated
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .notGated: try container.encode(false)
+        case .auto: try container.encode("auto")
+        case .manual: try container.encode("manual")
+        case .unknown(let value): try container.encode(value)
+        }
+    }
+}
+
 // MARK: - HuggingFace API Response Models
 
 /// Metadata for a single model returned by the HuggingFace API.
@@ -79,11 +306,33 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
     /// File listing for the repository. Only populated on detail endpoint responses.
     let siblings: [HFSibling]?
 
+    /// Inline model configuration (from the repo's config.json).
+    /// Only present for repos that contain a config.json (MLX, GGUF — NOT LiteRT-LM).
+    let config: HFModelConfig?
+
+    /// Safetensors metadata with exact parameter counts.
+    /// Only present for repos containing .safetensors files.
+    let safetensors: HFSafetensorsInfo?
+
+    /// GGUF metadata including architecture, context length, and total size.
+    /// Only present for GGUF repositories.
+    let gguf: HFGGUFInfo?
+
+    /// Parsed YAML frontmatter from the model's README.md.
+    let cardData: HFCardData?
+
+    /// Gating status — whether the model requires authentication or approval.
+    let gated: HFGatedStatus?
+
+    /// Total storage used by all files in the repository, in bytes.
+    let usedStorage: Int64?
+
     enum CodingKeys: String, CodingKey {
         case id, author, lastModified, downloads, likes, tags, siblings
         case pipelineTag = "pipeline_tag"
         case libraryName = "library_name"
         case createdAt
+        case config, safetensors, gguf, cardData, gated, usedStorage
     }
 
     /// Custom decoder to handle missing fields from the HF list endpoint.
@@ -104,6 +353,12 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         pipelineTag = try? container.decode(String.self, forKey: .pipelineTag)
         libraryName = try? container.decode(String.self, forKey: .libraryName)
         siblings = try? container.decode([HFSibling].self, forKey: .siblings)
+        config = try? container.decode(HFModelConfig.self, forKey: .config)
+        safetensors = try? container.decode(HFSafetensorsInfo.self, forKey: .safetensors)
+        gguf = try? container.decode(HFGGUFInfo.self, forKey: .gguf)
+        cardData = try? container.decode(HFCardData.self, forKey: .cardData)
+        gated = try? container.decode(HFGatedStatus.self, forKey: .gated)
+        usedStorage = try? container.decode(Int64.self, forKey: .usedStorage)
     }
 
     /// Custom encoder — only encodes stored properties (skips `createdAt` decode-only key).
@@ -118,13 +373,22 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         try container.encodeIfPresent(pipelineTag, forKey: .pipelineTag)
         try container.encodeIfPresent(libraryName, forKey: .libraryName)
         try container.encodeIfPresent(siblings, forKey: .siblings)
+        try container.encodeIfPresent(config, forKey: .config)
+        try container.encodeIfPresent(safetensors, forKey: .safetensors)
+        try container.encodeIfPresent(gguf, forKey: .gguf)
+        try container.encodeIfPresent(cardData, forKey: .cardData)
+        try container.encodeIfPresent(gated, forKey: .gated)
+        try container.encodeIfPresent(usedStorage, forKey: .usedStorage)
     }
 
     /// Memberwise init for tests and previews.
     init(id: String, author: String, lastModified: String = "",
          downloads: Int = 0, likes: Int = 0, tags: [String] = [],
          pipelineTag: String? = nil, libraryName: String? = nil,
-         siblings: [HFSibling]? = nil) {
+         siblings: [HFSibling]? = nil,
+         config: HFModelConfig? = nil, safetensors: HFSafetensorsInfo? = nil,
+         gguf: HFGGUFInfo? = nil, cardData: HFCardData? = nil,
+         gated: HFGatedStatus? = nil, usedStorage: Int64? = nil) {
         self.id = id
         self.author = author
         self.lastModified = lastModified
@@ -134,6 +398,12 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         self.pipelineTag = pipelineTag
         self.libraryName = libraryName
         self.siblings = siblings
+        self.config = config
+        self.safetensors = safetensors
+        self.gguf = gguf
+        self.cardData = cardData
+        self.gated = gated
+        self.usedStorage = usedStorage
     }
 }
 
@@ -945,6 +1215,11 @@ extension HFModelInfo {
     /// - `"mlx-community/gemma-4-4bit"` → `"4bit"`
     /// - `"mlx-community/gemma-4-E2B-it-bf16"` → `"bf16"`
     var quantizationInfo: String? {
+        // Prefer API-provided quantization config (e.g., MLX models with quantization_config.bits)
+        if let bits = config?.quantizationConfig?.bits {
+            return "\(bits)bit"
+        }
+
         // Known quantization patterns to search for, ordered by specificity
         let patterns = [
             "bf16", "fp16", "fp32",
@@ -976,5 +1251,97 @@ extension HFModelInfo {
         }
 
         return nil
+    }
+
+    // MARK: - Rich Metadata Accessors
+
+    /// Exact parameter count from safetensors metadata.
+    ///
+    /// This is the most reliable source for parameter counts — directly from the
+    /// model's safetensors file headers. Only available for repos with `.safetensors` files.
+    var totalParameters: Int64? {
+        safetensors?.total
+    }
+
+    /// Maximum context length from GGUF metadata.
+    ///
+    /// Only available for GGUF repositories. For other formats, this will be nil.
+    var contextLength: Int? {
+        gguf?.contextLength
+    }
+
+    /// Primary architecture class (e.g., `"Gemma4ForConditionalGeneration"`).
+    var architecture: String? {
+        config?.architectures?.first
+    }
+
+    /// Model type identifier from config (e.g., `"gemma4"`).
+    var modelType: String? {
+        config?.modelType
+    }
+
+    /// License identifier from the model card frontmatter.
+    var license: String? {
+        cardData?.license
+    }
+
+    /// Base model ID that this model was derived from.
+    var baseModelId: String? {
+        cardData?.baseModel?.first
+    }
+
+    /// Quantization bit depth from config (e.g., 4 for MLX 4-bit models).
+    var quantizationBits: Int? {
+        config?.quantizationConfig?.bits
+    }
+
+    /// Whether the repository requires authentication to access.
+    ///
+    /// Uses the API-provided `gated` field instead of guessing from the author name.
+    var isGated: Bool {
+        gated?.isGated ?? false
+    }
+
+    /// Human-readable parameter count string.
+    ///
+    /// Formats the exact parameter count from safetensors into a compact label.
+    /// Examples: `"617M"`, `"1.2B"`, `"12B"`.
+    /// Returns nil if no parameter count is available.
+    var parameterCountLabel: String? {
+        guard let total = totalParameters else { return nil }
+        if total >= 1_000_000_000 {
+            let billions = Double(total) / 1_000_000_000
+            if billions >= 10 {
+                return "\(Int(billions))B"
+            }
+            return String(format: "%.1fB", billions)
+        }
+        if total >= 1_000_000 {
+            return "\(total / 1_000_000)M"
+        }
+        return "\(total)"
+    }
+
+    /// Best estimate of total download size in bytes.
+    ///
+    /// Prefers GGUF total (most accurate for GGUF repos), then falls back to
+    /// `usedStorage` (total repo size from HuggingFace).
+    var estimatedDownloadSize: Int64? {
+        gguf?.total ?? usedStorage
+    }
+
+    /// GGUF architecture identifier (e.g., `"gemma4"`).
+    var ggufArchitecture: String? {
+        gguf?.architecture
+    }
+
+    /// Languages the model supports, from card metadata.
+    var supportedLanguages: [String] {
+        cardData?.language?.values ?? []
+    }
+
+    /// Training datasets used, from card metadata.
+    var trainingDatasets: [String] {
+        cardData?.datasets?.values ?? []
     }
 }

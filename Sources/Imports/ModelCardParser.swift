@@ -79,7 +79,14 @@ enum ModelCardParser {
         if sizeInBytes > 0 { signalCount += 1 }
 
         // — Parameter count & memory
-        let paramInfo = inferParameterInfo(from: model.id)
+        var paramInfo = inferParameterInfo(from: model.id)
+        // Override with API-provided parameter count if available
+        if let apiParams = model.totalParameters {
+            let label = Self.formatParameterLabel(apiParams)
+            let memoryGB = Self.estimateMemoryGB(parameterCount: apiParams)
+            paramInfo = ParameterInfo(label: label, estimatedParams: label, minMemoryGB: memoryGB)
+            signalCount += 2  // Strong API signal
+        }
         if paramInfo.label != nil { signalCount += 1 }
 
         // — Capabilities
@@ -98,9 +105,21 @@ enum ModelCardParser {
 
         // — Context window
         let contextWindow = inferContextWindow(model: model, readmeContent: readmeContent)
+        if model.contextLength != nil { signalCount += 2 }  // Direct API signal is very strong
 
         // — Architecture description
-        let archType = paramInfo.label.map { "\($0)" } ?? "Unknown Architecture"
+        let archType: String
+        if let apiArch = model.architecture {
+            // Use API architecture (e.g., "Gemma4ForConditionalGeneration")
+            let cleanArch = apiArch
+                .replacingOccurrences(of: "ForConditionalGeneration", with: " (Multimodal)")
+                .replacingOccurrences(of: "ForCausalLM", with: " (Text)")
+            archType = cleanArch
+        } else if let ggufArch = model.ggufArchitecture {
+            archType = ggufArch.capitalized
+        } else {
+            archType = paramInfo.label.map { "\($0)" } ?? "Unknown Architecture"
+        }
 
         // — Accelerators string
         let accelerators = isWebVariant ? "gpu" : "gpu,cpu"
@@ -162,6 +181,9 @@ enum ModelCardParser {
             if lib == "mlx" { return .mlx }
             if lib == "gguf" || lib == "llama.cpp" { return .gguf }
         }
+
+        // Check for GGUF metadata presence (strong signal)
+        if model.gguf != nil { return .gguf }
 
         // Check tags
         if model.tags.contains(where: { $0.lowercased().contains("litert") }) { return .litertlm }
@@ -305,6 +327,13 @@ enum ModelCardParser {
 
     /// Check if the model supports image input.
     private static func inferImageSupport(model: HFModelInfo, readmeContent: String?) -> Bool {
+        // Check architecture name for multimodal indicator
+        if let arch = model.architecture?.lowercased() {
+            if arch.contains("conditionalgeneration") || arch.contains("vision") {
+                return true
+            }
+        }
+
         // Check tags
         let imageIndicators = ["vision", "image-text-to-text", "visual-question-answering", "multimodal"]
         if model.tags.contains(where: { tag in
@@ -332,6 +361,13 @@ enum ModelCardParser {
 
     /// Check if the model supports audio input.
     private static func inferAudioSupport(model: HFModelInfo, readmeContent: String?) -> Bool {
+        // Check architecture name for audio indicator
+        if let arch = model.architecture?.lowercased() {
+            if arch.contains("audio") || arch.contains("speech") {
+                return true
+            }
+        }
+
         if model.tags.contains(where: { $0.lowercased().contains("audio") }) {
             return true
         }
@@ -411,6 +447,11 @@ enum ModelCardParser {
 
     /// Infer context window size from model metadata.
     private static func inferContextWindow(model: HFModelInfo, readmeContent: String?) -> Int {
+        // Prefer API-provided context length (from gguf.context_length)
+        if let ctx = model.contextLength {
+            return ctx
+        }
+
         // Check README for explicit context length
         if let readme = readmeContent?.lowercased() {
             if readme.contains("256k") || readme.contains("256,000") || readme.contains("256000") {
@@ -509,5 +550,30 @@ enum ModelCardParser {
         default:
             return .low
         }
+    }
+
+    // MARK: - API Data Helpers
+
+    /// Format a raw parameter count into a human-readable label.
+    private static func formatParameterLabel(_ count: Int64) -> String {
+        if count >= 1_000_000_000 {
+            let billions = Double(count) / 1_000_000_000
+            if billions >= 10 {
+                return "\(Int(billions))B"
+            }
+            return String(format: "%.1fB", billions)
+        }
+        if count >= 1_000_000 {
+            return "\(count / 1_000_000)M"
+        }
+        return "\(count)"
+    }
+
+    /// Estimate minimum memory requirement from parameter count.
+    private static func estimateMemoryGB(parameterCount: Int64) -> Int {
+        // Rough estimate: 1B params ≈ 2 GB at 16-bit, ≈ 1 GB at 8-bit, ≈ 0.5 GB at 4-bit
+        // Use 2 bytes/param as conservative estimate (FP16/BF16)
+        let estimatedGB = Double(parameterCount) * 2.0 / 1_073_741_824.0
+        return max(4, Int(ceil(estimatedGB)))
     }
 }
