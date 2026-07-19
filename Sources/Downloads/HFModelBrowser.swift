@@ -19,6 +19,109 @@ import os
 
 // MARK: - HuggingFace API Enrichment Types
 
+// MARK: - Config Sub-Objects
+
+/// Text (language model) configuration from a model's `config.json` → `text_config`.
+///
+/// Contains the core transformer architecture parameters. The `maxPositionEmbeddings` field
+/// is the **authoritative** source for the model's maximum context window — more reliable
+/// than any heuristic or API metadata.
+///
+/// Per AGENTS.md: all fields MUST be optional — external APIs change without notice.
+struct HFTextConfig: Codable, Sendable, Hashable {
+    /// Hidden dimension size (e.g., 2304 for Gemma 4 E2B).
+    let hiddenSize: Int?
+    /// Number of transformer layers (e.g., 34 for Gemma 4 E2B).
+    let numHiddenLayers: Int?
+    /// Number of attention heads (e.g., 8).
+    let numAttentionHeads: Int?
+    /// Number of key-value heads for GQA (e.g., 4).
+    let numKeyValueHeads: Int?
+    /// FFN intermediate dimension (e.g., 9216).
+    let intermediateSize: Int?
+    /// Vocabulary size (e.g., 262144 for Gemma 4).
+    let vocabSize: Int?
+    /// Maximum position embeddings — the authoritative context window size.
+    let maxPositionEmbeddings: Int?
+    /// Sliding window attention size, if applicable.
+    let slidingWindow: Int?
+    /// Per-head dimension (e.g., 256).
+    let headDim: Int?
+    /// PyTorch dtype used for weights (e.g., "bfloat16").
+    let torchDtype: String?
+    /// Whether MoE (Mixture of Experts) blocks are enabled.
+    let enableMoeBlock: Bool?
+    /// Model type for the text sub-model (e.g., "gemma4_text").
+    let modelType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case hiddenSize = "hidden_size"
+        case numHiddenLayers = "num_hidden_layers"
+        case numAttentionHeads = "num_attention_heads"
+        case numKeyValueHeads = "num_key_value_heads"
+        case intermediateSize = "intermediate_size"
+        case vocabSize = "vocab_size"
+        case maxPositionEmbeddings = "max_position_embeddings"
+        case slidingWindow = "sliding_window"
+        case headDim = "head_dim"
+        case torchDtype = "torch_dtype"
+        case enableMoeBlock = "enable_moe_block"
+        case modelType = "model_type"
+    }
+}
+
+/// Vision encoder configuration from a model's `config.json` → `vision_config`.
+///
+/// Presence of this sub-object is a strong signal that the model supports image input.
+/// The `imageSize` field indicates the maximum input image resolution the model was
+/// trained on.
+struct HFVisionConfig: Codable, Sendable, Hashable {
+    /// Hidden dimension size for the vision encoder.
+    let hiddenSize: Int?
+    /// Number of vision transformer layers.
+    let numHiddenLayers: Int?
+    /// Maximum input image resolution (e.g., 896 for SigLIP).
+    let imageSize: Int?
+    /// Patch size for the ViT backbone (e.g., 14).
+    let patchSize: Int?
+    /// Number of attention heads in the vision encoder.
+    let numAttentionHeads: Int?
+    /// Vision model type (e.g., "siglip_vision_model").
+    let modelType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case hiddenSize = "hidden_size"
+        case numHiddenLayers = "num_hidden_layers"
+        case imageSize = "image_size"
+        case patchSize = "patch_size"
+        case numAttentionHeads = "num_attention_heads"
+        case modelType = "model_type"
+    }
+}
+
+/// Audio encoder configuration from a model's `config.json` → `audio_config`.
+///
+/// Presence of this sub-object is a strong signal that the model supports audio input.
+struct HFAudioConfig: Codable, Sendable, Hashable {
+    /// Hidden dimension size for the audio encoder.
+    let hiddenSize: Int?
+    /// Number of audio transformer layers.
+    let numHiddenLayers: Int?
+    /// Number of attention heads in the audio encoder.
+    let numAttentionHeads: Int?
+    /// Audio model type (e.g., "gemma4_audio").
+    let modelType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case hiddenSize = "hidden_size"
+        case numHiddenLayers = "num_hidden_layers"
+        case numAttentionHeads = "num_attention_heads"
+        case modelType = "model_type"
+    }
+}
+
+// MARK: - HFModelConfig
+
 /// Inline model configuration from the HuggingFace API.
 ///
 /// When a model repository contains a `config.json`, the HuggingFace API inlines its contents
@@ -26,6 +129,9 @@ import os
 ///
 /// **Not all repos have this.** LiteRT-LM repos typically omit `config.json` entirely, so
 /// `HFModelInfo.config` will be `nil` for those. MLX and GGUF repos reliably include it.
+///
+/// The sub-config objects (`textConfig`, `visionConfig`, `audioConfig`) provide authoritative
+/// architecture details and capability signals that are more reliable than tag-based heuristics.
 ///
 /// Per AGENTS.md: all fields MUST be optional — external APIs change without notice.
 struct HFModelConfig: Codable, Sendable, Hashable {
@@ -38,11 +144,68 @@ struct HFModelConfig: Codable, Sendable, Hashable {
     /// Tokenizer configuration with special token definitions.
     let tokenizerConfig: HFTokenizerConfig?
 
+    // MARK: - Architecture Sub-Configs (from config.json)
+
+    /// Text (language model) architecture configuration.
+    /// Contains hidden size, attention heads, vocab size, and critically,
+    /// `maxPositionEmbeddings` — the authoritative context window.
+    let textConfig: HFTextConfig?
+
+    /// Vision encoder configuration. Presence indicates image input support.
+    let visionConfig: HFVisionConfig?
+
+    /// Audio encoder configuration. Presence indicates audio input support.
+    let audioConfig: HFAudioConfig?
+
+    // MARK: - Top-Level Config Fields
+
+    /// Image token ID — presence is a strong signal for vision support.
+    let imageTokenId: Int?
+
+    /// Audio token ID — presence is a strong signal for audio support.
+    let audioTokenId: Int?
+
+    /// PyTorch dtype for model weights (e.g., "bfloat16", "float16").
+    let torchDtype: String?
+
+    /// Maximum position embeddings at the top level (some models put it here
+    /// instead of in text_config).
+    let maxPositionEmbeddings: Int?
+
     enum CodingKeys: String, CodingKey {
         case architectures
         case modelType = "model_type"
         case quantizationConfig = "quantization_config"
         case tokenizerConfig = "tokenizer_config"
+        case textConfig = "text_config"
+        case visionConfig = "vision_config"
+        case audioConfig = "audio_config"
+        case imageTokenId = "image_token_id"
+        case audioTokenId = "audio_token_id"
+        case torchDtype = "torch_dtype"
+        case maxPositionEmbeddings = "max_position_embeddings"
+    }
+
+    /// Memberwise init with backward-compatible defaults for new fields.
+    init(architectures: [String]? = nil, modelType: String? = nil,
+         quantizationConfig: HFQuantizationConfig? = nil,
+         tokenizerConfig: HFTokenizerConfig? = nil,
+         textConfig: HFTextConfig? = nil,
+         visionConfig: HFVisionConfig? = nil,
+         audioConfig: HFAudioConfig? = nil,
+         imageTokenId: Int? = nil, audioTokenId: Int? = nil,
+         torchDtype: String? = nil, maxPositionEmbeddings: Int? = nil) {
+        self.architectures = architectures
+        self.modelType = modelType
+        self.quantizationConfig = quantizationConfig
+        self.tokenizerConfig = tokenizerConfig
+        self.textConfig = textConfig
+        self.visionConfig = visionConfig
+        self.audioConfig = audioConfig
+        self.imageTokenId = imageTokenId
+        self.audioTokenId = audioTokenId
+        self.torchDtype = torchDtype
+        self.maxPositionEmbeddings = maxPositionEmbeddings
     }
 }
 
@@ -327,11 +490,29 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
     /// Total storage used by all files in the repository, in bytes.
     let usedStorage: Int64?
 
+    // MARK: - Expanded API Fields (via expand[] parameters)
+
+    /// ISO-8601 timestamp when the model was first created on HuggingFace.
+    let createdAt: String?
+
+    /// Git commit SHA of the latest revision.
+    let sha: String?
+
+    /// Trending score — measures recent popularity velocity.
+    let trendingScore: Double?
+
+    /// Cumulative all-time download count.
+    let downloadsAllTime: Int?
+
+    /// Whether the model has been disabled by HuggingFace.
+    let disabled: Bool?
+
     enum CodingKeys: String, CodingKey {
         case id, author, lastModified, downloads, likes, tags, siblings
         case pipelineTag = "pipeline_tag"
         case libraryName = "library_name"
-        case createdAt
+        case createdAt, sha
+        case trendingScore, downloadsAllTime, disabled
         case config, safetensors, gguf, cardData, gated, usedStorage
     }
 
@@ -359,6 +540,12 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         cardData = try? container.decode(HFCardData.self, forKey: .cardData)
         gated = try? container.decode(HFGatedStatus.self, forKey: .gated)
         usedStorage = try? container.decode(Int64.self, forKey: .usedStorage)
+        // Expanded fields — may not be present without expand[] parameters
+        createdAt = try? container.decode(String.self, forKey: .createdAt)
+        sha = try? container.decode(String.self, forKey: .sha)
+        trendingScore = try? container.decode(Double.self, forKey: .trendingScore)
+        downloadsAllTime = try? container.decode(Int.self, forKey: .downloadsAllTime)
+        disabled = try? container.decode(Bool.self, forKey: .disabled)
     }
 
     /// Custom encoder — only encodes stored properties (skips `createdAt` decode-only key).
@@ -379,6 +566,11 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         try container.encodeIfPresent(cardData, forKey: .cardData)
         try container.encodeIfPresent(gated, forKey: .gated)
         try container.encodeIfPresent(usedStorage, forKey: .usedStorage)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(sha, forKey: .sha)
+        try container.encodeIfPresent(trendingScore, forKey: .trendingScore)
+        try container.encodeIfPresent(downloadsAllTime, forKey: .downloadsAllTime)
+        try container.encodeIfPresent(disabled, forKey: .disabled)
     }
 
     /// Memberwise init for tests and previews.
@@ -388,7 +580,10 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
          siblings: [HFSibling]? = nil,
          config: HFModelConfig? = nil, safetensors: HFSafetensorsInfo? = nil,
          gguf: HFGGUFInfo? = nil, cardData: HFCardData? = nil,
-         gated: HFGatedStatus? = nil, usedStorage: Int64? = nil) {
+         gated: HFGatedStatus? = nil, usedStorage: Int64? = nil,
+         createdAt: String? = nil, sha: String? = nil,
+         trendingScore: Double? = nil, downloadsAllTime: Int? = nil,
+         disabled: Bool? = nil) {
         self.id = id
         self.author = author
         self.lastModified = lastModified
@@ -404,6 +599,11 @@ struct HFModelInfo: Codable, Sendable, Identifiable, Hashable {
         self.cardData = cardData
         self.gated = gated
         self.usedStorage = usedStorage
+        self.createdAt = createdAt
+        self.sha = sha
+        self.trendingScore = trendingScore
+        self.downloadsAllTime = downloadsAllTime
+        self.disabled = disabled
     }
 }
 
@@ -794,6 +994,60 @@ final class HFModelBrowser: @unchecked Sendable {
             return try decoder.decode(HFModelInfo.self, from: data)
         } catch {
             throw HFModelBrowserError.decodingFailed(underlying: error)
+        }
+    }
+
+    // MARK: - Full Config Fetch
+
+    /// Fetch the complete `config.json` from a repository's files.
+    ///
+    /// The HuggingFace API inlines a subset of config.json in the model detail response,
+    /// but it may be incomplete (especially for gated models). This method fetches the
+    /// full config.json directly from the repository.
+    ///
+    /// Handles authentication gracefully:
+    /// 1. Attempts fetch with stored HF token (if available)
+    /// 2. Returns nil on 401/403 (gated model without valid token)
+    /// 3. Returns nil on 404 (repo has no config.json — typical for LiteRT-LM)
+    ///
+    /// - Parameter repoId: The full repository ID.
+    /// - Returns: The decoded `HFModelConfig`, or nil if unavailable.
+    func fetchFullConfig(repoId: String) async -> HFModelConfig? {
+        let urlString = "https://huggingface.co/\(repoId)/resolve/main/config.json"
+        guard let url = URL(string: urlString) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+
+        // Use existing Keychain-stored token for gated repos
+        if let token = HFTokenStorage.retrieve() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            // Graceful degradation for auth/missing files
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200:
+                    break  // Success — decode below
+                case 401, 403:
+                    Self.logger.info("⚠️ config.json fetch requires auth for \(repoId, privacy: .public)")
+                    return nil
+                case 404:
+                    Self.logger.debug("ℹ️ No config.json in \(repoId, privacy: .public)")
+                    return nil
+                default:
+                    Self.logger.warning("⚠️ config.json fetch HTTP \(httpResponse.statusCode) for \(repoId, privacy: .public)")
+                    return nil
+                }
+            }
+
+            return try decoder.decode(HFModelConfig.self, from: data)
+        } catch {
+            Self.logger.debug("ℹ️ config.json decode failed for \(repoId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
         }
     }
 
@@ -1263,11 +1517,12 @@ extension HFModelInfo {
         safetensors?.total
     }
 
-    /// Maximum context length from GGUF metadata.
+    /// Maximum context length, cascading through all available data sources.
     ///
-    /// Only available for GGUF repositories. For other formats, this will be nil.
+    /// Priority: text_config.max_position_embeddings → top-level max_position_embeddings
+    /// → gguf.context_length → nil.
     var contextLength: Int? {
-        gguf?.contextLength
+        maxContextLength
     }
 
     /// Primary architecture class (e.g., `"Gemma4ForConditionalGeneration"`).
@@ -1343,5 +1598,82 @@ extension HFModelInfo {
     /// Training datasets used, from card metadata.
     var trainingDatasets: [String] {
         cardData?.datasets?.values ?? []
+    }
+
+    // MARK: - Config-Derived Capability Signals
+
+    /// Authoritative maximum context length, cascading through data sources.
+    ///
+    /// Priority:
+    /// 1. `text_config.max_position_embeddings` (from config.json — most authoritative)
+    /// 2. Top-level `max_position_embeddings` (some models put it here instead)
+    /// 3. `gguf.context_length` (from GGUF metadata in API response)
+    /// 4. `nil` — no data available, caller should use heuristics
+    var maxContextLength: Int? {
+        config?.textConfig?.maxPositionEmbeddings
+            ?? config?.maxPositionEmbeddings
+            ?? gguf?.contextLength
+    }
+
+    /// Whether this model supports image/vision input, derived from config.json signals.
+    ///
+    /// Uses authoritative signals from the model's configuration:
+    /// 1. `vision_config` sub-object exists → vision encoder present
+    /// 2. `image_token_id` exists → model has a special image token
+    /// 3. Architecture contains "ConditionalGeneration" → multimodal architecture
+    var hasVisionSupport: Bool {
+        config?.visionConfig != nil
+            || config?.imageTokenId != nil
+            || (config?.architectures?.first?.contains("ConditionalGeneration") == true)
+    }
+
+    /// Whether this model supports audio input, derived from config.json signals.
+    ///
+    /// Uses authoritative signals from the model's configuration:
+    /// 1. `audio_config` sub-object exists → audio encoder present
+    /// 2. `audio_token_id` exists → model has a special audio token
+    var hasAudioSupport: Bool {
+        config?.audioConfig != nil
+            || config?.audioTokenId != nil
+    }
+
+    /// Maximum input image resolution from vision config (e.g., 896 for SigLIP).
+    var maxImageResolution: Int? {
+        config?.visionConfig?.imageSize
+    }
+
+    /// Number of transformer layers in the text model.
+    var numLayers: Int? {
+        config?.textConfig?.numHiddenLayers
+    }
+
+    /// Hidden dimension size of the text model.
+    var hiddenSize: Int? {
+        config?.textConfig?.hiddenSize
+    }
+
+    /// Number of attention heads in the text model.
+    var numAttentionHeads: Int? {
+        config?.textConfig?.numAttentionHeads
+    }
+
+    /// Vocabulary size from text config.
+    var vocabSize: Int? {
+        config?.textConfig?.vocabSize
+    }
+
+    /// PyTorch dtype for model weights, from config or text_config.
+    var dtype: String? {
+        config?.torchDtype ?? config?.textConfig?.torchDtype
+    }
+
+    /// Whether the model uses Mixture of Experts architecture.
+    var isMoE: Bool {
+        config?.textConfig?.enableMoeBlock == true
+    }
+
+    /// License link URL from model card frontmatter.
+    var licenseLink: String? {
+        cardData?.licenseLink
     }
 }
