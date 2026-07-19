@@ -424,6 +424,12 @@ struct iOSModelHubView: View {
                         .font(AppTypography.badge)
                         .foregroundStyle(formatColor(format))
 
+                    // Parameter count
+                    if let params = model.parameterCountLabel {
+                        Text(params)
+                            .badge(AppColors.accentSecondary)
+                    }
+
                     // Organization
                     Text(model.orgName)
                         .font(AppTypography.caption)
@@ -437,8 +443,8 @@ struct iOSModelHubView: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
 
-                    // Size
-                    if let size = modelSize {
+                    // Size — prefer API-provided estimate, fall back to sibling-level size
+                    if let size = model.estimatedDownloadSize ?? modelSize {
                         Label(ByteCountFormatter.string(fromByteCount: size, countStyle: .file), systemImage: "doc")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textSecondary)

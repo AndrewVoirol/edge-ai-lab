@@ -297,12 +297,20 @@ struct CommunityModelsBrowser: View {
                             icon: "heart",
                             color: AppColors.destructive
                         )
-                        if let size = browserModelSize {
+                        if let size = model.estimatedDownloadSize ?? browserModelSize {
                             browserStatCell(
                                 label: "File Size",
                                 value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file),
                                 icon: "doc.zipper",
                                 color: AppColors.accentSecondary
+                            )
+                        }
+                        if let params = model.parameterCountLabel {
+                            browserStatCell(
+                                label: "Parameters",
+                                value: params,
+                                icon: "cpu",
+                                color: AppColors.textSecondary
                             )
                         }
                     }
@@ -330,6 +338,9 @@ struct CommunityModelsBrowser: View {
                             .glassCard(cornerRadius: AppRadius.md)
                         }
                     }
+
+                    // Model Info section (rich metadata)
+                    browserModelInfoSection(model: model)
 
                     // Download / Load actions
                     browserDetailActions(model: model)
@@ -419,6 +430,88 @@ struct CommunityModelsBrowser: View {
             .padding(AppSpacing.md)
             .glassCard(cornerRadius: AppRadius.lg)
         }
+    }
+
+    /// Model info section showing architecture, context window, license, etc.
+    @ViewBuilder
+    private func browserModelInfoSection(model: HFModelInfo) -> some View {
+        let hasInfo = model.architecture != nil || model.contextLength != nil
+            || model.license != nil || model.baseModelId != nil
+
+        if hasInfo {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("Model Info")
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .accessibilityIdentifier("browserDetail_infoHeader")
+
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    if let arch = model.architecture {
+                        browserInfoRow(label: "Architecture", value: arch, icon: "cpu")
+                    }
+                    if let ctx = model.contextLength {
+                        browserInfoRow(label: "Context Window", value: formatContextWindow(ctx), icon: "text.alignleft")
+                    }
+                    if let license = model.license {
+                        browserInfoRow(label: "License", value: license.uppercased(), icon: "doc.text")
+                    }
+                    if let base = model.baseModelId {
+                        browserInfoRow(label: "Base Model", value: base, icon: "arrow.triangle.branch")
+                    }
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+
+                // Capability badges row
+                HStack(spacing: AppSpacing.xs) {
+                    if let arch = model.architecture {
+                        if arch.lowercased().contains("conditionalgeneration") {
+                            Label("Vision", systemImage: "eye.fill")
+                                .badge(AppColors.capabilityVision)
+                                .accessibilityIdentifier("browserDetail_visionBadge")
+                        }
+                        if arch.lowercased().contains("audio") || arch.lowercased().contains("speech") {
+                            Label("Audio", systemImage: "waveform")
+                                .badge(AppColors.capabilityAudio)
+                                .accessibilityIdentifier("browserDetail_audioBadge")
+                        }
+                    }
+                    if model.isGated {
+                        Label("Gated", systemImage: "lock.fill")
+                            .badge(AppColors.warning)
+                            .accessibilityIdentifier("browserDetail_gatedBadge")
+                    }
+                }
+            }
+            .accessibilityIdentifier("browserDetail_infoSection")
+        }
+    }
+
+    private func browserInfoRow(label: String, value: String, icon: String) -> some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: icon)
+                .font(AppIconSize.xs)
+                .foregroundStyle(AppColors.textTertiary)
+                .frame(width: 20) // design-system-exempt: structural layout dimensions
+            Text(label)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+            Spacer()
+            Text(value)
+                .font(AppTypography.captionMedium)
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(1)
+        }
+        .accessibilityIdentifier("browserDetail_info_\(label)")
+    }
+
+    private func formatContextWindow(_ tokens: Int) -> String {
+        if tokens >= 1_000_000 {
+            return String(format: "%.0fM tokens", Double(tokens) / 1_000_000)
+        } else if tokens >= 1_000 {
+            return String(format: "%.0fK tokens", Double(tokens) / 1_000)
+        }
+        return "\(tokens) tokens"
     }
 
     /// Download and Load action buttons for the detail view.

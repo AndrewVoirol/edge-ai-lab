@@ -56,6 +56,9 @@ struct iOSHFModelDetailView: View {
                 // 4. Quantization Info
                 quantizationSection
 
+                // 4a. Model Info (rich metadata)
+                modelInfoSection
+
                 // 5. Download / Load Actions
                 actionsSection
 
@@ -137,12 +140,20 @@ struct iOSHFModelDetailView: View {
                 icon: "heart",
                 color: AppColors.destructive
             )
-            if let size = modelSize {
+            if let size = model.estimatedDownloadSize ?? modelSize {
                 statCell(
                     label: "File Size",
                     value: ByteCountFormatter.string(fromByteCount: size, countStyle: .file),
                     icon: "doc.zipper",
                     color: AppColors.accentSecondary
+                )
+            }
+            if let params = model.parameterCountLabel {
+                statCell(
+                    label: "Parameters",
+                    value: params,
+                    icon: "cpu",
+                    color: AppColors.textSecondary
                 )
             }
         }
@@ -232,6 +243,89 @@ struct iOSHFModelDetailView: View {
             }
             .accessibilityIdentifier("hfDetail_quantSection")
         }
+    }
+
+    // MARK: - Model Info Section
+
+    @ViewBuilder
+    private var modelInfoSection: some View {
+        let hasInfo = model.architecture != nil || model.contextLength != nil
+            || model.license != nil || model.baseModelId != nil
+
+        if hasInfo {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("Model Info")
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textSecondary)
+                    .accessibilityIdentifier("hfDetail_infoHeader")
+
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    if let arch = model.architecture {
+                        infoRow(label: "Architecture", value: arch, icon: "cpu")
+                    }
+                    if let ctx = model.contextLength {
+                        infoRow(label: "Context Window", value: formatContextWindow(ctx), icon: "text.alignleft")
+                    }
+                    if let license = model.license {
+                        infoRow(label: "License", value: license.uppercased(), icon: "doc.text")
+                    }
+                    if let base = model.baseModelId {
+                        infoRow(label: "Base Model", value: base, icon: "arrow.triangle.branch")
+                    }
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+
+                // Capability badges
+                HStack(spacing: AppSpacing.xs) {
+                    if let arch = model.architecture {
+                        if arch.lowercased().contains("conditionalgeneration") {
+                            Label("Vision", systemImage: "eye.fill")
+                                .badge(AppColors.capabilityVision)
+                                .accessibilityIdentifier("hfDetail_visionBadge")
+                        }
+                        if arch.lowercased().contains("audio") || arch.lowercased().contains("speech") {
+                            Label("Audio", systemImage: "waveform")
+                                .badge(AppColors.capabilityAudio)
+                                .accessibilityIdentifier("hfDetail_audioBadge")
+                        }
+                    }
+                    if model.isGated {
+                        Label("Gated", systemImage: "lock.fill")
+                            .badge(AppColors.warning)
+                            .accessibilityIdentifier("hfDetail_gatedBadge")
+                    }
+                }
+            }
+            .accessibilityIdentifier("hfDetail_infoSection")
+        }
+    }
+
+    private func infoRow(label: String, value: String, icon: String) -> some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: icon)
+                .font(AppIconSize.xs)
+                .foregroundStyle(AppColors.textTertiary)
+                .frame(width: 20) // design-system-exempt: structural layout dimensions
+            Text(label)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+            Spacer()
+            Text(value)
+                .font(AppTypography.captionMedium)
+                .foregroundStyle(AppColors.textPrimary)
+                .lineLimit(1)
+        }
+        .accessibilityIdentifier("hfDetail_info_\(label)")
+    }
+
+    private func formatContextWindow(_ tokens: Int) -> String {
+        if tokens >= 1_000_000 {
+            return String(format: "%.0fM tokens", Double(tokens) / 1_000_000)
+        } else if tokens >= 1_000 {
+            return String(format: "%.0fK tokens", Double(tokens) / 1_000)
+        }
+        return "\(tokens) tokens"
     }
 
     // MARK: - Actions Section

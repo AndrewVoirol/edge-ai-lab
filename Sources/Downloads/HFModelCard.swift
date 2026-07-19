@@ -78,6 +78,12 @@ struct HFModelCard: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(1)
 
+                if let params = model.parameterCountLabel {
+                    Text(params)
+                        .badge(AppColors.accentSecondary)
+                        .accessibilityIdentifier("hf_card_params_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                }
+
                 Spacer()
 
                 formatBadge
@@ -122,8 +128,8 @@ struct HFModelCard: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
 
-                // Size
-                if let size = modelSize {
+                // Size — prefer API-provided estimate, fall back to sibling-level size
+                if let size = model.estimatedDownloadSize ?? modelSize {
                     Label(formatBytes(size), systemImage: "doc")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -141,6 +147,29 @@ struct HFModelCard: View {
                     .padding(.vertical, AppSpacing.xxs)
                     .background(AppColors.accentPrimaryTint)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+            }
+
+            // Capability badges
+            HStack(spacing: AppSpacing.xs) {
+                if let arch = model.architecture {
+                    let supportsVision = arch.lowercased().contains("conditionalgeneration")
+                    let supportsAudio = arch.lowercased().contains("audio") || arch.lowercased().contains("speech")
+                    if supportsVision {
+                        Label("Vision", systemImage: "eye.fill")
+                            .badge(AppColors.capabilityVision)
+                            .accessibilityIdentifier("hf_card_vision_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                    }
+                    if supportsAudio {
+                        Label("Audio", systemImage: "waveform")
+                            .badge(AppColors.capabilityAudio)
+                            .accessibilityIdentifier("hf_card_audio_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                    }
+                }
+                if model.isGated {
+                    Label("Gated", systemImage: "lock.fill")
+                        .badge(AppColors.warning)
+                        .accessibilityIdentifier("hf_card_gated_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                }
             }
 
             // Action button
