@@ -96,8 +96,8 @@ struct DiscoveredModel: Identifiable, Sendable {
             $0.hasPrefix("Q") || $0.hasPrefix("F") || $0.hasPrefix("q") || $0.hasPrefix("f")
         })
 
-        // Estimate min RAM from file size (rough: model needs ~1.2x file size in RAM)
-        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * 1.2))
+        // Estimate RAM: model weights + ~30% overhead for KV-cache, activations, system overhead
+        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * 1.3))
 
         // Generate a human-readable name from the stem.
         // GGUF filenames use hyphens as word separators (e.g., "gemma-4-E2B-it-Q4_K_M").
@@ -137,6 +137,49 @@ struct DiscoveredModel: Identifiable, Sendable {
             hasMultimodal = isGemma4Standard
         }
 
+        // Infer context window from model family
+        let contextWindow: Int
+        if lowerStem.contains("gemma") && lowerStem.contains("4") {
+            if lowerStem.contains("12b") {
+                contextWindow = 256_000  // Gemma 4 12B = 256K
+            } else {
+                contextWindow = 128_000  // Gemma 4 E2B/E4B = 128K
+            }
+        } else if lowerStem.contains("gemma") {
+            contextWindow = 32_000  // Gemma 2/3 = 32K
+        } else if lowerStem.contains("llama") {
+            contextWindow = 128_000  // Llama 3+ = 128K
+        } else {
+            contextWindow = 32_000  // Conservative default (was 8K)
+        }
+
+        // Infer architecture from model family
+        let architecture: String
+        if lowerStem.contains("gemma") && lowerStem.contains("4") {
+            if lowerStem.contains("e2b") || lowerStem.contains("e4b") {
+                architecture = "Mixture of Experts"
+            } else if lowerStem.contains("12b") {
+                architecture = "Dense Transformer"
+            } else {
+                architecture = "Transformer"  // Unknown Gemma 4 variant
+            }
+        } else if lowerStem.contains("gemma") {
+            architecture = "Dense Transformer"  // Gemma 2/3 are dense
+        } else {
+            architecture = "Transformer"  // Conservative default
+        }
+
+        // Infer capabilities from model name and runtime
+        var capabilities: [String] = []
+        // Thinking: Instruction-tuned Gemma/Llama models support thinking
+        if lowerStem.contains("it") && (lowerStem.contains("gemma") || lowerStem.contains("llama") || lowerStem.contains("mistral") || lowerStem.contains("phi") || lowerStem.contains("qwen")) {
+            capabilities.append("llm_thinking")
+        }
+        // MTP: Only LiteRT models have speculative decoding wired at the adapter level
+        if runtime == .litertlm {
+            capabilities.append("speculative_decoding")
+        }
+
         return ModelMetadata(
             name: displayName,
             modelId: "local/\(filename)",
@@ -145,17 +188,17 @@ struct DiscoveredModel: Identifiable, Sendable {
                 (quantization.map { " (\($0) quantization)" } ?? ""),
             sizeInBytes: sizeInBytes,
             minDeviceMemoryGB: estimatedRAM,
-            contextWindowSize: 8192,  // Conservative default
-            architectureType: runtime.displayName,
+            contextWindowSize: contextWindow,
+            architectureType: architecture,
             recommendedFor: "Local inference",
             supportsImage: hasMultimodal,
             supportsAudio: hasMultimodal,
-            capabilities: [],
+            capabilities: capabilities,
             defaultConfig: ModelDefaultConfig(
                 topK: 40,
                 topP: 0.95,
                 temperature: 0.7,
-                maxContextLength: 8192,
+                maxContextLength: contextWindow,
                 maxTokens: 2048,
                 accelerators: "gpu",
                 visionAccelerator: hasMultimodal ? "gpu" : nil
@@ -429,12 +472,24 @@ enum GalleryModelDiscovery {
 
         let modelType = config["model_type"] as? String ?? "unknown"
         // Convert directory name to human-readable: "mlx-community--gemma-4-E2B-it-4bit" → "gemma-4-E2B-it-4bit"
-        let humanName: String
+        let rawName: String
         if dirName.contains("--") {
-            humanName = String(dirName.split(separator: "--", maxSplits: 1).last ?? Substring(dirName))
+            rawName = String(dirName.split(separator: "--", maxSplits: 1).last ?? Substring(dirName))
         } else {
-            humanName = dirName
+            rawName = dirName
         }
+        // Normalize MLX directory names the same way GGUF filenames are cleaned up
+        let humanName = rawName
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "gemma ", with: "Gemma ", options: .caseInsensitive)
+            .replacingOccurrences(of: "llama ", with: "Llama ", options: .caseInsensitive)
+            .replacingOccurrences(of: "mistral ", with: "Mistral ", options: .caseInsensitive)
+            .replacingOccurrences(of: "phi ", with: "Phi ", options: .caseInsensitive)
+            .replacingOccurrences(of: "qwen ", with: "Qwen ", options: .caseInsensitive)
+            .replacingOccurrences(of: " it ", with: " IT ", options: .caseInsensitive)
+            .replacingOccurrences(of: " it$", with: " IT", options: [.caseInsensitive, .regularExpression])
+            .replacingOccurrences(of: " e2b", with: " E2B", options: .caseInsensitive)
+            .replacingOccurrences(of: " e4b", with: " E4B", options: .caseInsensitive)
         // Reconstruct model ID from directory name: "mlx-community--gemma-4-E2B-it-4bit" → "mlx-community/gemma-4-E2B-it-4bit"
         let modelId = dirName.replacingOccurrences(of: "--", with: "/")
 
@@ -454,6 +509,30 @@ enum GalleryModelDiscovery {
         let hasAudioConfig = config["audio_config"] != nil
         let supportsAudio = hasAudioConfig
 
+        // Infer context window from model name
+        let contextWindow: Int
+        let lowerName = rawName.lowercased()
+        if lowerName.contains("gemma") && lowerName.contains("4") {
+            if lowerName.contains("12b") {
+                contextWindow = 256_000
+            } else {
+                contextWindow = 128_000
+            }
+        } else if lowerName.contains("gemma") {
+            contextWindow = 32_000
+        } else if lowerName.contains("llama") {
+            contextWindow = 128_000
+        } else {
+            contextWindow = 32_000
+        }
+
+        // Infer capabilities from model name
+        var capabilities: [String] = []
+        if lowerName.contains("it") && (lowerName.contains("gemma") || lowerName.contains("llama") || lowerName.contains("mistral") || lowerName.contains("phi") || lowerName.contains("qwen")) {
+            capabilities.append("llm_thinking")
+        }
+        // MLX does not have speculative_decoding wired at the adapter level
+
         return ModelMetadata(
             name: humanName,
             modelId: modelId,
@@ -461,17 +540,17 @@ enum GalleryModelDiscovery {
             description: "MLX \(modelType) model",
             sizeInBytes: 0,  // Size will be computed from actual directory contents by the caller
             minDeviceMemoryGB: 8,
-            contextWindowSize: 128_000,
+            contextWindowSize: contextWindow,
             architectureType: modelType,
             recommendedFor: "Apple Silicon inference",
             supportsImage: supportsImage,
             supportsAudio: supportsAudio,
-            capabilities: [],
+            capabilities: capabilities,
             defaultConfig: ModelDefaultConfig(
                 topK: 40,
                 topP: 0.9,
                 temperature: 0.6,
-                maxContextLength: 32_000,
+                maxContextLength: contextWindow,
                 maxTokens: 4_000,
                 accelerators: "gpu",
                 visionAccelerator: supportsImage ? "gpu" : nil

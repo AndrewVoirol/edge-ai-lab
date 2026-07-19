@@ -119,6 +119,11 @@ final class URLImportManager {
     /// The most recently imported model, available after `.complete`.
     var lastImportedModel: DynamicModelMetadata?
 
+    /// Companion files detected alongside the main model file (e.g., mmproj for vision,
+    /// MTP draft shards). These are auto-downloaded when the user confirms the main download.
+    /// Populated during the `readyToDownload` transition and cleared on `reset()`.
+    var companionFiles: [HFSibling] = []
+
     // MARK: - Kaggle Credentials
 
     /// Kaggle username for API authentication. Set via Settings.
@@ -285,35 +290,37 @@ final class URLImportManager {
             confidence: confidence
         )
 
-        // Step 6: Collect downloadable files
-        let downloadableFiles: [HFSibling]
+        // Step 6: Collect downloadable files and companion files
+        var modelFiles: [HFSibling] = []
+        var companions: [HFSibling] = []
+
         if let specificFile = parsed.specificFile,
            let sibling = modelDetail.siblings?.first(where: { $0.rfilename == specificFile }) {
-            downloadableFiles = [sibling]
+            modelFiles = [sibling]
         } else {
-            downloadableFiles = modelDetail.siblings?.filter { sibling in
+            for sibling in modelDetail.siblings ?? [] {
                 let filename = sibling.rfilename
-                // Must match the target file extension
-                guard filename.hasSuffix(".\(metadata.runtimeType.fileExtension)") else {
-                    return false
-                }
-                // Filter out companion files that are not standalone models:
-                // - MTP (Multi-Token Prediction) draft model shards
-                // - mmproj (vision projection files for multimodal)
-                // - imatrix (importance matrix data files)
                 let lower = filename.lowercased()
-                if lower.hasPrefix("mtp/") || lower.hasPrefix("mtp-") || lower.hasPrefix("mtp_") {
-                    return false
+
+                // Must match the target file extension for model files
+                if filename.hasSuffix(".\(metadata.runtimeType.fileExtension)") {
+                    // Separate companion files from standalone model files
+                    if lower.contains("mmproj") && lower.hasSuffix(".gguf") {
+                        // Vision projector — companion file for multimodal GGUF
+                        companions.append(sibling)
+                    } else if lower.hasPrefix("mtp/") || lower.hasPrefix("mtp-") || lower.hasPrefix("mtp_") {
+                        // MTP draft model shards — companion for speculative decoding
+                        companions.append(sibling)
+                    } else if lower.contains("imatrix") {
+                        // Importance matrix — skip entirely (not needed at runtime)
+                        continue
+                    } else {
+                        modelFiles.append(sibling)
+                    }
                 }
-                if lower.hasPrefix("mmproj") {
-                    return false
-                }
-                if lower.contains("imatrix") {
-                    return false
-                }
-                return true
-            } ?? []
+            }
         }
+        let downloadableFiles = modelFiles
         // Step 7: Enrich file sizes from tree API
         // The model detail endpoint's siblings don't include sizes — the tree endpoint does.
         var enrichedFiles = downloadableFiles
@@ -340,16 +347,35 @@ final class URLImportManager {
             Self.logger.warning("⚠️ Could not fetch file manifest for size enrichment: \(error.localizedDescription, privacy: .public)")
         }
 
+        // Also enrich companion file sizes
+        if !companions.isEmpty {
+            let sizeLookup = Dictionary(
+                (try? await browser.fetchFileManifest(for: parsed.repoId))?.compactMap { entry -> (String, Int64)? in
+                    guard let size = entry.lfs?.size ?? entry.size else { return nil }
+                    return (entry.path, size)
+                } ?? [],
+                uniquingKeysWith: { first, _ in first }
+            )
+            companionFiles = companions.map { sibling in
+                if sibling.size != nil || sibling.lfs != nil { return sibling }
+                guard let treeSize = sizeLookup[sibling.rfilename] else { return sibling }
+                return HFSibling(rfilename: sibling.rfilename, size: treeSize, lfs: sibling.lfs)
+            }
+        } else {
+            companionFiles = []
+        }
+
         state = .readyToDownload(metadata: dynamicMeta, files: enrichedFiles)
         Self.logger.info(
-            "📦 Ready to download \(parsed.repoId, privacy: .public): \(enrichedFiles.count) file(s), confidence=\(confidence.label, privacy: .public)"
+            "📦 Ready to download \(parsed.repoId, privacy: .public): \(enrichedFiles.count) file(s), \(self.companionFiles.count) companion(s), confidence=\(confidence.label, privacy: .public)"
         )
     }
 
     /// Confirm and start downloading a specific model file.
     ///
     /// Call this after the user reviews the inferred metadata in the `.readyToDownload` state
-    /// and selects a file to download.
+    /// and selects a file to download. Companion files (mmproj, MTP draft shards) are
+    /// automatically downloaded alongside the main model file.
     ///
     /// - Parameters:
     ///   - metadata: The `DynamicModelMetadata` for the model being imported.
@@ -375,13 +401,19 @@ final class URLImportManager {
             author: String(metadata.id.split(separator: "/").first ?? Substring(metadata.id))
         )
 
-        // Start download
+        // Start main model download
         downloadManager.downloadCommunityModel(model: modelInfo, sibling: file)
+
+        // Auto-download companion files (mmproj, MTP draft shards)
+        for companion in companionFiles {
+            downloadManager.downloadCommunityModel(model: modelInfo, sibling: companion)
+            Self.logger.info("⬇️ Companion download started for \(companion.rfilename, privacy: .public)")
+        }
 
         // Set up completion tracking
         lastImportedModel = metadata
 
-        Self.logger.info("⬇️ Download started for \(file.rfilename, privacy: .public)")
+        Self.logger.info("⬇️ Download started for \(file.rfilename, privacy: .public) with \(self.companionFiles.count) companion(s)")
     }
 
     /// Mark the current import as complete.
@@ -406,6 +438,7 @@ final class URLImportManager {
     /// Call this when the user dismisses the import sheet or wants to start over.
     func reset() {
         state = .idle
+        companionFiles = []
         Self.logger.info("🔄 Import manager reset to idle")
     }
 

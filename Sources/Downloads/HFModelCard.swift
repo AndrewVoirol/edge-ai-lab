@@ -56,13 +56,35 @@ struct HFModelCard: View {
         return nil
     }
 
+    /// The first `.gguf` sibling file for download targeting.
+    ///
+    /// Excludes companion files (mmproj, MTP) — only standalone model files.
+    private var ggufSibling: HFSibling? {
+        model.siblings?.first(where: {
+            let name = $0.rfilename.lowercased()
+            return name.hasSuffix(".gguf")
+                && !name.contains("mmproj")
+                && !name.hasPrefix("mtp")
+                && !name.contains("imatrix")
+        })
+    }
+
+    /// The primary download target for this model's format.
+    private var primarySibling: HFSibling? {
+        switch format {
+        case .litertlm: return litertlmSibling
+        case .gguf: return ggufSibling
+        default: return nil
+        }
+    }
+
     /// Download state for this model's file or directory.
     private var downloadState: ModelDownloadManager.DownloadState {
         if format == .mlx {
             let dirName = model.id.replacingOccurrences(of: "/", with: "--")
             return downloadManager.downloadStates[dirName] ?? .notDownloaded
         }
-        guard let sibling = litertlmSibling else { return .notDownloaded }
+        guard let sibling = primarySibling else { return .notDownloaded }
         return downloadManager.downloadStates[sibling.rfilename] ?? .notDownloaded
     }
 
@@ -265,8 +287,31 @@ struct HFModelCard: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("hf_download_mlx_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+            } else if format == .gguf, let ggufFile = ggufSibling {
+                // GGUF single-file download
+                let sizeLabel = modelSize.map { formatBytes($0) } ?? "GGUF"
+                Button {
+                    downloadManager.downloadCommunityModel(model: model, sibling: ggufFile)
+                    downloadManager.postDownloadCallbacks[ggufFile.rfilename] = { filename, url in
+                        downloadedURL = url
+                        showLoadPrompt = true
+                    }
+                } label: {
+                    HStack(spacing: AppSpacing.xs) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text("Download (\(sizeLabel))")
+                            .font(AppTypography.caption)
+                    }
+                    .foregroundStyle(AppColors.accentPrimary)
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.xs)
+                    .background(AppColors.accentPrimaryFaint)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hf_download_gguf_\(model.id.replacingOccurrences(of: "/", with: "_"))")
             } else {
-                Text("Coming Soon")
+                Text("Unsupported Format")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textTertiary)
                     .padding(.horizontal, AppSpacing.md)
@@ -285,7 +330,7 @@ struct HFModelCard: View {
                         .foregroundStyle(AppColors.textTertiary)
                     Spacer()
                     Button {
-                        if let sibling = litertlmSibling {
+                        if let sibling = primarySibling {
                             Task { await downloadManager.cancelDownload(filename: sibling.rfilename) }
                         }
                     } label: {

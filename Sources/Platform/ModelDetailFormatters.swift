@@ -59,7 +59,7 @@ enum ModelDetailFormatters {
         var badges = ["Text Generation"]
         if supportsImage { badges.append("Vision") }
         if supportsAudio { badges.append("Audio") }
-        if supportsMTP { badges.append("MTP / Speculative") }
+        if supportsMTP { badges.append("Speculative Decoding") }
         if supportsToolCalling { badges.append("Tool Calling") }
         if supportsThinking { badges.append("Thinking") }
         return badges

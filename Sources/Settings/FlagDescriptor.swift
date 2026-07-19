@@ -106,7 +106,7 @@ enum FlagRegistry {
 
     static let speculative = FlagDescriptor(
         id: "mtp",
-        displayName: "MTP",
+        displayName: "Speculative Decoding",
         symbol: "bolt.fill",
         description: "Multi-Token Prediction: predicts multiple tokens at once for faster generation. LiteRT only — MLX SDK has speculative decoding but requires a separate draft model.",
         impactAreas: [.speed],
@@ -116,9 +116,9 @@ enum FlagRegistry {
 
     static let constrainedDecoding = FlagDescriptor(
         id: "cd",
-        displayName: "CD",
+        displayName: "Structured Output",
         symbol: "doc.text.magnifyingglass",
-        description: "Constrained Decoding: guides output to follow structured formats. LiteRT only — no grammar/FST decoder in mlx-swift-lm SDK.",
+        description: "Constrained Decoding: guides output to follow structured formats (JSON, schemas). LiteRT only — no grammar/FST decoder in mlx-swift-lm SDK.",
         impactAreas: [.compatibility, .quality],
         reloadRequirement: .always,
         supportedEngines: [.litertlm]

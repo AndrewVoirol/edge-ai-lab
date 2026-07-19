@@ -515,7 +515,7 @@ struct iOSModelDetailView: View {
                 capabilityChip("Text Generation", icon: "text.bubble", color: AppColors.textSecondary, enabled: true)
                 capabilityChip("Vision", icon: "eye", color: AppColors.capabilityVision, enabled: metadata.supportsImage)
                 capabilityChip("Audio", icon: "waveform", color: AppColors.capabilityAudio, enabled: metadata.supportsAudio)
-                capabilityChip("MTP / Speculative", icon: "bolt.horizontal", color: AppColors.capabilityMTP, enabled: metadata.supportsMTP)
+                capabilityChip("Speculative Decoding", icon: "bolt.horizontal", color: AppColors.capabilityMTP, enabled: metadata.supportsMTP)
                 capabilityChip("Tool Calling", icon: "wrench.and.screwdriver", color: AppColors.toolAction, enabled: metadata.supportsToolCalling)
                 capabilityChip("Thinking", icon: "brain", color: AppColors.capabilityThinking, enabled: metadata.capabilities.contains("llm_thinking"))
             }

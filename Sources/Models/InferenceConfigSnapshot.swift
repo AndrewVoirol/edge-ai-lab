@@ -50,7 +50,7 @@ struct InferenceConfigSnapshot: Sendable, Codable, Equatable {
     // MARK: Summary
 
     /// One-line human-readable summary.
-    /// e.g., "Gemma 4 E2B · GPU · Think ✓ · MTP ✓ · Tools ✓"
+    /// e.g., "Gemma 4 E2B · GPU · Think ✓ · Spec Dec ✓ · Tools ✓"
     var summary: String {
         var parts: [String] = []
 
@@ -64,8 +64,8 @@ struct InferenceConfigSnapshot: Sendable, Codable, Equatable {
 
         var flags: [String] = []
         if thinkingEnabled == true { flags.append("Think ✓") }
-        if mtpEnabled == true { flags.append("MTP ✓") }
-        if constrainedDecodingEnabled == true { flags.append("CD ✓") }
+        if mtpEnabled == true { flags.append("Spec Dec ✓") }
+        if constrainedDecodingEnabled == true { flags.append("Structured ✓") }
         if toolCallingEnabled == true { flags.append("Tools ✓") }
 
         if !flags.isEmpty {
@@ -84,8 +84,8 @@ struct InferenceConfigSnapshot: Sendable, Codable, Equatable {
         if let cb = computeBackend { lines.append(("Compute", cb)) }
 
         lines.append(("Thinking", thinkingEnabled == true ? "On" : "Off"))
-        lines.append(("MTP", mtpEnabled == true ? "On" : "Off"))
-        lines.append(("CD", constrainedDecodingEnabled == true ? "On" : "Off"))
+        lines.append(("Spec. Decoding", mtpEnabled == true ? "On" : "Off"))
+        lines.append(("Structured Output", constrainedDecodingEnabled == true ? "On" : "Off"))
         lines.append(("Tools", toolCallingEnabled == true ? "On" : "Off"))
 
         if let t = temperature { lines.append(("Temperature", String(format: "%.2f", t))) }

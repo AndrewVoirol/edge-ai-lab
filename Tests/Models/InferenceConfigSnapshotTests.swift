@@ -38,8 +38,8 @@ final class InferenceConfigSnapshotTests: XCTestCase {
         XCTAssertTrue(summary.contains("Gemma 4 E2B"), "Should contain model name")
         XCTAssertTrue(summary.contains("GPU (Metal)"), "Should contain compute backend")
         XCTAssertTrue(summary.contains("Think ✓"), "Should contain thinking flag")
-        XCTAssertTrue(summary.contains("MTP ✓"), "Should contain MTP flag")
-        XCTAssertTrue(summary.contains("CD ✓"), "Should contain CD flag")
+        XCTAssertTrue(summary.contains("Spec Dec ✓"), "Should contain speculative decoding flag")
+        XCTAssertTrue(summary.contains("Structured ✓"), "Should contain structured output flag")
         XCTAssertTrue(summary.contains("Tools ✓"), "Should contain tools flag")
     }
 
@@ -61,7 +61,7 @@ final class InferenceConfigSnapshotTests: XCTestCase {
         let summary = snapshot.summary
         XCTAssertTrue(summary.contains("Gemma 4 E2B"))
         XCTAssertFalse(summary.contains("Think ✓"))
-        XCTAssertFalse(summary.contains("MTP ✓"))
+        XCTAssertFalse(summary.contains("Spec Dec ✓"))
     }
 
     // MARK: - Detailed Lines
@@ -94,7 +94,7 @@ final class InferenceConfigSnapshotTests: XCTestCase {
         // Verify values
         let dict = Dictionary(uniqueKeysWithValues: lines)
         XCTAssertEqual(dict["Thinking"], "On")
-        XCTAssertEqual(dict["MTP"], "Off")
+        XCTAssertEqual(dict["Spec. Decoding"], "Off")
         XCTAssertEqual(dict["Seed"], "42")
     }
 

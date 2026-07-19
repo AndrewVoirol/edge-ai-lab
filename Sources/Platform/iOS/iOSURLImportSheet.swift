@@ -182,6 +182,35 @@ struct iOSURLImportSheet: View {
                     .accessibilityIdentifier("urlImport_filePicker")
                 }
 
+                // Companion files (auto-downloaded alongside model)
+                if let manager = coordinator.importManager, !manager.companionFiles.isEmpty {
+                    ForEach(manager.companionFiles, id: \.rfilename) { companion in
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: companion.rfilename.lowercased().contains("mmproj")
+                                  ? "camera.fill" : "bolt.fill")
+                                .foregroundStyle(AppColors.accentSecondary)
+                            VStack(alignment: .leading, spacing: 2) { // design-system-exempt: tight label packing
+                                Text(companion.rfilename.lowercased().contains("mmproj")
+                                     ? "Vision Projector" : "MTP Draft Model")
+                                    .font(AppTypography.subtitle)
+                                    .foregroundStyle(AppColors.textPrimary)
+                                Text(companion.rfilename)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.textTertiary)
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                            if let size = companion.size ?? companion.lfs?.size {
+                                Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppColors.success)
+                        }
+                        .accessibilityIdentifier("urlImport_companion_\(companion.rfilename)")
+                    }
+                }
                 if let file = selectedFile(from: files) {
                     Button {
                         coordinator.importManager?.confirmDownload(

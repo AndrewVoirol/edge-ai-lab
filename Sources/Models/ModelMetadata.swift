@@ -261,9 +261,21 @@ struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
         capabilities.contains("speculative_decoding")
     }
 
-    /// Whether tool calling is supported (assumed true for -it instruction tuned models).
+    /// Whether tool calling is supported (instruction-tuned models).
+    ///
+    /// Checks for instruction-tuning markers in the model ID:
+    /// - `-it-` or `-it.` or `-IT-` (Gemma convention)
+    /// - `-instruct` (Llama/Mistral convention)
+    /// - `-chat` (Qwen convention)
+    ///
+    /// Avoids false positives from substrings like "digital" or "lightweight".
     var supportsToolCalling: Bool {
-        modelId.contains("-it")
+        let lower = modelId.lowercased()
+        return lower.contains("-it-")
+            || lower.contains("-it.")
+            || lower.hasSuffix("-it")
+            || lower.contains("-instruct")
+            || lower.contains("-chat")
     }
 
     /// Whether this model uses a multi-file directory format (MLX models).

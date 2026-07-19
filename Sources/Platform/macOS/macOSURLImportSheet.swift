@@ -311,6 +311,13 @@ struct macOSURLImportSheet: View {
                 .transition(.contentReveal)
         }
 
+        // ── Companion Files Card (auto-downloaded alongside model) ──
+        if let manager = coordinator.importManager, !manager.companionFiles.isEmpty {
+            companionFilesCard(companions: manager.companionFiles)
+                .padding(AppSpacing.xl)
+                .glassCard()
+                .transition(.contentReveal)
+        }
 
     }
 
@@ -420,6 +427,83 @@ struct macOSURLImportSheet: View {
             .frame(maxHeight: 280) // design-system-exempt: limit file list height to prevent sheet overflow
         }
         .accessibilityIdentifier("urlImport_filePicker")
+    }
+
+    // MARK: - Companion Files
+
+    /// Display companion files that will be auto-downloaded alongside the main model.
+    ///
+    /// Shows vision projectors (mmproj), MTP draft shards, and other companion files
+    /// with descriptive labels so the user understands what's being downloaded.
+    private func companionFilesCard(companions: [HFSibling]) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Label("Companion Files", systemImage: "paperclip")
+                .font(AppTypography.sectionHeader)
+                .foregroundStyle(AppColors.textSecondary)
+
+            Text("Auto-downloaded with model")
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textTertiary)
+
+            ForEach(companions, id: \.rfilename) { companion in
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: companionIcon(for: companion.rfilename))
+                        .foregroundStyle(AppColors.accentSecondary)
+                        .font(AppIconSize.sm)
+
+                    VStack(alignment: .leading, spacing: 2) { // design-system-exempt: tight label packing
+                        Text(companionLabel(for: companion.rfilename))
+                            .font(AppTypography.subtitle)
+                            .foregroundStyle(AppColors.textPrimary)
+                        Text(companion.rfilename)
+                            .font(AppTypography.mono)
+                            .foregroundStyle(AppColors.textTertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+
+                    Spacer()
+
+                    if let size = companion.size ?? companion.lfs?.size {
+                        Text(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                            .font(AppTypography.mono)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColors.success)
+                        .font(AppIconSize.sm)
+                }
+                .padding(.horizontal, AppSpacing.md)
+                .padding(.vertical, AppSpacing.sm)
+                .background(AppColors.accentSecondary.opacity(AppOpacity.faint))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                .accessibilityIdentifier("urlImport_companion_\(companion.rfilename)")
+            }
+        }
+        .accessibilityIdentifier("urlImport_companionFiles")
+    }
+
+    /// Human-readable label for a companion file.
+    private func companionLabel(for filename: String) -> String {
+        let lower = filename.lowercased()
+        if lower.contains("mmproj") {
+            return "Vision Projector — enables image & audio input"
+        } else if lower.hasPrefix("mtp") {
+            return "MTP Draft Model — enables speculative decoding"
+        }
+        return "Companion File"
+    }
+
+    /// SF Symbol icon for a companion file type.
+    private func companionIcon(for filename: String) -> String {
+        let lower = filename.lowercased()
+        if lower.contains("mmproj") {
+            return "camera.fill"
+        } else if lower.hasPrefix("mtp") {
+            return "bolt.fill"
+        }
+        return "doc.fill"
     }
 
     /// Extract a human-readable quantization label from a GGUF filename.

@@ -112,7 +112,7 @@ struct ModelDetailFormattersTests {
             "Text Generation",
             "Vision",
             "Audio",
-            "MTP / Speculative",
+            "Speculative Decoding",
             "Tool Calling",
             "Thinking"
         ])
@@ -152,7 +152,7 @@ struct ModelDetailFormattersTests {
             supportsThinking: false
         )
         #expect(badges.first == "Text Generation")
-        #expect(badges == ["Text Generation", "Audio", "MTP / Speculative"])
+        #expect(badges == ["Text Generation", "Audio", "Speculative Decoding"])
     }
 
     // MARK: - modelCountLabel

@@ -644,10 +644,13 @@ final class EvalRunner {
         if prompt.isImagePrompt && !engine.supportsVision {
             // Surface diagnostic info about WHY vision isn't available
             var reason = "Engine does not support image input (supportsVision=false)"
+            #if canImport(MLX) && !targetEnvironment(simulator)
             if let mlxEngine = engine as? MLXEngineAdapter, let err = mlxEngine.vlmLoadError {
                 reason += ". VLM load error: \(err)"
                 Self.logger.warning("⚠️ VLM was expected but load failed: \(String(describing: err), privacy: .public)")
-            } else if engine.runtimeType == .gguf {
+            }
+            #endif
+            if engine.runtimeType == .gguf {
                 reason += ". GGUF vision requires mmproj companion file alongside the model."
                 Self.logger.warning("⚠️ GGUF model skipping image prompt — no mmproj file found.")
             }
