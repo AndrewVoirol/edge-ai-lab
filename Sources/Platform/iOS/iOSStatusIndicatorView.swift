@@ -136,7 +136,7 @@ struct iOSStatusIndicatorView: View {
                 let thermal = metrics.endSnapshot.thermalLevel
                 Image(systemName: thermal.symbolName)
                     .font(AppIconSize.xxs)
-                    .foregroundStyle(thermalColor(for: thermal))
+                    .foregroundStyle(AppColors.thermal(thermal))
                     .accessibilityIdentifier("statusIndicator_thermal")
             }
 
@@ -195,7 +195,7 @@ struct iOSStatusIndicatorView: View {
                         Text("Audio").badge(AppColors.capabilityAudio)
                     }
                     if metadata.supportsMTP {
-                        Text("MTP").badge(AppColors.capabilityMTP)
+                        Text("Spec. Dec").badge(AppColors.capabilityMTP)
                     }
                     if metadata.supportsToolCalling {
                         Text("Tools").badge(AppColors.toolAction)
@@ -226,13 +226,6 @@ struct iOSStatusIndicatorView: View {
         }
     }
 
-    private func thermalColor(for state: ThermalLevel) -> Color {
-        switch state {
-        case .nominal: return AppColors.success
-        case .fair: return AppColors.warning
-        case .serious: return AppColors.destructive
-        case .critical: return AppColors.destructive
-        }
-    }
+
 }
 #endif

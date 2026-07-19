@@ -196,6 +196,24 @@ enum AppGradients {
     )
 }
 
+// MARK: - Semantic Color Mappings
+
+extension AppColors {
+
+    /// Shared thermal state → color mapping.
+    ///
+    /// Consolidates identical `thermalColor(for:)` private functions from
+    /// StatusBarView, BenchmarkBarView, and iOSStatusIndicatorView.
+    static func thermal(_ level: ThermalLevel) -> Color {
+        switch level {
+        case .nominal:  return AppColors.success
+        case .fair:     return AppColors.warning
+        case .serious:  return AppColors.toolAction   // Orange — distinguishes from critical red
+        case .critical: return AppColors.destructive
+        }
+    }
+}
+
 // MARK: - Typography
 
 enum AppTypography {

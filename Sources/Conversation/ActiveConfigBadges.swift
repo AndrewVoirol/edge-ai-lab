@@ -100,7 +100,7 @@ struct ActiveConfigBadges: View {
             let supported = desc.isSupported(on: runtime)
             badges.append(BadgeItem(
                 flagId: "mtp",
-                label: "MTP",
+                label: "Spec. Dec",
                 symbol: "bolt.fill",
                 color: AppColors.capabilityMTP,
                 isSupported: supported
@@ -113,7 +113,7 @@ struct ActiveConfigBadges: View {
             let supported = desc.isSupported(on: runtime)
             badges.append(BadgeItem(
                 flagId: "cd",
-                label: "CD",
+                label: "Struct. Out",
                 symbol: "doc.text.magnifyingglass",
                 color: AppColors.capabilityCD,
                 isSupported: supported

@@ -363,14 +363,14 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                 let name = toolCall.function.name
                 // Convert [String: JSONValue] → [String: Any] for AppTool.execute
                 let arguments = toolCall.function.arguments.mapValues { $0.anyValue }
-                print("[MLXEngine] 🔧 Tool dispatch: \(name) with args: \(arguments)")
+                Self.logger.debug("🔧 Tool dispatch: \(name, privacy: .public) with args: \(String(describing: arguments), privacy: .public)")
                 do {
                     let result = try await MLXToolBridge.executeToolCall(
                         toolName: name,
                         arguments: arguments,
                         tools: tools
                     )
-                    print("[MLXEngine] ✅ Tool \(name) returned: \(result.prefix(200))")
+                    Self.logger.debug("✅ Tool \(name, privacy: .public) returned: \(result.prefix(200), privacy: .public)")
                     return result
                 } catch {
                     // Return the error as a string result instead of throwing.
@@ -378,7 +378,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     // the entire generation stream dies and produces an empty response.
                     // By returning an error string, the model can retry or compute manually.
                     let errorMsg = "Error executing \(name): \(error.localizedDescription)"
-                    print("[MLXEngine] ⚠️ Tool \(name) failed, returning error to model: \(errorMsg)")
+                    Self.logger.warning("⚠️ Tool \(name, privacy: .public) failed, returning error to model: \(errorMsg, privacy: .public)")
                     return errorMsg
                 }
             }
@@ -477,7 +477,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                         let tempURL = tempDir.appendingPathComponent(UUID().uuidString + ".wav")
                         do {
                             try data.write(to: tempURL)
-                            print("[MLXEngine] 🎵 Wrote temp audio: \(tempURL.lastPathComponent) (\(data.count) bytes)")
+                            Self.logger.debug("🎵 Wrote temp audio: \(tempURL.lastPathComponent, privacy: .public) (\(data.count, privacy: .public) bytes)")
                             return .url(tempURL)
                         } catch {
                             Self.logger.warning("⚠️ Failed to write temp audio file: \(error.localizedDescription, privacy: .public)")
@@ -486,7 +486,7 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
                     }
 
                     if !images.isEmpty || !audios.isEmpty {
-                        print("[MLXEngine] 📎 Multimodal input: \(images.count) image(s), \(audios.count) audio(s)")
+                        Self.logger.info("📎 Multimodal input: \(images.count, privacy: .public) image(s), \(audios.count, privacy: .public) audio(s)")
                     }
 
                     for try await generation in session.streamDetails(

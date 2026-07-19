@@ -118,7 +118,7 @@ struct ExperimentConfig: Codable, Sendable, Equatable {
         if didFallback { parts.append("⚠️ Fallback") }
         if thinkingEnabled { parts.append("Thinking") }
         if toolCallingEnabled { parts.append("Tools") }
-        if mtpEnabled { parts.append("MTP") }
+        if mtpEnabled { parts.append("Spec. Dec") }
         if agentSkillsEnabled { parts.append("Skills") }
         return parts.joined(separator: " · ")
     }
@@ -128,7 +128,7 @@ struct ExperimentConfig: Codable, Sendable, Equatable {
         var badges: [String] = []
         if thinkingEnabled { badges.append("Thinking") }
         if toolCallingEnabled { badges.append("Tools") }
-        if mtpEnabled { badges.append("MTP") }
+        if mtpEnabled { badges.append("Spec. Dec") }
         if agentSkillsEnabled { badges.append("Skills") }
         return badges
     }

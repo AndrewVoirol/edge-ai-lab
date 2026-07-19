@@ -181,11 +181,11 @@ final class MetricsStore {
         } else {
             // Default to safe app storage directory
             #if os(macOS)
-            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let appSupport = DirectoryHelper.applicationSupport
             let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.EdgeAILab")
             self.fileURL = appDir.appendingPathComponent("metrics").appendingPathComponent("history.json")
             #else
-            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let docs = DirectoryHelper.documents
             self.fileURL = docs.appendingPathComponent("metrics").appendingPathComponent("history.json")
             #endif
         }

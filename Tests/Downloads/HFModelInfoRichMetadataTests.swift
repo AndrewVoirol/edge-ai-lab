@@ -485,7 +485,7 @@ struct ModelCardParserAPIDataTests {
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         // Should pick up 12B from API, not "Unknown" from ID heuristic
-        #expect(metadata.description?.contains("12B") == true)
+        #expect(metadata.description.contains("12B") == true)
     }
 
     @MainActor
@@ -497,7 +497,7 @@ struct ModelCardParserAPIDataTests {
             gguf: HFGGUFInfo(total: 4_000_000, architecture: "gemma4", contextLength: 131072)
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-        #expect(metadata.contextWindow == 131072)
+        #expect(metadata.contextWindowSize == 131072)
     }
 
     @MainActor
@@ -547,7 +547,7 @@ struct ModelCardParserAPIDataTests {
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         // Architecture should contain cleaned-up name with "(Text)" suffix
-        #expect(metadata.description?.contains("Gemma4") == true)
+        #expect(metadata.description.contains("Gemma4") == true)
     }
 
     @MainActor

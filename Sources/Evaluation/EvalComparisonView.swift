@@ -261,15 +261,43 @@ struct EvalComparisonView: View {
                                 .fill(PassRateTier.color(for: result.passRate))
                                 .frame(width: AppSize.dotXl, height: AppSize.dotXl)
 
-                            Text(result.modelName)
-                                .font(AppTypography.sectionHeader)
-                                .foregroundStyle(
-                                    isActive ? AppColors.textPrimary : AppColors.textSecondary
-                                )
+                            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                                HStack(spacing: AppSpacing.xs) {
+                                    Text(result.modelName)
+                                        .font(AppTypography.sectionHeader)
+                                        .foregroundStyle(
+                                            isActive ? AppColors.textPrimary : AppColors.textSecondary
+                                        )
+                                        .lineLimit(1)
 
-                            Text(String(format: "%.0f%%", result.passRate * 100))
-                                .font(AppTypography.badge)
-                                .foregroundStyle(PassRateTier.color(for: result.passRate))
+                                    Text(String(format: "%.0f%%", result.passRate * 100))
+                                        .font(AppTypography.badge)
+                                        .foregroundStyle(PassRateTier.color(for: result.passRate))
+                                }
+
+                                HStack(spacing: AppSpacing.xs) {
+                                    if let rt = result.runtimeType {
+                                        Text(rt)
+                                            .badge(AppColors.accentSecondary)
+                                    }
+                                    if result.supportsImage == true {
+                                        Image(systemName: "eye.fill")
+                                            .font(AppIconSize.xs)
+                                            .foregroundStyle(AppColors.capabilityVision)
+                                    }
+                                    if result.supportsAudio == true {
+                                        Image(systemName: "waveform")
+                                            .font(AppIconSize.xs)
+                                            .foregroundStyle(AppColors.capabilityAudio)
+                                    }
+                                    if let arch = result.architectureType {
+                                        Text(arch)
+                                            .font(AppTypography.caption)
+                                            .foregroundStyle(AppColors.textTertiary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                            }
                         }
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.sm)

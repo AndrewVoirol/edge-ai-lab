@@ -84,11 +84,7 @@ final class DynamicModelCatalog {
             self.storageDirectory = dir
         } else {
             // Default: ~/Library/Application Support/EdgeAILab/ModelCatalog/
-            // Force-unwrap is safe: applicationSupportDirectory always exists on macOS/iOS
-            let appSupport = FileManager.default.urls(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask
-            ).first!
+            let appSupport = DirectoryHelper.applicationSupport
             self.storageDirectory = appSupport
                 .appendingPathComponent("EdgeAILab", isDirectory: true)
                 .appendingPathComponent("ModelCatalog", isDirectory: true)

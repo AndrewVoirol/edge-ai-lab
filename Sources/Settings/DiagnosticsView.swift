@@ -143,7 +143,7 @@ struct DiagnosticsView: View {
                     capabilityRow("Audio", supported: metadata.supportsAudio)
                     capabilityRow("Thinking", supported: metadata.capabilities.contains("llm_thinking"))
                     capabilityRow("Tool Calling", supported: metadata.supportsToolCalling)
-                    capabilityRow("MTP", supported: metadata.supportsMTP)
+                    capabilityRow("Spec. Dec", supported: metadata.supportsMTP)
 
                     diagnosticRow("Context Window", value: "\(metadata.contextWindowSize) tokens")
                     diagnosticRow("Architecture", value: metadata.architectureType)

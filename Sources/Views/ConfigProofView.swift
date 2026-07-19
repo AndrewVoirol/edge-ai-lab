@@ -95,10 +95,10 @@ struct ConfigProofView: View {
                 configChip("Think", color: AppColors.capabilityThinking)
             }
             if snapshot.mtpEnabled == true {
-                configChip("MTP", color: AppColors.capabilityMTP)
+                configChip("Spec. Dec", color: AppColors.capabilityMTP)
             }
             if snapshot.constrainedDecodingEnabled == true {
-                configChip("CD", color: AppColors.capabilityCD)
+                configChip("Struct. Out", color: AppColors.capabilityCD)
             }
             if snapshot.toolCallingEnabled == true {
                 configChip("Tools", color: AppColors.toolAction)
@@ -141,7 +141,7 @@ struct ConfigProofView: View {
             configSection("Features") {
                 configRow("Thinking", value: snapshot.thinkingEnabled == true ? "On" : "Off",
                          color: snapshot.thinkingEnabled == true ? AppColors.capabilityThinking : nil)
-                configRow("MTP", value: snapshot.mtpEnabled == true ? "On" : "Off",
+                configRow("Speculative Decoding", value: snapshot.mtpEnabled == true ? "On" : "Off",
                          color: snapshot.mtpEnabled == true ? AppColors.capabilityMTP : nil)
                 configRow("Constrained Decoding", value: snapshot.constrainedDecodingEnabled == true ? "On" : "Off",
                          color: snapshot.constrainedDecodingEnabled == true ? AppColors.capabilityCD : nil)

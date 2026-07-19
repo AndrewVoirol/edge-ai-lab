@@ -282,7 +282,7 @@ struct MLXDownloadFlowTests {
             #expect(format == .mlx)
         }
 
-        @Test("ModelFormatDetector detects MLX from siblings")
+        @Test("ModelFormatDetector returns nil for ambiguous siblings")
         func siblingsDetection() {
             let model = HFModelInfo(
                 id: "someone/model",
@@ -293,7 +293,7 @@ struct MLXDownloadFlowTests {
                 ]
             )
             let format = ModelFormatDetector.detectFormat(from: model)
-            #expect(format == .mlx)
+            #expect(format == nil)
         }
 
         @Test("HFModelBrowser detects MLX format from mlx-community author")

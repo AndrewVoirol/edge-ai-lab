@@ -72,10 +72,7 @@ final class ConversationStore {
             self.storageDirectory = dir
         } else {
             // Default: ~/Library/Application Support/EdgeAILab/Conversations/
-            let appSupport = FileManager.default.urls(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask
-            ).first!
+            let appSupport = DirectoryHelper.applicationSupport
             self.storageDirectory = appSupport
                 .appendingPathComponent("EdgeAILab", isDirectory: true)
                 .appendingPathComponent("Conversations", isDirectory: true)

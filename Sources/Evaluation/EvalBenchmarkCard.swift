@@ -172,10 +172,23 @@ struct EvalBenchmarkCard: View {
 
     private func modelSummaryRow(_ summary: EvalBenchmarkCardData.ModelSummary) -> some View {
         VStack(alignment: .leading, spacing: 6) { // design-system-exempt: image export card
-            Text(summary.modelName)
-                .font(AppTypography.cardTitle)
-                .foregroundStyle(AppColors.textPrimary)
-                .lineLimit(1)
+            HStack(spacing: AppSpacing.sm) {
+                Text(summary.modelName)
+                    .font(AppTypography.cardTitle)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .lineLimit(1)
+
+                if let rt = summary.runtimeType {
+                    Text(rt)
+                        .badge(AppColors.accentSecondary)
+                }
+            }
+
+            if let arch = summary.architectureType {
+                Text(arch)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
 
             HStack(spacing: 20) { // design-system-exempt: image export card
                 metricPill(
@@ -278,6 +291,17 @@ struct EvalBenchmarkCardData {
         let passRate: Double
         let avgDecodeSpeed: Double
         let avgTTFT: Double
+        let runtimeType: String?
+        let architectureType: String?
+
+        init(modelName: String, passRate: Double, avgDecodeSpeed: Double, avgTTFT: Double, runtimeType: String? = nil, architectureType: String? = nil) {
+            self.modelName = modelName
+            self.passRate = passRate
+            self.avgDecodeSpeed = avgDecodeSpeed
+            self.avgTTFT = avgTTFT
+            self.runtimeType = runtimeType
+            self.architectureType = architectureType
+        }
     }
 
     /// Create card data from a completed eval run.
@@ -287,7 +311,9 @@ struct EvalBenchmarkCardData {
                 modelName: result.modelName,
                 passRate: result.passRate,
                 avgDecodeSpeed: result.avgDecodeSpeed,
-                avgTTFT: result.avgTTFT
+                avgTTFT: result.avgTTFT,
+                runtimeType: result.runtimeType,
+                architectureType: result.architectureType
             )
         }
 

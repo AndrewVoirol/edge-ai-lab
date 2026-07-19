@@ -108,7 +108,7 @@ struct ModelCapabilityCard: View {
         ) {
             capabilityBadge("Vision", icon: "eye.fill", supported: metadata.supportsImage, color: AppColors.capabilityVision)
             capabilityBadge("Audio", icon: "waveform", supported: metadata.supportsAudio, color: AppColors.capabilityAudio)
-            capabilityBadge("MTP", icon: "hare.fill", supported: metadata.supportsMTP && runtimeType != .mlx, color: AppColors.capabilityMTP)
+            capabilityBadge("Spec. Dec", icon: "hare.fill", supported: metadata.supportsMTP && runtimeType != .mlx, color: AppColors.capabilityMTP)
             capabilityBadge("Thinking", icon: "brain.head.profile", supported: true, color: AppColors.capabilityThinking)
             capabilityBadge("Tools", icon: "wrench.fill", supported: metadata.supportsToolCalling, color: AppColors.toolAction)
             contextWindowBadge

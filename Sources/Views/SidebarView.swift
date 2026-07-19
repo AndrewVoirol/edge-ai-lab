@@ -737,51 +737,15 @@ private struct SidebarModelRow: View {
 
     /// Split a model display name into a family name and an optional quantization suffix.
     private static func splitModelName(_ fullName: String) -> (primary: String, secondary: String?) {
-        // Known quantization patterns to detect and split on
-        let quantPatterns = [
-            "UD-IQ", "UD-Q",
-            "IQ4_", "IQ3_", "IQ2_",
-            "Q3_K", "Q4_K", "Q5_K", "Q6_K", "Q8_",
-            "Q4_0", "Q4_1", "Q5_0", "Q5_1",
-            "BF16", "F16", "F32",
-            // Common HuggingFace shorthand quantization names
-            "4bit", "8bit", "2bit",
-        ]
-        for pattern in quantPatterns {
-            if let range = fullName.range(of: pattern, options: .caseInsensitive) {
-                let primary = String(fullName[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
-                let secondary = String(fullName[range.lowerBound...])
-                return (primary.isEmpty ? fullName : primary, secondary)
-            }
-        }
-        return (fullName, nil)
+        let result = ModelDetailFormatters.splitModelName(fullName)
+        return (result.primary, result.quantization)
     }
 
     /// Normalize a model display name for consistent rendering.
     /// Replaces hyphens with spaces and title-cases known model families.
     /// Applied at display time so ALL sources (registry, catalog, synthesized) are covered.
     private static func normalizeDisplayName(_ name: String) -> String {
-        // Skip names that already look well-formatted (contain " : " separator = MLX catalog)
-        if name.contains(" : ") { return name }
-
-        var result = name
-            .replacingOccurrences(of: "--", with: " / ")
-            .replacingOccurrences(of: "-", with: " ")
-
-        // Title-case known model family prefixes
-        result = result
-            .replacingOccurrences(of: "gemma ", with: "Gemma ", options: .caseInsensitive)
-            .replacingOccurrences(of: "llama ", with: "Llama ", options: .caseInsensitive)
-            .replacingOccurrences(of: "mistral ", with: "Mistral ", options: .caseInsensitive)
-            .replacingOccurrences(of: "phi ", with: "Phi ", options: .caseInsensitive)
-            .replacingOccurrences(of: "qwen ", with: "Qwen ", options: .caseInsensitive)
-            // Normalize common component casing
-            .replacingOccurrences(of: " it ", with: " IT ", options: .caseInsensitive)
-            .replacingOccurrences(of: " it$", with: " IT", options: [.caseInsensitive, .regularExpression])
-            .replacingOccurrences(of: " e2b", with: " E2B", options: .caseInsensitive)
-            .replacingOccurrences(of: " e4b", with: " E4B", options: .caseInsensitive)
-
-        return result
+        ModelDetailFormatters.normalizeDisplayName(name)
     }
 }
 

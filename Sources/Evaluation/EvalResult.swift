@@ -193,6 +193,23 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
     /// Number of thermal state transitions during evaluation.
     let thermalTransitions: Int
 
+    // MARK: - Model Metadata (for display in result views)
+
+    /// Runtime engine type (e.g., "LiteRT-LM", "MLX", "GGUF").
+    let runtimeType: String?
+
+    /// Context window size (e.g., 128000).
+    let contextWindowSize: Int?
+
+    /// Whether the model supports image input.
+    let supportsImage: Bool?
+
+    /// Whether the model supports audio input.
+    let supportsAudio: Bool?
+
+    /// Architecture type (e.g., "Mixture of Experts").
+    let architectureType: String?
+
     // MARK: - Init
 
     /// Memberwise initializer.
@@ -210,7 +227,12 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
         passRate: Double? = nil,
         toolCallAccuracy: Double? = nil,
         peakMemoryDeltaMB: Double? = nil,
-        thermalTransitions: Int = 0
+        thermalTransitions: Int = 0,
+        runtimeType: String? = nil,
+        contextWindowSize: Int? = nil,
+        supportsImage: Bool? = nil,
+        supportsAudio: Bool? = nil,
+        architectureType: String? = nil
     ) {
         self.id = id
         self.modelName = modelName
@@ -232,6 +254,11 @@ struct ModelEvalResult: Codable, Sendable, Identifiable {
         self.toolCallAccuracy = toolCallAccuracy
         self.peakMemoryDeltaMB = peakMemoryDeltaMB
         self.thermalTransitions = thermalTransitions
+        self.runtimeType = runtimeType
+        self.contextWindowSize = contextWindowSize
+        self.supportsImage = supportsImage
+        self.supportsAudio = supportsAudio
+        self.architectureType = architectureType
     }
 
     // MARK: - Computed Properties

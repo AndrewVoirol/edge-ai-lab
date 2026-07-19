@@ -230,8 +230,8 @@ struct ModelFormatDetectorTests {
 
     // MARK: - HuggingFace Metadata Detection: Siblings
 
-    @Test("Detects MLX from siblings with config.json + safetensors")
-    func detectsMLXFromSiblings() {
+    @Test("Returns nil for ambiguous siblings (config.json + safetensors without MLX signals)")
+    func ambiguousSiblingsReturnNil() {
         let siblings = [
             HFSibling(rfilename: "config.json", size: 1024, lfs: nil),
             HFSibling(rfilename: "model-00001-of-00002.safetensors", size: 4_000_000_000, lfs: nil),
@@ -244,7 +244,7 @@ struct ModelFormatDetectorTests {
             siblings: siblings
         )
         let result = ModelFormatDetector.detectFormat(from: model)
-        #expect(result == .mlx)
+        #expect(result == nil)
     }
 
     @Test("Detects LiteRT-LM from siblings with .litertlm file")

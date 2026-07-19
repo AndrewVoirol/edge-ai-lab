@@ -55,6 +55,11 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
         category: "gguf"
     )
 
+    private static let logger = Logger(
+        subsystem: "com.andrewvoirol.EdgeAILab",
+        category: "gguf"
+    )
+
     // MARK: - State
 
     #if canImport(llama)
@@ -242,9 +247,9 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                         self.mtmdContext = mtmd
                         let hasVision = mtmd_support_vision(mtmd)
                         let hasAudio = mtmd_support_audio(mtmd)
-                        print("[GGUFEngine] Multimodal projector loaded: vision=\(hasVision), audio=\(hasAudio)")
+                        Self.logger.info("Multimodal projector loaded: vision=\(hasVision, privacy: .public), audio=\(hasAudio, privacy: .public)")
                     } else {
-                        print("[GGUFEngine] WARNING: Failed to load multimodal projector from: \(mmProjPath)")
+                        Self.logger.warning("Failed to load multimodal projector from: \(mmProjPath, privacy: .public)")
                     }
                 }
 
@@ -380,7 +385,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                             return wrapper.bitmap
                         }
                         guard let bmp = bitmap else {
-                            print("[GGUFEngine] WARNING: Failed to create bitmap for media item \(index)")
+                            Self.logger.warning("Failed to create bitmap for media item \(index, privacy: .public)")
                             Self.signposter.endInterval("Inference", inferenceState, "FAILED — bitmap creation")
                             continuation.finish(throwing: EngineError.generationFailed(
                                 "Failed to create mtmd bitmap from media data (item \(index))"
@@ -424,7 +429,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                         case 2: errDesc = "image preprocessing error"
                         default: errDesc = "unknown error (\(tokenizeResult))"
                         }
-                        print("[GGUFEngine] Multimodal tokenize failed: \(errDesc)")
+                        Self.logger.error("Multimodal tokenize failed: \(errDesc, privacy: .public)")
                         Self.signposter.endInterval("Inference", inferenceState, "FAILED — mtmd_tokenize")
                         continuation.finish(throwing: EngineError.generationFailed(
                             "mtmd_tokenize failed: \(errDesc)"
@@ -433,7 +438,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     }
 
                     let totalMmTokens = mtmd_helper_get_n_tokens(chunks)
-                    print("[GGUFEngine] Multimodal tokenized: \(totalMmTokens) total tokens from \(mediaItems.count) media item(s)")
+                    Self.logger.info("Multimodal tokenized: \(totalMmTokens, privacy: .public) total tokens from \(mediaItems.count, privacy: .public) media item(s)")
 
                     // Eval all chunks (text + encoded media) through the model
                     var newNPast: llama_pos = 0
@@ -449,7 +454,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     )
 
                     guard evalResult == 0 else {
-                        print("[GGUFEngine] mtmd_helper_eval_chunks failed with code \(evalResult)")
+                        Self.logger.error("mtmd_helper_eval_chunks failed with code \(evalResult, privacy: .public)")
                         Self.signposter.endInterval("Inference", inferenceState, "FAILED — mtmd eval")
                         continuation.finish(throwing: EngineError.generationFailed(
                             "mtmd_helper_eval_chunks failed (code \(evalResult))"
@@ -478,7 +483,7 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     // "the last logits position".
                     lastChunkLogitIdx = -1
 
-                    print("[GGUFEngine] Multimodal eval complete: n_past=\(newNPast)")
+                    Self.logger.info("Multimodal eval complete: n_past=\(newNPast, privacy: .public)")
 
                 } else {
                     // MARK: - Standard text-only prompt processing

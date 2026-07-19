@@ -276,16 +276,10 @@ final class EvalResultPersistence {
         } else {
             #if os(iOS)
             // iOS: Documents directory — visible in Files app
-            let baseDir = FileManager.default.urls(
-                for: .documentDirectory,
-                in: .userDomainMask
-            ).first!
+            let baseDir = DirectoryHelper.documents
             #else
             // macOS: Application Support — consistent with EvalStore
-            let baseDir = FileManager.default.urls(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask
-            ).first!
+            let baseDir = DirectoryHelper.applicationSupport
             #endif
 
             self.exportDirectory = baseDir

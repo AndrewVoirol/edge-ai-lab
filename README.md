@@ -65,7 +65,7 @@
 
 ## What is Edge AI Lab?
 
-Edge AI Lab is a research-grade macOS and iOS application that runs Google's [Gemma 4](https://blog.google/technology/google-deepmind/gemma-4/) language models directly on-device using [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). It's designed for developers, researchers, and power users who want to explore the capabilities of on-device AI without sending a single byte to the cloud.
+Edge AI Lab is a research-grade macOS and iOS application that runs Google's [Gemma 4](https://blog.google/technology/google-deepmind/gemma-4/) language models directly on-device using three inference backends: [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM), [MLX](https://github.com/ml-explore/mlx-swift-lm), and [GGUF](https://github.com/ggml-org/llama.cpp) (via llama.cpp). It's designed for developers, researchers, and power users who want to explore the capabilities of on-device AI without sending a single byte to the cloud.
 
 ### Key Capabilities
 
@@ -137,7 +137,7 @@ Download from [Kaggle](https://www.kaggle.com/models/google/gemma-4) or [Hugging
 
 ## Model Compatibility
 
-| Model | Parameters | Size | Context | Multimodal | MTP | Recommended For |
+| Model | Parameters | Size | Context | Multimodal | Spec. Dec | Recommended For |
 |-------|-----------|------|---------|------------|-----|-----------------|
 | **Gemma 4 E2B Standard** | 2B MoE | 2.4 GB | 128K | Vision + Audio | ✓ | Quick responses, development |
 | **Gemma 4 E2B Web** | 2B MoE | 1.9 GB | 128K | — | ✓ | Lightweight text generation |
@@ -153,7 +153,7 @@ Download from [Kaggle](https://www.kaggle.com/models/google/gemma-4) or [Hugging
 
 ```
 ┌──────────────────────────────────────────────────┐
-│               EdgeAILabApp                 │
+│               EdgeAILabApp                       │
 │  ┌─────────────┐  ┌──────────────────┐           │
 │  │ ContentView │  │ SettingsView     │           │
 │  │  (SwiftUI)  │  │  (SwiftUI Form)  │           │
@@ -169,9 +169,17 @@ Download from [Kaggle](https://www.kaggle.com/models/google/gemma-4) or [Hugging
 │  │ Engine      │  │ (6 tools)    │  │ Framework││
 │  └──────┬──────┘  └──────────────┘  └──────────┘│
 │         │                                         │
-│  ┌──────┴──────┐  ┌──────────────┐  ┌──────────┐│
-│  │  LiteRT-LM  │  │  URL Import  │  │  MCP     ││
-│  │  (SDK)      │  │  Manager     │  │  Client  ││
+│  ┌──────┴──────────────────────────────────────┐ │
+│  │          Engine Adapters                     │ │
+│  │  ┌──────────┐ ┌─────────┐ ┌──────────────┐  │ │
+│  │  │ LiteRT-LM│ │  MLX    │ │ GGUF         │  │ │
+│  │  │  (SDK)   │ │(Swift)  │ │ (llama.cpp)  │  │ │
+│  │  └──────────┘ └─────────┘ └──────────────┘  │ │
+│  └─────────────────────────────────────────────┘ │
+│                                                   │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────┐│
+│  │  URL Import │  │  Model       │  │  MCP     ││
+│  │  Manager    │  │  Discovery   │  │  Client  ││
 │  └─────────────┘  └──────────────┘  └──────────┘│
 └──────────────────────────────────────────────────┘
 ```

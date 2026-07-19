@@ -64,7 +64,7 @@ struct InferenceConfigSnapshot: Sendable, Codable, Equatable {
 
         var flags: [String] = []
         if thinkingEnabled == true { flags.append("Think ✓") }
-        if mtpEnabled == true { flags.append("Spec Dec ✓") }
+        if mtpEnabled == true { flags.append("Spec. Dec ✓") }
         if constrainedDecodingEnabled == true { flags.append("Structured ✓") }
         if toolCallingEnabled == true { flags.append("Tools ✓") }
 

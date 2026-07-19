@@ -15,6 +15,7 @@
 
 import SwiftUI
 import Foundation
+import os
 
 // MARK: - Eval Runner View
 
@@ -28,6 +29,8 @@ import Foundation
 /// 4. Progress View — live progress during eval execution
 /// 5. Results List — past eval runs from EvalStore
 struct EvalRunnerView: View {
+    private static let logger = Logger(subsystem: "com.andrewvoirol.EdgeAILab", category: "evalRunnerView")
+
     @Environment(ConversationViewModel.self) private var viewModel
 
     // MARK: - State
@@ -357,6 +360,9 @@ struct EvalRunnerView: View {
 
     private func modelRow(_ model: DiscoveredModel) -> some View {
         let isSelected = selectedModelFiles.contains(model.filename)
+        let metadata = model.resolvedMetadata
+        let normalized = ModelDetailFormatters.normalizeDisplayName(metadata.name)
+        let split = ModelDetailFormatters.splitModelName(normalized)
 
         return Button {
             withAnimation(AppAnimation.quick) {
@@ -379,25 +385,40 @@ struct EvalRunnerView: View {
                 )
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(model.resolvedMetadata.name)
-                        .font(AppTypography.sectionHeader)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .lineLimit(1)
+                    // Primary name + quantization suffix
+                    HStack(spacing: AppSpacing.xs) {
+                        Text(split.primary)
+                            .font(AppTypography.sectionHeader)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .lineLimit(1)
+
+                        if let quant = split.quantization {
+                            Text(quant)
+                                .badge(AppColors.textTertiary)
+                        }
+                    }
 
                     HStack(spacing: AppSpacing.xs) {
+                        // Runtime type badge
+                        Text(metadata.runtimeType.rawValue)
+                            .badge(AppColors.accentSecondary)
+
                         Text(model.formattedSize)
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
 
-                        if let metadata = model.metadata {
-                            if metadata.supportsImage {
-                                Text("Vision")
-                                    .badge(AppColors.capabilityVision)
-                            }
-                            if metadata.supportsAudio {
-                                Text("Audio")
-                                    .badge(AppColors.capabilityAudio)
-                            }
+                        // Capability badges
+                        if metadata.supportsImage {
+                            Text("Vision")
+                                .badge(AppColors.capabilityVision)
+                        }
+                        if metadata.supportsAudio {
+                            Text("Audio")
+                                .badge(AppColors.capabilityAudio)
+                        }
+                        if metadata.supportsMTP {
+                            Text("Spec. Dec")
+                                .badge(AppColors.capabilityMTP)
                         }
                     }
                 }
@@ -836,7 +857,7 @@ struct EvalRunnerView: View {
 
     private func startEvaluation() async {
         guard let suite = selectedSuite else {
-            print("[EvalRunner] ⚠️ startEvaluation() — no suite selected, returning early")
+            Self.logger.warning("startEvaluation() — no suite selected, returning early")
             return
         }
 
@@ -857,12 +878,12 @@ struct EvalRunnerView: View {
             }
 
         guard !modelEntries.isEmpty else {
-            print("[EvalRunner] ⚠️ startEvaluation() — no models selected (selectedModelFiles: \(selectedModelFiles), discoveredModels: \(viewModel.discoveredModels.map { $0.filename }))")
+            Self.logger.warning("startEvaluation() — no models selected (selectedModelFiles: \(selectedModelFiles.description, privacy: .public), discoveredModels: \(viewModel.discoveredModels.map { $0.filename }.description, privacy: .public))")
             return
         }
 
-        print("[EvalRunner] ▶️ Starting eval: suite='\(suite.name)' (\(suite.promptCount) prompts), models=\(modelEntries.map { $0.metadata.name })")
-        print("[EvalRunner] 📂 Model paths: \(modelEntries.map { $0.modelPath })")
+        Self.logger.info("▶️ Starting eval: suite='\(suite.name, privacy: .public)' (\(suite.promptCount, privacy: .public) prompts), models=\(modelEntries.map { $0.metadata.name }.description, privacy: .public)")
+        Self.logger.debug("📂 Model paths: \(modelEntries.map { $0.modelPath }.description, privacy: .public)")
 
         // Create the runner — creates its own engine per model based on runtimeType
         let runner = EvalRunner(
@@ -882,7 +903,7 @@ struct EvalRunnerView: View {
                 for: .cachesDirectory, in: .userDomainMask
             ).first?.path ?? NSTemporaryDirectory()
 
-            print("[EvalRunner] 🚀 Calling runner.run() with cacheDir='\(cacheDir)'")
+            Self.logger.info("🚀 Calling runner.run() with cacheDir='\(cacheDir, privacy: .public)'")
 
             _ = try await runner.run(
                 suite: suite,
@@ -892,9 +913,9 @@ struct EvalRunnerView: View {
                 runsPerPrompt: runsPerPrompt
             )
 
-            print("[EvalRunner] ✅ runner.run() completed successfully")
+            Self.logger.info("✅ runner.run() completed successfully")
         } catch {
-            print("[EvalRunner] ❌ runner.run() threw: \(error)")
+            Self.logger.error("❌ runner.run() threw: \(error.localizedDescription, privacy: .public)")
             evalErrorMessage = "Evaluation failed: \(error.localizedDescription)"
         }
 
@@ -927,16 +948,16 @@ struct EvalRunnerView: View {
     private func startBatchEvaluation() async {
         let plan = buildBatchPlan()
         guard plan.totalRuns > 0 else {
-            print("[BatchEval] ⚠️ startBatchEvaluation() — totalRuns is 0, returning early")
+            Self.logger.warning("startBatchEvaluation() — totalRuns is 0, returning early")
             return
         }
 
         // Clear any previous error
         evalErrorMessage = nil
 
-        print("[BatchEval] ▶️ Starting batch eval: \(plan.description)")
-        print("[BatchEval] 📦 Models: \(plan.models.map { $0.metadata.name })")
-        print("[BatchEval] 📋 Suites: \(plan.suites.map { $0.name })")
+        Self.logger.info("▶️ Starting batch eval: \(plan.description, privacy: .public)")
+        Self.logger.info("📦 Models: \(plan.models.map { $0.metadata.name }.description, privacy: .public)")
+        Self.logger.info("📋 Suites: \(plan.suites.map { $0.name }.description, privacy: .public)")
 
         isBatchRunning = true
 
@@ -954,7 +975,7 @@ struct EvalRunnerView: View {
             runsPerPrompt: runsPerPrompt
         )
 
-        print("[BatchEval] 🏁 Batch eval finished: state=\(orchestrator.state.displayLabel), completed=\(orchestrator.completedRuns)/\(orchestrator.totalRuns)")
+        Self.logger.info("🏁 Batch eval finished: state=\(orchestrator.state.displayLabel, privacy: .public), completed=\(orchestrator.completedRuns, privacy: .public)/\(orchestrator.totalRuns, privacy: .public)")
 
         batchOrchestrator = nil
         isBatchRunning = false

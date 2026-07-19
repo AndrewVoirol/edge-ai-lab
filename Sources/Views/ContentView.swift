@@ -544,10 +544,10 @@ struct ModelCapabilityBadges: View {
                     .accessibilityLabel("Audio capability")
             }
             if metadata.supportsMTP {
-                Text("MTP")
+                Text("Spec. Dec")
                     .badge(AppColors.capabilityMTP)
                     .accessibilityIdentifier("badge_mtp")
-                    .accessibilityLabel("Multi-turn planning capability")
+                    .accessibilityLabel("Speculative decoding capability")
             }
             if runtimeFlags.enableToolCalling {
                 Text("Tools")

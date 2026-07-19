@@ -95,17 +95,23 @@ import Testing
     // MARK: - macOS Battery Fields
 
     #if os(macOS)
-    @Test("macOS battery fields report not_available_on_macos")
-    func macOSBatteryNotAvailable() async throws {
+    @Test("macOS battery fields report real DeviceMetrics values")
+    func macOSBatteryFields() async throws {
         let tool = SystemHealthTool()
         let result = try await tool.run()
         let json = try #require(result as? String)
         let data = try #require(json.data(using: .utf8))
         let parsed = try #require(try? JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let batteryLevel = parsed["battery_level_percent"] as? String
+
+        // battery_level_percent is Int (MacBook) or "unavailable" (desktop Mac)
+        let hasLevel = parsed["battery_level_percent"] != nil
+        #expect(hasLevel)
+
+        // battery_state is always a valid power source string
         let batteryState = parsed["battery_state"] as? String
-        #expect(batteryLevel == "not_available_on_macos")
-        #expect(batteryState == "not_available_on_macos")
+        #expect(batteryState != nil)
+        let validStates: Set<String> = ["ac", "battery", "charging", "full", "unknown"]
+        #expect(validStates.contains(batteryState ?? ""))
     }
     #endif
 }

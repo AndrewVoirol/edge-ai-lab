@@ -366,8 +366,8 @@ struct BenchmarkCardView: View {
                     Text(data.modelArchitecture)
                         .font(.system(size: labelSize, weight: .medium, design: .rounded)) // design-system-exempt: image export requires fixed point sizes
                         .foregroundStyle(AppColors.accentPrimary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 10) // design-system-exempt: image-export pixel-exact rendering
+                        .padding(.vertical, 4) // design-system-exempt: image-export pixel-exact rendering
                         .background(AppColors.accentPrimary.opacity(0.12))
                         .clipShape(Capsule())
 
@@ -376,8 +376,8 @@ struct BenchmarkCardView: View {
                         .foregroundStyle(
                             data.backendLabel.contains("GPU") ? AppColors.success : AppColors.textSecondary
                         )
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 10) // design-system-exempt: image-export pixel-exact rendering
+                        .padding(.vertical, 4) // design-system-exempt: image-export pixel-exact rendering
                         .background(
                             (data.backendLabel.contains("GPU") ? AppColors.success : AppColors.textSecondary)
                                 .opacity(0.12)
@@ -508,8 +508,8 @@ struct BenchmarkCardView: View {
                 .foregroundStyle(AppColors.textTertiary)
                 .tracking(1)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 8) // design-system-exempt: image-export pixel-exact rendering
+        .padding(.horizontal, 16) // design-system-exempt: image-export pixel-exact rendering
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.white.opacity(0.02))
@@ -554,8 +554,8 @@ struct BenchmarkCardView: View {
                 icon: "text.word.spacing"
             )
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 20)
+        .padding(.vertical, 16) // design-system-exempt: image-export pixel-exact rendering
+        .padding(.horizontal, 20) // design-system-exempt: image-export pixel-exact rendering
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color.white.opacity(0.03))

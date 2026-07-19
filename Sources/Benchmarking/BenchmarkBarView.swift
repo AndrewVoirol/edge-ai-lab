@@ -253,22 +253,15 @@ struct BenchmarkBarView: View {
         let level = DeviceMetrics.currentThermalLevel
         return HStack(spacing: AppSpacing.xs) {
             Image(systemName: level.symbolName)
-                .foregroundStyle(thermalColor(for: level))
+                .foregroundStyle(AppColors.thermal(level))
             Text(level.label)
                 .font(AppTypography.badge)
-                .foregroundStyle(thermalColor(for: level))
+                .foregroundStyle(AppColors.thermal(level))
         }
         .accessibilityElement(children: .combine)
     }
 
-    private func thermalColor(for level: ThermalLevel) -> Color {
-        switch level {
-        case .nominal:  return AppColors.success
-        case .fair:     return AppColors.warning
-        case .serious:  return AppColors.toolAction
-        case .critical: return AppColors.destructive
-        }
-    }
+
 
     // MARK: - Memory Indicator
 
@@ -343,9 +336,9 @@ struct BenchmarkBarView: View {
                 }
             }
 
-            // MTP Speculation stats (MLX only)
+            // Speculative Decoding stats (MLX only)
             if let acceptance = metrics.draftAcceptanceRate {
-                expandedSection(title: "MTP SPECULATION") {
+                expandedSection(title: "SPECULATIVE DECODING") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         LazyVGrid(columns: columns, alignment: .leading, spacing: AppSpacing.sm) {
                             coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)
@@ -430,9 +423,9 @@ struct BenchmarkBarView: View {
                 }
             }
 
-            // MTP Speculation stats (MLX only)
+            // Speculative Decoding stats (MLX only)
             if let acceptance = metrics.draftAcceptanceRate {
-                expandedSection(title: "MTP SPECULATION") {
+                expandedSection(title: "SPECULATIVE DECODING") {
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         HStack(spacing: AppSpacing.lg) {
                             coloredStatItem(label: "Accept", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)

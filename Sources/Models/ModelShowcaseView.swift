@@ -116,7 +116,7 @@ struct ModelShowcaseView: View {
                 capabilityCard(icon: "eye.fill", label: "Vision", enabled: metadata.supportsImage, color: AppColors.accentSecondary)
                 capabilityCard(icon: "waveform", label: "Audio", enabled: metadata.supportsAudio, color: AppColors.accentPrimary)
                 capabilityCard(icon: "brain.head.profile", label: "Thinking", enabled: metadata.capabilities.contains("llm_thinking"), color: AppColors.reasoning)
-                capabilityCard(icon: "hare.fill", label: "MTP", enabled: metadata.supportsMTP, color: AppColors.success)
+                capabilityCard(icon: "hare.fill", label: "Spec. Dec", enabled: metadata.supportsMTP, color: AppColors.success)
                 capabilityCard(icon: "wrench.and.screwdriver", label: "Tools", enabled: true, color: AppColors.toolAction)
             }
         }

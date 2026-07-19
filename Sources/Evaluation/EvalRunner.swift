@@ -256,7 +256,12 @@ final class EvalRunner {
                     promptResults: [],
                     passRate: 0,
                     peakMemoryDeltaMB: nil,
-                    thermalTransitions: 0
+                    thermalTransitions: 0,
+                    runtimeType: modelEntry.metadata.runtimeType.rawValue,
+                    contextWindowSize: modelEntry.metadata.contextWindowSize,
+                    supportsImage: modelEntry.metadata.supportsImage,
+                    supportsAudio: modelEntry.metadata.supportsAudio,
+                    architectureType: modelEntry.metadata.architectureType
                 )
                 allModelResults.append(failedResult)
             }
@@ -391,7 +396,7 @@ final class EvalRunner {
         try await engine.loadModel(config: loadConfig)
 
         Self.logger.info("✅ Engine initialized for eval: \(metadata.name, privacy: .public)")
-        print("[EvalRunner] 🔧 Engine loaded: runtime=\(engine.runtimeType.displayName), supportsToolCalling=\(engine.supportsToolCalling), tools=\(tools?.count ?? 0)")
+        Self.logger.info("🔧 Engine loaded: runtime=\(engine.runtimeType.displayName, privacy: .public), supportsToolCalling=\(engine.supportsToolCalling, privacy: .public), tools=\(tools?.count ?? 0, privacy: .public)")
 
         // Track metrics across prompts
         let modelStartTime = CFAbsoluteTimeGetCurrent()
@@ -602,7 +607,12 @@ final class EvalRunner {
             passRate: passRate,
             toolCallAccuracy: toolCallAccuracy,
             peakMemoryDeltaMB: peakMemoryDelta > 0 ? peakMemoryDelta : nil,
-            thermalTransitions: thermalTransitions
+            thermalTransitions: thermalTransitions,
+            runtimeType: metadata.runtimeType.rawValue,
+            contextWindowSize: metadata.contextWindowSize,
+            supportsImage: metadata.supportsImage,
+            supportsAudio: metadata.supportsAudio,
+            architectureType: metadata.architectureType
         )
     }
 

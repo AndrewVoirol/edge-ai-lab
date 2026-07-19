@@ -30,7 +30,6 @@ struct BenchmarkCardShareSheet: View {
     @State private var isSaved = false
     @State private var saveError: String?
     @State private var selectedSize: CardSize = .twitterCard
-    @State private var showShareActions = false
 
     var body: some View {
         VStack(spacing: 0) { // design-system-exempt: zero spacing for tight packing

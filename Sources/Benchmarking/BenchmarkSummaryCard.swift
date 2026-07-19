@@ -122,7 +122,7 @@ struct BenchmarkSummaryCard: View {
             // Latency Statistics
             latencySection
 
-            // MTP Speculation Stats
+            // Speculative Decoding Stats
             mtpSection
 
             // Timing Breakdown
@@ -225,13 +225,13 @@ struct BenchmarkSummaryCard: View {
         }
     }
 
-    // MARK: - MTP Speculation
+    // MARK: - Speculative Decoding
 
     @ViewBuilder
     private var mtpSection: some View {
         if let acceptance = metrics.draftAcceptanceRate {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                sectionLabel("MTP Speculation")
+                sectionLabel("Speculative Decoding")
 
                 LazyVGrid(columns: detailColumns, alignment: .leading, spacing: AppSpacing.xs) {
                     detailCell(label: "Acceptance", value: String(format: "%.1f%%", acceptance * 100), color: AppColors.warning)

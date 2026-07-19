@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import Foundation
+import os
 
 // MARK: - Eval Audio Loader
 
@@ -31,6 +32,8 @@ import Foundation
 /// }
 /// ```
 enum EvalAudioLoader {
+
+    private static let logger = Logger(subsystem: "com.andrewvoirol.EdgeAILab", category: "evalAudioLoader")
 
     /// All bundled audio file names (without extension).
     ///
@@ -58,14 +61,14 @@ enum EvalAudioLoader {
         // Strategy 1: Flat lookup
         if let url = bundle.url(forResource: name, withExtension: "wav") {
             let data = try? Data(contentsOf: url)
-            print("[EvalAudioLoader] ✅ Found '\(name).wav' at \(url.lastPathComponent) (\(data?.count ?? 0) bytes)")
+            logger.info("✅ Found '\(name, privacy: .public).wav' at \(url.lastPathComponent, privacy: .public) (\(data?.count ?? 0, privacy: .public) bytes)")
             return data
         }
 
         // Strategy 2: Subdirectory lookup
         if let url = bundle.url(forResource: name, withExtension: "wav", subdirectory: "audio") {
             let data = try? Data(contentsOf: url)
-            print("[EvalAudioLoader] ✅ Found '\(name).wav' in audio/ (\(data?.count ?? 0) bytes)")
+            logger.info("✅ Found '\(name, privacy: .public).wav' in audio/ (\(data?.count ?? 0, privacy: .public) bytes)")
             return data
         }
 
@@ -75,13 +78,13 @@ enum EvalAudioLoader {
             while let fileURL = enumerator.nextObject() as? URL {
                 if fileURL.lastPathComponent == targetFilename {
                     let data = try? Data(contentsOf: fileURL)
-                    print("[EvalAudioLoader] ✅ Found '\(name).wav' via enumerator (\(data?.count ?? 0) bytes)")
+                    logger.info("✅ Found '\(name, privacy: .public).wav' via enumerator (\(data?.count ?? 0, privacy: .public) bytes)")
                     return data
                 }
             }
         }
 
-        print("[EvalAudioLoader] ❌ Audio file '\(name).wav' not found in bundle: \(bundle.bundleURL.path)")
+        logger.warning("Audio file '\(name, privacy: .public).wav' not found in bundle: \(bundle.bundleURL.path, privacy: .public)")
         return nil
     }
 

@@ -170,7 +170,7 @@ struct iOSModelRow: View {
                     .accessibilityIdentifier("modelRow_badge_audio_\(metadata.modelFile)")
             }
             if metadata.supportsMTP {
-                Label("MTP", systemImage: "bolt.horizontal")
+                Label("Spec. Dec", systemImage: "bolt.horizontal")
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.capabilityMTP)
                     .accessibilityIdentifier("modelRow_badge_mtp_\(metadata.modelFile)")

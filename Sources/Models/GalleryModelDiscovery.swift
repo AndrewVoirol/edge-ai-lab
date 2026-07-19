@@ -96,28 +96,27 @@ struct DiscoveredModel: Identifiable, Sendable {
             $0.hasPrefix("Q") || $0.hasPrefix("F") || $0.hasPrefix("q") || $0.hasPrefix("f")
         })
 
-        // Estimate RAM: model weights + ~30% overhead for KV-cache, activations, system overhead
-        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * 1.3))
+        // Estimate RAM: model weights + overhead for KV-cache, activations, system overhead.
+        // Quantized models need proportionally more overhead because KV-cache and activations
+        // operate at full precision even when weights are compressed.
+        let ramMultiplier: Double
+        if let q = quantization?.uppercased() {
+            if q.hasPrefix("Q4") || q.hasPrefix("Q3") || q.contains("IQ4") || q.contains("IQ3") || q.contains("IQ2") || q.contains("4BIT") || q.contains("2BIT") {
+                ramMultiplier = 1.6  // 4-bit or lower: large relative overhead
+            } else if q.hasPrefix("Q8") || q.hasPrefix("Q5") || q.hasPrefix("Q6") || q.contains("8BIT") {
+                ramMultiplier = 1.4  // 8-bit/5-bit/6-bit: moderate overhead
+            } else if q.contains("F16") || q.contains("FP16") || q.contains("BF16") {
+                ramMultiplier = 1.2  // Full/half precision: minimal overhead
+            } else {
+                ramMultiplier = 1.3  // Unknown quantization: conservative default
+            }
+        } else {
+            ramMultiplier = 1.3  // No quantization detected: conservative default
+        }
+        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * ramMultiplier))
 
-        // Generate a human-readable name from the stem.
-        // GGUF filenames use hyphens as word separators (e.g., "gemma-4-E2B-it-Q4_K_M").
-        // Underscores are meaningful within quantization identifiers — preserve them.
-        let rawName = stem
-            .replacingOccurrences(of: "--", with: " / ")
-            .replacingOccurrences(of: "-", with: " ")
-
-        // Title-case known model family prefixes
-        let displayName = rawName
-            .replacingOccurrences(of: "gemma ", with: "Gemma ", options: .caseInsensitive)
-            .replacingOccurrences(of: "llama ", with: "Llama ", options: .caseInsensitive)
-            .replacingOccurrences(of: "mistral ", with: "Mistral ", options: .caseInsensitive)
-            .replacingOccurrences(of: "phi ", with: "Phi ", options: .caseInsensitive)
-            .replacingOccurrences(of: "qwen ", with: "Qwen ", options: .caseInsensitive)
-            // Normalize common component casing
-            .replacingOccurrences(of: " it ", with: " IT ", options: .caseInsensitive)
-            .replacingOccurrences(of: " it$", with: " IT", options: [.caseInsensitive, .regularExpression])
-            .replacingOccurrences(of: " e2b", with: " E2B", options: .caseInsensitive)
-            .replacingOccurrences(of: " e4b", with: " E4B", options: .caseInsensitive)
+        // Delegate name formatting to the shared formatter
+        let displayName = ModelDetailFormatters.normalizeDisplayName(stem)
 
         // Detect multimodal support from filename.
         // Gemma 4 Standard variants (E2B, E4B, 12B) support image + audio.
@@ -336,13 +335,13 @@ enum GalleryModelDiscovery {
         }
 
         // Fallback: Application Support (for distributed app bundles)
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appSupport = DirectoryHelper.applicationSupport
         let appDir = appSupport.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.andrewvoirol.EdgeAILab")
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
         return appDir.appendingPathComponent("models")
         #else
         // Use Documents on iOS so it shows up in the Files app
-        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return DirectoryHelper.documents
         #endif
     }
 
@@ -478,18 +477,8 @@ enum GalleryModelDiscovery {
         } else {
             rawName = dirName
         }
-        // Normalize MLX directory names the same way GGUF filenames are cleaned up
-        let humanName = rawName
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "gemma ", with: "Gemma ", options: .caseInsensitive)
-            .replacingOccurrences(of: "llama ", with: "Llama ", options: .caseInsensitive)
-            .replacingOccurrences(of: "mistral ", with: "Mistral ", options: .caseInsensitive)
-            .replacingOccurrences(of: "phi ", with: "Phi ", options: .caseInsensitive)
-            .replacingOccurrences(of: "qwen ", with: "Qwen ", options: .caseInsensitive)
-            .replacingOccurrences(of: " it ", with: " IT ", options: .caseInsensitive)
-            .replacingOccurrences(of: " it$", with: " IT", options: [.caseInsensitive, .regularExpression])
-            .replacingOccurrences(of: " e2b", with: " E2B", options: .caseInsensitive)
-            .replacingOccurrences(of: " e4b", with: " E4B", options: .caseInsensitive)
+        // Normalize MLX directory names using the shared formatter
+        let humanName = ModelDetailFormatters.normalizeDisplayName(rawName)
         // Reconstruct model ID from directory name: "mlx-community--gemma-4-E2B-it-4bit" → "mlx-community/gemma-4-E2B-it-4bit"
         let modelId = dirName.replacingOccurrences(of: "--", with: "/")
 

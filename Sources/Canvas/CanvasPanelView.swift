@@ -37,8 +37,8 @@ struct CanvasPanelView: View {
     /// State for the "Copied!" feedback indicator.
     @State private var copied = false
 
-    /// Reported content height from the WKWebView's ResizeObserver.
-    @State private var contentHeight: CGFloat = 400
+
+
 
     #if os(macOS)
     /// Whether the panel is being resized via the drag handle.
@@ -66,9 +66,7 @@ struct CanvasPanelView: View {
             // Web view
             CanvasWebView(
                 htmlContent: content.htmlContent,
-                onHeightChange: { height in
-                    contentHeight = height
-                }
+                onHeightChange: { _ in }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityIdentifier("canvasWebView")

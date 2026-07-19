@@ -164,7 +164,7 @@ struct OnboardingPageTests {
 
         #expect(pages[0].title == "Welcome to Edge AI Lab")
         #expect(pages[1].title == "Your Model Hub")
-        #expect(pages[2].title == "Intelligent Conversations")
+        #expect(pages[2].title == "Run Experiments")
         #expect(pages[3].title == "Benchmark & Evaluate")
     }
 }

@@ -142,34 +142,51 @@ struct iOSEvalTabView: View {
             // MARK: Model Selection
             Section("Models to Evaluate") {
                 ForEach(viewModel.discoveredModels, id: \.url) { discovered in
-                    if let metadata = discovered.metadata {
-                        Button {
-                            if selectedModelFiles.contains(discovered.filename) {
-                                selectedModelFiles.remove(discovered.filename)
-                            } else {
-                                selectedModelFiles.insert(discovered.filename)
-                            }
-                        } label: {
-                            HStack {
+                    let metadata = discovered.resolvedMetadata
+                    Button {
+                        if selectedModelFiles.contains(discovered.filename) {
+                            selectedModelFiles.remove(discovered.filename)
+                        } else {
+                            selectedModelFiles.insert(discovered.filename)
+                        }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                                 Text(metadata.name)
                                     .font(AppTypography.listTitle)
                                     .foregroundStyle(AppColors.textPrimary)
                                     .lineLimit(1)
-                                Spacer()
-                                if selectedModelFiles.contains(discovered.filename) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(AppColors.accentPrimary)
-                                } else {
-                                    Image(systemName: "circle")
+
+                                HStack(spacing: AppSpacing.xs) {
+                                    Text(metadata.runtimeType.rawValue)
+                                        .badge(AppColors.accentSecondary)
+                                    Text(discovered.formattedSize)
+                                        .font(AppTypography.caption)
                                         .foregroundStyle(AppColors.textTertiary)
+                                    if metadata.supportsImage {
+                                        Text("Vision")
+                                            .badge(AppColors.capabilityVision)
+                                    }
+                                    if metadata.supportsAudio {
+                                        Text("Audio")
+                                            .badge(AppColors.capabilityAudio)
+                                    }
                                 }
                             }
-                            .contentShape(Rectangle())
+                            Spacer()
+                            if selectedModelFiles.contains(discovered.filename) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(AppColors.accentPrimary)
+                            } else {
+                                Image(systemName: "circle")
+                                    .foregroundStyle(AppColors.textTertiary)
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(metadata.name), \(selectedModelFiles.contains(discovered.filename) ? "selected" : "not selected")")
-                        .accessibilityIdentifier("evalTab_model_\(discovered.filename)")
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(metadata.name), \(selectedModelFiles.contains(discovered.filename) ? "selected" : "not selected")")
+                    .accessibilityIdentifier("evalTab_model_\(discovered.filename)")
                 }
                 if viewModel.discoveredModels.isEmpty {
                     Text("No models on device")

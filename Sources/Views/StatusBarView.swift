@@ -56,7 +56,7 @@ struct StatusBarView: View {
 
             if let metadata = viewModel.activeModelMetadata, viewModel.isEngineReady {
                 HStack(spacing: AppSpacing.xs) {
-                    if metadata.supportsMTP { Text("MTP").badge(AppColors.capabilityMTP) }
+                    if metadata.supportsMTP { Text("Spec. Dec").badge(AppColors.capabilityMTP) }
                     if metadata.supportsImage { Text("Vision").badge(AppColors.capabilityVision) }
                     if metadata.supportsAudio { Text("Audio").badge(AppColors.capabilityAudio) }
                     if metadata.supportsToolCalling { Text("Tools").badge(AppColors.toolAction) }
@@ -70,10 +70,10 @@ struct StatusBarView: View {
                 HStack(spacing: AppSpacing.xs) {
                     Image(systemName: thermal.symbolName)
                         .font(AppIconSize.xxs)
-                        .foregroundStyle(thermalColor(for: thermal))
+                        .foregroundStyle(AppColors.thermal(thermal))
                     Text(thermal.label)
                         .font(AppTypography.badge)
-                        .foregroundStyle(thermalColor(for: thermal))
+                        .foregroundStyle(AppColors.thermal(thermal))
                 }
                 .accessibilityIdentifier("statusBar_thermal")
                 .accessibilityLabel("Thermal state: \(thermal.label)")
@@ -88,13 +88,6 @@ struct StatusBarView: View {
         .accessibilityValue(viewModel.statusMessage)
     }
 
-    private func thermalColor(for state: ThermalLevel) -> Color {
-        switch state {
-        case .nominal: return AppColors.success
-        case .fair: return AppColors.warning
-        case .serious: return AppColors.destructive
-        case .critical: return AppColors.destructive
-        }
-    }
+
 }
 #endif

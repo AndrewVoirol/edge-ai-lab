@@ -72,11 +72,7 @@ final class EvalStore {
             self.storageDirectory = dir
         } else {
             // Default: ~/Library/Application Support/EdgeAILab/EvalRuns/
-            // force-unwrap is safe: applicationSupportDirectory always exists in userDomainMask
-            let appSupport = FileManager.default.urls(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask
-            ).first!
+            let appSupport = DirectoryHelper.applicationSupport
             self.storageDirectory = appSupport
                 .appendingPathComponent("EdgeAILab", isDirectory: true)
                 .appendingPathComponent("EvalRuns", isDirectory: true)

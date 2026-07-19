@@ -356,8 +356,7 @@ enum DeviceMetrics {
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
         for ps in sources {
-            // swiftlint:disable:next force_cast
-            let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as! [String: AnyObject]
+            guard let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as? [String: AnyObject] else { continue }
             if let capacity = info[kIOPSCurrentCapacityKey] as? Int,
                let maxCapacity = info[kIOPSMaxCapacityKey] as? Int,
                maxCapacity > 0 {
@@ -379,8 +378,7 @@ enum DeviceMetrics {
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue() as Array
         for ps in sources {
-            // swiftlint:disable:next force_cast
-            let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as! [String: AnyObject]
+            guard let info = IOPSGetPowerSourceDescription(snapshot, ps).takeUnretainedValue() as? [String: AnyObject] else { continue }
             if let source = info[kIOPSPowerSourceStateKey] as? String {
                 if source == kIOPSACPowerValue {
                     // Check if charging or full
