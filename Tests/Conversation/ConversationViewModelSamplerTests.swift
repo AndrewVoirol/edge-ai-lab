@@ -191,10 +191,10 @@ final class ConversationViewModelSamplerTests: XCTestCase {
         await vm.sessionController.initializeEngine(modelPath: "/path/to/gemma-4-E2B-it.litertlm")
 
         // After loading a known model, VM should adopt the model's defaults
-        let metadata = ModelRegistry.gemma4E2BStandard
-        XCTAssertEqual(vm.topK, metadata.defaultConfig.topK)
-        XCTAssertEqual(vm.topP, Float(metadata.defaultConfig.topP), accuracy: 0.001)
-        XCTAssertEqual(vm.temperature, Float(metadata.defaultConfig.temperature), accuracy: 0.001)
+        let profile = KnownModelCatalog.gemma4E2BStandard
+        XCTAssertEqual(vm.topK, profile.defaultConfig?.topK)
+        XCTAssertEqual(vm.topP, Float(profile.defaultConfig?.topP ?? 0), accuracy: 0.001)
+        XCTAssertEqual(vm.temperature, Float(profile.defaultConfig?.temperature ?? 0), accuracy: 0.001)
     }
 
     // MARK: - Flags + Sampler Combined

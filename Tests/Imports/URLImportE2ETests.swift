@@ -79,16 +79,16 @@ final class URLImportE2ETests: XCTestCase {
         switch manager.state {
         case .readyToDownload(let metadata, let files):
             // SUCCESS: Full pipeline worked
-            XCTAssertFalse(metadata.metadata.name.isEmpty, "Model name should be non-empty")
-            XCTAssertFalse(metadata.metadata.modelId.isEmpty, "Model ID should be non-empty")
-            XCTAssertTrue(metadata.metadata.modelId.contains("litert-community"), "Model ID should contain repo org")
+            XCTAssertFalse(metadata.metadata.displayName.isEmpty, "Model name should be non-empty")
+            XCTAssertFalse(metadata.metadata.modelId?.isEmpty ?? true, "Model ID should be non-empty")
+            XCTAssertTrue(metadata.metadata.modelId?.contains("litert-community") ?? false, "Model ID should contain repo org")
             XCTAssertFalse(files.isEmpty, "Should have at least one downloadable file")
-            print("✅ HF Import: readyToDownload — \(metadata.metadata.name) with \(files.count) file(s)")
+            print("✅ HF Import: readyToDownload — \(metadata.metadata.displayName) with \(files.count) file(s)")
 
         case .complete(let metadata):
             // Model was already in the known registry — also valid
-            XCTAssertFalse(metadata.metadata.name.isEmpty, "Model name should be non-empty")
-            print("✅ HF Import: complete (already known) — \(metadata.metadata.name)")
+            XCTAssertFalse(metadata.metadata.displayName.isEmpty, "Model name should be non-empty")
+            print("✅ HF Import: complete (already known) — \(metadata.metadata.displayName)")
 
         case .failed(let error):
             // Network error — validate the error message is meaningful
@@ -111,7 +111,7 @@ final class URLImportE2ETests: XCTestCase {
         let manager = URLImportManager(browser: browser, catalog: catalog)
 
         // Find a model that IS in the known registry
-        guard let knownModel = ModelRegistry.knownModels.first else {
+        guard let knownModel = KnownModelCatalog.allModels.first else {
             // No known models available — skip this test
             return
         }
@@ -125,7 +125,7 @@ final class URLImportE2ETests: XCTestCase {
             // Should shortcut directly to complete
             XCTAssertEqual(metadata.metadata.modelId, knownModel.modelId,
                           "Should match the known model ID")
-            print("✅ Known model shortcut: \(metadata.metadata.name)")
+            print("✅ Known model shortcut: \(metadata.metadata.displayName)")
 
         case .readyToDownload:
             // Also acceptable — the URL path format might differ slightly

@@ -58,6 +58,10 @@ final class ModelSessionController {
     /// Whether a model is currently being loaded.
     private(set) var isLoadingModel = false
 
+    /// Whether the loading cancel button should be visible.
+    /// Set to `true` after the 30s timeout fires, giving the user an escape hatch.
+    private(set) var showLoadingCancelButton = false
+
     /// Tracks the active model load task for cancellation support.
     private var modelLoadTask: Task<Void, Never>?
 
@@ -153,8 +157,8 @@ final class ModelSessionController {
     /// Handle a model file selection from the file picker.
     /// - Parameters:
     ///   - url: File URL to the model file or directory.
-    ///   - metadata: Pre-resolved metadata from DiscoveredModel (avoids re-lookup for community models).
-    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil, mmProjPath: String? = nil, profile: ModelCapabilityProfile? = nil) async {
+    ///   - profile: Pre-resolved capability profile from DiscoveredModel or KnownModelCatalog.
+    func handleModelSelection(_ url: URL, mmProjPath: String? = nil, profile: ModelCapabilityProfile? = nil) async {
         Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
@@ -171,7 +175,7 @@ final class ModelSessionController {
         // Bookmark Gallery models for future auto-discovery
         GalleryModelDiscovery.bookmarkGalleryModel(url)
 
-        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata, mmProjPath: mmProjPath, discoveredProfile: profile)
+        await initializeEngine(modelPath: url.path, mmProjPath: mmProjPath, discoveredProfile: profile)
     }
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
@@ -183,7 +187,6 @@ final class ModelSessionController {
     ///   - mcpClients: Active MCP clients (macOS only) for tool bridging.
     func initializeEngine(
         modelPath: String,
-        discoveredMetadata: ModelMetadata? = nil,
         runtimeFlags: RuntimeFlags? = nil,
         useGPU: Bool? = nil,
         mcpClients: [UUID: Any] = [:],
@@ -197,10 +200,12 @@ final class ModelSessionController {
         onStatusMessage("Initializing Engine...")
 
         // Start a timeout timer that updates the status message
+        // and reveals a cancel button after 30 seconds.
         let timeoutTask = Task {
             try? await Task.sleep(for: .seconds(30))
             if !Task.isCancelled && self.isLoadingModel {
                 self.onStatusMessage("Initializing Engine... (taking longer than expected…)")
+                self.showLoadingCancelButton = true
             }
         }
 
@@ -209,15 +214,11 @@ final class ModelSessionController {
         Self.logger.info("⏳ initializeEngine: \(modelFilename, privacy: .public) GPU=\(preferGPU)")
 
         // Build capability profile — the single source of truth for model identity and capabilities.
-        // Priority: caller-provided profile > known catalog lookup > metadata conversion > filename synthesis
+        // Priority: caller-provided profile > known catalog lookup > filename synthesis
         if let discoveredProfile {
             activeCapabilityProfile = discoveredProfile
         } else if let catalogProfile = KnownModelCatalog.lookup(filename: modelFilename) {
             activeCapabilityProfile = catalogProfile
-        } else if let discoveredMetadata {
-            activeCapabilityProfile = ModelCapabilityProfileBuilder.fromModelMetadata(
-                discoveredMetadata, source: .huggingFaceInferred, confidence: .medium
-            )
         } else {
             // Last resort: synthesize from filename heuristics
             let fileSize = (try? FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64) ?? 0
@@ -401,6 +402,7 @@ final class ModelSessionController {
 
         timeoutTask.cancel()
         isLoadingModel = false
+        showLoadingCancelButton = false
     }
 
     /// Cancel an in-progress model load.
@@ -408,6 +410,7 @@ final class ModelSessionController {
         modelLoadTask?.cancel()
         modelLoadTask = nil
         isLoadingModel = false
+        showLoadingCancelButton = false
         onStatusMessage("Model load cancelled")
     }
 

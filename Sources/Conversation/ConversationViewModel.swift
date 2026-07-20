@@ -62,6 +62,10 @@ final class ConversationViewModel {
     /// Whether a model is currently being loaded.
     var isLoadingModel: Bool { sessionController.isLoadingModel }
 
+    /// Whether the cancel button should be shown during model loading.
+    /// Becomes `true` after a 30s timeout, giving the user an escape hatch.
+    var showLoadingCancelButton: Bool { sessionController.showLoadingCancelButton }
+
     /// User-selected inference backend (per-session, resets to GPU-preferred on new session).
     /// Controls whether the engine uses GPU or CPU acceleration.
     /// Replaces the raw `useGPU` Bool with a typed option extensible for NPU.
@@ -317,7 +321,7 @@ final class ConversationViewModel {
 
     /// The model to display in the Model Showcase sheet.
     /// Set by context menus (macOS sidebar, iOS model hub) and toolbar buttons (iOS detail view).
-    var showcaseModel: ModelMetadata?
+    var showcaseModel: ModelCapabilityProfile?
 
     /// The file URL for the model shown in the showcase sheet.
     var showcaseModelURL: URL?
@@ -563,11 +567,10 @@ final class ConversationViewModel {
             await switchEngine(to: detectedFormat)
         }
 
-        // Resolve metadata from discoveredModels for community/imported models.
+        // Resolve profile from discoveredModels for community/imported models.
         let discoveredMatch = discoveredModels.first { $0.url == url }
-        let discoveredMeta = discoveredMatch?.resolvedMetadata
 
-        await sessionController.handleModelSelection(url, metadata: discoveredMeta, mmProjPath: discoveredMatch?.mmProjPath)
+        await sessionController.handleModelSelection(url, mmProjPath: discoveredMatch?.mmProjPath, profile: discoveredMatch?.metadata)
         // Sync sampler config from model defaults that the controller may have applied.
         // Use isSyncingSettings to suppress the didSet → reinitializeEngineIfNeeded() cascade.
         // Without this guard, each property set fires a full engine shutdown + re-init,
@@ -616,8 +619,8 @@ final class ConversationViewModel {
     /// and initiates a parallel multi-file download via `ModelDownloadManager`.
     ///
     /// - Parameter model: The registry model metadata for the MLX model.
-    func downloadMLXRegistryModel(_ model: ModelMetadata) async {
-        Self.logger.info("🔽 downloadMLXRegistryModel: \(model.name, privacy: .public) (\(model.modelId, privacy: .public))")
+    func downloadMLXRegistryModel(_ model: ModelCapabilityProfile) async {
+        Self.logger.info("🔽 downloadMLXRegistryModel: \(model.displayName, privacy: .public) (\(model.modelId ?? model.repoId ?? "", privacy: .public))")
         guard model.isMLXDirectoryModel else {
             Self.logger.warning("⚠️ Model is not MLX directory type, falling back to single-file download")
             downloadManager.download(model)
@@ -626,23 +629,24 @@ final class ConversationViewModel {
 
         statusMessage = "Fetching model manifest..."
         let browser = HFModelBrowser()
+        let repoId = model.modelId ?? model.repoId ?? ""
         do {
-            let manifest = try await browser.fetchFileManifest(for: model.modelId)
+            let manifest = try await browser.fetchFileManifest(for: repoId)
             let required = HFModelBrowser.filterRequiredMLXFiles(manifest)
-            Self.logger.info("📋 Manifest: \(manifest.count) total files, \(required.count) required for \(model.modelId, privacy: .public)")
+            Self.logger.info("📋 Manifest: \(manifest.count) total files, \(required.count) required for \(repoId, privacy: .public)")
             let descriptors = HFModelBrowser.downloadDescriptors(
-                repoId: model.modelId,
+                repoId: repoId,
                 requiredFiles: required
             )
             downloadManager.downloadMLXModel(
-                modelId: model.modelId,
+                modelId: repoId,
                 descriptors: descriptors
             )
-            statusMessage = "Downloading \(model.name)..."
-            Self.logger.info("✅ MLX directory download started for \(model.name, privacy: .public)")
+            statusMessage = "Downloading \(model.displayName)..."
+            Self.logger.info("✅ MLX directory download started for \(model.displayName, privacy: .public)")
         } catch {
             statusMessage = "Failed to fetch manifest: \(error.localizedDescription)"
-            Self.logger.error("❌ Manifest fetch failed for \(model.modelId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("❌ Manifest fetch failed for \(repoId, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
 

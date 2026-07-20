@@ -52,7 +52,7 @@ final class ModelDownloadManagerRefreshTests: XCTestCase {
         // After refresh, the stale entry should have been cleared.
         // refreshStates() only preserves .downloading, .queued, and .paused states.
         // Since "fake-stale-model.litertlm" isn't a known registry model, it won't
-        // be re-added by the checkState() loop over ModelRegistry.knownModels.
+        // be re-added by the checkState() loop over KnownModelCatalog.allModels.
         XCTAssertNil(
             manager.downloadStates[staleKey],
             "Stale .notDownloaded entry should be cleared after refreshStates()"

@@ -456,7 +456,7 @@ extension ContentView {
                 set: { viewModel.showcaseModel = $0 }
             )) { model in
                 NavigationStack {
-                    ModelShowcaseView(metadata: model, fileURL: viewModel.showcaseModelURL)
+                    ModelShowcaseView(profile: model, fileURL: viewModel.showcaseModelURL)
                 }
                 #if os(macOS)
                 .frame(minWidth: 450, minHeight: 550)
@@ -526,24 +526,24 @@ extension ContentView {
 // MARK: - Reusable Views
 
 struct ModelCapabilityBadges: View {
-    let metadata: ModelMetadata
+    let profile: ModelCapabilityProfile
     let runtimeFlags: RuntimeFlags
     
     var body: some View {
         HStack(spacing: AppSpacing.xs) {
-            if metadata.supportsImage {
+            if profile.hasVision {
                 Text("Vision")
                     .badge(AppColors.capabilityVision)
                     .accessibilityIdentifier("badge_vision")
                     .accessibilityLabel("Vision capability")
             }
-            if metadata.supportsAudio {
+            if profile.hasAudio {
                 Text("Audio")
                     .badge(AppColors.capabilityAudio)
                     .accessibilityIdentifier("badge_audio")
                     .accessibilityLabel("Audio capability")
             }
-            if metadata.supportsMTP {
+            if profile.hasMTP {
                 Text("Spec. Dec")
                     .badge(AppColors.capabilityMTP)
                     .accessibilityIdentifier("badge_mtp")

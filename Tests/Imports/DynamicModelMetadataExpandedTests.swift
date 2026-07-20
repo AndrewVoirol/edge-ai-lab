@@ -98,30 +98,30 @@ struct DynamicModelMetadataExpandedTests {
     struct FromKnownModelTests {
         @Test("Sets source to knownRegistry")
         func source() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromKnownModel(model)
             #expect(entry.source == .knownRegistry)
         }
 
         @Test("Sets confidence to verified")
         func confidence() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromKnownModel(model)
             #expect(entry.confidence == .verified)
         }
 
         @Test("Uses modelFile as id")
         func id() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromKnownModel(model)
             #expect(entry.id == model.modelFile)
         }
 
         @Test("Preserves metadata")
         func metadata() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromKnownModel(model)
-            #expect(entry.metadata.name == model.name)
+            #expect(entry.metadata.displayName == model.displayName)
             #expect(entry.metadata.modelId == model.modelId)
         }
     }
@@ -130,7 +130,7 @@ struct DynamicModelMetadataExpandedTests {
     struct FromHuggingFaceTests {
         @Test("Sets source to huggingFaceInferred")
         func source() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromHuggingFace(
                 repoId: "test/repo",
                 metadata: model,
@@ -141,7 +141,7 @@ struct DynamicModelMetadataExpandedTests {
 
         @Test("Uses repoId as id")
         func id() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromHuggingFace(
                 repoId: "test/repo",
                 metadata: model,
@@ -152,7 +152,7 @@ struct DynamicModelMetadataExpandedTests {
 
         @Test("Passes through confidence")
         func confidence() {
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromHuggingFace(
                 repoId: "test/repo",
                 metadata: model,
@@ -164,7 +164,7 @@ struct DynamicModelMetadataExpandedTests {
         @Test("Sets importedAt to recent timestamp")
         func timestamp() {
             let before = Date()
-            let model = ModelRegistry.knownModels[0]
+            let model = KnownModelCatalog.allModels[0]
             let entry = DynamicModelMetadata.fromHuggingFace(
                 repoId: "test/repo",
                 metadata: model,
@@ -223,7 +223,7 @@ struct DynamicModelMetadataExpandedTests {
                 handle: handle,
                 downloadURL: URL(string: "https://kaggle.com/dl")!
             )
-            #expect(entry.metadata.name == "gemma-3n-e4b-it")
+            #expect(entry.metadata.displayName == "gemma-3n-e4b-it")
         }
 
         @Test("Falls back to modelSlug when no variation")
@@ -239,7 +239,7 @@ struct DynamicModelMetadataExpandedTests {
                 handle: handle,
                 downloadURL: URL(string: "https://kaggle.com/dl")!
             )
-            #expect(entry.metadata.name == "gemma-3n")
+            #expect(entry.metadata.displayName == "gemma-3n")
         }
 
         @Test("Constructs modelId from kaggle prefix")
@@ -256,7 +256,7 @@ struct DynamicModelMetadataExpandedTests {
                 downloadURL: URL(string: "https://kaggle.com/dl")!
             )
             #expect(entry.id.contains("kaggle/google/gemma-3n"))
-            #expect(entry.metadata.modelId.contains("kaggle/google/gemma-3n"))
+            #expect(entry.metadata.modelId?.contains("kaggle/google/gemma-3n") == true)
         }
 
         @Test("Sets conservative defaults for unknown metadata")
@@ -272,12 +272,11 @@ struct DynamicModelMetadataExpandedTests {
                 handle: handle,
                 downloadURL: URL(string: "https://kaggle.com/dl")!
             )
-            #expect(entry.metadata.sizeInBytes == 0)
-            #expect(entry.metadata.minDeviceMemoryGB == 8)
+            #expect(entry.metadata.fileSizeBytes == 0)
+            #expect(entry.metadata.memoryGB == 8)
             #expect(entry.metadata.contextWindowSize == 32_000)
-            #expect(entry.metadata.architectureType == "Unknown")
-            #expect(entry.metadata.supportsImage == false)
-            #expect(entry.metadata.supportsAudio == false)
+            #expect(entry.metadata.hasVision == false)
+            #expect(entry.metadata.hasAudio == false)
             #expect(entry.metadata.runtimeType == .litertlm)
         }
     }

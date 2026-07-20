@@ -40,7 +40,7 @@ struct iOSModelDetailView: View {
     @Environment(ConversationViewModel.self) private var viewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(iOSNavigationRouter.self) private var router
-    let metadata: ModelMetadata
+    let profile: ModelCapabilityProfile
 
     @State private var showDeleteConfirmation = false
     @State private var showDownloadConfirmation = false
@@ -49,15 +49,15 @@ struct iOSModelDetailView: View {
     // MARK: - Computed State
 
     private var downloadState: ModelDownloadManager.DownloadState {
-        viewModel.downloadManager.checkState(for: metadata)
+        viewModel.downloadManager.checkState(for: profile)
     }
 
     private var isActiveModel: Bool {
-        viewModel.activeCapabilityProfile?.modelFile == metadata.modelFile && viewModel.isEngineReady
+        viewModel.activeCapabilityProfile?.modelFile == (profile.modelFile ?? profile.id) && viewModel.isEngineReady
     }
 
     private var isLoading: Bool {
-        viewModel.isLoadingModel && viewModel.activeCapabilityProfile?.modelFile == metadata.modelFile
+        viewModel.isLoadingModel && viewModel.activeCapabilityProfile?.modelFile == (profile.modelFile ?? profile.id)
     }
 
     // MARK: - Body
@@ -123,13 +123,13 @@ struct iOSModelDetailView: View {
             .padding(.vertical, AppSpacing.md)
         }
         .background(AppColors.backgroundPrimary)
-        .navigationTitle(metadata.name)
+        .navigationTitle(profile.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: isActiveModel)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    viewModel.showcaseModel = metadata
+                    viewModel.showcaseModel = profile
                 } label: {
                     Image(systemName: "info.circle")
                 }
@@ -145,15 +145,15 @@ struct iOSModelDetailView: View {
             Button("Cancel", role: .cancel) {}
                 .accessibilityIdentifier("modelDetail_deleteCancelAlert")
         } message: {
-            Text("This will remove \"\(metadata.name)\" (\(formattedSize)) from your device. You can re-download it later.")
+            Text("This will remove \"\(profile.displayName)\" (\(formattedSize)) from your device. You can re-download it later.")
         }
         .confirmationDialog(
-            "Download \(metadata.name)?",
+            "Download \(profile.displayName)?",
             isPresented: $showDownloadConfirmation
         ) {
             if let check = storageCheck, check.hasEnoughSpace {
                 Button("Download (\(check.formattedModelSize))") {
-                    viewModel.downloadManager.download(metadata)
+                    viewModel.downloadManager.download(profile)
                 }
                 .accessibilityIdentifier("modelDetail_downloadConfirmDialog")
             } else {
@@ -171,7 +171,7 @@ struct iOSModelDetailView: View {
                 }
             }
         }
-        .accessibilityIdentifier("iOSModelDetail_\(metadata.modelFile)")
+        .accessibilityIdentifier("iOSModelDetail_\(profile.modelFile ?? profile.id)")
     }
 
     // MARK: - Header Section
@@ -188,7 +188,7 @@ struct iOSModelDetailView: View {
                     )
 
                 VStack(spacing: AppSpacing.sm) {
-                    Image(systemName: metadata.architectureType.contains("MoE")
+                    Image(systemName: (profile.architecture?.architectureClass ?? "").contains("MoE")
                         ? "square.grid.3x3.topleft.filled"
                         : "square.stack.3d.up.fill")
                         .font(AppIconSize.xxl)
@@ -206,17 +206,17 @@ struct iOSModelDetailView: View {
 
             // Model name and architecture
             VStack(spacing: AppSpacing.xs) {
-                Text(metadata.name)
+                Text(profile.displayName)
                     .font(AppTypography.pageTitle)
                     .foregroundStyle(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text(metadata.architectureType)
+                Text(profile.architecture?.architectureClass ?? "Unknown")
                     .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
 
                 // Confidence badge for dynamically-imported models
-                if let dynamicEntry = viewModel.dynamicModelCatalog.allModels().first(where: { $0.metadata.modelFile == metadata.modelFile }),
+                if let dynamicEntry = viewModel.dynamicModelCatalog.allModels().first(where: { ($0.metadata.modelFile ?? $0.metadata.id) == (profile.modelFile ?? profile.id) }),
                    dynamicEntry.source != .knownRegistry {
                     Label(dynamicEntry.confidence.label,
                           systemImage: dynamicEntry.confidence.symbolName)
@@ -336,7 +336,7 @@ struct iOSModelDetailView: View {
                 // Downloading — Pause + Cancel buttons
                 HStack(spacing: AppSpacing.md) {
                     Button {
-                        Task { await viewModel.downloadManager.pauseDownload(metadata) }
+                        Task { await viewModel.downloadManager.pauseDownload(profile) }
                     } label: {
                         Label("Pause", systemImage: "pause.fill")
                             .font(AppTypography.subtitle)
@@ -349,7 +349,7 @@ struct iOSModelDetailView: View {
                     .accessibilityIdentifier("modelDetail_pauseButton")
 
                     Button {
-                        Task { await viewModel.downloadManager.cancelDownload(metadata) }
+                        Task { await viewModel.downloadManager.cancelDownload(profile) }
                     } label: {
                         Label("Cancel", systemImage: "xmark.circle")
                             .font(AppTypography.subtitle)
@@ -365,7 +365,7 @@ struct iOSModelDetailView: View {
             } else if downloadState.isPausedState {
                 // Paused — Resume button
                 Button {
-                    viewModel.downloadManager.resumeDownload(metadata)
+                    viewModel.downloadManager.resumeDownload(profile)
                 } label: {
                     Label("Resume Download", systemImage: "play.fill")
                         .font(AppTypography.subtitle)
@@ -387,7 +387,7 @@ struct iOSModelDetailView: View {
                         .foregroundStyle(AppColors.textSecondary)
                     Spacer()
                     Button("Cancel") {
-                        Task { await viewModel.downloadManager.cancelDownload(metadata) }
+                        Task { await viewModel.downloadManager.cancelDownload(profile) }
                     }
                     .foregroundStyle(AppColors.destructive)
                     .accessibilityIdentifier("modelDetail_cancelQueuedButton")
@@ -424,7 +424,7 @@ struct iOSModelDetailView: View {
             ProgressView(value: progress, total: 1.0)
                 .tint(AppColors.accentPrimary)
 
-            if let dp = viewModel.downloadManager.downloadProgress[metadata.modelFile] {
+            if let dp = viewModel.downloadManager.downloadProgress[profile.modelFile ?? profile.id] {
                 // Rich progress: percentage + speed + ETA
                 HStack {
                     Text(String(format: "%.0f%%", progress * 100))
@@ -513,11 +513,11 @@ struct iOSModelDetailView: View {
         detailCard(title: "Capabilities", icon: "sparkles") {
             FlowLayout(spacing: AppSpacing.sm) {
                 capabilityChip("Text Generation", icon: "text.bubble", color: AppColors.textSecondary, enabled: true)
-                capabilityChip("Vision", icon: "eye", color: AppColors.capabilityVision, enabled: metadata.supportsImage)
-                capabilityChip("Audio", icon: "waveform", color: AppColors.capabilityAudio, enabled: metadata.supportsAudio)
-                capabilityChip("Speculative Decoding", icon: "bolt.horizontal", color: AppColors.capabilityMTP, enabled: metadata.supportsMTP)
-                capabilityChip("Tool Calling", icon: "wrench.and.screwdriver", color: AppColors.toolAction, enabled: metadata.supportsToolCalling)
-                capabilityChip("Thinking", icon: "brain", color: AppColors.capabilityThinking, enabled: metadata.capabilities.contains("llm_thinking"))
+                capabilityChip("Vision", icon: "eye", color: AppColors.capabilityVision, enabled: profile.hasVision)
+                capabilityChip("Audio", icon: "waveform", color: AppColors.capabilityAudio, enabled: profile.hasAudio)
+                capabilityChip("Speculative Decoding", icon: "bolt.horizontal", color: AppColors.capabilityMTP, enabled: profile.hasMTP)
+                capabilityChip("Tool Calling", icon: "wrench.and.screwdriver", color: AppColors.toolAction, enabled: profile.hasToolCalling)
+                capabilityChip("Thinking", icon: "brain", color: AppColors.capabilityThinking, enabled: profile.hasThinking)
             }
         }
     }
@@ -526,7 +526,7 @@ struct iOSModelDetailView: View {
 
     private var platformSection: some View {
         detailCard(title: "Platform Support", icon: "iphone") {
-            let capability = metadata.platformSupport.currentPlatform
+            let capability = (profile.platformSupport ?? PlatformSupport()).currentPlatform
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 platformRow("GPU", supported: capability.supportsGPU)
                 platformRow("CPU", supported: capability.supportsCPU)
@@ -545,11 +545,11 @@ struct iOSModelDetailView: View {
     private var configurationSection: some View {
         detailCard(title: "Default Configuration", icon: "slider.horizontal.3") {
             VStack(spacing: AppSpacing.sm) {
-                configRow("Top-K", value: "\(metadata.defaultConfig.topK)")
-                configRow("Top-P", value: String(format: "%.2f", metadata.defaultConfig.topP))
-                configRow("Temperature", value: String(format: "%.1f", metadata.defaultConfig.temperature))
+                configRow("Top-K", value: "\(profile.defaultConfig?.topK ?? 64)")
+                configRow("Top-P", value: String(format: "%.2f", profile.defaultConfig?.topP ?? 0.95))
+                configRow("Temperature", value: String(format: "%.1f", profile.defaultConfig?.temperature ?? 1.0))
                 configRow("Context Window", value: formattedContextWindow)
-                configRow("Max Tokens", value: "\(metadata.defaultConfig.maxTokens)")
+                configRow("Max Tokens", value: "\(profile.defaultConfig?.maxTokens ?? 4096)")
             }
         }
     }
@@ -559,16 +559,16 @@ struct iOSModelDetailView: View {
     private var descriptionSection: some View {
         detailCard(title: "About", icon: "info.circle") {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text(metadata.description)
+                Text(profile.modelDescription ?? "")
                     .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
 
-                Text("Recommended for: \(metadata.recommendedFor)")
+                Text("Recommended for: \(profile.recommendedFor ?? "")")
                     .font(AppTypography.listTertiary)
                     .foregroundStyle(AppColors.textTertiary)
 
-                if metadata.minDeviceMemoryGB > 0 {
-                    Text("Minimum \(metadata.minDeviceMemoryGB) GB device memory")
+                if (profile.memoryGB ?? 0) > 0 {
+                    Text("Minimum \(profile.memoryGB ?? 8) GB device memory")
                         .font(AppTypography.listTertiary)
                         .foregroundStyle(AppColors.textTertiary)
                 }
@@ -674,22 +674,22 @@ struct iOSModelDetailView: View {
     // MARK: - Helpers
 
     private var formattedSize: String {
-        ModelDetailFormatters.formattedSize(metadata.sizeInBytes)
+        ModelDetailFormatters.formattedSize(profile.fileSizeBytes ?? 0)
     }
 
     private var formattedContextWindow: String {
-        ModelDetailFormatters.formattedContextWindow(metadata.contextWindowSize)
+        profile.contextWindowSize.map { ModelDetailFormatters.formattedContextWindow($0) } ?? "Unknown"
     }
 
     /// Confirm download with storage check.
     private func confirmDownload() {
-        storageCheck = viewModel.downloadManager.checkStorage(for: metadata)
+        storageCheck = viewModel.downloadManager.checkStorage(for: profile)
         showDownloadConfirmation = true
     }
 
     /// Delete using centralized download manager + dismiss back to hub.
     private func deleteModel() {
-        viewModel.downloadManager.deleteModel(metadata)
+        viewModel.downloadManager.deleteModel(profile)
         viewModel.refreshDiscoveredModels()
         viewModel.downloadManager.refreshStates()
         dismiss()

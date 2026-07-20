@@ -155,7 +155,7 @@ struct ModelCapabilityCard: View {
             RoundedRectangle(cornerRadius: AppRadius.sm)
                 .fill(AppColors.accentSecondary.opacity(AppOpacity.mist))
         )
-        .accessibilityLabel("Context window: \(profile.contextWindowSize ?? 0) tokens")
+        .accessibilityLabel("Context window: \(profile.contextWindowSize.map { "\($0) tokens" } ?? "unknown")")
     }
 
     // MARK: - Negative Capabilities

@@ -45,7 +45,7 @@ extension ConversationViewModel {
 
         // Find the downloaded file among discovered models
         // Check both known and community discovered models
-        let filename = metadata.metadata.modelFile
+        let filename = metadata.metadata.modelFile ?? metadata.metadata.id
 
         // Search discovered models for a matching file
         if let match = discoveredModels.first(where: { $0.filename.contains(filename) || filename.contains($0.filename) }) {

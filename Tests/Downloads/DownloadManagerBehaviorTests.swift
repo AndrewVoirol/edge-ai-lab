@@ -115,25 +115,37 @@ final class DownloadManagerBehaviorTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Create a ModelMetadata for testing with a valid downloadURL.
+    /// Create a ModelCapabilityProfile for testing with a valid downloadURL.
     private func makeTestModel(
         name: String = "Test Model",
         filename: String = "test-model.litertlm",
         sizeInBytes: Int64 = 1_000_000
-    ) -> ModelMetadata {
-        ModelMetadata(
-            name: name,
-            modelId: "litert-community/test-model-litert-lm",
-            modelFile: filename,
-            description: "Test model for DownloadManagerBehaviorTests",
-            sizeInBytes: sizeInBytes,
-            minDeviceMemoryGB: 0,
-            contextWindowSize: 1024,
-            architectureType: "Test",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: [],
+    ) -> ModelCapabilityProfile {
+        ModelCapabilityProfile(
+            id: filename,
+            displayName: name,
+            repoId: "litert-community/test-model-litert-lm",
+            runtimeType: .litertlm,
+            supportsVision: nil,
+            supportsAudio: nil,
+            supportsThinking: nil,
+            supportsToolCalling: nil,
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: SourcedValue(1024, source: .heuristic),
+            fileSizeBytes: sizeInBytes,
+            estimatedMemoryGB: nil,
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .low,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 1,
                 topP: 1.0,
@@ -147,7 +159,11 @@ final class DownloadManagerBehaviorTests: XCTestCase {
                 macOS: .unknown,
                 iOSDevice: .unknown,
                 iOSSimulator: .unknown
-            )
+            ),
+            modelDescription: "Test model for DownloadManagerBehaviorTests",
+            recommendedFor: "Testing",
+            modelFile: filename,
+            modelId: "litert-community/test-model-litert-lm"
         )
     }
 
@@ -202,16 +218,16 @@ final class DownloadManagerBehaviorTests: XCTestCase {
 
         // Wait for download to complete
         try await waitForCondition(timeout: 10.0, description: "download completion") {
-            if case .downloaded = self.manager.downloadStates[model.modelFile] { return true }
+            if case .downloaded = self.manager.downloadStates[model.modelFile ?? ""] { return true }
             return false
         }
 
         // Verify final state is .downloaded
-        if case .downloaded(let url) = manager.downloadStates[model.modelFile] {
+        if case .downloaded(let url) = manager.downloadStates[model.modelFile ?? ""] {
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
                 "Downloaded file should exist at: \(url.path)")
         } else {
-            XCTFail("Final state should be .downloaded, got: \(String(describing: manager.downloadStates[model.modelFile]))")
+            XCTFail("Final state should be .downloaded, got: \(String(describing: manager.downloadStates[model.modelFile ?? ""]))")
         }
 
         // Verify the request was made
@@ -244,10 +260,10 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         await manager.cancelDownload(model)
 
         // Verify state returns to .notDownloaded
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Expected
         } else {
-            XCTFail("State should be .notDownloaded after cancellation, got: \(String(describing: manager.downloadStates[model.modelFile]))")
+            XCTFail("State should be .notDownloaded after cancellation, got: \(String(describing: manager.downloadStates[model.modelFile ?? ""]))")
         }
     }
 
@@ -277,12 +293,12 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         manager.download(modelB)
 
         // Verify model B is queued
-        if case .queued(let position) = manager.downloadStates[modelB.modelFile] {
+        if case .queued(let position) = manager.downloadStates[modelB.modelFile ?? ""] {
             XCTAssertEqual(position, 1, "Model B should be queued at position 1")
         } else {
             // Model B might already be downloading if A completed instantly
             // This is acceptable — the queue logic still worked
-            let stateB = manager.downloadStates[modelB.modelFile]
+            let stateB = manager.downloadStates[modelB.modelFile ?? ""]
             print("Note: Model B state is \(String(describing: stateB)) — download A may have completed very fast")
         }
     }
@@ -315,13 +331,13 @@ final class DownloadManagerBehaviorTests: XCTestCase {
 
         // Wait for the error to be processed
         try await waitForCondition(timeout: 5.0, description: "failed state") {
-            if case .failed = self.manager.downloadStates[model.modelFile] { return true }
+            if case .failed = self.manager.downloadStates[model.modelFile ?? ""] { return true }
             // Also accept notDownloaded (if error is swallowed) or authRequired
-            if case .authRequired = self.manager.downloadStates[model.modelFile] { return true }
+            if case .authRequired = self.manager.downloadStates[model.modelFile ?? ""] { return true }
             return false
         }
 
-        let state = manager.downloadStates[model.modelFile]
+        let state = manager.downloadStates[model.modelFile ?? ""]
         let isErrorState: Bool
         switch state {
         case .failed, .authRequired:
@@ -353,13 +369,13 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         manager.download(model)
 
         try await waitForCondition(timeout: 10.0, description: "download completion") {
-            if case .downloaded = self.manager.downloadStates[model.modelFile] { return true }
+            if case .downloaded = self.manager.downloadStates[model.modelFile ?? ""] { return true }
             return false
         }
 
         // Verify file exists
-        let fileURL = tempDir.appendingPathComponent(model.modelFile)
-        if case .downloaded(let downloadedURL) = manager.downloadStates[model.modelFile] {
+        let fileURL = tempDir.appendingPathComponent(model.modelFile ?? "")
+        if case .downloaded(let downloadedURL) = manager.downloadStates[model.modelFile ?? ""] {
             XCTAssertTrue(FileManager.default.fileExists(atPath: downloadedURL.path),
                 "File should exist after download")
         }
@@ -368,10 +384,10 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         manager.deleteModel(model)
 
         // Verify state is .notDownloaded
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Expected
         } else {
-            XCTFail("State should be .notDownloaded after deletion, got: \(String(describing: manager.downloadStates[model.modelFile]))")
+            XCTFail("State should be .notDownloaded after deletion, got: \(String(describing: manager.downloadStates[model.modelFile ?? ""]))")
         }
 
         // Verify file is removed
@@ -396,7 +412,7 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         let model = makeTestModel(filename: "already-exists.litertlm")
 
         // Place a file in the documents directory
-        let fileURL = tempDir.appendingPathComponent(model.modelFile)
+        let fileURL = tempDir.appendingPathComponent(model.modelFile ?? "")
         try Data("existing model".utf8).write(to: fileURL)
 
         // checkState should detect it
@@ -433,20 +449,20 @@ final class DownloadManagerBehaviorTests: XCTestCase {
 
         // Wait for download to complete, checking progress along the way
         try await waitForCondition(timeout: 10.0, description: "download completion") {
-            if case .downloading(let progress) = self.manager.downloadStates[model.modelFile],
+            if case .downloading(let progress) = self.manager.downloadStates[model.modelFile ?? ""],
                progress > 0 {
                 sawProgressAboveZero = true
             }
-            if case .downloaded = self.manager.downloadStates[model.modelFile] { return true }
+            if case .downloaded = self.manager.downloadStates[model.modelFile ?? ""] { return true }
             return false
         }
 
         // Verify final state is .downloaded
-        if case .downloaded(let url) = manager.downloadStates[model.modelFile] {
+        if case .downloaded(let url) = manager.downloadStates[model.modelFile ?? ""] {
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path),
                 "Downloaded file should exist at: \(url.path)")
         } else {
-            XCTFail("Final state should be .downloaded, got: \(String(describing: manager.downloadStates[model.modelFile]))")
+            XCTFail("Final state should be .downloaded, got: \(String(describing: manager.downloadStates[model.modelFile ?? ""]))")
         }
 
         // Note: URLProtocol downloads can complete so quickly that intermediate progress
@@ -491,7 +507,7 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
 
         // Check if the download already completed
-        if case .downloaded = manager.downloadStates[model.modelFile] {
+        if case .downloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Download completed before we could pause — this is acceptable with URLProtocol.
             // The state machine still worked correctly.
             print("Note: Download completed before pause could be issued (expected with URLProtocol)")
@@ -505,7 +521,7 @@ final class DownloadManagerBehaviorTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(200))
 
         // Check the state after pause attempt
-        let stateAfterPause = manager.downloadStates[model.modelFile]
+        let stateAfterPause = manager.downloadStates[model.modelFile ?? ""]
 
         switch stateAfterPause {
         case .paused(let resumeData, _):
@@ -528,7 +544,7 @@ final class DownloadManagerBehaviorTests: XCTestCase {
 
             // Verify state transitions to .downloading or .downloaded
             try await waitForCondition(timeout: 10.0, description: "resume completion") {
-                switch self.manager.downloadStates[model.modelFile] {
+                switch self.manager.downloadStates[model.modelFile ?? ""] {
                 case .downloaded:
                     return true
                 case .downloading:
@@ -540,7 +556,7 @@ final class DownloadManagerBehaviorTests: XCTestCase {
             }
 
             // After waiting, accept either .downloaded or .downloading as valid
-            let finalState = manager.downloadStates[model.modelFile]
+            let finalState = manager.downloadStates[model.modelFile ?? ""]
             switch finalState {
             case .downloaded, .downloading:
                 break // Both are acceptable after resume

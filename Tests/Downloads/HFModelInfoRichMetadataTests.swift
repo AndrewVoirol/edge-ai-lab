@@ -485,7 +485,7 @@ struct ModelCardParserAPIDataTests {
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         // Should pick up 12B from API, not "Unknown" from ID heuristic
-        #expect(metadata.description.contains("12B") == true)
+        #expect(metadata.modelDescription?.contains("12B") == true)
     }
 
     @MainActor
@@ -515,7 +515,7 @@ struct ModelCardParserAPIDataTests {
             config: config
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-        #expect(metadata.supportsImage == true)
+        #expect(metadata.hasVision == true)
     }
 
     @MainActor
@@ -547,7 +547,8 @@ struct ModelCardParserAPIDataTests {
         )
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         // Architecture should contain cleaned-up name with "(Text)" suffix
-        #expect(metadata.architectureType.contains("Gemma4") == true)
+        let archClass = metadata.architecture?.architectureClass ?? ""
+        #expect(archClass.contains("Gemma4"))
     }
 
     @MainActor

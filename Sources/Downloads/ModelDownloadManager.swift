@@ -200,7 +200,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     var showTokenPrompt = false
 
     /// The model that triggered the token prompt (to retry after token entry).
-    var pendingAuthModel: ModelMetadata?
+    var pendingAuthModel: ModelCapabilityProfile?
 
     /// Maximum concurrent downloads (user-configurable in Settings).
     var maxConcurrentDownloads: Int = 1 {
@@ -384,42 +384,9 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
 
     // MARK: - State Queries
 
-    /// Check the download state for a model by scanning the filesystem.
-    func checkState(for model: ModelMetadata) -> DownloadState {
-        // If we already know the state, return it immediately.
-        // This prevents the infinite re-render loop: SwiftUI body evaluation calls
-        // checkState() → mutation → view invalidation → body re-evaluation → checkState() ...
-        // By returning the cached value, we avoid mutating @Observable state during render.
-        if let existing = downloadStates[model.modelFile] {
-            return existing
-        }
-
-        // For MLX directory models, delegate to the directory-aware checker
-        // which validates config.json + .safetensors presence.
-        if model.isMLXDirectoryModel {
-            return checkMLXModelState(modelId: model.modelId)
-        }
-
-        // First-time check: scan filesystem to determine initial state.
-        let fileURL = documentsDirectory.appendingPathComponent(model.modelFile)
-
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            let state = DownloadState.downloaded(fileURL)
-            downloadStates[model.modelFile] = state
-            return state
-        } else if let discovered = GalleryModelDiscovery.discoverModels().first(where: { $0.filename == model.modelFile }) {
-            let state = DownloadState.downloaded(discovered.url)
-            downloadStates[model.modelFile] = state
-            return state
-        }
-
-        // Mark as not downloaded — this is the initial state.
-        downloadStates[model.modelFile] = .notDownloaded
-        return .notDownloaded
-    }
-
     /// Check the download state for a model profile by scanning the filesystem.
-    /// This overload allows callers using `KnownModelCatalog.allModels` (which are
+
+    /// This method allows callers using `KnownModelCatalog.allModels` (which are
     /// `ModelCapabilityProfile` instances) to check download state directly.
     func checkState(for profile: ModelCapabilityProfile) -> DownloadState {
         guard let modelFile = profile.modelFile else { return .notDownloaded }
@@ -474,8 +441,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     // MARK: - Storage Validation
 
     /// Check available storage before downloading a model.
-    func checkStorage(for model: ModelMetadata) -> StorageCheck {
-        let modelSize = model.sizeInBytes
+    func checkStorage(for model: ModelCapabilityProfile) -> StorageCheck {
+        let modelSize = model.fileSizeBytes ?? 0
         let available = availableStorageBytes()
         let buffer: Int64 = 500_000_000 // 500 MB safety buffer
         return StorageCheck(
@@ -503,24 +470,25 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     /// If the maximum concurrent download limit is reached, the model is queued.
     /// Call this AFTER the user confirms the pre-download storage dialog.
     ///
-    /// - Parameter model: The model metadata with download URL.
-    func download(_ model: ModelMetadata) {
+    /// - Parameter model: The model capability profile with download URL.
+    func download(_ model: ModelCapabilityProfile) {
+        let modelFile = model.modelFile ?? model.id
         guard let downloadURL = model.downloadURL else {
-            downloadStates[model.modelFile] = .failed("No download URL configured for this model.")
+            downloadStates[modelFile] = .failed("No download URL configured for this model.")
             return
         }
 
         // Don't start a duplicate download
-        if fileToTaskId[model.modelFile] != nil { return }
-        if downloadQueue.contains(where: { $0.modelFile == model.modelFile }) { return }
+        if fileToTaskId[modelFile] != nil { return }
+        if downloadQueue.contains(where: { $0.modelFile == modelFile }) { return }
 
         let activeCount = currentActiveDownloadCount()
         if activeCount < maxConcurrentDownloads {
-            startDownloadTask(modelFile: model.modelFile, downloadURL: downloadURL, isCommunityModel: false)
+            startDownloadTask(modelFile: modelFile, downloadURL: downloadURL, isCommunityModel: false)
         } else {
             // Queue the download
             downloadQueue.append(QueuedDownload(
-                modelFile: model.modelFile,
+                modelFile: modelFile,
                 downloadURL: downloadURL,
                 isCommunityModel: false
             ))
@@ -529,8 +497,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     /// Pause an active download, capturing resume data.
-    func pauseDownload(_ model: ModelMetadata) async {
-        await pauseDownload(filename: model.modelFile)
+    func pauseDownload(_ model: ModelCapabilityProfile) async {
+        await pauseDownload(filename: model.modelFile ?? model.id)
     }
 
     /// Pause by filename (works for community models too).
@@ -568,8 +536,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     /// Resume a paused download using saved resume data.
-    func resumeDownload(_ model: ModelMetadata) {
-        resumeDownload(filename: model.modelFile)
+    func resumeDownload(_ model: ModelCapabilityProfile) {
+        resumeDownload(filename: model.modelFile ?? model.id)
     }
 
     /// Resume by filename.
@@ -611,8 +579,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     /// Cancel an active download.
-    func cancelDownload(_ model: ModelMetadata) async {
-        await cancelDownload(filename: model.modelFile)
+    func cancelDownload(_ model: ModelCapabilityProfile) async {
+        await cancelDownload(filename: model.modelFile ?? model.id)
     }
 
     /// Cancel by filename (works for both registry and community downloads).
@@ -637,14 +605,15 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     }
 
     /// Retry a download that requires authentication.
-    func retryWithToken(_ model: ModelMetadata) {
-        downloadStates[model.modelFile] = .notDownloaded
+    func retryWithToken(_ model: ModelCapabilityProfile) {
+        let modelFile = model.modelFile ?? model.id
+        downloadStates[modelFile] = .notDownloaded
         download(model)
     }
 
     /// Delete a downloaded model file.
-    func deleteModel(_ model: ModelMetadata) {
-        deleteModel(filename: model.modelFile)
+    func deleteModel(_ model: ModelCapabilityProfile) {
+        deleteModel(filename: model.modelFile ?? model.id)
     }
 
     /// Delete a downloaded model by filename.
@@ -673,7 +642,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
 
     /// Download an arbitrary LiteRT model from HuggingFace using dynamic URL construction.
     ///
-    /// Unlike `download(_:)` which requires a pre-registered `ModelMetadata`, this method
+    /// Unlike `download(_:)` which requires a pre-registered `ModelCapabilityProfile`, this method
     /// works with any `HFModelInfo` by finding the `.litertlm` sibling file and constructing
     /// the download URL dynamically.
     ///
@@ -1388,9 +1357,8 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
                 if let httpResponse = task.response as? HTTPURLResponse {
                     if httpResponse.statusCode == 401 {
                         self.downloadStates[modelFile] = .authRequired
-                        // TODO: [Slice 4] Change pendingAuthModel to ModelCapabilityProfile
-                        if let model = ModelRegistry.knownModels.first(where: { $0.modelFile == modelFile }) {
-                            self.pendingAuthModel = model
+                        if let profile = KnownModelCatalog.allModels.first(where: { ($0.modelFile ?? $0.id) == modelFile }) {
+                            self.pendingAuthModel = profile
                         }
                         self.showTokenPrompt = true
                     } else if httpResponse.statusCode != 200 {

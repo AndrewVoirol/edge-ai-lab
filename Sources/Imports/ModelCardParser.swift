@@ -18,10 +18,10 @@ import os
 
 // MARK: - Model Card Parser
 
-/// Heuristic parser that infers `ModelMetadata` from HuggingFace API responses.
+/// Heuristic parser that infers `ModelCapabilityProfile` from HuggingFace API responses.
 ///
 /// `ModelCardParser` examines multiple signals from the HF API — tags, library name,
-/// sibling file listings, and README content — to build a best-effort `ModelMetadata`
+/// sibling file listings, and README content — to build a best-effort `ModelCapabilityProfile`
 /// for models not in the known registry.
 ///
 /// ## Inference Heuristics
@@ -47,18 +47,18 @@ enum ModelCardParser {
 
     // MARK: - Public API
 
-    /// Infer `ModelMetadata` and confidence from a HuggingFace model's API response.
+    /// Infer `ModelCapabilityProfile` and confidence from a HuggingFace model's API response.
     ///
     /// - Parameters:
     ///   - model: The HuggingFace model info (from list or detail endpoint).
     ///   - siblings: Optional file listing (from detail endpoint). Overrides `model.siblings` if provided.
     ///   - readmeContent: Optional README.md content for deeper analysis.
-    /// - Returns: A tuple of inferred `ModelMetadata` and `MetadataConfidence`.
+    /// - Returns: A tuple of inferred `ModelCapabilityProfile` and `MetadataConfidence`.
     static func inferMetadata(
         from model: HFModelInfo,
         siblings: [HFSibling]? = nil,
         readmeContent: String? = nil
-    ) -> (ModelMetadata, MetadataConfidence) {
+    ) -> (ModelCapabilityProfile, MetadataConfidence) {
         let effectiveSiblings = siblings ?? model.siblings
         var signalCount = 0
 
@@ -127,20 +127,52 @@ enum ModelCardParser {
         // — Display name
         let displayName = inferDisplayName(model: model, paramInfo: paramInfo, isWebVariant: isWebVariant)
 
-        // — Build metadata
-        let metadata = ModelMetadata(
-            name: displayName,
-            modelId: model.id,
-            modelFile: modelFile ?? "\(model.displayName).litertlm",
-            description: inferDescription(model: model, paramInfo: paramInfo),
-            sizeInBytes: sizeInBytes,
-            minDeviceMemoryGB: paramInfo.minMemoryGB,
-            contextWindowSize: contextWindow,
-            architectureType: archType,
-            recommendedFor: inferRecommendation(paramInfo: paramInfo, runtimeType: runtimeType),
-            supportsImage: supportsImage,
-            supportsAudio: supportsAudio,
-            capabilities: capabilities,
+        // — Capability sources
+        // Use .apiMetadata for data derived from HF API (tags, pipeline_tag, etc.)
+        // and .heuristic for name-based inference
+        let capSource: CapabilitySource = (model.tags.isEmpty && model.pipelineTag == nil) ? .heuristic : .apiMetadata
+        // archSource intentionally omitted — architecture info comes directly from model fields
+
+        // — Build profile
+        let profile = ModelCapabilityProfile(
+            id: modelFile ?? "\(model.displayName).litertlm",
+            displayName: displayName,
+            repoId: model.id,
+            runtimeType: runtimeType,
+            supportsVision: SourcedValue(supportsImage, source: capSource),
+            supportsAudio: SourcedValue(supportsAudio, source: capSource),
+            supportsThinking: SourcedValue(true, source: .heuristic),
+            supportsToolCalling: SourcedValue(false, source: .heuristic),
+            supportsMTP: SourcedValue(supportsMTP, source: readmeContent != nil ? .readme : .heuristic),
+            supportsConstrainedDecoding: SourcedValue(true, source: .heuristic),
+            architecture: ArchitectureInfo(
+                architectureClass: archType,
+                modelType: nil,
+                isMoE: archType.contains("MoE") || archType.contains("Edge"),
+                hiddenSize: nil,
+                numLayers: nil,
+                numAttentionHeads: nil,
+                numKeyValueHeads: nil,
+                vocabSize: nil,
+                headDim: nil,
+                maxImageResolution: nil,
+                dtype: nil,
+                quantizationBits: nil,
+                quantizationMethod: nil
+            ),
+            contextWindow: SourcedValue(contextWindow, source: model.contextLength != nil ? .apiMetadata : .heuristic),
+            fileSizeBytes: sizeInBytes,
+            estimatedMemoryGB: SourcedValue(paramInfo.minMemoryGB, source: model.totalParameters != nil ? .apiMetadata : .heuristic),
+            totalParameters: model.totalParameters,
+            parameterLabel: paramInfo.label,
+            confidence: scoreConfidence(signalCount: signalCount, hasReadme: readmeContent != nil),
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: model.downloads, likes: model.likes, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: model.tags,
             defaultConfig: ModelDefaultConfig(
                 topK: isWebVariant ? 1 : 64,
                 topP: isWebVariant ? 1.0 : 0.95,
@@ -151,7 +183,10 @@ enum ModelCardParser {
                 visionAccelerator: supportsImage ? "gpu" : nil
             ),
             platformSupport: platformSupport,
-            runtimeType: runtimeType
+            modelDescription: inferDescription(model: model, paramInfo: paramInfo),
+            recommendedFor: inferRecommendation(paramInfo: paramInfo, runtimeType: runtimeType),
+            modelFile: modelFile ?? "\(model.displayName).litertlm",
+            modelId: model.id
         )
 
         // — Confidence scoring
@@ -159,7 +194,7 @@ enum ModelCardParser {
 
         logger.info(
             """
-            📋 Inferred metadata for \(model.id, privacy: .public): \
+            📋 Inferred profile for \(model.id, privacy: .public): \
             runtime=\(runtimeType.displayName, privacy: .public), \
             file=\(modelFile ?? "unknown", privacy: .public), \
             size=\(sizeInBytes), \
@@ -168,7 +203,7 @@ enum ModelCardParser {
             """
         )
 
-        return (metadata, confidence)
+        return (profile, confidence)
     }
 
     // MARK: - Runtime Type Inference

@@ -13,8 +13,8 @@ import Foundation
 /// On macOS, it unifies the sidebar selection type for the detail column.
 enum ModelSource: Hashable {
 
-    /// A model with known metadata from the local registry or dynamic catalog.
-    case onDevice(ModelMetadata)
+    /// A model with a known capability profile from the local registry or dynamic catalog.
+    case onDevice(ModelCapabilityProfile)
 
     /// A community model discovered via HuggingFace API.
     case huggingFace(HFModelInfo)
@@ -22,8 +22,8 @@ enum ModelSource: Hashable {
     /// The display name for this model source.
     var displayName: String {
         switch self {
-        case .onDevice(let metadata):
-            return metadata.name
+        case .onDevice(let profile):
+            return profile.displayName
         case .huggingFace(let model):
             return model.id.components(separatedBy: "/").last ?? model.id
         }
@@ -42,8 +42,8 @@ enum ModelSource: Hashable {
     /// The unique model identifier (filename for on-device, repo ID for HuggingFace).
     var modelId: String {
         switch self {
-        case .onDevice(let metadata):
-            return metadata.modelFile
+        case .onDevice(let profile):
+            return profile.modelFile ?? profile.id
         case .huggingFace(let model):
             return model.id
         }

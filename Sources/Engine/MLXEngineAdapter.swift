@@ -199,6 +199,20 @@ final class MLXEngineAdapter: InferenceEngine, @unchecked Sendable {
     /// Used by EvalRunner and diagnostics to surface why vision isn't available.
     private(set) var vlmLoadError: Error?
 
+    // MARK: - Lifecycle Safety
+
+    deinit {
+        if modelContainer != nil {
+            // shutdown() was never called — Metal resources may have leaked.
+            // Clear the cache as a last-resort safety measure.
+            let modelName = modelInfo?.name ?? "unknown"
+            Self.logger.warning(
+                "⚠️ MLXEngineAdapter.deinit: shutdown() was never called for model '\(modelName, privacy: .public)'. Metal resources may have leaked. Always call shutdown() before releasing the adapter."
+            )
+            Memory.clearCache()
+        }
+    }
+
     // MARK: - Loading
 
     /// Detects whether a local model directory is a VLM by checking for vision processor configs.

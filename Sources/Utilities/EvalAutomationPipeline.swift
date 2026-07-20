@@ -158,17 +158,17 @@ struct EvalAutomationPipeline {
         
         // Run all suites against each model
         for discovered in modelsToRun {
-            let metadata = discovered.resolvedMetadata
-            let modelEntry = EvalModelEntry(metadata: metadata, modelPath: discovered.url.path, mmProjPath: discovered.mmProjPath)
+            let profile = discovered.resolvedMetadata
+            let modelEntry = EvalModelEntry(profile: profile, modelPath: discovered.url.path, mmProjPath: discovered.mmProjPath)
             let modelCacheDir = cachesDir.appendingPathComponent(discovered.filename)
             try? FileManager.default.createDirectory(at: modelCacheDir, withIntermediateDirectories: true)
             
-            automationLog("\n[AUTOMATION] ─── Model: \(metadata.name) (\(metadata.runtimeType.displayName)) ───")
+            automationLog("\n[AUTOMATION] ─── Model: \(profile.displayName) (\(profile.runtimeType.displayName)) ───")
             let multimodalInfo = [
-                metadata.supportsImage ? "vision" : nil,
-                metadata.supportsAudio ? "audio" : nil
+                profile.hasVision ? "vision" : nil,
+                profile.hasAudio ? "audio" : nil
             ].compactMap { $0 }.joined(separator: "+")
-            automationLog("[AUTOMATION]   Engine: \(metadata.runtimeType.displayName) | Multimodal: \(multimodalInfo.isEmpty ? "text-only" : multimodalInfo) | Start: cold (fresh engine per suite)")
+            automationLog("[AUTOMATION]   Engine: \(profile.runtimeType.displayName) | Multimodal: \(multimodalInfo.isEmpty ? "text-only" : multimodalInfo) | Start: cold (fresh engine per suite)")
             
             // Device state snapshot at model start
             let thermalState = DeviceMetrics.currentThermalLevel
@@ -190,12 +190,12 @@ struct EvalAutomationPipeline {
                 let suiteHasAudioPrompts = suite.prompts.contains { $0.isAudioPrompt }
                 let suiteIsMultimodalOnly = suiteHasImagePrompts || suiteHasAudioPrompts
                 
-                if suiteIsMultimodalOnly && suiteHasImagePrompts && !metadata.supportsImage {
+                if suiteIsMultimodalOnly && suiteHasImagePrompts && !profile.hasVision {
                     automationLog("[AUTOMATION]   ⏭️ Skipping '\(suite.name)': model does not support image input")
                     modelResults.append((suiteName: suite.name, passRate: -1.0, promptCount: suite.promptCount, failedPrompts: [], perf: nil))
                     continue
                 }
-                if suiteIsMultimodalOnly && suiteHasAudioPrompts && !metadata.supportsAudio {
+                if suiteIsMultimodalOnly && suiteHasAudioPrompts && !profile.hasAudio {
                     automationLog("[AUTOMATION]   ⏭️ Skipping '\(suite.name)': model does not support audio input")
                     modelResults.append((suiteName: suite.name, passRate: -1.0, promptCount: suite.promptCount, failedPrompts: [], perf: nil))
                     continue
@@ -288,7 +288,7 @@ struct EvalAutomationPipeline {
             
             // Print summary for this model
             automationLog("\n[AUTOMATION] ═══════════════════════════════════════════")
-            automationLog("[AUTOMATION] Results: \(metadata.name) (\(metadata.runtimeType.displayName))")
+            automationLog("[AUTOMATION] Results: \(profile.displayName) (\(profile.runtimeType.displayName))")
             automationLog("[AUTOMATION] ═══════════════════════════════════════════")
             
             for result in modelResults {
@@ -303,8 +303,8 @@ struct EvalAutomationPipeline {
             // Persist results for this model
             persistEvalHistory(
                 results: modelResults.map { (suiteName: $0.suiteName, passRate: $0.passRate, promptCount: $0.promptCount, failedPrompts: $0.failedPrompts, perf: $0.perf) },
-                model: metadata.modelFile,
-                engine: metadata.runtimeType.rawValue
+                model: profile.modelFile ?? profile.id,
+                engine: profile.runtimeType.rawValue
             )
         }
         
@@ -318,10 +318,10 @@ struct EvalAutomationPipeline {
                 
                 // Check regressions for the primary model only
                 if let primaryModel = discoveredModels.first {
-                    let primaryMetadata = primaryModel.resolvedMetadata
+                    let primaryProfile = primaryModel.resolvedMetadata
                     // Find results for primary model — they were already persisted above
                     // Just log the check as informational
-                    automationLog("[AUTOMATION]   Regression check target: \(primaryMetadata.name)")
+                    automationLog("[AUTOMATION]   Regression check target: \(primaryProfile.displayName)")
                 }
             } catch {
                 automationLog("[AUTOMATION] Warning: Could not run eval regression check: \(error.localizedDescription)")

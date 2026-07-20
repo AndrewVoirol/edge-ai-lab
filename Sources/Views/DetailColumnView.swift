@@ -75,28 +75,28 @@ private struct ModelDetailPanel: View {
     @Bindable var viewModel: ConversationViewModel
     @Binding var selectedModelId: String?
 
-    /// Resolved metadata for the selected model ID — checks the registry first,
-    /// then falls back to discovered models (which synthesize metadata from
-    /// filename heuristics for user-imported GGUF/community models).
-    private var selectedMetadata: ModelMetadata? {
+    /// Resolved profile for the selected model ID — checks the catalog first,
+    /// then falls back to discovered models (which provide profiles from
+    /// KnownModelCatalog lookup or synthesized from filename heuristics).
+    private var selectedProfile: ModelCapabilityProfile? {
         guard let modelId = selectedModelId else { return nil }
-        if let registryMatch = ModelRegistry.knownModels.first(where: { $0.modelFile == modelId }) {
-            return registryMatch
+        if let catalogMatch = KnownModelCatalog.allModels.first(where: { ($0.modelFile ?? $0.id) == modelId }) {
+            return catalogMatch
         }
-        // Use resolvedMetadata which always returns non-nil (synthesizes if needed)
+        // Use discovered model's profile (metadata is already ModelCapabilityProfile?)
         return viewModel.discoveredModels
             .first { $0.filename == modelId }?
-            .resolvedMetadata
+            .metadata
     }
 
     /// Whether the currently active model matches the selected model.
     /// Checks metadata identity first, then falls back to URL comparison
     /// for community models where metadata instances may differ.
     private var isActiveModel: Bool {
-        guard let selected = selectedMetadata else { return false }
+        guard let selected = selectedProfile else { return false }
         // Primary check: metadata-based identity
         if let active = viewModel.activeCapabilityProfile,
-           selected.modelFile == active.modelFile {
+           (selected.modelFile ?? selected.id) == active.modelFile {
             return true
         }
         // Fallback: URL-based identity for community/imported models
@@ -110,8 +110,8 @@ private struct ModelDetailPanel: View {
 
     var body: some View {
         Group {
-            if let metadata = selectedMetadata {
-                modelDetailContent(metadata)
+            if let profile = selectedProfile {
+                modelDetailContent(profile)
             } else {
                 emptyState
             }
@@ -122,7 +122,7 @@ private struct ModelDetailPanel: View {
     // MARK: - Model Detail Content
 
     @ViewBuilder
-    private func modelDetailContent(_ metadata: ModelMetadata) -> some View {
+    private func modelDetailContent(_ profile: ModelCapabilityProfile) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.xl) {
                 // MARK: Header — Name + Status
@@ -141,16 +141,25 @@ private struct ModelDetailPanel: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("modelDetail_backButton")
 
-                    Text(metadata.name)
+                    Text(profile.displayName)
                         .font(AppTypography.pageTitle)
                         .foregroundStyle(AppColors.textPrimary)
                         .accessibilityIdentifier("modelDetail_name")
 
-                    Text(metadata.description)
+                    Text(profile.modelDescription ?? "")
                         .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("modelDetail_description")
+
+                    // Confidence badge for dynamically-imported models
+                    if let dynamicEntry = viewModel.dynamicModelCatalog.allModels().first(where: { ($0.metadata.modelFile ?? $0.metadata.id) == (profile.modelFile ?? profile.id) }),
+                       dynamicEntry.source != .knownRegistry {
+                        Label(dynamicEntry.confidence.label,
+                              systemImage: dynamicEntry.confidence.symbolName)
+                            .badge(ConfidenceTier.color(for: dynamicEntry.confidence))
+                            .accessibilityIdentifier("modelDetail_confidenceBadge")
+                    }
 
                     // Status indicator
                     if isActiveModel {
@@ -209,16 +218,16 @@ private struct ModelDetailPanel: View {
 
                 // MARK: Capability Badges
                 ModelCapabilityBadges(
-                    metadata: metadata,
+                    profile: profile,
                     runtimeFlags: viewModel.runtimeFlags
                 )
                 .accessibilityIdentifier("modelDetail_badges")
 
                 // MARK: Stats Grid
-                statsGrid(for: metadata)
+                statsGrid(for: profile)
 
                 // MARK: Backend Info
-                backendInfoCard(for: metadata)
+                backendInfoCard(for: profile)
 
                 // MARK: Benchmark Summary
                 if isActiveModel, let metrics = viewModel.performanceMetrics {
@@ -238,7 +247,7 @@ private struct ModelDetailPanel: View {
 
     // MARK: - Stats Grid
 
-    private func statsGrid(for metadata: ModelMetadata) -> some View {
+    private func statsGrid(for profile: ModelCapabilityProfile) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("Specifications")
                 .font(AppTypography.sectionHeader)
@@ -253,7 +262,7 @@ private struct ModelDetailPanel: View {
                 statCell(
                     label: "File Size",
                     value: ByteCountFormatter.string(
-                        fromByteCount: metadata.sizeInBytes,
+                        fromByteCount: profile.fileSizeBytes ?? 0,
                         countStyle: .file
                     ),
                     icon: "doc.zipper",
@@ -263,7 +272,7 @@ private struct ModelDetailPanel: View {
                 // Min RAM
                 statCell(
                     label: "Min RAM",
-                    value: "\(metadata.minDeviceMemoryGB) GB",
+                    value: "\(profile.memoryGB ?? 8) GB",
                     icon: "memorychip",
                     color: AppColors.accentPrimary
                 )
@@ -271,7 +280,7 @@ private struct ModelDetailPanel: View {
                 // Context Window
                 statCell(
                     label: "Context",
-                    value: formatTokenCount(metadata.contextWindowSize),
+                    value: profile.contextWindowSize.map { formatTokenCount($0) } ?? "—",
                     icon: "text.alignleft",
                     color: AppColors.accentPrimary
                 )
@@ -307,7 +316,7 @@ private struct ModelDetailPanel: View {
 
     // MARK: - Backend Info Card
 
-    private func backendInfoCard(for metadata: ModelMetadata) -> some View {
+    private func backendInfoCard(for profile: ModelCapabilityProfile) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             Text("Backend")
                 .font(AppTypography.sectionHeader)
@@ -319,7 +328,7 @@ private struct ModelDetailPanel: View {
                     Text("Architecture")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
-                    Text(metadata.architectureType)
+                    Text(profile.architecture?.architectureClass ?? "Unknown")
                         .font(AppTypography.subtitle)
                         .foregroundStyle(AppColors.textPrimary)
                 }
@@ -333,7 +342,7 @@ private struct ModelDetailPanel: View {
                         .foregroundStyle(AppColors.textTertiary)
 
                     HStack(spacing: AppSpacing.xs) {
-                        let capability = metadata.platformSupport.currentPlatform
+                        let capability = (profile.platformSupport ?? PlatformSupport()).currentPlatform
                         if capability.supportsGPU {
                             Text("GPU")
                                 .badge(AppColors.accentPrimary)
@@ -350,7 +359,7 @@ private struct ModelDetailPanel: View {
                     Text("Recommended For")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
-                    Text(metadata.recommendedFor)
+                    Text(profile.recommendedFor ?? "")
                         .font(AppTypography.badge)
                         .foregroundStyle(AppColors.accentSecondary)
                 }

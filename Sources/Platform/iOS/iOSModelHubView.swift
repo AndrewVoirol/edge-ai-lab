@@ -38,7 +38,7 @@ import SwiftUI
 struct iOSModelHubView: View {
     @Environment(ConversationViewModel.self) private var viewModel
     @State private var searchText = ""
-    @State private var modelToDelete: ModelMetadata?
+    @State private var modelToDelete: ModelCapabilityProfile?
     @State private var showDeleteConfirmation = false
     @State private var sortOrder: ModelSortOrder = .recommended
 
@@ -56,42 +56,42 @@ struct iOSModelHubView: View {
     }
 
     /// Models that exist on disk (downloaded or discovered), excluding the active model.
-    private var onDeviceModels: [(metadata: ModelMetadata, url: URL, state: ModelDownloadManager.DownloadState)] {
-        var results: [(ModelMetadata, URL, ModelDownloadManager.DownloadState)] = []
+    private var onDeviceModels: [(profile: ModelCapabilityProfile, url: URL, state: ModelDownloadManager.DownloadState)] {
+        var results: [(ModelCapabilityProfile, URL, ModelDownloadManager.DownloadState)] = []
 
         // Include discovered models (on-disk .litertlm files)
         for discovered in viewModel.discoveredModels {
-            guard let metadata = discovered.metadata else { continue }
+            guard let profile = discovered.metadata else { continue }
             // Skip the active model — it's in "Now Running"
-            if metadata.modelFile == activeModel?.modelFile { continue }
+            if (profile.modelFile ?? profile.id) == activeModel?.modelFile { continue }
             // Apply search filter
-            if !matchesSearch(metadata) { continue }
-            results.append((metadata, discovered.url, .downloaded(discovered.url)))
+            if !matchesSearch(profile) { continue }
+            results.append((profile, discovered.url, .downloaded(discovered.url)))
         }
 
         // Include models that are actively downloading, queued, or paused
-        for model in ModelRegistry.knownModels {
+        for model in KnownModelCatalog.allModels {
             let state = viewModel.downloadManager.checkState(for: model)
             switch state {
             case .downloading(let progress):
                 if !matchesSearch(model) { continue }
-                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                if results.contains(where: { ($0.0.modelFile ?? $0.0.id) == (model.modelFile ?? model.id) }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .downloading(progress: progress)))
             case .downloadingDirectory(let progress, let completed, let total):
                 if !matchesSearch(model) { continue }
-                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                if results.contains(where: { ($0.0.modelFile ?? $0.0.id) == (model.modelFile ?? model.id) }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .downloadingDirectory(progress: progress, completedFiles: completed, totalFiles: total)))
             case .queued(let position):
                 if !matchesSearch(model) { continue }
-                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                if results.contains(where: { ($0.0.modelFile ?? $0.0.id) == (model.modelFile ?? model.id) }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .queued(position: position)))
             case .paused(let data, let progress):
                 if !matchesSearch(model) { continue }
-                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                if results.contains(where: { ($0.0.modelFile ?? $0.0.id) == (model.modelFile ?? model.id) }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .paused(resumeData: data, progress: progress)))
             case .pausedDirectory(let progress, let completed, let total):
                 if !matchesSearch(model) { continue }
-                if results.contains(where: { $0.0.modelFile == model.modelFile }) { continue }
+                if results.contains(where: { ($0.0.modelFile ?? $0.0.id) == (model.modelFile ?? model.id) }) { continue }
                 results.append((model, URL(fileURLWithPath: ""), .pausedDirectory(progress: progress, completedFiles: completed, totalFiles: total)))
             default:
                 break
@@ -124,13 +124,13 @@ struct iOSModelHubView: View {
                 viewModel.downloadManager.refreshStates()
                 await browser.refreshGemmaModels()
             }
-            .navigationDestination(for: ModelMetadata.self) { metadata in
-                iOSModelDetailView(metadata: metadata)
+            .navigationDestination(for: ModelCapabilityProfile.self) { profile in
+                iOSModelDetailView(profile: profile)
             }
             .navigationDestination(for: ModelSource.self) { source in
                 switch source {
-                case .onDevice(let metadata):
-                    iOSModelDetailView(metadata: metadata)
+                case .onDevice(let profile):
+                    iOSModelDetailView(profile: profile)
                 case .huggingFace(let hfModel):
                     iOSHFModelDetailView(
                         model: hfModel,
@@ -166,7 +166,7 @@ struct iOSModelHubView: View {
                 Button("Cancel", role: .cancel) {}
                     .accessibilityIdentifier("button_deleteCancelAlert")
             } message: { model in
-                Text("This will remove \"\(model.name)\" from your device. You can re-download it later.")
+                Text("This will remove \"\(model.displayName)\" from your device. You can re-download it later.")
             }
 
             .sheet(isPresented: $showURLImport) {
@@ -229,38 +229,38 @@ struct iOSModelHubView: View {
         let models = onDeviceModels
         if !models.isEmpty {
             Section("On This Device") {
-                ForEach(models, id: \.metadata.modelFile) { item in
+                ForEach(models, id: \.profile.id) { item in
                     onDeviceModelRow(item: item)
                 }
             }
         }
     }
 
-    private func onDeviceModelRow(item: (metadata: ModelMetadata, url: URL, state: ModelDownloadManager.DownloadState)) -> some View {
-        NavigationLink(value: item.metadata) {
+    private func onDeviceModelRow(item: (profile: ModelCapabilityProfile, url: URL, state: ModelDownloadManager.DownloadState)) -> some View {
+        NavigationLink(value: item.profile) {
             iOSModelRow(
-                metadata: item.metadata,
+                profile: item.profile,
                 downloadState: item.state,
                 onDownloadTap: {
-                    viewModel.downloadManager.download(item.metadata)
+                    viewModel.downloadManager.download(item.profile)
                 },
                 onCancelTap: {
-                    Task { await viewModel.downloadManager.cancelDownload(item.metadata) }
+                    Task { await viewModel.downloadManager.cancelDownload(item.profile) }
                 },
                 onRetryTap: {
-                    viewModel.downloadManager.download(item.metadata)
+                    viewModel.downloadManager.download(item.profile)
                 },
                 onPauseTap: {
-                    Task { await viewModel.downloadManager.pauseDownload(item.metadata) }
+                    Task { await viewModel.downloadManager.pauseDownload(item.profile) }
                 },
                 onResumeTap: {
-                    viewModel.downloadManager.resumeDownload(item.metadata)
+                    viewModel.downloadManager.resumeDownload(item.profile)
                 }
             )
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                modelToDelete = item.metadata
+                modelToDelete = item.profile
                 showDeleteConfirmation = true
             } label: {
                 Label("Delete", systemImage: "trash")
@@ -272,19 +272,19 @@ struct iOSModelHubView: View {
         .contextMenu {
             Button {
                 viewModel.showcaseModelURL = item.url
-                viewModel.showcaseModel = item.metadata
+                viewModel.showcaseModel = item.profile
             } label: {
                 Label("Model Info", systemImage: "info.circle")
             }
-            .accessibilityIdentifier("modelRow_context_info_\(item.metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_context_info_\(item.profile.modelFile ?? item.profile.id)")
 
             Button(role: .destructive) {
-                modelToDelete = item.metadata
+                modelToDelete = item.profile
                 showDeleteConfirmation = true
             } label: {
                 Label("Delete Model", systemImage: "trash")
             }
-            .accessibilityIdentifier("modelRow_context_delete_\(item.metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_context_delete_\(item.profile.modelFile ?? item.profile.id)")
         }
     }
 
@@ -626,30 +626,30 @@ struct iOSModelHubView: View {
 
     // MARK: - Helpers
 
-    private func matchesSearch(_ metadata: ModelMetadata) -> Bool {
+    private func matchesSearch(_ profile: ModelCapabilityProfile) -> Bool {
         guard !searchText.isEmpty else { return true }
         let query = searchText.lowercased()
-        return metadata.name.lowercased().contains(query)
-            || metadata.architectureType.lowercased().contains(query)
-            || metadata.description.lowercased().contains(query)
+        return profile.displayName.lowercased().contains(query)
+            || (profile.architecture?.architectureClass ?? "").lowercased().contains(query)
+            || (profile.modelDescription ?? "").lowercased().contains(query)
     }
 
-    private func sortModels(_ models: [(ModelMetadata, URL, ModelDownloadManager.DownloadState)]) -> [(metadata: ModelMetadata, url: URL, state: ModelDownloadManager.DownloadState)] {
+    private func sortModels(_ models: [(ModelCapabilityProfile, URL, ModelDownloadManager.DownloadState)]) -> [(profile: ModelCapabilityProfile, url: URL, state: ModelDownloadManager.DownloadState)] {
         switch sortOrder {
         case .recommended:
             return models // Keep registry order (flagship first)
         case .name:
-            return models.sorted { $0.0.name < $1.0.name }
+            return models.sorted { $0.0.displayName < $1.0.displayName }
         case .size:
-            return models.sorted { $0.0.sizeInBytes < $1.0.sizeInBytes }
+            return models.sorted { ($0.0.fileSizeBytes ?? 0) < ($1.0.fileSizeBytes ?? 0) }
         }
     }
 
 
 
     /// Delete a model using the centralized download manager.
-    private func deleteModel(_ metadata: ModelMetadata) {
-        viewModel.downloadManager.deleteModel(metadata)
+    private func deleteModel(_ profile: ModelCapabilityProfile) {
+        viewModel.downloadManager.deleteModel(profile)
 
         // Refresh the model list
         viewModel.refreshDiscoveredModels()

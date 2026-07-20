@@ -126,11 +126,11 @@ final class SidebarModelLoadTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         let dm = ModelDownloadManager(configuration: config, documentsDirectory: tempDir)
 
-        // Create a model that exists in the registry
-        let model = ModelRegistry.gemma4E2BStandard
+        // Create a model that exists in the catalog
+        let model = KnownModelCatalog.gemma4E2BStandard
 
         // Create the file at the expected location
-        let fileURL = tempDir.appendingPathComponent(model.modelFile)
+        let fileURL = tempDir.appendingPathComponent(model.modelFile ?? "")
         try Data("fake model".utf8).write(to: fileURL)
 
         let state = dm.checkState(for: model)
@@ -138,7 +138,7 @@ final class SidebarModelLoadTests: XCTestCase {
             XCTFail("Expected .downloaded state for existing file, got: \(state)")
             return
         }
-        XCTAssertEqual(url.lastPathComponent, model.modelFile)
+        XCTAssertEqual(url.lastPathComponent, model.modelFile ?? "")
     }
 
     /// After deleteModel, state should return to .notDownloaded.
@@ -146,8 +146,8 @@ final class SidebarModelLoadTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         let dm = ModelDownloadManager(configuration: config, documentsDirectory: tempDir)
 
-        let model = ModelRegistry.gemma4E2BStandard
-        let fileURL = tempDir.appendingPathComponent(model.modelFile)
+        let model = KnownModelCatalog.gemma4E2BStandard
+        let fileURL = tempDir.appendingPathComponent(model.modelFile ?? "")
         try Data("fake model".utf8).write(to: fileURL)
 
         // Establish downloaded state
@@ -156,7 +156,7 @@ final class SidebarModelLoadTests: XCTestCase {
         // Delete
         dm.deleteModel(model)
 
-        guard case .notDownloaded = dm.downloadStates[model.modelFile] else {
+        guard case .notDownloaded = dm.downloadStates[model.modelFile ?? ""] else {
             XCTFail("Expected .notDownloaded after delete")
             return
         }
@@ -218,10 +218,10 @@ final class SidebarModelLoadTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         let dm = ModelDownloadManager(configuration: config, documentsDirectory: tempDir)
 
-        let model = ModelRegistry.gemma4E2BStandard
+        let model = KnownModelCatalog.gemma4E2BStandard
 
         // Create the file at the expected location
-        let fileURL = tempDir.appendingPathComponent(model.modelFile)
+        let fileURL = tempDir.appendingPathComponent(model.modelFile ?? "")
         try Data("fake model".utf8).write(to: fileURL)
 
         // First check should set .downloaded

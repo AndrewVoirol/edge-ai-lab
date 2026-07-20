@@ -62,10 +62,10 @@ enum EvalRunnerState: Sendable, Equatable {
 
 // MARK: - Model Entry
 
-/// A model to evaluate, pairing its metadata with the on-disk file path.
+/// A model to evaluate, pairing its capability profile with the on-disk file path.
 struct EvalModelEntry: Sendable {
-    /// Metadata for the model (name, capabilities, etc.).
-    let metadata: ModelMetadata
+    /// Capability profile for the model (name, capabilities, etc.).
+    let profile: ModelCapabilityProfile
 
     /// Absolute path to the model file on disk.
     let modelPath: String
@@ -237,9 +237,9 @@ final class EvalRunner {
             }
 
             currentModelIndex = modelIdx
-            progressDescription = "Loading \(modelEntry.metadata.name)…"
+            progressDescription = "Loading \(modelEntry.profile.displayName)…"
 
-            Self.logger.info("📦 Evaluating model \(modelIdx + 1)/\(models.count): \(modelEntry.metadata.name, privacy: .public)")
+            Self.logger.info("📦 Evaluating model \(modelIdx + 1)/\(models.count): \(modelEntry.profile.displayName, privacy: .public)")
 
             do {
                 let modelResult = try await evaluateModel(
@@ -251,12 +251,12 @@ final class EvalRunner {
                 )
                 allModelResults.append(modelResult)
             } catch {
-                Self.logger.error("❌ Model evaluation failed: \(modelEntry.metadata.name, privacy: .public) — \(error.localizedDescription, privacy: .public)")
+                Self.logger.error("❌ Model evaluation failed: \(modelEntry.profile.displayName, privacy: .public) — \(error.localizedDescription, privacy: .public)")
 
                 // Create a failed result for this model
                 let failedResult = ModelEvalResult(
-                    modelName: modelEntry.metadata.name,
-                    modelFile: modelEntry.metadata.modelFile,
+                    modelName: modelEntry.profile.displayName,
+                    modelFile: modelEntry.profile.modelFile ?? modelEntry.profile.id,
                     avgDecodeSpeed: 0,
                     avgTTFT: 0,
                     p95Latency: 0,
@@ -266,11 +266,11 @@ final class EvalRunner {
                     passRate: 0,
                     peakMemoryDeltaMB: nil,
                     thermalTransitions: 0,
-                    runtimeType: modelEntry.metadata.runtimeType.rawValue,
-                    contextWindowSize: modelEntry.metadata.contextWindowSize,
-                    supportsImage: modelEntry.metadata.supportsImage,
-                    supportsAudio: modelEntry.metadata.supportsAudio,
-                    architectureType: modelEntry.metadata.architectureType
+                    runtimeType: modelEntry.profile.runtimeType.rawValue,
+                    contextWindowSize: modelEntry.profile.contextWindowSize,
+                    supportsImage: modelEntry.profile.hasVision,
+                    supportsAudio: modelEntry.profile.hasAudio,
+                    architectureType: modelEntry.profile.architecture?.architectureClass ?? "Unknown"
                 )
                 allModelResults.append(failedResult)
             }
@@ -349,7 +349,7 @@ final class EvalRunner {
         cacheDir: String,
         runsPerPrompt: Int = 1
     ) async throws -> ModelEvalResult {
-        let metadata = modelEntry.metadata
+        let profile = modelEntry.profile
 
         // Shut down any existing engine session from a previous model
         await engine?.shutdown()
@@ -357,8 +357,8 @@ final class EvalRunner {
 
         // Create a fresh engine for this model's runtime type.
         // Each model gets its own engine instance — no reuse across models.
-        let requiredRuntime = metadata.runtimeType
-        Self.logger.info("🔧 Creating \(requiredRuntime.displayName, privacy: .public) engine for \(metadata.name, privacy: .public)")
+        let requiredRuntime = profile.runtimeType
+        Self.logger.info("🔧 Creating \(requiredRuntime.displayName, privacy: .public) engine for \(profile.displayName, privacy: .public)")
 
         let engine: any InferenceEngine
         do {
@@ -393,18 +393,18 @@ final class EvalRunner {
 
         let loadConfig = ModelLoadConfig(
             modelPath: modelEntry.modelPath,
-            preferGPU: metadata.platformSupport.currentPlatform.supportsGPU,
+            preferGPU: (profile.platformSupport ?? PlatformSupport()).currentPlatform.supportsGPU,
             cacheDir: cacheDir,
             systemMessage: nil,
             tools: tools,
-            supportsVision: metadata.supportsImage,
-            supportsAudio: metadata.supportsAudio,
+            supportsVision: profile.hasVision,
+            supportsAudio: profile.hasAudio,
             runtimeFlags: evalFlags,
             mmProjPath: modelEntry.mmProjPath
         )
         try await engine.loadModel(config: loadConfig)
 
-        Self.logger.info("✅ Engine initialized for eval: \(metadata.name, privacy: .public)")
+        Self.logger.info("✅ Engine initialized for eval: \(profile.displayName, privacy: .public)")
         Self.logger.info("🔧 Engine loaded: runtime=\(engine.runtimeType.displayName, privacy: .public), supportsToolCalling=\(engine.supportsToolCalling, privacy: .public), tools=\(tools?.count ?? 0, privacy: .public)")
 
         // Track metrics across prompts
@@ -465,7 +465,7 @@ final class EvalRunner {
 
             let promptResult = await evaluatePrompt(
                 prompt: prompt,
-                metadata: metadata,
+                profile: profile,
                 timeout: prompt.timeoutSeconds,
                 tools: tools ?? []
             )
@@ -493,7 +493,7 @@ final class EvalRunner {
 
                     let repResult = await evaluatePrompt(
                         prompt: prompt,
-                        metadata: metadata,
+                        profile: profile,
                         timeout: prompt.timeoutSeconds,
                         tools: tools ?? []
                     )
@@ -604,8 +604,8 @@ final class EvalRunner {
         }
 
         return ModelEvalResult(
-            modelName: metadata.name,
-            modelFile: metadata.modelFile,
+            modelName: profile.displayName,
+            modelFile: profile.modelFile ?? profile.id,
             avgDecodeSpeed: avgSpeed,
             avgTTFT: avgTTFT,
             avgPrefillSpeed: avgPrefill,
@@ -617,11 +617,11 @@ final class EvalRunner {
             toolCallAccuracy: toolCallAccuracy,
             peakMemoryDeltaMB: peakMemoryDelta > 0 ? peakMemoryDelta : nil,
             thermalTransitions: thermalTransitions,
-            runtimeType: metadata.runtimeType.rawValue,
-            contextWindowSize: metadata.contextWindowSize,
-            supportsImage: metadata.supportsImage,
-            supportsAudio: metadata.supportsAudio,
-            architectureType: metadata.architectureType
+            runtimeType: profile.runtimeType.rawValue,
+            contextWindowSize: profile.contextWindowSize,
+            supportsImage: profile.hasVision,
+            supportsAudio: profile.hasAudio,
+            architectureType: profile.architecture?.architectureClass ?? "Unknown"
         )
     }
 
@@ -630,7 +630,7 @@ final class EvalRunner {
     /// Evaluate a single prompt: run inference, capture metrics, score the result.
     private func evaluatePrompt(
         prompt: EvalPrompt,
-        metadata: ModelMetadata,
+        profile: ModelCapabilityProfile,
         timeout: Int,
         tools: [any AppTool]
     ) async -> PromptEvalResult {
@@ -682,7 +682,7 @@ final class EvalRunner {
                 duration: 0
             )
         }
-        if prompt.isAudioPrompt && !metadata.supportsAudio {
+        if prompt.isAudioPrompt && !profile.hasAudio {
             return PromptEvalResult(
                 promptId: prompt.id,
                 promptText: prompt.prompt,

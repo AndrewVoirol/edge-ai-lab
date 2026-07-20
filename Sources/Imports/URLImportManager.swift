@@ -189,11 +189,12 @@ final class URLImportManager {
         }
 
         // Step 2: Check if already in known registry
-        if let known = ModelRegistry.knownModels.first(where: { $0.modelId == parsed.repoId }) {
+        if let known = KnownModelCatalog.lookup(repoId: parsed.repoId) {
             let dynamicMeta = DynamicModelMetadata.fromKnownModel(known)
             // Verify the model file actually exists on disk
             let localModels = GalleryModelDiscovery.discoverModels()
-            if localModels.contains(where: { $0.filename == known.modelFile }) {
+            let knownFile = known.modelFile ?? known.id
+            if localModels.contains(where: { $0.filename == knownFile }) {
                 state = .complete(metadata: dynamicMeta)
                 lastImportedModel = dynamicMeta
                 Self.logger.info("✅ Model already in known registry and on disk: \(parsed.repoId, privacy: .public)")
@@ -208,7 +209,7 @@ final class URLImportManager {
         if let existing = catalog.find(id: parsed.repoId) {
             // Verify the model file actually exists on disk
             let localModels = GalleryModelDiscovery.discoverModels()
-            if localModels.contains(where: { $0.filename == existing.metadata.modelFile }) {
+            if localModels.contains(where: { $0.filename == (existing.metadata.modelFile ?? existing.metadata.id) }) {
                 state = .complete(metadata: existing)
                 lastImportedModel = existing
                 Self.logger.info("✅ Model already imported: \(parsed.repoId, privacy: .public)")

@@ -26,22 +26,33 @@ final class DynamicModelMetadataTests: XCTestCase {
 
   // MARK: - Helpers
 
-  private func makeTestModelMetadata(
+  private func makeTestProfile(
     modelFile: String = "test-model.litertlm"
-  ) -> ModelMetadata {
-    ModelMetadata(
-      name: "Test Model",
-      modelId: "test-org/test-model",
-      modelFile: modelFile,
-      description: "A test model",
-      sizeInBytes: 1_000_000,
-      minDeviceMemoryGB: 4,
-      contextWindowSize: 128_000,
-      architectureType: "Test Arch",
-      recommendedFor: "Testing",
-      supportsImage: false,
-      supportsAudio: false,
-      capabilities: ["llm_thinking"],
+  ) -> ModelCapabilityProfile {
+    ModelCapabilityProfile(
+      id: modelFile,
+      displayName: "Test Model",
+      repoId: nil,
+      runtimeType: .litertlm,
+      supportsVision: SourcedValue(false, source: .catalog),
+      supportsAudio: SourcedValue(false, source: .catalog),
+      supportsThinking: SourcedValue(true, source: .catalog),
+      supportsToolCalling: nil,
+      supportsMTP: nil,
+      supportsConstrainedDecoding: nil,
+      architecture: nil,
+      contextWindow: SourcedValue(128_000, source: .catalog),
+      fileSizeBytes: 1_000_000,
+      estimatedMemoryGB: SourcedValue(4, source: .catalog),
+      totalParameters: nil,
+      parameterLabel: nil,
+      confidence: .verified,
+      source: .knownRegistry,
+      lastUpdated: Date(),
+      repoSha: nil,
+      license: nil, licenseLink: nil, baseModelId: nil,
+      downloads: nil, likes: nil, downloadsAllTime: nil,
+      supportedLanguages: [], tags: [],
       defaultConfig: ModelDefaultConfig(
         topK: 64,
         topP: 0.95,
@@ -56,7 +67,10 @@ final class DynamicModelMetadataTests: XCTestCase {
         iOSDevice: .gpuAndCpu,
         iOSSimulator: .cpuOnly
       ),
-      runtimeType: .litertlm
+      modelDescription: "A test model",
+      recommendedFor: nil,
+      modelFile: modelFile,
+      modelId: "test-org/test-model"
     )
   }
 
@@ -157,32 +171,32 @@ final class DynamicModelMetadataTests: XCTestCase {
   // MARK: - DynamicModelMetadata — fromKnownModel
 
   func testFromKnownModel_setsSourceToKnownRegistry() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertEqual(entry.source, .knownRegistry)
   }
 
   func testFromKnownModel_setsConfidenceToVerified() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertEqual(entry.confidence, .verified)
   }
 
   func testFromKnownModel_setsIdFromModelFile() {
-    let model = makeTestModelMetadata(modelFile: "custom-model.litertlm")
+    let model = makeTestProfile(modelFile: "custom-model.litertlm")
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertEqual(entry.id, "custom-model.litertlm")
   }
 
   func testFromKnownModel_setsLastVerifiedAt() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertNotNil(entry.lastVerifiedAt)
     XCTAssertEqual(entry.lastVerifiedAt, Date.distantPast)
   }
 
   func testFromKnownModel_userNotesAreNil() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromKnownModel(model)
     XCTAssertNil(entry.userNotes)
   }
@@ -190,7 +204,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   // MARK: - DynamicModelMetadata — fromHuggingFace
 
   func testFromHuggingFace_setsSourceToHuggingFaceInferred() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromHuggingFace(
       repoId: "org/repo", metadata: model, confidence: .high
     )
@@ -198,7 +212,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   }
 
   func testFromHuggingFace_setsConfidenceFromParameter() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entryHigh = DynamicModelMetadata.fromHuggingFace(
       repoId: "org/repo", metadata: model, confidence: .high
     )
@@ -211,7 +225,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   }
 
   func testFromHuggingFace_setsIdFromRepoId() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromHuggingFace(
       repoId: "litert-community/gemma-model", metadata: model, confidence: .medium
     )
@@ -219,7 +233,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   }
 
   func testFromHuggingFace_lastVerifiedAtIsNil() {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromHuggingFace(
       repoId: "org/repo", metadata: model, confidence: .high
     )
@@ -229,7 +243,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   // MARK: - DynamicModelMetadata — Codable Round-Trip
 
   func testDynamicModelMetadata_codableRoundTrip_knownModel() throws {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata.fromKnownModel(model)
 
     let encoder = JSONEncoder()
@@ -243,14 +257,14 @@ final class DynamicModelMetadataTests: XCTestCase {
     XCTAssertEqual(decoded.id, entry.id)
     XCTAssertEqual(decoded.source, entry.source)
     XCTAssertEqual(decoded.confidence, entry.confidence)
-    XCTAssertEqual(decoded.metadata.name, entry.metadata.name)
+    XCTAssertEqual(decoded.metadata.displayName, entry.metadata.displayName)
     XCTAssertEqual(decoded.metadata.modelFile, entry.metadata.modelFile)
     XCTAssertEqual(decoded.metadata.modelId, entry.metadata.modelId)
     XCTAssertNil(decoded.userNotes)
   }
 
   func testDynamicModelMetadata_codableRoundTrip_huggingFace() throws {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     var entry = DynamicModelMetadata.fromHuggingFace(
       repoId: "org/hf-model", metadata: model, confidence: .high
     )
@@ -272,7 +286,7 @@ final class DynamicModelMetadataTests: XCTestCase {
   }
 
   func testDynamicModelMetadata_codableRoundTrip_userProvided() throws {
-    let model = makeTestModelMetadata()
+    let model = makeTestProfile()
     let entry = DynamicModelMetadata(
       id: "user-model",
       source: .userProvided,
@@ -299,17 +313,16 @@ final class DynamicModelMetadataTests: XCTestCase {
   // MARK: - DynamicModelMetadata — Metadata Preservation
 
   func testFromKnownModel_preservesMetadataFields() {
-    let model = makeTestModelMetadata(modelFile: "preserve-test.litertlm")
+    let model = makeTestProfile(modelFile: "preserve-test.litertlm")
     let entry = DynamicModelMetadata.fromKnownModel(model)
 
-    XCTAssertEqual(entry.metadata.name, "Test Model")
+    XCTAssertEqual(entry.metadata.displayName, "Test Model")
     XCTAssertEqual(entry.metadata.modelId, "test-org/test-model")
     XCTAssertEqual(entry.metadata.modelFile, "preserve-test.litertlm")
-    XCTAssertEqual(entry.metadata.sizeInBytes, 1_000_000)
+    XCTAssertEqual(entry.metadata.fileSizeBytes, 1_000_000)
     XCTAssertEqual(entry.metadata.contextWindowSize, 128_000)
-    XCTAssertFalse(entry.metadata.supportsImage)
-    XCTAssertFalse(entry.metadata.supportsAudio)
-    XCTAssertEqual(entry.metadata.capabilities, ["llm_thinking"])
+    XCTAssertFalse(entry.metadata.hasVision)
+    XCTAssertFalse(entry.metadata.hasAudio)
     XCTAssertEqual(entry.metadata.runtimeType, .litertlm)
   }
 }

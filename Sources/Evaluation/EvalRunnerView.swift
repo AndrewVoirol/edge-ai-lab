@@ -457,8 +457,8 @@ struct EvalRunnerView: View {
 
     private func modelRow(_ model: DiscoveredModel) -> some View {
         let isSelected = selectedModelFiles.contains(model.filename)
-        let metadata = model.resolvedMetadata
-        let normalized = ModelDetailFormatters.normalizeDisplayName(metadata.name)
+        let profile = model.resolvedMetadata
+        let normalized = ModelDetailFormatters.normalizeDisplayName(profile.displayName)
         let split = ModelDetailFormatters.splitModelName(normalized)
 
         return Button {
@@ -497,7 +497,7 @@ struct EvalRunnerView: View {
 
                     HStack(spacing: AppSpacing.xs) {
                         // Runtime type badge
-                        Text(metadata.runtimeType.rawValue)
+                        Text(profile.runtimeType.rawValue)
                             .badge(AppColors.accentSecondary)
 
                         Text(model.formattedSize)
@@ -505,15 +505,15 @@ struct EvalRunnerView: View {
                             .foregroundStyle(AppColors.textTertiary)
 
                         // Capability badges
-                        if metadata.supportsImage {
+                        if profile.hasVision {
                             Text("Vision")
                                 .badge(AppColors.capabilityVision)
                         }
-                        if metadata.supportsAudio {
+                        if profile.hasAudio {
                             Text("Audio")
                                 .badge(AppColors.capabilityAudio)
                         }
-                        if metadata.supportsMTP {
+                        if profile.hasMTP {
                             Text("Spec. Dec")
                                 .badge(AppColors.capabilityMTP)
                         }
@@ -962,13 +962,13 @@ struct EvalRunnerView: View {
         evalErrorMessage = nil
 
         // Build model entries from selected filenames.
-        // Use resolvedMetadata (never nil) instead of metadata (nil for imported models)
+        // Use resolvedMetadata (never nil) instead of profile (nil for imported models)
         // to ensure all discovered models can participate in evaluation.
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
             .filter { selectedModelFiles.contains($0.filename) }
             .map { discovered in
                 EvalModelEntry(
-                    metadata: discovered.resolvedMetadata,
+                    profile: discovered.resolvedMetadata,
                     modelPath: discovered.url.path,
                     mmProjPath: discovered.mmProjPath
                 )
@@ -979,7 +979,7 @@ struct EvalRunnerView: View {
             return
         }
 
-        Self.logger.info("▶️ Starting eval: suite='\(suite.name, privacy: .public)' (\(suite.promptCount, privacy: .public) prompts), models=\(modelEntries.map { $0.metadata.name }.description, privacy: .public)")
+        Self.logger.info("▶️ Starting eval: suite='\(suite.name, privacy: .public)' (\(suite.promptCount, privacy: .public) prompts), models=\(modelEntries.map { $0.profile.displayName }.description, privacy: .public)")
         Self.logger.debug("📂 Model paths: \(modelEntries.map { $0.modelPath }.description, privacy: .public)")
 
         // Create the runner — creates its own engine per model based on runtimeType
@@ -1023,13 +1023,13 @@ struct EvalRunnerView: View {
     // MARK: - Batch Eval Execution
 
     /// Build a plan using all available suites and all discovered models.
-    /// Uses resolvedMetadata so imported/community models without registry
+    /// Uses resolvedProfile so imported/community models without registry
     /// entries are included in the batch plan and model count.
     private func buildBatchPlan() -> BatchEvalPlan {
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
             .map { discovered in
                 EvalModelEntry(
-                    metadata: discovered.resolvedMetadata,
+                    profile: discovered.resolvedMetadata,
                     modelPath: discovered.url.path,
                     mmProjPath: discovered.mmProjPath
                 )
@@ -1053,7 +1053,7 @@ struct EvalRunnerView: View {
         evalErrorMessage = nil
 
         Self.logger.info("▶️ Starting batch eval: \(plan.description, privacy: .public)")
-        Self.logger.info("📦 Models: \(plan.models.map { $0.metadata.name }.description, privacy: .public)")
+        Self.logger.info("📦 Models: \(plan.models.map { $0.profile.displayName }.description, privacy: .public)")
         Self.logger.info("📋 Suites: \(plan.suites.map { $0.name }.description, privacy: .public)")
 
         isBatchRunning = true

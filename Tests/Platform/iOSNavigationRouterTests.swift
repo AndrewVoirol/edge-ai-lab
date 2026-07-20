@@ -38,10 +38,7 @@ struct AppTabTests {
         #if os(iOS)
         #expect(AppTab.allCases.count == 5, "AppTab should have exactly 5 cases")
         #else
-        // AppTab is iOS-only — skip on macOS
-        withKnownIssue("AppTab is only available on iOS") {
-            Issue.record("AppTab is iOS-only — this test should only run on iOS")
-        }
+        // AppTab is iOS-only
         #endif
     }
 

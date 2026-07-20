@@ -112,7 +112,7 @@ struct ArchitectureInfo: Codable, Sendable, Hashable {
 ///
 /// Built progressively as information becomes available:
 /// 1. **At browse time**: from HF API response (`HFModelInfo`)
-/// 2. **At download/import**: from config.json parsing + `ModelMetadata`
+/// 2. **At download/import**: from config.json parsing + `KnownModelCatalog`
 /// 3. **At load time**: from engine runtime state
 ///
 /// Persisted to disk for offline access. Lazily refreshed in background.
@@ -383,7 +383,7 @@ extension ModelCapabilityProfile {
 /// The builder follows a priority cascade:
 /// 1. config.json data (most authoritative)
 /// 2. HuggingFace API metadata
-/// 3. ModelMetadata (from registry or card parser)
+/// 3. KnownModelCatalog (hand-verified profiles)
 /// 4. Heuristics (model name patterns)
 ///
 /// Each field records its source via `SourcedValue`, enabling the UI
@@ -553,74 +553,6 @@ enum ModelCapabilityProfileBuilder {
         )
     }
 
-    /// Build a profile from existing ModelMetadata (for registry or imported models).
-    ///
-    /// Used for models already in the catalog. Less rich than config.json-derived
-    /// profiles, but provides backward compatibility during the registry phase-out.
-    static func fromModelMetadata(
-        _ metadata: ModelMetadata,
-        source: MetadataSource = .knownRegistry,
-        confidence: MetadataConfidence = .verified
-    ) -> ModelCapabilityProfile {
-        let capSource: CapabilitySource = source == .knownRegistry ? .catalog : .heuristic
-
-        return ModelCapabilityProfile(
-            id: metadata.modelFile,
-            displayName: metadata.name,
-            repoId: metadata.modelId.isEmpty ? nil : metadata.modelId,
-            runtimeType: metadata.runtimeType,
-            supportsVision: SourcedValue(metadata.supportsImage, source: capSource),
-            supportsAudio: SourcedValue(metadata.supportsAudio, source: capSource),
-            supportsThinking: SourcedValue(
-                metadata.capabilities.contains("llm_thinking"),
-                source: capSource
-            ),
-            supportsToolCalling: SourcedValue(metadata.supportsToolCalling, source: .heuristic),
-            supportsMTP: SourcedValue(metadata.supportsMTP, source: capSource),
-            supportsConstrainedDecoding: SourcedValue(
-                metadata.runtimeType == .litertlm,
-                source: capSource
-            ),
-            architecture: ArchitectureInfo(
-                architectureClass: nil,
-                modelType: nil,
-                isMoE: metadata.architectureType.lowercased().contains("moe"),
-                hiddenSize: nil,
-                numLayers: nil,
-                numAttentionHeads: nil,
-                numKeyValueHeads: nil,
-                vocabSize: nil,
-                headDim: nil,
-                maxImageResolution: nil,
-                dtype: nil,
-                quantizationBits: nil,
-                quantizationMethod: nil
-            ),
-            contextWindow: SourcedValue(metadata.contextWindowSize, source: capSource),
-            fileSizeBytes: metadata.sizeInBytes,
-            estimatedMemoryGB: SourcedValue(metadata.minDeviceMemoryGB, source: capSource),
-            totalParameters: nil,
-            parameterLabel: nil,
-            confidence: confidence,
-            source: source,
-            lastUpdated: Date(),
-            repoSha: nil,
-            license: nil,
-            licenseLink: nil,
-            baseModelId: nil,
-            downloads: nil,
-            likes: nil,
-            downloadsAllTime: nil,
-            supportedLanguages: [],
-            tags: [],
-            defaultConfig: metadata.defaultConfig,
-            platformSupport: metadata.platformSupport,
-            modelDescription: metadata.description,
-            recommendedFor: metadata.recommendedFor,
-            modelFile: metadata.modelFile,
-            modelId: metadata.modelId.isEmpty ? nil : metadata.modelId
-        )
-    }
 
     /// Build a profile by synthesizing metadata from filename heuristics.
     ///

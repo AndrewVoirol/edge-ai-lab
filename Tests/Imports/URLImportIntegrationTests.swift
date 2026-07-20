@@ -31,7 +31,7 @@ import Foundation
 /// are separated so they can be excluded from CI.
 ///
 /// Test model: `litert-community/gemma-3-1B-it-litert-lm` — a real HuggingFace
-/// repo with `.litertlm` files that is NOT in `ModelRegistry.knownModels`.
+/// repo with `.litertlm` files that is NOT in `KnownModelCatalog.allModels`.
 final class URLImportIntegrationTests: XCTestCase {
 
     private var tempDir: URL!
@@ -113,19 +113,31 @@ final class URLImportIntegrationTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dummyModelFile2) }
 
         // Pre-populate catalog with a test model
-        let metadata = ModelMetadata(
-            name: "Test Model",
-            modelId: "test-org/test-model",
-            modelFile: "test-model.litertlm",
-            description: "A test model",
-            sizeInBytes: 500_000_000,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 8192,
-            architectureType: "Transformer",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: [],
+        let profile = ModelCapabilityProfile(
+            id: "test-model.litertlm",
+            displayName: "Test Model",
+            repoId: "test-org/test-model",
+            runtimeType: .litertlm,
+            supportsVision: nil,
+            supportsAudio: nil,
+            supportsThinking: nil,
+            supportsToolCalling: nil,
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: SourcedValue(8192, source: .heuristic),
+            fileSizeBytes: 500_000_000,
+            estimatedMemoryGB: SourcedValue(4, source: .heuristic),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .medium,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 64, topP: 0.95, temperature: 1.0,
                 maxContextLength: 8192, maxTokens: 2048,
@@ -134,11 +146,14 @@ final class URLImportIntegrationTests: XCTestCase {
             platformSupport: PlatformSupport(
                 macOS: .gpuAndCpu, iOSDevice: .gpuAndCpu, iOSSimulator: .cpuOnly
             ),
-            runtimeType: .litertlm
+            modelDescription: nil,
+            recommendedFor: nil,
+            modelFile: "test-model.litertlm",
+            modelId: "test-org/test-model"
         )
         let testMeta = DynamicModelMetadata.fromHuggingFace(
             repoId: "test-org/test-model",
-            metadata: metadata,
+            metadata: profile,
             confidence: .medium
         )
         try catalog.add(testMeta)
@@ -150,19 +165,31 @@ final class URLImportIntegrationTests: XCTestCase {
     /// Verify that markComplete updates state and catalog.
     @MainActor
     func testMarkCompleteUpdatesStateAndCatalog() throws {
-        let metadata = ModelMetadata(
-            name: "Completed Model",
-            modelId: "test-org/completed-model",
-            modelFile: "completed-model.litertlm",
-            description: "Done",
-            sizeInBytes: 500_000_000,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 8192,
-            architectureType: "Transformer",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: [],
+        let profile = ModelCapabilityProfile(
+            id: "completed-model.litertlm",
+            displayName: "Completed Model",
+            repoId: "test-org/completed-model",
+            runtimeType: .litertlm,
+            supportsVision: nil,
+            supportsAudio: nil,
+            supportsThinking: nil,
+            supportsToolCalling: nil,
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: SourcedValue(8192, source: .heuristic),
+            fileSizeBytes: 500_000_000,
+            estimatedMemoryGB: SourcedValue(4, source: .heuristic),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .high,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 64, topP: 0.95, temperature: 1.0,
                 maxContextLength: 8192, maxTokens: 2048,
@@ -171,11 +198,14 @@ final class URLImportIntegrationTests: XCTestCase {
             platformSupport: PlatformSupport(
                 macOS: .gpuAndCpu, iOSDevice: .gpuAndCpu, iOSSimulator: .cpuOnly
             ),
-            runtimeType: .litertlm
+            modelDescription: nil,
+            recommendedFor: nil,
+            modelFile: "completed-model.litertlm",
+            modelId: "test-org/completed-model"
         )
         let meta = DynamicModelMetadata.fromHuggingFace(
             repoId: "test-org/completed-model",
-            metadata: metadata,
+            metadata: profile,
             confidence: .high
         )
         try catalog.add(meta)
@@ -234,7 +264,7 @@ final class URLImportIntegrationTests: XCTestCase {
         // Should reach readyToDownload or failed (if network unavailable)
         switch manager.state {
         case .readyToDownload(let metadata, let files):
-            XCTAssertFalse(metadata.metadata.name.isEmpty, "Model name should be populated")
+            XCTAssertFalse(metadata.metadata.displayName.isEmpty, "Model name should be populated")
             XCTAssertFalse(files.isEmpty, "Should have at least one downloadable file")
 
             // Verify files are .litertlm

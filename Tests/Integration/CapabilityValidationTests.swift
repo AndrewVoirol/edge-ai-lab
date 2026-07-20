@@ -21,23 +21,23 @@ import LiteRTLM
 @testable import EdgeAILab_macOS
 #endif
 
-/// Validates that ModelMetadata capabilities match actual engine behavior.
+/// Validates that ModelCapabilityProfile capabilities match actual engine behavior.
 ///
-/// The core question: "Does the metadata say this model supports X, and
+/// The core question: "Does the profile say this model supports X, and
 /// does it ACTUALLY support X when we test it?"
 ///
-/// This matters because the Trust Layer UI will use ModelMetadata to show
-/// capability badges and warnings. If the metadata is wrong, the UI lies.
+/// This matters because the Trust Layer UI will use ModelCapabilityProfile to show
+/// capability badges and warnings. If the profile is wrong, the UI lies.
 ///
 /// ## Test Pattern
 /// For each capability:
-/// 1. Read what ModelMetadata says the model supports
+/// 1. Read what ModelCapabilityProfile says the model supports
 /// 2. Load the real model
 /// 3. Test the capability with actual inference
 /// 4. Compare declared vs. actual support
 ///
 /// These tests DO NOT assert that metadata must be correct — they REPORT
-/// discrepancies. The report becomes input for fixing either the metadata
+/// discrepancies. The report becomes input for fixing either the profile
 /// or the engine behavior.
 final class CapabilityValidationTests: XCTestCase {
 
@@ -98,32 +98,32 @@ final class CapabilityValidationTests: XCTestCase {
         print("[CAPABILITY_VERIFY] model=\(model) | capability=\(capability) | declared=\(declared) | actual=\(actual) | match=\(match) | detail=\(detail)")
     }
 
-    // MARK: - ModelRegistry Metadata Audit
+    // MARK: - KnownModelCatalog Metadata Audit
 
     /// Audit all registered models' metadata for completeness and consistency.
     func testModelRegistryMetadataCompleteness() {
-        let allModels = ModelRegistry.knownModels
+        let allModels = KnownModelCatalog.allModels
 
         print("╔════════════════════════════════════════════════════")
-        print("║ ModelRegistry Metadata Audit")
+        print("║ KnownModelCatalog Metadata Audit")
         print("╠════════════════════════════════════════════════════")
 
         for model in allModels {
             let issues: [String] = {
                 var issues: [String] = []
-                if model.name.isEmpty { issues.append("empty name") }
-                if model.modelFile.isEmpty { issues.append("empty modelFile") }
-                if model.sizeInBytes == 0 { issues.append("sizeInBytes=0") }
-                if model.runtimeType == .litertlm && !model.modelFile.hasSuffix(".litertlm") {
+                if model.displayName.isEmpty { issues.append("empty name") }
+                if (model.modelFile ?? "").isEmpty { issues.append("empty modelFile") }
+                if (model.fileSizeBytes ?? 0) == 0 { issues.append("fileSizeBytes=0") }
+                if model.runtimeType == .litertlm && !(model.modelFile ?? "").hasSuffix(".litertlm") {
                     issues.append("LiteRT model without .litertlm extension")
                 }
                 return issues
             }()
 
-            print("║ \(model.name) (\(model.modelFile))")
+            print("║ \(model.displayName) (\(model.modelFile ?? "<none>"))")
             print("║   Runtime: \(model.runtimeType.displayName)")
-            print("║   Multimodal: vision=\(model.supportsImage) audio=\(model.supportsAudio)")
-            print("║   MTP: \(model.supportsMTP) | Tools: \(model.supportsToolCalling)")
+            print("║   Multimodal: vision=\(model.hasVision) audio=\(model.hasAudio)")
+            print("║   MTP: \(model.hasMTP) | Tools: \(model.hasToolCalling)")
             print("║   Issues: \(issues.isEmpty ? "none" : issues.joined(separator: ", "))")
             print("║")
         }
@@ -137,21 +137,21 @@ final class CapabilityValidationTests: XCTestCase {
         let modelPath = try findLiteRTModel(named: "gemma-4-E2B-it.litertlm")
 
         // Look up metadata
-        let metadata = ModelRegistry.lookup(filename: "gemma-4-E2B-it.litertlm")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-4-E2B-it.litertlm")
 
         print("╔════════════════════════════════════════════════════")
         print("║ Capability Validation: gemma-4-E2B-it (LiteRT)")
         print("╠════════════════════════════════════════════════════")
 
         if let meta = metadata {
-            print("║ Registry Match: ✅ \(meta.name)")
+            print("║ Registry Match: ✅ \(meta.displayName)")
             print("║ Declared Capabilities:")
-            print("║   supportsImage: \(meta.supportsImage)")
-            print("║   supportsAudio: \(meta.supportsAudio)")
-            print("║   supportsMTP: \(meta.supportsMTP)")
-            print("║   supportsToolCalling: \(meta.supportsToolCalling)")
+            print("║   hasVision: \(meta.hasVision)")
+            print("║   hasAudio: \(meta.hasAudio)")
+            print("║   hasMTP: \(meta.hasMTP)")
+            print("║   hasToolCalling: \(meta.hasToolCalling)")
         } else {
-            print("║ Registry Match: ❌ NOT FOUND in ModelRegistry")
+            print("║ Registry Match: ❌ NOT FOUND in KnownModelCatalog")
         }
 
         // Test 1: Basic inference works
@@ -242,22 +242,22 @@ final class CapabilityValidationTests: XCTestCase {
         let modelPath = try findMLXModel(named: "mlx-community--gemma-4-e2b-it-4bit")
 
         // Look up metadata
-        let metadata = ModelRegistry.lookup(filename: "mlx-community--gemma-4-E2B-it-4bit")
-            ?? ModelRegistry.lookup(filename: "mlx-community--gemma-4-e2b-it-4bit")
+        let metadata = KnownModelCatalog.lookup(filename: "mlx-community--gemma-4-E2B-it-4bit")
+            ?? KnownModelCatalog.lookup(filename: "mlx-community--gemma-4-e2b-it-4bit")
 
         print("╔════════════════════════════════════════════════════")
         print("║ Capability Validation: gemma-4-e2b-it-4bit (MLX)")
         print("╠════════════════════════════════════════════════════")
 
         if let meta = metadata {
-            print("║ Registry Match: ✅ \(meta.name)")
+            print("║ Registry Match: ✅ \(meta.displayName)")
             print("║ Declared Capabilities:")
-            print("║   supportsImage: \(meta.supportsImage)")
-            print("║   supportsAudio: \(meta.supportsAudio)")
-            print("║   supportsMTP: \(meta.supportsMTP)")
-            print("║   supportsToolCalling: \(meta.supportsToolCalling)")
+            print("║   hasVision: \(meta.hasVision)")
+            print("║   hasAudio: \(meta.hasAudio)")
+            print("║   hasMTP: \(meta.hasMTP)")
+            print("║   hasToolCalling: \(meta.hasToolCalling)")
         } else {
-            print("║ Registry Match: ❌ NOT FOUND in ModelRegistry")
+            print("║ Registry Match: ❌ NOT FOUND in KnownModelCatalog")
         }
 
         // Test: Basic inference
@@ -327,20 +327,20 @@ final class CapabilityValidationTests: XCTestCase {
 
     /// Print a comparison table of declared capabilities across all available models.
     func testCapabilityComparisonTable() {
-        let models = ModelRegistry.knownModels
+        let models = KnownModelCatalog.allModels
 
         print("╔════════════════════════════════════════════════════════════════════════")
-        print("║ Cross-Model Capability Matrix (from ModelRegistry)")
+        print("║ Cross-Model Capability Matrix (from KnownModelCatalog)")
         print("╠════════════════════════════════════════════════════════════════════════")
         print("║ Model                          | Vision | Audio | MTP  | Tools | Runtime")
         print("╠════════════════════════════════════════════════════════════════════════")
 
         for model in models {
-            let name = model.name.padding(toLength: 30, withPad: " ", startingAt: 0)
-            let vision = model.supportsImage ? "  ✅  " : "  ❌  "
-            let audio = model.supportsAudio ? "  ✅  " : "  ❌  "
-            let mtp = model.supportsMTP ? "  ✅  " : "  ❌  "
-            let tools = model.supportsToolCalling ? "  ✅  " : "  ❌  "
+            let name = model.displayName.padding(toLength: 30, withPad: " ", startingAt: 0)
+            let vision = model.hasVision ? "  ✅  " : "  ❌  "
+            let audio = model.hasAudio ? "  ✅  " : "  ❌  "
+            let mtp = model.hasMTP ? "  ✅  " : "  ❌  "
+            let tools = model.hasToolCalling ? "  ✅  " : "  ❌  "
             let runtime = model.runtimeType.displayName
             print("║ \(name) |\(vision)|\(audio)|\(mtp)|\(tools)| \(runtime)")
         }

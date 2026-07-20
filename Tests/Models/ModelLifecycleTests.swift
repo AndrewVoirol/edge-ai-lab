@@ -24,28 +24,28 @@ import XCTest
 // MARK: - Model Lifecycle Tests
 
 /// Tests for the model lifecycle: import → download → delete → re-import.
-/// Verifies that the known registry shortcut and catalog shortcut properly
-/// check for local file existence before marking imports as complete.
+/// Verifies that the known catalog shortcut properly
+/// checks for local file existence before marking imports as complete.
 @MainActor
 final class ModelLifecycleTests: XCTestCase {
 
-    // MARK: - Known Registry Shortcut Tests
+    // MARK: - Known Catalog Shortcut Tests
 
-    func testKnownModelsRegistryIsNotEmpty() {
-        XCTAssertFalse(ModelRegistry.knownModels.isEmpty, "ModelRegistry.knownModels should not be empty")
+    func testKnownModelsCatalogIsNotEmpty() {
+        XCTAssertFalse(KnownModelCatalog.allModels.isEmpty, "KnownModelCatalog.allModels should not be empty")
     }
 
     func testKnownModelMatchesByModelId() {
-        guard let firstKnown = ModelRegistry.knownModels.first else {
+        guard let firstKnown = KnownModelCatalog.allModels.first else {
             XCTFail("No known models")
             return
         }
-        let found = ModelRegistry.knownModels.first(where: { $0.modelId == firstKnown.modelId })
+        let found = KnownModelCatalog.allModels.first(where: { $0.modelId == firstKnown.modelId })
         XCTAssertNotNil(found, "Should find model by modelId")
     }
 
     func testDynamicMetadataFromKnownModelSetsVerifiedConfidence() {
-        guard let known = ModelRegistry.knownModels.first else {
+        guard let known = KnownModelCatalog.allModels.first else {
             XCTFail("No known models")
             return
         }
@@ -126,8 +126,8 @@ final class ModelLifecycleTests: XCTestCase {
 
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         XCTAssertTrue(
-            metadata.minDeviceMemoryGB >= 16,
-            "Parser should recognize 13B models — got minMemory=\(metadata.minDeviceMemoryGB)"
+            (metadata.memoryGB ?? 0) >= 16,
+            "Parser should recognize 13B models — got memoryGB=\(metadata.memoryGB ?? 0)"
         )
     }
 
@@ -141,8 +141,8 @@ final class ModelLifecycleTests: XCTestCase {
 
         let (metadata, _) = ModelCardParser.inferMetadata(from: model)
         XCTAssertTrue(
-            metadata.minDeviceMemoryGB >= 16,
-            "Parser should recognize 12B models — got minMemory=\(metadata.minDeviceMemoryGB)"
+            (metadata.memoryGB ?? 0) >= 16,
+            "Parser should recognize 12B models — got memoryGB=\(metadata.memoryGB ?? 0)"
         )
     }
 }

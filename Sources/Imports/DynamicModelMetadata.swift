@@ -22,7 +22,7 @@ import Foundation
 /// The source determines both the confidence level and how the metadata
 /// should be treated during catalog merges (e.g., known registry always wins).
 enum MetadataSource: String, Codable, Sendable {
-    /// From the built-in `ModelRegistry.knownModels` — hand-verified metadata.
+    /// From the built-in `KnownModelCatalog.allModels` — hand-verified metadata.
     case knownRegistry
     /// Inferred from HuggingFace API responses and model card parsing.
     case huggingFaceInferred
@@ -89,7 +89,7 @@ enum MetadataConfidence: String, Codable, Sendable, Comparable {
 
 // MARK: - Dynamic Model Metadata
 
-/// A model catalog entry that wraps `ModelMetadata` with additional provenance
+/// A model catalog entry that wraps `ModelCapabilityProfile` with additional provenance
 /// and confidence information.
 ///
 /// `DynamicModelMetadata` is the unit of persistence in `DynamicModelCatalog`.
@@ -108,8 +108,8 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
     /// How this metadata was obtained.
     let source: MetadataSource
 
-    /// The core model metadata (capabilities, platform support, config, etc.).
-    var metadata: ModelMetadata
+    /// The core model capability profile (capabilities, platform support, config, etc.).
+    var metadata: ModelCapabilityProfile
 
     /// Confidence in the inferred metadata fields.
     let confidence: MetadataConfidence
@@ -130,11 +130,11 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
     /// Known models have hand-verified metadata, so confidence is always `.verified`
     /// and source is `.knownRegistry`.
     ///
-    /// - Parameter model: A `ModelMetadata` from `ModelRegistry.knownModels`.
+    /// - Parameter model: A `ModelCapabilityProfile` from `KnownModelCatalog.allModels`.
     /// - Returns: A fully-populated catalog entry.
-    static func fromKnownModel(_ model: ModelMetadata) -> DynamicModelMetadata {
+    static func fromKnownModel(_ model: ModelCapabilityProfile) -> DynamicModelMetadata {
         DynamicModelMetadata(
-            id: model.modelFile,
+            id: model.modelFile ?? model.id,
             source: .knownRegistry,
             metadata: model,
             confidence: .verified,
@@ -146,17 +146,17 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
 
     /// Create a `DynamicModelMetadata` entry from HuggingFace inference.
     ///
-    /// The `ModelCardParser` produces a `ModelMetadata` and confidence level by
+    /// The `ModelCardParser` produces a `ModelCapabilityProfile` and confidence level by
     /// analyzing the HF API response and model card content.
     ///
     /// - Parameters:
     ///   - repoId: The HuggingFace repository ID (e.g., "litert-community/gemma-4-E2B-it-litert-lm").
-    ///   - metadata: The inferred `ModelMetadata` from `ModelCardParser`.
+    ///   - metadata: The inferred `ModelCapabilityProfile` from `ModelCardParser`.
     ///   - confidence: The confidence level from the parser.
     /// - Returns: A catalog entry ready for persistence.
     static func fromHuggingFace(
         repoId: String,
-        metadata: ModelMetadata,
+        metadata: ModelCapabilityProfile,
         confidence: MetadataConfidence
     ) -> DynamicModelMetadata {
         DynamicModelMetadata(
@@ -188,40 +188,49 @@ struct DynamicModelMetadata: Codable, Sendable, Identifiable {
         let modelId = "kaggle/\(handle.owner)/\(handle.modelSlug)"
         let modelFile = "\(displayName).litertlm"  // Best guess; updated after extraction
 
-        let metadata = ModelMetadata(
-            name: displayName,
-            modelId: modelId,
-            modelFile: modelFile,
-            description: "Model from Kaggle: \(handle.owner)/\(handle.modelSlug)",
-            sizeInBytes: 0,              // Unknown until downloaded
-            minDeviceMemoryGB: 8,        // Conservative default
-            contextWindowSize: 32_000,   // Conservative default
-            architectureType: "Unknown",
-            recommendedFor: "Imported from Kaggle",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: ["llm_thinking"],
+        let profile = ModelCapabilityProfile(
+            id: modelFile,
+            displayName: displayName,
+            repoId: modelId,
+            runtimeType: .litertlm,
+            supportsVision: SourcedValue(false, source: .heuristic),
+            supportsAudio: SourcedValue(false, source: .heuristic),
+            supportsThinking: SourcedValue(true, source: .heuristic),
+            supportsToolCalling: SourcedValue(false, source: .heuristic),
+            supportsMTP: SourcedValue(false, source: .heuristic),
+            supportsConstrainedDecoding: SourcedValue(true, source: .heuristic),
+            architecture: nil,
+            contextWindow: SourcedValue(32_000, source: .heuristic),
+            fileSizeBytes: 0,
+            estimatedMemoryGB: SourcedValue(8, source: .heuristic),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .low,
+            source: .kaggle,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
-                topK: 64,
-                topP: 0.95,
-                temperature: 1.0,
-                maxContextLength: 32_000,
-                maxTokens: 4_000,
-                accelerators: "gpu,cpu",
-                visionAccelerator: nil
+                topK: 64, topP: 0.95, temperature: 1.0,
+                maxContextLength: 32_000, maxTokens: 4_000,
+                accelerators: "gpu,cpu", visionAccelerator: nil
             ),
             platformSupport: PlatformSupport(
-                macOS: .gpuAndCpu,
-                iOSDevice: .gpuAndCpu,
-                iOSSimulator: .cpuOnly
+                macOS: .gpuAndCpu, iOSDevice: .gpuAndCpu, iOSSimulator: .cpuOnly
             ),
-            runtimeType: .litertlm
+            modelDescription: "Model from Kaggle: \(handle.owner)/\(handle.modelSlug)",
+            recommendedFor: "Imported from Kaggle",
+            modelFile: modelFile,
+            modelId: modelId
         )
 
         return DynamicModelMetadata(
             id: modelId,
             source: .kaggle,
-            metadata: metadata,
+            metadata: profile,
             confidence: .low,
             importedAt: Date(),
             lastVerifiedAt: nil,

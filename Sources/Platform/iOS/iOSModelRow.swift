@@ -18,7 +18,7 @@ import SwiftUI
 
 // MARK: - iOS Model Row
 
-/// A reusable list row for the iOS Model Hub showing model metadata and download state.
+/// A reusable list row for the iOS Model Hub showing model profile and download state.
 ///
 /// Design (per Apple HIG "Lists and Tables"):
 /// - Leading: Architecture icon (SF Symbol)
@@ -32,7 +32,7 @@ import SwiftUI
 /// Accessibility: Every interactive element has `.accessibilityIdentifier`.
 struct iOSModelRow: View {
     @Environment(ModelDownloadManager.self) private var downloadManager
-    let metadata: ModelMetadata
+    let profile: ModelCapabilityProfile
     let downloadState: ModelDownloadManager.DownloadState
     let isActive: Bool
 
@@ -48,7 +48,7 @@ struct iOSModelRow: View {
     var onResumeTap: (() -> Void)?
 
     init(
-        metadata: ModelMetadata,
+        profile: ModelCapabilityProfile,
         downloadState: ModelDownloadManager.DownloadState = .notDownloaded,
         isActive: Bool = false,
         onDownloadTap: (() -> Void)? = nil,
@@ -57,7 +57,7 @@ struct iOSModelRow: View {
         onPauseTap: (() -> Void)? = nil,
         onResumeTap: (() -> Void)? = nil
     ) {
-        self.metadata = metadata
+        self.profile = profile
         self.downloadState = downloadState
         self.isActive = isActive
         self.onDownloadTap = onDownloadTap
@@ -72,19 +72,19 @@ struct iOSModelRow: View {
             // Leading: Model icon
             modelIcon
                 .frame(width: 40, height: 40)
-                .accessibilityIdentifier("modelRow_icon_\(metadata.modelFile)")
+                .accessibilityIdentifier("modelRow_icon_\(profile.modelFile ?? profile.id)")
 
             // Center: Title, subtitle, capabilities
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 // Model name
-                Text(metadata.name)
+                Text(profile.displayName)
                     .font(AppTypography.listTitle)
                     .foregroundStyle(isActive ? AppColors.accentPrimary : AppColors.textPrimary)
                     .lineLimit(1)
 
                 // Architecture + size
                 HStack(spacing: AppSpacing.xs) {
-                    Text(metadata.architectureType)
+                    Text(profile.architecture?.architectureClass ?? "Unknown")
                         .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(1)
@@ -122,7 +122,7 @@ struct iOSModelRow: View {
         .padding(.vertical, AppSpacing.listRowVertical)
         .contentShape(Rectangle()) // Ensure full row is tappable
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("modelRow_\(metadata.modelFile)")
+        .accessibilityIdentifier("modelRow_\(profile.modelFile ?? profile.id)")
     }
 
     // MARK: - Model Icon
@@ -144,9 +144,10 @@ struct iOSModelRow: View {
 
     /// SF Symbol for the model architecture type.
     private var iconName: String {
-        if metadata.architectureType.contains("MoE") {
+        let archClass = profile.architecture?.architectureClass ?? ""
+        if archClass.contains("MoE") {
             return "square.grid.3x3.topleft.filled" // MoE = mixture
-        } else if metadata.architectureType.contains("Dense") {
+        } else if archClass.contains("Dense") {
             return "square.stack.3d.up.fill" // Dense = stacked
         } else {
             return "cpu" // Generic
@@ -157,23 +158,23 @@ struct iOSModelRow: View {
 
     private var capabilityBadges: some View {
         HStack(spacing: AppSpacing.xs) {
-            if metadata.supportsImage {
+            if profile.hasVision {
                 Label("Vision", systemImage: "eye")
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.capabilityVision)
-                    .accessibilityIdentifier("modelRow_badge_vision_\(metadata.modelFile)")
+                    .accessibilityIdentifier("modelRow_badge_vision_\(profile.modelFile ?? profile.id)")
             }
-            if metadata.supportsAudio {
+            if profile.hasAudio {
                 Label("Audio", systemImage: "waveform")
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.capabilityAudio)
-                    .accessibilityIdentifier("modelRow_badge_audio_\(metadata.modelFile)")
+                    .accessibilityIdentifier("modelRow_badge_audio_\(profile.modelFile ?? profile.id)")
             }
-            if metadata.supportsMTP {
+            if profile.hasMTP {
                 Label("Spec. Dec", systemImage: "bolt.horizontal")
                     .font(AppTypography.badge)
                     .foregroundStyle(AppColors.capabilityMTP)
-                    .accessibilityIdentifier("modelRow_badge_mtp_\(metadata.modelFile)")
+                    .accessibilityIdentifier("modelRow_badge_mtp_\(profile.modelFile ?? profile.id)")
             }
         }
     }
@@ -184,10 +185,10 @@ struct iOSModelRow: View {
         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
             ProgressView(value: progress, total: 1.0)
                 .tint(AppColors.accentPrimary)
-                .accessibilityIdentifier("modelRow_progress_\(metadata.modelFile)")
+                .accessibilityIdentifier("modelRow_progress_\(profile.modelFile ?? profile.id)")
 
             // Try to show rich progress (speed + ETA)
-            if let dp = downloadManager.downloadProgress[metadata.modelFile] {
+            if let dp = downloadManager.downloadProgress[profile.modelFile ?? profile.id] {
                 HStack {
                     Text(String(format: "%.0f%%", progress * 100))
                         .font(AppTypography.listTertiary)
@@ -259,13 +260,13 @@ struct iOSModelRow: View {
             Button {
                 onDownloadTap?()
             } label: {
-                Image(systemName: metadata.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
+                Image(systemName: profile.requiresAuth ? "lock.icloud" : "icloud.and.arrow.down")
                     .font(AppIconSize.lg)
                     .foregroundStyle(AppColors.accentPrimary)
                     .frame(width: AppSize.tapTarget, height: AppSize.tapTarget) // HIG: 44pt minimum tap target
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("modelRow_download_\(metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_download_\(profile.modelFile ?? profile.id)")
 
         case .downloading, .downloadingDirectory:
             // Circular progress with cancel — per HIG progress indicators
@@ -284,7 +285,7 @@ struct iOSModelRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Cancel download")
-            .accessibilityIdentifier("modelRow_cancel_\(metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_cancel_\(profile.modelFile ?? profile.id)")
 
         case .downloaded:
             Image(systemName: "checkmark.circle.fill")
@@ -292,7 +293,7 @@ struct iOSModelRow: View {
                 .foregroundStyle(AppColors.success)
                 .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Downloaded")
-                .accessibilityIdentifier("modelRow_downloaded_\(metadata.modelFile)")
+                .accessibilityIdentifier("modelRow_downloaded_\(profile.modelFile ?? profile.id)")
 
         case .failed(let message):
             Button {
@@ -310,7 +311,7 @@ struct iOSModelRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Download failed: \(message). Tap to retry.")
-            .accessibilityIdentifier("modelRow_retry_\(metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_retry_\(profile.modelFile ?? profile.id)")
 
         case .authRequired:
             Image(systemName: "lock.circle.fill")
@@ -318,7 +319,7 @@ struct iOSModelRow: View {
                 .foregroundStyle(AppColors.warning)
                 .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Authentication required")
-                .accessibilityIdentifier("modelRow_auth_\(metadata.modelFile)")
+                .accessibilityIdentifier("modelRow_auth_\(profile.modelFile ?? profile.id)")
 
         case .queued:
             // Clock icon for queued state
@@ -327,7 +328,7 @@ struct iOSModelRow: View {
                 .foregroundStyle(AppColors.textSecondary)
                 .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
                 .accessibilityLabel("Queued for download")
-                .accessibilityIdentifier("modelRow_queued_\(metadata.modelFile)")
+                .accessibilityIdentifier("modelRow_queued_\(profile.modelFile ?? profile.id)")
 
         case .paused, .pausedDirectory:
             // Resume button for paused state
@@ -341,7 +342,7 @@ struct iOSModelRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Resume download")
-            .accessibilityIdentifier("modelRow_resume_\(metadata.modelFile)")
+            .accessibilityIdentifier("modelRow_resume_\(profile.modelFile ?? profile.id)")
         }
     }
 
@@ -349,7 +350,7 @@ struct iOSModelRow: View {
 
     /// Formatted file size string.
     private var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file)
+        ByteCountFormatter.string(fromByteCount: profile.fileSizeBytes ?? 0, countStyle: .file)
     }
 }
 #endif

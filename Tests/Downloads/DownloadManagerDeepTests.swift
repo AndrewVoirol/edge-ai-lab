@@ -24,28 +24,39 @@ import Foundation
 
 // MARK: - Test Helpers
 
-/// Minimal ModelMetadata factory for tests that need a metadata instance
-/// without depending on ModelRegistry or real model files.
-private func makeDummyModel(
+/// Minimal ModelCapabilityProfile factory for tests that need a profile instance
+/// without depending on KnownModelCatalog or real model files.
+private func makeDummyProfile(
     name: String = "TestModel",
     modelId: String = "test/test-model",
     modelFile: String = "test-model.litertlm",
-    sizeInBytes: Int64 = 1_000_000_000,
-    capabilities: [String] = []
-) -> ModelMetadata {
-    ModelMetadata(
-        name: name,
-        modelId: modelId,
-        modelFile: modelFile,
-        description: "A test model",
-        sizeInBytes: sizeInBytes,
-        minDeviceMemoryGB: 4,
-        contextWindowSize: 32_000,
-        architectureType: "Test",
-        recommendedFor: "Testing",
-        supportsImage: false,
-        supportsAudio: false,
-        capabilities: capabilities,
+    fileSizeBytes: Int64 = 1_000_000_000
+) -> ModelCapabilityProfile {
+    ModelCapabilityProfile(
+        id: modelFile,
+        displayName: name,
+        repoId: modelId,
+        runtimeType: .litertlm,
+        supportsVision: nil,
+        supportsAudio: nil,
+        supportsThinking: nil,
+        supportsToolCalling: nil,
+        supportsMTP: nil,
+        supportsConstrainedDecoding: nil,
+        architecture: nil,
+        contextWindow: nil,
+        fileSizeBytes: fileSizeBytes,
+        estimatedMemoryGB: nil,
+        totalParameters: nil,
+        parameterLabel: nil,
+        confidence: .low,
+        source: .huggingFaceInferred,
+        lastUpdated: Date(),
+        repoSha: nil,
+        license: nil, licenseLink: nil, baseModelId: nil,
+        downloads: nil, likes: nil, downloadsAllTime: nil,
+        supportedLanguages: [],
+        tags: [],
         defaultConfig: ModelDefaultConfig(
             topK: 1,
             topP: 1.0,
@@ -59,7 +70,11 @@ private func makeDummyModel(
             macOS: .cpuOnly,
             iOSDevice: .cpuOnly,
             iOSSimulator: .cpuOnly
-        )
+        ),
+        modelDescription: "A test model",
+        recommendedFor: "Testing",
+        modelFile: modelFile,
+        modelId: modelId
     )
 }
 
@@ -597,9 +612,9 @@ struct DownloadErrorHandlingTests {
         // with the current implementation (URL(string:) rarely returns nil for valid strings).
         // But we CAN verify the non-nil path works by testing that a model with a valid
         // downloadURL doesn't immediately set .failed.
-        let model = makeDummyModel()
+        let profile = makeDummyProfile()
         // downloadURL for "test/test-model" / "test-model.litertlm" should be non-nil
-        #expect(model.downloadURL != nil)
+        #expect(profile.downloadURL != nil)
     }
 
     @Test("deleteModel on testable init sets notDownloaded state")
@@ -612,10 +627,10 @@ struct DownloadErrorHandlingTests {
             documentsDirectory: tempDir
         )
 
-        let model = makeDummyModel()
-        manager.deleteModel(model)
+        let profile = makeDummyProfile()
+        manager.deleteModel(profile)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[profile.modelFile ?? profile.id] {
             // Expected
         } else {
             Issue.record("Expected .notDownloaded after deleteModel")
@@ -642,120 +657,12 @@ struct DownloadErrorHandlingTests {
     }
 }
 
-// MARK: - ModelMetadata Download URL Construction
-
-@Suite("ModelMetadata downloadURL")
-struct ModelMetadataDownloadURLTests {
-
-    @Test("downloadURL produces HuggingFace resolve URL")
-    func downloadURLFormat() {
-        let model = makeDummyModel(
-            modelId: "litert-community/gemma-4-E2B-it-litert-lm",
-            modelFile: "gemma-4-E2B-it.litertlm"
-        )
-        let url = model.downloadURL
-        #expect(url != nil)
-        #expect(url?.absoluteString == "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm")
-    }
-
-    @Test("downloadURL for google-prefixed model includes google path")
-    func downloadURLGoogleModel() {
-        let model = makeDummyModel(
-            modelId: "google/gemma-3n-E2B-it-litert-lm",
-            modelFile: "gemma-3n-E2B-it-int4.litertlm"
-        )
-        let url = model.downloadURL
-        #expect(url != nil)
-        #expect(url!.absoluteString.contains("google/gemma-3n-E2B-it-litert-lm"))
-        #expect(url!.absoluteString.contains("resolve/main"))
-    }
-
-    @Test("all known models have non-nil download URLs",
-          arguments: ModelRegistry.knownModels)
-    func allKnownModelsHaveURLs(model: ModelMetadata) {
-        #expect(model.downloadURL != nil)
-    }
-
-    @Test("all known model download URLs use HTTPS",
-          arguments: ModelRegistry.knownModels)
-    func allKnownModelsUseHTTPS(model: ModelMetadata) {
-        let url = model.downloadURL
-        #expect(url?.scheme == "https")
-    }
-
-    @Test("all known model download URLs contain the model filename",
-          arguments: ModelRegistry.knownModels)
-    func allKnownModelsContainFilename(model: ModelMetadata) {
-        let url = model.downloadURL
-        #expect(url?.absoluteString.contains(model.modelFile) == true)
-    }
-}
-
-// MARK: - ModelMetadata Auth Requirements
-
-@Suite("ModelMetadata requiresAuth")
-struct ModelMetadataAuthTests {
-
-    @Test("google-prefixed modelId requires auth")
-    func googleRequiresAuth() {
-        let model = makeDummyModel(modelId: "google/some-model")
-        #expect(model.requiresAuth == true)
-    }
-
-    @Test("litert-community-prefixed modelId does not require auth")
-    func communityDoesNotRequireAuth() {
-        let model = makeDummyModel(modelId: "litert-community/some-model")
-        #expect(model.requiresAuth == false)
-    }
-
-    @Test("arbitrary-prefixed modelId does not require auth")
-    func arbitraryDoesNotRequireAuth() {
-        let model = makeDummyModel(modelId: "someone/some-model")
-        #expect(model.requiresAuth == false)
-    }
-
-    @Test("empty modelId does not require auth")
-    func emptyDoesNotRequireAuth() {
-        let model = makeDummyModel(modelId: "")
-        #expect(model.requiresAuth == false)
-    }
-}
-
-// MARK: - ModelMetadata Capabilities
-
-@Suite("ModelMetadata Capabilities")
-struct ModelMetadataCapabilitiesTests {
-
-    @Test("supportsMTP is true when capabilities include speculative_decoding")
-    func supportsMTP() {
-        let model = makeDummyModel(capabilities: ["speculative_decoding"])
-        #expect(model.supportsMTP == true)
-    }
-
-    @Test("supportsMTP is false when capabilities lack speculative_decoding")
-    func doesNotSupportMTP() {
-        let model = makeDummyModel(capabilities: ["llm_thinking"])
-        #expect(model.supportsMTP == false)
-    }
-
-    @Test("supportsMTP is false when capabilities are empty")
-    func emptyCapabilitiesNoMTP() {
-        let model = makeDummyModel(capabilities: [])
-        #expect(model.supportsMTP == false)
-    }
-
-    @Test("supportsToolCalling is true for instruction-tuned models (-it in modelId)")
-    func supportsToolCalling() {
-        let model = makeDummyModel(modelId: "test/gemma-4-E2B-it-litert-lm")
-        #expect(model.supportsToolCalling == true)
-    }
-
-    @Test("supportsToolCalling is false for non-instruction-tuned models")
-    func doesNotSupportToolCalling() {
-        let model = makeDummyModel(modelId: "test/gemma-4-E2B-litert-lm")
-        #expect(model.supportsToolCalling == false)
-    }
-}
+// NOTE: ModelMetadataDownloadURLTests, ModelMetadataAuthTests, and
+// ModelMetadataCapabilitiesTests were deleted — they tested the now-removed
+// ModelMetadata struct's computed properties (downloadURL construction,
+// requiresAuth flag, capabilities derived from string arrays).
+// Those properties are now part of ModelCapabilityProfile with different
+// semantics (SourcedValue<Bool> instead of string-array heuristics).
 
 // MARK: - Storage Buffer Validation
 
@@ -775,8 +682,8 @@ struct StorageBufferTests {
 
         // checkStorage reads actual disk availability, so we can't fully control it,
         // but we can verify the StorageCheck struct it returns has reasonable values.
-        let model = makeDummyModel(sizeInBytes: 2_000_000_000)
-        let check = manager.checkStorage(for: model)
+        let profile = makeDummyProfile(fileSizeBytes: 2_000_000_000)
+        let check = manager.checkStorage(for: profile)
         #expect(check.modelSize == 2_000_000_000)
         // Available space should be > 0 on any running system
         #expect(check.availableSpace > 0)
@@ -889,44 +796,14 @@ struct DownloadProgressEdgeCaseTests {
     }
 }
 
-// MARK: - ModelMetadata Codable Round-Trip
+// NOTE: ModelMetadataCodableTests was deleted — it tested Codable round-trips
+// for the now-removed ModelMetadata struct. ModelCapabilityProfile has its own
+// Codable conformance tested elsewhere.
 
-@Suite("ModelMetadata Codable")
-struct ModelMetadataCodableTests {
+// MARK: - Codable Round-Trips (Shared Types)
 
-    @Test("ModelMetadata round-trips through JSON encode/decode",
-          arguments: ModelRegistry.knownModels)
-    func roundTrip(model: ModelMetadata) throws {
-        let encoder = JSONEncoder()
-        let decoder = JSONDecoder()
-
-        let data = try encoder.encode(model)
-        let decoded = try decoder.decode(ModelMetadata.self, from: data)
-
-        #expect(decoded.name == model.name)
-        #expect(decoded.modelId == model.modelId)
-        #expect(decoded.modelFile == model.modelFile)
-        #expect(decoded.sizeInBytes == model.sizeInBytes)
-        #expect(decoded.minDeviceMemoryGB == model.minDeviceMemoryGB)
-        #expect(decoded.contextWindowSize == model.contextWindowSize)
-        #expect(decoded.supportsImage == model.supportsImage)
-        #expect(decoded.supportsAudio == model.supportsAudio)
-        #expect(decoded.capabilities == model.capabilities)
-        #expect(decoded.runtimeType == model.runtimeType)
-    }
-
-    @Test("ModelMetadata decodes with missing runtimeType defaulting to litertlm")
-    func decodesWithMissingRuntimeType() throws {
-        // Simulate pre-runtimeType JSON by encoding and then removing the key
-        let model = makeDummyModel()
-        let data = try JSONEncoder().encode(model)
-        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        json.removeValue(forKey: "runtimeType")
-        let modifiedData = try JSONSerialization.data(withJSONObject: json)
-
-        let decoded = try JSONDecoder().decode(ModelMetadata.self, from: modifiedData)
-        #expect(decoded.runtimeType == .litertlm)
-    }
+@Suite("Shared Type Codable")
+struct SharedTypeCodableTests {
 
     @Test("ModelDefaultConfig round-trips through JSON")
     func defaultConfigRoundTrip() throws {
@@ -1088,70 +965,74 @@ struct DownloadManagerRuntimeTypeTests {
     }
 }
 
-// MARK: - ModelRegistry Lookup Tests
+// MARK: - KnownModelCatalog Lookup Tests
 
-@Suite("ModelRegistry Lookup")
-struct ModelRegistryLookupTests {
+@Suite("KnownModelCatalog Lookup")
+struct KnownModelCatalogLookupTests {
 
     @Test("lookup by filename finds known model",
-          arguments: ModelRegistry.knownModels)
-    func lookupByFilename(model: ModelMetadata) {
-        let found = ModelRegistry.lookup(filename: model.modelFile)
+          arguments: KnownModelCatalog.allModels)
+    func lookupByFilename(profile: ModelCapabilityProfile) {
+        guard let modelFile = profile.modelFile else {
+            Issue.record("Profile \(profile.displayName) has nil modelFile")
+            return
+        }
+        let found = KnownModelCatalog.lookup(filename: modelFile)
         #expect(found != nil)
-        #expect(found?.name == model.name)
+        #expect(found?.displayName == profile.displayName)
     }
 
     @Test("lookup by path finds known model")
     func lookupByPath() {
-        let model = ModelRegistry.gemma4E2BStandard
-        let path = "/some/directory/\(model.modelFile)"
-        let found = ModelRegistry.lookup(path: path)
+        let profile = KnownModelCatalog.gemma4E2BStandard
+        let modelFile = profile.modelFile ?? profile.id
+        let path = "/some/directory/\(modelFile)"
+        let found = KnownModelCatalog.lookup(path: path)
         #expect(found != nil)
-        #expect(found?.modelFile == model.modelFile)
+        #expect(found?.modelFile == profile.modelFile)
     }
 
     @Test("lookup by filename returns nil for unknown model")
     func lookupUnknownFilename() {
-        let found = ModelRegistry.lookup(filename: "nonexistent-model.litertlm")
+        let found = KnownModelCatalog.lookup(filename: "nonexistent-model.litertlm")
         #expect(found == nil)
     }
 
     @Test("lookup by path returns nil for unknown model")
     func lookupUnknownPath() {
-        let found = ModelRegistry.lookup(path: "/path/to/nonexistent-model.litertlm")
+        let found = KnownModelCatalog.lookup(path: "/path/to/nonexistent-model.litertlm")
         #expect(found == nil)
     }
 
     @Test("recommendedBackend returns .probeRequired for unknown models")
     func recommendedBackendUnknown() {
-        let result = ModelRegistry.recommendedBackend(for: "/path/to/unknown.litertlm")
-        #expect(result == .probeRequired)
+        let found = KnownModelCatalog.lookup(path: "/path/to/unknown.litertlm")
+        #expect(found?.recommendedBackend ?? .probeRequired == .probeRequired)
     }
 
-    @Test("recommendedBackend returns a known recommendation for registry models",
-          arguments: ModelRegistry.knownModels.filter { $0.platformSupport.currentPlatform != .unknown })
-    func recommendedBackendKnown(model: ModelMetadata) {
+    @Test("recommendedBackend returns a known recommendation for catalog models",
+          arguments: KnownModelCatalog.allModels.filter { $0.platformSupport?.currentPlatform != .unknown })
+    func recommendedBackendKnown(profile: ModelCapabilityProfile) {
         // Models with .unknown capability on this platform (e.g., MLX on iOS Simulator)
         // are filtered out of the arguments above, so this assertion is always valid.
-        let result = ModelRegistry.recommendedBackend(for: "/any/path/\(model.modelFile)")
-        #expect(result != .probeRequired)
+        #expect(profile.recommendedBackend != .probeRequired)
     }
 
-    @Test("knownModels is non-empty")
-    func knownModelsNotEmpty() {
-        #expect(!ModelRegistry.knownModels.isEmpty)
+    @Test("allModels is non-empty")
+    func allModelsNotEmpty() {
+        #expect(!KnownModelCatalog.allModels.isEmpty)
     }
 
-    @Test("knownModels have unique modelFile values")
+    @Test("allModels have unique modelFile values")
     func uniqueModelFiles() {
-        let files = ModelRegistry.knownModels.map(\.modelFile)
+        let files = KnownModelCatalog.allModels.compactMap(\.modelFile)
         let uniqueFiles = Set(files)
         #expect(files.count == uniqueFiles.count)
     }
 
-    @Test("knownModels all have positive sizeInBytes",
-          arguments: ModelRegistry.knownModels)
-    func positiveSizeInBytes(model: ModelMetadata) {
-        #expect(model.sizeInBytes > 0)
+    @Test("allModels all have positive fileSizeBytes",
+          arguments: KnownModelCatalog.allModels)
+    func positiveFileSizeBytes(profile: ModelCapabilityProfile) {
+        #expect((profile.fileSizeBytes ?? 0) > 0)
     }
 }

@@ -107,19 +107,19 @@ final class BatchEvalTests: XCTestCase {
     private func makeTestModelEntry(name: String) -> EvalModelEntry {
         let slug = name.lowercased().replacingOccurrences(of: " ", with: "_")
         return EvalModelEntry(
-            metadata: ModelMetadata(
-                name: name,
-                modelId: "test/\(slug)",
-                modelFile: "\(slug).litertlm",
-                description: "Test model: \(name)",
-                sizeInBytes: 1_000_000,
-                minDeviceMemoryGB: 4,
-                contextWindowSize: 32_000,
-                architectureType: "Test",
-                recommendedFor: "Testing",
-                supportsImage: false,
-                supportsAudio: false,
-                capabilities: ["llm_thinking"],
+            profile: ModelCapabilityProfile(
+                id: "\(slug).litertlm",
+                displayName: name,
+                repoId: nil,
+                runtimeType: .litertlm,
+                supportsVision: nil, supportsAudio: nil, supportsThinking: nil,
+                supportsToolCalling: nil, supportsMTP: nil, supportsConstrainedDecoding: nil,
+                architecture: nil, contextWindow: nil, fileSizeBytes: nil,
+                estimatedMemoryGB: nil, totalParameters: nil, parameterLabel: nil,
+                confidence: .low, source: .huggingFaceInferred, lastUpdated: Date(),
+                repoSha: nil, license: nil, licenseLink: nil, baseModelId: nil,
+                downloads: nil, likes: nil, downloadsAllTime: nil,
+                supportedLanguages: [], tags: [],
                 defaultConfig: ModelDefaultConfig(
                     topK: 64,
                     topP: 0.95,
@@ -134,7 +134,9 @@ final class BatchEvalTests: XCTestCase {
                     iOSDevice: .gpuAndCpu,
                     iOSSimulator: .cpuOnly
                 ),
-                runtimeType: .litertlm
+                modelDescription: nil, recommendedFor: nil,
+                modelFile: "\(slug).litertlm",
+                modelId: "test/\(slug)"
             ),
             modelPath: "/tmp/\(slug).litertlm"
         )

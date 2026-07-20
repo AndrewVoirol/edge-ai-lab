@@ -50,27 +50,39 @@ struct EngineEvalIntegrationTests {
         visualTokenBudget: nil
     )
 
-    /// Creates a minimal `ModelMetadata` suitable for integration tests.
+    /// Creates a minimal `ModelCapabilityProfile` suitable for integration tests.
     /// Uses the Gemma 4 E2B standard model shape with all multimodal support disabled.
-    private static func testMetadata(
+    private static func testProfile(
         name: String = "Test Model",
         modelFile: String = "test-model.litertlm",
         supportsImage: Bool = false,
         supportsAudio: Bool = false
-    ) -> ModelMetadata {
-        ModelMetadata(
-            name: name,
-            modelId: "test/test-model",
-            modelFile: modelFile,
-            description: "Test model for integration tests",
-            sizeInBytes: 1_000_000,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 4_096,
-            architectureType: "Test",
-            recommendedFor: "Integration testing",
-            supportsImage: supportsImage,
-            supportsAudio: supportsAudio,
-            capabilities: [],
+    ) -> ModelCapabilityProfile {
+        ModelCapabilityProfile(
+            id: modelFile,
+            displayName: name,
+            repoId: "test/test-model",
+            runtimeType: .litertlm,
+            supportsVision: SourcedValue(supportsImage, source: .catalog),
+            supportsAudio: SourcedValue(supportsAudio, source: .catalog),
+            supportsThinking: nil,
+            supportsToolCalling: nil,
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: SourcedValue(4_096, source: .catalog),
+            fileSizeBytes: 1_000_000,
+            estimatedMemoryGB: SourcedValue(4, source: .catalog),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .low,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 1,
                 topP: 1.0,
@@ -84,16 +96,20 @@ struct EngineEvalIntegrationTests {
                 macOS: .cpuOnly,
                 iOSDevice: .cpuOnly,
                 iOSSimulator: .cpuOnly
-            )
+            ),
+            modelDescription: "Test model for integration tests",
+            recommendedFor: "Integration testing",
+            modelFile: modelFile,
+            modelId: "test/test-model"
         )
     }
 
     /// Creates a single-model entry list for eval runner.
     private static func singleModelEntry(
-        metadata: ModelMetadata? = nil
+        profile: ModelCapabilityProfile? = nil
     ) -> [EvalModelEntry] {
-        let md = metadata ?? testMetadata()
-        return [EvalModelEntry(metadata: md, modelPath: "/tmp/test-model.litertlm")]
+        let md = profile ?? testProfile()
+        return [EvalModelEntry(profile: md, modelPath: "/tmp/test-model.litertlm")]
     }
 
     /// Creates a temporary `EvalStore` backed by a unique temp directory.

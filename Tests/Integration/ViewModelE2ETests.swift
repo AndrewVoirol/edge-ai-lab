@@ -301,7 +301,7 @@ final class ViewModelE2ETests: XCTestCase {
 
         // Create a model entry (uses a fake path since mock engine doesn't need a real file)
         let modelEntry = EvalModelEntry(
-            metadata: ModelRegistry.knownModels.first!,
+            profile: KnownModelCatalog.allModels.first!,
             modelPath: "/fake/model.litertlm"
         )
 

@@ -90,7 +90,7 @@ final class GalleryModelDiscoveryTests: XCTestCase {
     /// A discovered file whose name matches a known model should include registry metadata.
     func testLookupMatchesDiscoveredFiles() throws {
         // Use a real known model filename
-        let knownFilename = ModelRegistry.gemma4E2BStandard.modelFile
+        let knownFilename = KnownModelCatalog.gemma4E2BStandard.modelFile ?? ""
         try createFakeModelFile(named: knownFilename)
 
         let models = scanTestDirectory()
@@ -99,7 +99,7 @@ final class GalleryModelDiscoveryTests: XCTestCase {
         let discovered = models.first!
         XCTAssertEqual(discovered.filename, knownFilename)
         XCTAssertNotNil(discovered.metadata, "Known model filename should match registry metadata")
-        XCTAssertEqual(discovered.metadata?.name, ModelRegistry.gemma4E2BStandard.name)
+        XCTAssertEqual(discovered.metadata?.displayName, KnownModelCatalog.gemma4E2BStandard.displayName)
     }
 
     /// A discovered file with an unknown name should have nil metadata.
@@ -145,21 +145,21 @@ final class GalleryModelDiscoveryTests: XCTestCase {
         XCTAssertTrue(filenames.contains("visible-model.litertlm"))
     }
 
-    // MARK: - ModelRegistry.lookup Integration
+    // MARK: - KnownModelCatalog.lookup Integration
 
-    /// Verify that ModelRegistry.lookup works correctly for all known filenames.
+    /// Verify that KnownModelCatalog.lookup works correctly for all known filenames.
     func testRegistryLookupForAllKnownModels() {
-        for model in ModelRegistry.knownModels {
-            let found = ModelRegistry.lookup(filename: model.modelFile)
-            XCTAssertNotNil(found, "Lookup should find \(model.modelFile)")
-            XCTAssertEqual(found?.name, model.name)
+        for model in KnownModelCatalog.allModels {
+            let found = KnownModelCatalog.lookup(filename: model.modelFile ?? "")
+            XCTAssertNotNil(found, "Lookup should find \(model.modelFile ?? "")")
+            XCTAssertEqual(found?.displayName, model.displayName)
         }
     }
 
-    /// Verify that ModelRegistry.lookup(path:) extracts filename correctly.
+    /// Verify that KnownModelCatalog.lookup(path:) extracts filename correctly.
     func testRegistryLookupByPath() {
         let path = "/some/deep/path/to/models/gemma-4-E2B-it.litertlm"
-        let found = ModelRegistry.lookup(path: path)
+        let found = KnownModelCatalog.lookup(path: path)
         XCTAssertNotNil(found)
         XCTAssertEqual(found?.modelFile, "gemma-4-E2B-it.litertlm")
     }
@@ -185,7 +185,7 @@ final class GalleryModelDiscoveryTests: XCTestCase {
             guard resourceValues?.isRegularFile == true else { return nil }
 
             let size = Int64(resourceValues?.fileSize ?? 0)
-            let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
+            let metadata = KnownModelCatalog.lookup(filename: url.lastPathComponent)
 
             return DiscoveredModel(
                 url: url,

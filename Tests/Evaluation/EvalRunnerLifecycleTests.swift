@@ -67,7 +67,7 @@ final class EvalRunnerLifecycleTests: XCTestCase {
 
     private func makeModelEntry() -> EvalModelEntry {
         EvalModelEntry(
-            metadata: ModelRegistry.knownModels.first!,
+            profile: KnownModelCatalog.allModels.first!,
             modelPath: "/fake/model.litertlm"
         )
     }
@@ -254,13 +254,13 @@ final class EvalRunnerLifecycleTests: XCTestCase {
         let suite = makeSuite(name: "Multi-Model Suite", promptCount: 2)
 
         // Use two model entries (same mock engine handles both)
-        let models = ModelRegistry.knownModels.prefix(2).map { metadata in
-            EvalModelEntry(metadata: metadata, modelPath: "/fake/\(metadata.modelFile)")
+        let models = KnownModelCatalog.allModels.prefix(2).map { profile in
+            EvalModelEntry(profile: profile, modelPath: "/fake/\(profile.modelFile ?? profile.id)")
         }
 
         // Need at least 2 known models for this test
         guard models.count >= 2 else {
-            throw XCTSkip("Need at least 2 known models in ModelRegistry for this test")
+            throw XCTSkip("Need at least 2 known models in KnownModelCatalog for this test")
         }
 
         let run = try await runner.run(

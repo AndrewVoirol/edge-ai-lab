@@ -376,16 +376,17 @@ struct DeveloperAutomationHarness {
                 automationLog("[AUTOMATION] -RunAllTests detected. Wiping all local models from Documents...")
                 wipeLocalModels(docs: docs, viewModel: viewModel)
                 
-                let targetModel = ModelRegistry.gemma4E2BStandard
+                let targetModel = KnownModelCatalog.gemma4E2BStandard
                 await ensureModelDownloaded(model: targetModel, docs: docs, viewModel: viewModel)
                 
-                let targetURL = docs.appendingPathComponent(targetModel.modelFile)
-                automationLog("[AUTOMATION] Loading model \(targetModel.modelFile) on GPU...")
+                let modelFile = targetModel.modelFile ?? targetModel.id
+                let targetURL = docs.appendingPathComponent(modelFile)
+                automationLog("[AUTOMATION] Loading model \(modelFile) on GPU...")
                 
                 let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
                 let sampler = safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
                 
-                let cachesDir = safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
+                let cachesDir = safeCachesDirectory().appendingPathComponent(modelFile)
                 try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                 
                 do {
@@ -407,7 +408,7 @@ struct DeveloperAutomationHarness {
                 
                 if let metrics = await runSingleBenchmark(viewModel: viewModel, prompt: benchmarkPrompt) {
                     automationLog("[AUTOMATION_SUCCESS] Benchmark completed successfully.")
-                    printReport(metrics: metrics, model: targetModel.modelFile, configLabel: "GPU / No MTP / Greedy")
+                    printReport(metrics: metrics, model: modelFile, configLabel: "GPU / No MTP / Greedy")
                     exit(0)
                 } else {
                     exit(1)
@@ -429,7 +430,7 @@ struct DeveloperAutomationHarness {
                 
                 struct Config {
                     let label: String
-                    let model: ModelMetadata
+                    let model: ModelCapabilityProfile
                     let useGPU: Bool
                     let enableMTP: Bool
                     let sampler: SamplerConfig
@@ -439,16 +440,16 @@ struct DeveloperAutomationHarness {
                 let sampling = safeSamplerConfig(topK: 64, topP: 0.95, temperature: 1.0)
                 
                 let matrix = [
-                    Config(label: "Standard Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: greedy),
-                    Config(label: "Standard Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: true, sampler: greedy),
-                    Config(label: "Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E2BStandard, useGPU: false, enableMTP: false, sampler: greedy),
-                    Config(label: "Standard Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: sampling),
-                    Config(label: "E4B Web Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: greedy),
-                    Config(label: "E4B Web Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: true, sampler: greedy),
-                    Config(label: "E4B Web Model / GPU / No MTP / Sampling (topK=64)", model: ModelRegistry.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: sampling),
-                    Config(label: "E4B Standard Model / CPU / No MTP / Greedy", model: ModelRegistry.gemma4E4BStandard, useGPU: false, enableMTP: false, sampler: greedy),
-                    Config(label: "12B Model / GPU / No MTP / Greedy", model: ModelRegistry.gemma4_12B, useGPU: true, enableMTP: false, sampler: greedy),
-                    Config(label: "12B Model / GPU / MTP / Greedy", model: ModelRegistry.gemma4_12B, useGPU: true, enableMTP: true, sampler: greedy)
+                    Config(label: "Standard Model / GPU / No MTP / Greedy", model: KnownModelCatalog.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: greedy),
+                    Config(label: "Standard Model / GPU / MTP / Greedy", model: KnownModelCatalog.gemma4E2BStandard, useGPU: true, enableMTP: true, sampler: greedy),
+                    Config(label: "Standard Model / CPU / No MTP / Greedy", model: KnownModelCatalog.gemma4E2BStandard, useGPU: false, enableMTP: false, sampler: greedy),
+                    Config(label: "Standard Model / GPU / No MTP / Sampling (topK=64)", model: KnownModelCatalog.gemma4E2BStandard, useGPU: true, enableMTP: false, sampler: sampling),
+                    Config(label: "E4B Web Model / GPU / No MTP / Greedy", model: KnownModelCatalog.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: greedy),
+                    Config(label: "E4B Web Model / GPU / MTP / Greedy", model: KnownModelCatalog.gemma4E4BWeb, useGPU: true, enableMTP: true, sampler: greedy),
+                    Config(label: "E4B Web Model / GPU / No MTP / Sampling (topK=64)", model: KnownModelCatalog.gemma4E4BWeb, useGPU: true, enableMTP: false, sampler: sampling),
+                    Config(label: "E4B Standard Model / CPU / No MTP / Greedy", model: KnownModelCatalog.gemma4E4BStandard, useGPU: false, enableMTP: false, sampler: greedy),
+                    Config(label: "12B Model / GPU / No MTP / Greedy", model: KnownModelCatalog.gemma4_12B, useGPU: true, enableMTP: false, sampler: greedy),
+                    Config(label: "12B Model / GPU / MTP / Greedy", model: KnownModelCatalog.gemma4_12B, useGPU: true, enableMTP: true, sampler: greedy)
                 ]
                 
                 // Ensure required model is available
@@ -476,7 +477,7 @@ struct DeveloperAutomationHarness {
                     let thermal = DeviceMetrics.currentThermalLevel
                     automationLog("[AUTOMATION] Start Thermal State: \(thermal.label)")
                     
-                    let targetURL = docs.appendingPathComponent(cfg.model.modelFile)
+                    let targetURL = docs.appendingPathComponent(cfg.model.modelFile ?? cfg.model.id)
                     let flags = RuntimeFlags(
                         enableBenchmark: true,
                         enableSpeculativeDecoding: cfg.enableMTP ? true : nil,
@@ -486,7 +487,7 @@ struct DeveloperAutomationHarness {
                     
                     await viewModel.engine.shutdown()
                     
-                    let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile)
+                    let cachesDir = safeCachesDirectory().appendingPathComponent(cfg.model.modelFile ?? cfg.model.id)
                     try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
                     
                     do {
@@ -510,7 +511,7 @@ struct DeveloperAutomationHarness {
                     if let metrics = await runSingleBenchmark(viewModel: viewModel, prompt: benchmarkPrompt) {
                         var report = metrics
                         report["config"] = cfg.label
-                        report["model"] = cfg.model.modelFile
+                        report["model"] = cfg.model.modelFile ?? cfg.model.id
                         report["thermal_start"] = thermal.label
                         report["thermal_end"] = DeviceMetrics.currentThermalLevel.label
                         results.append(report)
@@ -590,14 +591,15 @@ struct DeveloperAutomationHarness {
         }
     }
     
-    static func ensureModelDownloaded(model: ModelMetadata, docs: URL, viewModel: ConversationViewModel) async {
+    static func ensureModelDownloaded(model: ModelCapabilityProfile, docs: URL, viewModel: ConversationViewModel) async {
+        let modelFile = model.modelFile ?? model.id
         let state = viewModel.downloadManager.checkState(for: model)
         if case .downloaded = state {
-            automationLog("[AUTOMATION] \(model.modelFile) is already downloaded.")
+            automationLog("[AUTOMATION] \(modelFile) is already downloaded.")
             return
         }
         
-        automationLog("[AUTOMATION] Downloading \(model.modelFile) directly to iPhone...")
+        automationLog("[AUTOMATION] Downloading \(modelFile) directly to iPhone...")
         viewModel.downloadManager.download(model)
         
         var completed = false
@@ -610,33 +612,33 @@ struct DeveloperAutomationHarness {
             case .downloading(let progress):
                 let pct = Int(progress * 100)
                 if pct != lastLoggedProgress {
-                    automationLog("[AUTOMATION] Download progress (\(model.modelFile)): \(pct)%")
+                    automationLog("[AUTOMATION] Download progress (\(modelFile)): \(pct)%")
                     lastLoggedProgress = pct
                 }
             case .downloadingDirectory(let progress, let completed, let total):
                 let pct = Int(progress * 100)
                 if pct != lastLoggedProgress {
-                    automationLog("[AUTOMATION] Download progress (\(model.modelFile)): \(pct)% [\(completed)/\(total) files]")
+                    automationLog("[AUTOMATION] Download progress (\(modelFile)): \(pct)% [\(completed)/\(total) files]")
                     lastLoggedProgress = pct
                 }
             case .downloaded:
-                automationLog("[AUTOMATION] \(model.modelFile) downloaded successfully.")
+                automationLog("[AUTOMATION] \(modelFile) downloaded successfully.")
                 completed = true
             case .failed(let msg):
-                automationLog("[AUTOMATION_FAILURE] Failed to download \(model.modelFile): \(msg)")
+                automationLog("[AUTOMATION_FAILURE] Failed to download \(modelFile): \(msg)")
                 exit(1)
             case .authRequired:
-                automationLog("[AUTOMATION_FAILURE] HF Auth required for \(model.modelFile)")
+                automationLog("[AUTOMATION_FAILURE] HF Auth required for \(modelFile)")
                 exit(1)
             case .notDownloaded:
                 break
             case .queued(let position):
-                automationLog("[AUTOMATION] \(model.modelFile) queued at position \(position)")
+                automationLog("[AUTOMATION] \(modelFile) queued at position \(position)")
             case .paused:
-                automationLog("[AUTOMATION] \(model.modelFile) paused — resuming...")
+                automationLog("[AUTOMATION] \(modelFile) paused — resuming...")
                 viewModel.downloadManager.resumeDownload(model)
             case .pausedDirectory:
-                automationLog("[AUTOMATION] \(model.modelFile) directory download paused")
+                automationLog("[AUTOMATION] \(modelFile) directory download paused")
             }
         }
     }

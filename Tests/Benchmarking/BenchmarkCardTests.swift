@@ -241,7 +241,7 @@ final class BenchmarkCardTests: XCTestCase {
 
         // Even without BenchmarkInfo from the mock, the factory should work.
         // We test the metadata mapping path by using model metadata.
-        let metadata = ModelRegistry.gemma4E2BStandard
+        let metadata = KnownModelCatalog.gemma4E2BStandard
 
         // BenchmarkCardData.from(benchmarkInfo:) requires LiteRT-LM's BenchmarkInfo type,
         // which MockInferenceEngine cannot provide. That factory path is exercised

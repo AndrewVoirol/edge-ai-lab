@@ -34,7 +34,7 @@ struct RuntimeTypeTests {
     @Test("CaseIterable has exactly 3 cases")
     func caseIterableHasThreeCases() {
         // NOTE: If you add a new RuntimeType case, update this count AND the
-        // matching assertion in Tests/Models/ModelMetadataTests.swift (line ~143).
+        // matching assertion in the model capability tests.
         #expect(RuntimeType.allCases.count == 3)
     }
 

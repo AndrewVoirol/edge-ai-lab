@@ -40,20 +40,32 @@ final class DownloadInfrastructureTests: XCTestCase {
         name: String = "Dummy",
         file: String = "dummy.litertlm",
         sizeInBytes: Int64 = 2_700_000_000
-    ) -> ModelMetadata {
-        ModelMetadata(
-            name: name,
-            modelId: "dummy/\(name.lowercased())",
-            modelFile: file,
-            description: "Test model",
-            sizeInBytes: sizeInBytes,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 8192,
-            architectureType: "Test",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: [],
+    ) -> ModelCapabilityProfile {
+        ModelCapabilityProfile(
+            id: file,
+            displayName: name,
+            repoId: "dummy/\(name.lowercased())",
+            runtimeType: .litertlm,
+            supportsVision: nil,
+            supportsAudio: nil,
+            supportsThinking: nil,
+            supportsToolCalling: nil,
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: SourcedValue(8192, source: .heuristic),
+            fileSizeBytes: sizeInBytes,
+            estimatedMemoryGB: SourcedValue(4, source: .heuristic),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .low,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 1,
                 topP: 1.0,
@@ -67,7 +79,11 @@ final class DownloadInfrastructureTests: XCTestCase {
                 macOS: .unknown,
                 iOSDevice: .unknown,
                 iOSSimulator: .unknown
-            )
+            ),
+            modelDescription: "Test model",
+            recommendedFor: "Testing",
+            modelFile: file,
+            modelId: "dummy/\(name.lowercased())"
         )
     }
 
@@ -542,7 +558,7 @@ final class DownloadInfrastructureTests: XCTestCase {
 
         // Simulate an active download by setting state directly
         let activeModel = makeDummyModel(name: "Active", file: "active.litertlm")
-        manager.downloadStates[activeModel.modelFile] = .downloading(progress: 0.5)
+        manager.downloadStates[activeModel.modelFile!] = .downloading(progress: 0.5)
 
         // Now try to download another model — it should be queued
         let queuedModel = makeDummyModel(name: "Queued", file: "queued.litertlm")
@@ -552,7 +568,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         // (Note: this depends on whether download() checks downloadStates or actual tasks.
         //  Since there's no real task for activeModel, download() may start immediately.
         //  We verify the queue mechanism by checking state after calling download.)
-        let state = manager.downloadStates[queuedModel.modelFile]
+        let state = manager.downloadStates[queuedModel.modelFile!]
         // It could be .downloading or .queued depending on implementation
         // The important thing is it doesn't crash and has a state
         XCTAssertNotNil(state, "Queued model should have a state entry")
@@ -754,13 +770,13 @@ final class DownloadInfrastructureTests: XCTestCase {
         let manager = ModelDownloadManager()
         let model = makeDummyModel(name: "DeleteMe", file: "deleteme.litertlm")
 
-        manager.downloadStates[model.modelFile] = .downloaded(
+        manager.downloadStates[model.modelFile ?? ""] = .downloaded(
             URL(fileURLWithPath: "/tmp/deleteme.litertlm")
         )
 
         manager.deleteModel(model)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             XCTFail("Expected .notDownloaded after deleteModel(metadata)")
@@ -778,7 +794,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         // Should not crash even though the file doesn't exist on disk
         manager.deleteModel(model)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             XCTFail("Expected .notDownloaded for non-existent file")
@@ -863,7 +879,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         await manager.cancelDownload(model)
 
         // State should be .notDownloaded (set by cancelDownload)
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             // Also acceptable: nil (no entry at all) — cancelDownload always sets .notDownloaded
@@ -876,10 +892,10 @@ final class DownloadInfrastructureTests: XCTestCase {
         let manager = ModelDownloadManager()
         let model = makeDummyModel(name: "CancelConvenience", file: "cancel-convenience.litertlm")
 
-        manager.downloadStates[model.modelFile] = .downloading(progress: 0.6)
+        manager.downloadStates[model.modelFile ?? ""] = .downloading(progress: 0.6)
         await manager.cancelDownload(model)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             XCTFail("Expected .notDownloaded after cancelDownload(metadata)")
@@ -1203,7 +1219,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         manager.deleteModel(model)
         manager.deleteModel(model)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             XCTFail("Expected .notDownloaded after multiple deletes")
@@ -1219,7 +1235,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         await manager.cancelDownload(model)
         await manager.cancelDownload(model)
 
-        if case .notDownloaded = manager.downloadStates[model.modelFile] {
+        if case .notDownloaded = manager.downloadStates[model.modelFile ?? ""] {
             // Pass
         } else {
             XCTFail("Expected .notDownloaded after multiple cancels")
@@ -1231,7 +1247,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         let manager = ModelDownloadManager()
         let model = makeDummyModel(name: "PreserveState", file: "preserve-state.litertlm")
 
-        manager.downloadStates[model.modelFile] = .downloading(progress: 0.75)
+        manager.downloadStates[model.modelFile ?? ""] = .downloading(progress: 0.75)
 
         let checked = manager.checkState(for: model)
         if case .downloading(let progress) = checked {
@@ -1246,7 +1262,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         let manager = ModelDownloadManager()
         let model = makeDummyModel(name: "PreserveQueued", file: "preserve-queued.litertlm")
 
-        manager.downloadStates[model.modelFile] = .queued(position: 2)
+        manager.downloadStates[model.modelFile ?? ""] = .queued(position: 2)
 
         let checked = manager.checkState(for: model)
         if case .queued(let position) = checked {
@@ -1262,7 +1278,7 @@ final class DownloadInfrastructureTests: XCTestCase {
         let model = makeDummyModel(name: "PreservePaused", file: "preserve-paused.litertlm")
         let resumeData = Data([0x01, 0x02])
 
-        manager.downloadStates[model.modelFile] = .paused(resumeData: resumeData, progress: 0.6)
+        manager.downloadStates[model.modelFile ?? ""] = .paused(resumeData: resumeData, progress: 0.6)
 
         let checked = manager.checkState(for: model)
         if case .paused(let data, let progress) = checked {

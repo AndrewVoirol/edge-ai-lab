@@ -91,8 +91,8 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/gemma-4-E2B-it-litert-lm", author: "org"
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    let nameContainsMoEEdge = metadata.name.contains("MoE Edge") || metadata.name.contains("2B")
-    XCTAssertTrue(nameContainsMoEEdge, "Expected name to contain 'MoE Edge' or '2B', got: \(metadata.name)")
+    let nameContainsMoEEdge = metadata.displayName.contains("MoE Edge") || metadata.displayName.contains("2B")
+    XCTAssertTrue(nameContainsMoEEdge, "Expected name to contain 'MoE Edge' or '2B', got: \(metadata.displayName)")
   }
 
   @MainActor
@@ -101,8 +101,8 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/gemma-4-12B-it-litert-lm", author: "org"
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    let nameContains12B = metadata.name.contains("Dense 12B") || metadata.name.contains("12B")
-    XCTAssertTrue(nameContains12B, "Expected name to contain 'Dense 12B' or '12B', got: \(metadata.name)")
+    let nameContains12B = metadata.displayName.contains("Dense 12B") || metadata.displayName.contains("12B")
+    XCTAssertTrue(nameContains12B, "Expected name to contain 'Dense 12B' or '12B', got: \(metadata.displayName)")
   }
 
   @MainActor
@@ -111,7 +111,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/some-model", author: "org"
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    XCTAssertEqual(metadata.minDeviceMemoryGB, 8)
+    XCTAssertEqual(metadata.memoryGB ?? 0, 8)
   }
 
   // MARK: - Capability inference
@@ -122,7 +122,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", tags: ["vision"]
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    XCTAssertTrue(metadata.supportsImage)
+    XCTAssertTrue(metadata.hasVision)
   }
 
   @MainActor
@@ -131,7 +131,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", pipelineTag: "image-text-to-text"
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    XCTAssertTrue(metadata.supportsImage)
+    XCTAssertTrue(metadata.hasVision)
   }
 
   @MainActor
@@ -140,7 +140,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org"
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    XCTAssertFalse(metadata.supportsImage)
+    XCTAssertFalse(metadata.hasVision)
   }
 
   @MainActor
@@ -149,7 +149,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", tags: ["audio"]
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model)
-    XCTAssertTrue(metadata.supportsAudio)
+    XCTAssertTrue(metadata.hasAudio)
   }
 
   @MainActor
@@ -162,8 +162,8 @@ final class ModelCardParserTests: XCTestCase {
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model, readmeContent: readme)
     XCTAssertTrue(
-      metadata.capabilities.contains("speculative_decoding"),
-      "Expected capabilities to contain 'speculative_decoding', got: \(metadata.capabilities)"
+      metadata.hasMTP,
+      "Expected hasMTP to be true"
     )
   }
 
@@ -243,7 +243,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", siblings: siblings
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model, siblings: siblings)
-    XCTAssertTrue(metadata.platformSupport.macOS == .gpuOnly)
+    XCTAssertTrue(metadata.platformSupport?.macOS == .gpuOnly)
   }
 
   // MARK: - File size inference
@@ -262,7 +262,7 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", siblings: siblings
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model, siblings: siblings)
-    XCTAssertEqual(metadata.sizeInBytes, lfsSize)
+    XCTAssertEqual(metadata.fileSizeBytes, lfsSize)
   }
 
   @MainActor
@@ -275,6 +275,6 @@ final class ModelCardParserTests: XCTestCase {
       id: "org/model", author: "org", siblings: siblings
     )
     let (metadata, _) = ModelCardParser.inferMetadata(from: model, siblings: siblings)
-    XCTAssertEqual(metadata.sizeInBytes, regularSize)
+    XCTAssertEqual(metadata.fileSizeBytes, regularSize)
   }
 }

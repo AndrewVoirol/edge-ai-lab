@@ -142,7 +142,7 @@ struct iOSEvalTabView: View {
             // MARK: Model Selection
             Section("Models to Evaluate") {
                 ForEach(viewModel.discoveredModels, id: \.url) { discovered in
-                    let metadata = discovered.resolvedMetadata
+                    let profile = discovered.resolvedMetadata
                     Button {
                         if selectedModelFiles.contains(discovered.filename) {
                             selectedModelFiles.remove(discovered.filename)
@@ -152,22 +152,22 @@ struct iOSEvalTabView: View {
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                                Text(metadata.name)
+                                Text(profile.displayName)
                                     .font(AppTypography.listTitle)
                                     .foregroundStyle(AppColors.textPrimary)
                                     .lineLimit(1)
 
                                 HStack(spacing: AppSpacing.xs) {
-                                    Text(metadata.runtimeType.rawValue)
+                                    Text(profile.runtimeType.rawValue)
                                         .badge(AppColors.accentSecondary)
                                     Text(discovered.formattedSize)
                                         .font(AppTypography.caption)
                                         .foregroundStyle(AppColors.textTertiary)
-                                    if metadata.supportsImage {
+                                    if profile.hasVision {
                                         Text("Vision")
                                             .badge(AppColors.capabilityVision)
                                     }
-                                    if metadata.supportsAudio {
+                                    if profile.hasAudio {
                                         Text("Audio")
                                             .badge(AppColors.capabilityAudio)
                                     }
@@ -185,7 +185,7 @@ struct iOSEvalTabView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(metadata.name), \(selectedModelFiles.contains(discovered.filename) ? "selected" : "not selected")")
+                    .accessibilityLabel("\(profile.displayName), \(selectedModelFiles.contains(discovered.filename) ? "selected" : "not selected")")
                     .accessibilityIdentifier("evalTab_model_\(discovered.filename)")
                 }
                 if viewModel.discoveredModels.isEmpty {
@@ -427,7 +427,7 @@ struct iOSEvalTabView: View {
             .filter { selectedModelFiles.contains($0.filename) }
             .map { discovered in
                 EvalModelEntry(
-                    metadata: discovered.resolvedMetadata,
+                    profile: discovered.resolvedMetadata,
                     modelPath: discovered.url.path,
                     mmProjPath: discovered.mmProjPath
                 )
@@ -539,7 +539,7 @@ struct iOSEvalTabView: View {
         let modelEntries: [EvalModelEntry] = viewModel.discoveredModels
             .map { discovered in
                 EvalModelEntry(
-                    metadata: discovered.resolvedMetadata,
+                    profile: discovered.resolvedMetadata,
                     modelPath: discovered.url.path,
                     mmProjPath: discovered.mmProjPath
                 )

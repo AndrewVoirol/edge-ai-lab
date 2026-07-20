@@ -26,7 +26,7 @@ import LiteRTLM
 ///
 /// These tests exercise the REAL user code path:
 ///
-///   ModelRegistry.lookup() → platformSupport.currentPlatform → recommendedBackend
+///   KnownModelCatalog.lookup() → platformSupport.currentPlatform → recommendedBackend
 ///   → initializeWithFallback() → inference
 ///
 /// This is what the app does when a user opens it. If these tests pass, the user's
@@ -34,7 +34,7 @@ import LiteRTLM
 ///
 /// **Why this exists:** Session 1 set `gemma4E2BStandard.iOSDevice = .cpuOnly` which
 /// was wrong (GPU works on device). A direct backend test never caught this because
-/// it bypasses the ModelRegistry routing entirely. This test catches that class of bug.
+/// it bypasses the KnownModelCatalog routing entirely. This test catches that class of bug.
 final class SmartFallbackIntegrationTests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -104,9 +104,9 @@ final class SmartFallbackIntegrationTests: XCTestCase {
         #endif
     }
 
-    // MARK: - Integration Test: ModelRegistry → Recommended Backend
+    // MARK: - Integration Test: KnownModelCatalog → Recommended Backend
 
-    /// Verify that ModelRegistry returns the expected backend recommendation
+    /// Verify that KnownModelCatalog returns the expected backend recommendation
     /// for every known model on the current platform.
     /// This is a fast, no-model-loading test that validates the metadata layer.
     func testRegistryRecommendations_AllKnownModels() throws {
@@ -114,11 +114,11 @@ final class SmartFallbackIntegrationTests: XCTestCase {
         print("║ REGISTRY RECOMMENDATION TEST — \(platformName)")
         print("╚══════════════════════════════════════════════")
 
-        for model in ModelRegistry.knownModels {
-            let capability = model.platformSupport.currentPlatform
+        for model in KnownModelCatalog.allModels {
+            let capability = model.platformSupport?.currentPlatform ?? .unknown
             let recommendation = capability.recommendedBackend
 
-            print("  \(model.name)")
+            print("  \(model.displayName)")
             print("    Capability: \(capability.rawValue)")
             print("    Recommendation: \(recommendation.rawValue)")
 
@@ -127,7 +127,7 @@ final class SmartFallbackIntegrationTests: XCTestCase {
             #if !targetEnvironment(simulator)
             // On real platforms (macOS, iOS device), .unknown means untested — flag it
             if capability == .unknown {
-                XCTFail("[\(model.name)] platformSupport is .unknown on \(platformName) — fill in verified data")
+                XCTFail("[\(model.displayName)] platformSupport is .unknown on \(platformName) — fill in verified data")
             }
             #endif
 
@@ -135,26 +135,26 @@ final class SmartFallbackIntegrationTests: XCTestCase {
             switch capability {
             case .gpuOnly:
                 XCTAssertEqual(recommendation, .gpu,
-                    "[\(model.name)] gpuOnly should recommend .gpu")
+                    "[\(model.displayName)] gpuOnly should recommend .gpu")
             case .cpuOnly:
                 XCTAssertEqual(recommendation, .cpu,
-                    "[\(model.name)] cpuOnly should recommend .cpu")
+                    "[\(model.displayName)] cpuOnly should recommend .cpu")
             case .gpuAndCpu:
                 XCTAssertEqual(recommendation, .gpu,
-                    "[\(model.name)] gpuAndCpu should recommend .gpu (prefer GPU)")
+                    "[\(model.displayName)] gpuAndCpu should recommend .gpu (prefer GPU)")
             case .unknown:
                 XCTAssertEqual(recommendation, .probeRequired,
-                    "[\(model.name)] unknown should recommend .probeRequired")
+                    "[\(model.displayName)] unknown should recommend .probeRequired")
             }
         }
 
-        print("✅ All \(ModelRegistry.knownModels.count) model registry recommendations validated")
+        print("✅ All \(KnownModelCatalog.allModels.count) model registry recommendations validated")
     }
 
     // MARK: - Integration Test: Full Smart Fallback Path
 
     /// Test the COMPLETE user code path for each available model:
-    /// ModelRegistry.lookup → recommendedBackend → initializeWithFallback → inference
+    /// KnownModelCatalog.lookup → recommendedBackend → initializeWithFallback → inference
     ///
     /// This is what happens when the user opens the app and a model auto-loads.
     func testSmartFallback_DesktopModel() async throws {
@@ -187,15 +187,15 @@ final class SmartFallbackIntegrationTests: XCTestCase {
         print("║ SMART FALLBACK TEST — \(label) on \(platformName)")
         print("╚══════════════════════════════════════════════")
 
-        // Step 1: Verify ModelRegistry lookup
-        let metadata = ModelRegistry.lookup(path: modelPath)
-        XCTAssertNotNil(metadata, "[\(label)] ModelRegistry should recognize \(expectedFilename)")
+        // Step 1: Verify KnownModelCatalog lookup
+        let metadata = KnownModelCatalog.lookup(path: modelPath)
+        XCTAssertNotNil(metadata, "[\(label)] KnownModelCatalog should recognize \(expectedFilename)")
         guard let metadata = metadata else { return }
 
-        print("  ✓ Registry lookup: \(metadata.name)")
+        print("  ✓ Registry lookup: \(metadata.displayName)")
 
         // Step 2: Verify platform support is not .unknown
-        let capability = metadata.platformSupport.currentPlatform
+        let capability = metadata.platformSupport?.currentPlatform ?? .unknown
         print("  ✓ Platform capability: \(capability.rawValue)")
 
         #if !targetEnvironment(simulator)

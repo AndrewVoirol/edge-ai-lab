@@ -339,42 +339,33 @@ struct ProfileBuilderHFModelInfoTests {
     }
 }
 
-// MARK: - Profile Builder from ModelMetadata
+// MARK: - Profile Builder from KnownModelCatalog
 
-@Suite("ModelCapabilityProfileBuilder — from ModelMetadata")
-struct ProfileBuilderModelMetadataTests {
+@Suite("ModelCapabilityProfileBuilder — from KnownModelCatalog")
+struct ProfileBuilderCatalogTests {
 
-    @Test("Builds profile from known registry model")
-    func fromKnownRegistry() {
-        // Use the first known model in the registry
-        let knownModels = ModelRegistry.knownModels
-        guard let metadata = knownModels.first else {
-            Issue.record("No known models in registry")
+    @Test("Builds profile from known catalog model")
+    func fromKnownCatalog() {
+        // Use the first known model in the catalog
+        let knownModels = KnownModelCatalog.allModels
+        guard let profile = knownModels.first else {
+            Issue.record("No known models in catalog")
             return
         }
 
-        let profile = ModelCapabilityProfileBuilder.fromModelMetadata(metadata)
-
-        #expect(profile.id == metadata.modelFile)
-        #expect(profile.displayName == metadata.name)
-        #expect(profile.runtimeType == metadata.runtimeType)
-        #expect(profile.confidence == .verified)
-        #expect(profile.source == .knownRegistry)
-        #expect(profile.supportsVision?.value == metadata.supportsImage)
-        #expect(profile.supportsAudio?.value == metadata.supportsAudio)
-        #expect(profile.contextWindowSize == metadata.contextWindowSize)
-        #expect(profile.memoryGB == metadata.minDeviceMemoryGB)
+        #expect(!profile.id.isEmpty)
+        #expect(!profile.displayName.isEmpty)
+        #expect(profile.runtimeType == .litertlm)
     }
 
-    @Test("Source is .registry for known models")
-    func sourceIsRegistry() {
-        let knownModels = ModelRegistry.knownModels
-        guard let metadata = knownModels.first else {
-            Issue.record("No known models in registry")
+    @Test("Source is .catalog for known models")
+    func sourceIsCatalog() {
+        let knownModels = KnownModelCatalog.allModels
+        guard let profile = knownModels.first else {
+            Issue.record("No known models in catalog")
             return
         }
 
-        let profile = ModelCapabilityProfileBuilder.fromModelMetadata(metadata)
         #expect(profile.supportsVision?.source == .catalog)
     }
 }

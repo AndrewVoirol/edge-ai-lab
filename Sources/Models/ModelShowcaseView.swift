@@ -22,7 +22,7 @@ import SwiftUI
 ///
 /// Accessed by tapping a model card in the model management section.
 struct ModelShowcaseView: View {
-    let metadata: ModelMetadata
+    let profile: ModelCapabilityProfile
     var fileURL: URL? = nil
     @Environment(\.dismiss) private var dismiss
 
@@ -48,7 +48,7 @@ struct ModelShowcaseView: View {
             .ignoresSafeArea()
             .overlay(.ultraThinMaterial)
         )
-        .navigationTitle(metadata.name)
+        .navigationTitle(profile.displayName)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
@@ -63,7 +63,7 @@ struct ModelShowcaseView: View {
     private var heroSection: some View {
         VStack(spacing: AppSpacing.md) {
             // Architecture badge
-            Text(metadata.architectureType)
+            Text(profile.architecture?.architectureClass ?? "Unknown")
                 .font(AppTypography.badge)
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.md)
@@ -72,13 +72,13 @@ struct ModelShowcaseView: View {
                 .clipShape(Capsule())
 
             // Model name
-            Text(metadata.name)
+            Text(profile.displayName)
                 .font(AppTypography.pageTitle)
                 .foregroundStyle(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
 
             // Description
-            Text(metadata.description)
+            Text(profile.modelDescription ?? "")
                 .font(AppTypography.subtitle)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -89,7 +89,7 @@ struct ModelShowcaseView: View {
                 Image(systemName: "star.fill")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.accentSecondary)
-                Text(metadata.recommendedFor)
+                Text(profile.recommendedFor ?? "")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.accentSecondary)
             }
@@ -113,11 +113,11 @@ struct ModelShowcaseView: View {
                 GridItem(.flexible())
             ], spacing: AppSpacing.md) {
                 capabilityCard(icon: "text.bubble.fill", label: "Text", enabled: true, color: AppColors.accentPrimary)
-                capabilityCard(icon: "eye.fill", label: "Vision", enabled: metadata.supportsImage, color: AppColors.accentSecondary)
-                capabilityCard(icon: "waveform", label: "Audio", enabled: metadata.supportsAudio, color: AppColors.accentPrimary)
-                capabilityCard(icon: "brain.head.profile", label: "Thinking", enabled: metadata.capabilities.contains("llm_thinking"), color: AppColors.reasoning)
-                capabilityCard(icon: "hare.fill", label: "Spec. Dec", enabled: metadata.supportsMTP, color: AppColors.success)
-                capabilityCard(icon: "wrench.and.screwdriver", label: "Tools", enabled: true, color: AppColors.toolAction)
+                capabilityCard(icon: "eye.fill", label: "Vision", enabled: profile.hasVision, color: AppColors.accentSecondary)
+                capabilityCard(icon: "waveform", label: "Audio", enabled: profile.hasAudio, color: AppColors.accentPrimary)
+                capabilityCard(icon: "brain.head.profile", label: "Thinking", enabled: profile.hasThinking, color: AppColors.reasoning)
+                capabilityCard(icon: "hare.fill", label: "Spec. Dec", enabled: profile.hasMTP, color: AppColors.success)
+                capabilityCard(icon: "wrench.and.screwdriver", label: "Tools", enabled: profile.hasToolCalling, color: AppColors.toolAction)
             }
         }
     }
@@ -150,14 +150,14 @@ struct ModelShowcaseView: View {
                 if let url = fileURL {
                     specRow(label: "Location", value: url.path)
                 }
-                specRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file))
-                specRow(label: "Context Window", value: formatTokenCount(metadata.contextWindowSize))
-                specRow(label: "Max Output Tokens", value: formatTokenCount(metadata.defaultConfig.maxTokens))
-                specRow(label: "Architecture", value: metadata.architectureType)
-                specRow(label: "Accelerators", value: metadata.defaultConfig.accelerators.uppercased())
-                specRow(label: "Default Top-K", value: "\(metadata.defaultConfig.topK)")
-                specRow(label: "Default Top-P", value: String(format: "%.2f", metadata.defaultConfig.topP))
-                specRow(label: "Default Temperature", value: String(format: "%.1f", metadata.defaultConfig.temperature))
+                specRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: profile.fileSizeBytes ?? 0, countStyle: .file))
+                specRow(label: "Context Window", value: profile.contextWindowSize.map { formatTokenCount($0) } ?? "Unknown")
+                specRow(label: "Max Output Tokens", value: formatTokenCount(profile.defaultConfig?.maxTokens ?? 0))
+                specRow(label: "Architecture", value: profile.architecture?.architectureClass ?? "Unknown")
+                specRow(label: "Accelerators", value: (profile.defaultConfig?.accelerators ?? "gpu").uppercased())
+                specRow(label: "Default Top-K", value: "\(profile.defaultConfig?.topK ?? 64)")
+                specRow(label: "Default Top-P", value: String(format: "%.2f", profile.defaultConfig?.topP ?? 0.95))
+                specRow(label: "Default Temperature", value: String(format: "%.1f", profile.defaultConfig?.temperature ?? 1.0))
             }
             .glassCard(cornerRadius: AppRadius.md)
         }
@@ -187,7 +187,7 @@ struct ModelShowcaseView: View {
 
             VStack(spacing: AppSpacing.sm) {
                 let availableMB = DeviceMetrics.availableMemoryMB
-                let requiredMB = Double(metadata.minDeviceMemoryGB) * 1024.0
+                let requiredMB = Double(profile.memoryGB ?? 8) * 1024.0
                 let fits = availableMB >= requiredMB * 0.5 // Some wiggle room — OS manages memory
 
                 HStack(spacing: AppSpacing.md) {
@@ -198,7 +198,7 @@ struct ModelShowcaseView: View {
                         Text(fits ? "This model should fit your device" : "This model may not fit — limited memory")
                             .font(AppTypography.subtitle)
                             .foregroundStyle(AppColors.textPrimary)
-                        Text("Requires \(metadata.minDeviceMemoryGB) GB · Available: \(String(format: "%.0f", availableMB)) MB")
+                        Text("Requires \(profile.memoryGB ?? 8) GB · Available: \(String(format: "%.0f", availableMB)) MB")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.textTertiary)
                     }
@@ -208,9 +208,9 @@ struct ModelShowcaseView: View {
 
                 // Platform support
                 HStack(spacing: AppSpacing.lg) {
-                    platformBadge(label: "macOS", capability: metadata.platformSupport.macOS)
-                    platformBadge(label: "iPhone", capability: metadata.platformSupport.iOSDevice)
-                    platformBadge(label: "Simulator", capability: metadata.platformSupport.iOSSimulator)
+                    platformBadge(label: "macOS", capability: (profile.platformSupport ?? PlatformSupport()).macOS)
+                    platformBadge(label: "iPhone", capability: (profile.platformSupport ?? PlatformSupport()).iOSDevice)
+                    platformBadge(label: "Simulator", capability: (profile.platformSupport ?? PlatformSupport()).iOSSimulator)
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.bottom, AppSpacing.md)

@@ -51,19 +51,19 @@ final class BugFixTests: XCTestCase {
         var pauseCalled = false
         var resumeCalled = false
 
-        let metadata = ModelMetadata(
-            name: "Test Model",
-            modelId: "test-org/test-model",
-            modelFile: "test.litertlm",
-            description: "A test model for pause/resume callbacks",
-            sizeInBytes: 1_000_000,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 2048,
-            architectureType: "test",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: ["llm_thinking"],
+        let profile = ModelCapabilityProfile(
+            id: "test.litertlm",
+            displayName: "Test Model",
+            repoId: nil,
+            runtimeType: .litertlm,
+            supportsVision: nil, supportsAudio: nil, supportsThinking: nil,
+            supportsToolCalling: nil, supportsMTP: nil, supportsConstrainedDecoding: nil,
+            architecture: nil, contextWindow: nil, fileSizeBytes: nil,
+            estimatedMemoryGB: nil, totalParameters: nil, parameterLabel: nil,
+            confidence: .low, source: .huggingFaceInferred, lastUpdated: Date(),
+            repoSha: nil, license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [], tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 64,
                 topP: 0.95,
@@ -78,11 +78,14 @@ final class BugFixTests: XCTestCase {
                 iOSDevice: .gpuAndCpu,
                 iOSSimulator: .cpuOnly
             ),
-            runtimeType: .litertlm
+            modelDescription: "A test model for pause/resume callbacks",
+            recommendedFor: nil,
+            modelFile: "test.litertlm",
+            modelId: "test-org/test-model"
         )
 
         let row = iOSModelRow(
-            metadata: metadata,
+            profile: profile,
             downloadState: .downloading(progress: 0.5),
             onPauseTap: { pauseCalled = true },
             onResumeTap: { resumeCalled = true }
@@ -99,19 +102,19 @@ final class BugFixTests: XCTestCase {
     /// Verifies that `iOSModelRow` defaults pause/resume to nil when not provided.
     @MainActor
     func testIOSModelRowDefaultsPauseResumeToNil() {
-        let metadata = ModelMetadata(
-            name: "Test Model",
-            modelId: "test-org/test-model",
-            modelFile: "test.litertlm",
-            description: "A test model for nil callback defaults",
-            sizeInBytes: 1_000_000,
-            minDeviceMemoryGB: 4,
-            contextWindowSize: 2048,
-            architectureType: "test",
-            recommendedFor: "Testing",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: ["llm_thinking"],
+        let profile = ModelCapabilityProfile(
+            id: "test.litertlm",
+            displayName: "Test Model",
+            repoId: nil,
+            runtimeType: .litertlm,
+            supportsVision: nil, supportsAudio: nil, supportsThinking: nil,
+            supportsToolCalling: nil, supportsMTP: nil, supportsConstrainedDecoding: nil,
+            architecture: nil, contextWindow: nil, fileSizeBytes: nil,
+            estimatedMemoryGB: nil, totalParameters: nil, parameterLabel: nil,
+            confidence: .low, source: .huggingFaceInferred, lastUpdated: Date(),
+            repoSha: nil, license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [], tags: [],
             defaultConfig: ModelDefaultConfig(
                 topK: 64,
                 topP: 0.95,
@@ -126,11 +129,14 @@ final class BugFixTests: XCTestCase {
                 iOSDevice: .gpuAndCpu,
                 iOSSimulator: .cpuOnly
             ),
-            runtimeType: .litertlm
+            modelDescription: "A test model for nil callback defaults",
+            recommendedFor: nil,
+            modelFile: "test.litertlm",
+            modelId: "test-org/test-model"
         )
 
         let row = iOSModelRow(
-            metadata: metadata,
+            profile: profile,
             downloadState: .notDownloaded
         )
 

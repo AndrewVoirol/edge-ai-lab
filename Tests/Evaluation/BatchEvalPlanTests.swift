@@ -41,19 +41,19 @@ private func makeSuiteForPlan(name: String = "Test Suite", promptCount: Int = 5)
 
 /// Creates a minimal EvalModelEntry.
 private func makeModelEntryForPlan(name: String = "Test Model") -> EvalModelEntry {
-    let metadata = ModelMetadata(
-        name: name,
-        modelId: "test-org/\(name)-it-litert-lm",
-        modelFile: "\(name).litertlm",
-        description: "Test",
-        sizeInBytes: 1_000_000,
-        minDeviceMemoryGB: 8,
-        contextWindowSize: 128_000,
-        architectureType: "Test",
-        recommendedFor: "Testing",
-        supportsImage: false,
-        supportsAudio: false,
-        capabilities: [],
+    let profile = ModelCapabilityProfile(
+        id: "\(name).litertlm",
+        displayName: name,
+        repoId: nil,
+        runtimeType: .litertlm,
+        supportsVision: nil, supportsAudio: nil, supportsThinking: nil,
+        supportsToolCalling: nil, supportsMTP: nil, supportsConstrainedDecoding: nil,
+        architecture: nil, contextWindow: nil, fileSizeBytes: nil,
+        estimatedMemoryGB: nil, totalParameters: nil, parameterLabel: nil,
+        confidence: .low, source: .huggingFaceInferred, lastUpdated: Date(),
+        repoSha: nil, license: nil, licenseLink: nil, baseModelId: nil,
+        downloads: nil, likes: nil, downloadsAllTime: nil,
+        supportedLanguages: [], tags: [],
         defaultConfig: ModelDefaultConfig(
             topK: 64,
             topP: 0.95,
@@ -68,9 +68,11 @@ private func makeModelEntryForPlan(name: String = "Test Model") -> EvalModelEntr
             iOSDevice: .gpuAndCpu,
             iOSSimulator: .cpuOnly
         ),
-        runtimeType: .litertlm
+        modelDescription: nil, recommendedFor: nil,
+        modelFile: "\(name).litertlm",
+        modelId: "test-org/\(name)-it-litert-lm"
     )
-    return EvalModelEntry(metadata: metadata, modelPath: "/tmp/\(name).litertlm")
+    return EvalModelEntry(profile: profile, modelPath: "/tmp/\(name).litertlm")
 }
 
 // MARK: - BatchEvalPlan Computed Property Tests

@@ -300,7 +300,7 @@ struct SidebarView: View {
             .accessibilityIdentifier("button_deleteModelConfirm")
         } message: {
             if let model = modelToDelete {
-                Text("\"\(model.resolvedMetadata.name)\" will be permanently removed from disk. This cannot be undone.")
+                Text("\"\(model.resolvedMetadata.displayName)\" will be permanently removed from disk. This cannot be undone.")
             }
         }
 
@@ -669,7 +669,7 @@ private struct SidebarModelRow: View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             // Name + Gallery badge + trash icon
             HStack(spacing: AppSpacing.xs) {
-                let normalized = Self.normalizeDisplayName(model.resolvedMetadata.name)
+                let normalized = Self.normalizeDisplayName(model.resolvedMetadata.displayName)
                 let parts = Self.splitModelName(normalized)
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                     Text(parts.primary)
@@ -713,7 +713,7 @@ private struct SidebarModelRow: View {
 
             // Capability badges
             ModelCapabilityBadges(
-                metadata: model.resolvedMetadata,
+                profile: model.resolvedMetadata,
                 runtimeFlags: runtimeFlags
             )
 

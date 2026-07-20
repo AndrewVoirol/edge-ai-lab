@@ -190,8 +190,8 @@ final class SprintFeatureIntegrationTests: XCTestCase {
         // Load a known vision-capable model
         await vm.sessionController.initializeEngine(modelPath: "/path/to/gemma-4-E2B-it.litertlm")
 
-        let metadata = ModelRegistry.lookup(path: "/path/to/gemma-4-E2B-it.litertlm")
-        if let metadata = metadata, metadata.supportsImage {
+        let metadata = KnownModelCatalog.lookup(path: "/path/to/gemma-4-E2B-it.litertlm")
+        if let metadata = metadata, metadata.hasVision {
             XCTAssertTrue(
                 mockEngine.lastSupportsVision,
                 "supportsVision should be true for vision-capable models"

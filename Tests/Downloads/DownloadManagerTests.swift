@@ -42,7 +42,7 @@ final class DownloadManagerTests: XCTestCase {
         manager.refreshStates()
 
         // Every known model should now have a state entry
-        for model in ModelRegistry.knownModels {
+        for model in KnownModelCatalog.allModels {
             let state = manager.checkState(for: model)
             // On a test machine, models won't be downloaded, so expect .notDownloaded
             // (unless they happen to exist in Documents)
@@ -50,7 +50,7 @@ final class DownloadManagerTests: XCTestCase {
             case .notDownloaded, .downloaded:
                 break  // Both are valid
             default:
-                XCTFail("\(model.name) has unexpected state after refresh: \(state)")
+                XCTFail("\(model.displayName) has unexpected state after refresh: \(state)")
             }
         }
     }
@@ -60,7 +60,7 @@ final class DownloadManagerTests: XCTestCase {
     /// checkState should return .notDownloaded for a model that doesn't exist on disk.
     func testCheckStateReturnsNotDownloadedForMissingFile() {
         let manager = ModelDownloadManager()
-        let model = ModelRegistry.gemma4E2BStandard
+        let model = KnownModelCatalog.gemma4E2BStandard
 
         let state = manager.checkState(for: model)
 
@@ -80,11 +80,11 @@ final class DownloadManagerTests: XCTestCase {
 
     /// Models from google/* repos require HuggingFace authentication.
     func testGoogleRepoModelsRequireAuth() {
-        for model in ModelRegistry.knownModels {
-            if model.modelId.hasPrefix("google/") {
+        for model in KnownModelCatalog.allModels {
+            if let modelId = model.modelId, modelId.hasPrefix("google/") {
                 XCTAssertTrue(
                     model.requiresAuth,
-                    "\(model.name) from google/ should requireAuth"
+                    "\(model.displayName) from google/ should requireAuth"
                 )
             }
         }
@@ -92,11 +92,11 @@ final class DownloadManagerTests: XCTestCase {
 
     /// Models from litert-community/* repos should NOT require auth.
     func testCommunityRepoModelsDontRequireAuth() {
-        for model in ModelRegistry.knownModels {
-            if model.modelId.hasPrefix("litert-community/") {
+        for model in KnownModelCatalog.allModels {
+            if let modelId = model.modelId, modelId.hasPrefix("litert-community/") {
                 XCTAssertFalse(
                     model.requiresAuth,
-                    "\(model.name) from litert-community should not requireAuth"
+                    "\(model.displayName) from litert-community should not requireAuth"
                 )
             }
         }
@@ -107,7 +107,7 @@ final class DownloadManagerTests: XCTestCase {
     /// Canceling a download that isn't active should not crash.
     func testCancelNonActiveDownloadDoesNotCrash() async {
         let manager = ModelDownloadManager()
-        let model = ModelRegistry.gemma4E2BStandard
+        let model = KnownModelCatalog.gemma4E2BStandard
 
         // Should be a no-op, not a crash
         await manager.cancelDownload(model)
@@ -128,8 +128,8 @@ final class DownloadManagerTests: XCTestCase {
         let manager = ModelDownloadManager()
 
         // Check state for two different models
-        let state1 = manager.checkState(for: ModelRegistry.gemma4E2BStandard)
-        let state2 = manager.checkState(for: ModelRegistry.gemma4E2BWeb)
+        let state1 = manager.checkState(for: KnownModelCatalog.gemma4E2BStandard)
+        let state2 = manager.checkState(for: KnownModelCatalog.gemma4E2BWeb)
 
         // Both should have states (likely .notDownloaded)
         // The important thing is they're tracked independently
@@ -160,23 +160,24 @@ final class DownloadManagerTests: XCTestCase {
 
     /// Every model should have a well-formed download URL.
     func testDownloadURLConstruction() {
-        for model in ModelRegistry.knownModels {
+        for model in KnownModelCatalog.allModels {
             guard let url = model.downloadURL else {
-                XCTFail("\(model.name) has nil downloadURL")
+                XCTFail("\(model.displayName) has nil downloadURL")
                 continue
             }
             // URL should contain the model file name
             XCTAssertTrue(
-                url.absoluteString.contains(model.modelFile),
-                "\(model.name) download URL should contain the model filename"
+                url.absoluteString.contains(model.modelFile ?? ""),
+                "\(model.displayName) download URL should contain the model filename"
             )
             // URL should contain the model ID (repo path)
-            let repoPath = model.modelId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
-                ?? model.modelId
+            let modelId = model.modelId ?? ""
+            let repoPath = modelId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+                ?? modelId
             XCTAssertTrue(
-                url.absoluteString.contains(model.modelId) ||
+                url.absoluteString.contains(modelId) ||
                 url.absoluteString.contains(repoPath),
-                "\(model.name) download URL should contain the modelId"
+                "\(model.displayName) download URL should contain the modelId"
             )
         }
     }
@@ -186,21 +187,23 @@ final class DownloadManagerTests: XCTestCase {
         let manager = ModelDownloadManager()
         
         // Use a dummy model that definitely does not exist on disk
-        let model = ModelMetadata(
-            name: "Dummy",
-            modelId: "dummy/dummy",
+        let model = ModelCapabilityProfile(
+            id: "dummy-not-real.litertlm",
+            displayName: "Dummy",
+            repoId: nil,
+            runtimeType: .litertlm,
+            supportsVision: nil, supportsAudio: nil, supportsThinking: nil,
+            supportsToolCalling: nil, supportsMTP: nil, supportsConstrainedDecoding: nil,
+            architecture: nil, contextWindow: nil, fileSizeBytes: nil,
+            estimatedMemoryGB: nil, totalParameters: nil, parameterLabel: nil,
+            confidence: .low, source: .huggingFaceInferred, lastUpdated: Date(),
+            repoSha: nil, license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [], tags: [],
+            defaultConfig: nil, platformSupport: nil,
+            modelDescription: nil, recommendedFor: nil,
             modelFile: "dummy-not-real.litertlm",
-            description: "",
-            sizeInBytes: 0,
-            minDeviceMemoryGB: 0,
-            contextWindowSize: 0,
-            architectureType: "Dummy",
-            recommendedFor: "",
-            supportsImage: false,
-            supportsAudio: false,
-            capabilities: [],
-            defaultConfig: ModelDefaultConfig(topK: 1, topP: 1.0, temperature: 1.0, maxContextLength: 1024, maxTokens: 0, accelerators: "", visionAccelerator: nil),
-            platformSupport: PlatformSupport(macOS: .unknown, iOSDevice: .unknown, iOSSimulator: .unknown)
+            modelId: "dummy/dummy"
         )
 
         manager.deleteModel(model)

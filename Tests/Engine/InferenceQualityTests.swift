@@ -273,8 +273,8 @@ final class InferenceQualityTests: XCTestCase {
     func testMultimodalInferenceWithImage() async throws {
         // Find a model that supports image input
         let visionModel = availableModels.first { modelURL in
-            let metadata = ModelRegistry.lookup(path: modelURL.path)
-            return metadata?.supportsImage == true
+            let metadata = KnownModelCatalog.lookup(path: modelURL.path)
+            return metadata?.hasVision == true
         }
 
         guard let visionModelURL = visionModel else {

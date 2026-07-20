@@ -193,13 +193,13 @@ struct MLXDownloadFlowTests {
 
         @Test("registry contains MLX models")
         func registryHasMLXModels() {
-            let mlxModels = ModelRegistry.knownModels.filter { $0.runtimeType == .mlx }
+            let mlxModels = KnownModelCatalog.allModels.filter { $0.runtimeType == .mlx }
             #expect(mlxModels.count >= 2, "Expected at least 2 MLX models in registry")
         }
 
         @Test("MLX models have correct runtime type")
         func mlxRuntimeType() {
-            let mlxModels = ModelRegistry.knownModels.filter { $0.runtimeType == .mlx }
+            let mlxModels = KnownModelCatalog.allModels.filter { $0.runtimeType == .mlx }
             for model in mlxModels {
                 #expect(model.runtimeType == .mlx)
                 #expect(model.isMLXDirectoryModel)
@@ -208,32 +208,33 @@ struct MLXDownloadFlowTests {
 
         @Test("MLX model files use double-dash directory convention")
         func mlxDirectoryConvention() {
-            let mlxModels = ModelRegistry.knownModels.filter { $0.runtimeType == .mlx }
+            let mlxModels = KnownModelCatalog.allModels.filter { $0.runtimeType == .mlx }
             for model in mlxModels {
-                #expect(model.modelFile.contains("--"),
-                        "MLX model file '\(model.modelFile)' should use -- directory convention")
+                #expect((model.modelFile ?? "").contains("--"),
+                        "MLX model file '\(model.modelFile ?? "")' should use -- directory convention")
                 // modelFile should match modelId with / → --
-                let expected = model.modelId.replacingOccurrences(of: "/", with: "--")
-                #expect(model.modelFile == expected,
-                        "modelFile '\(model.modelFile)' should equal '\(expected)'")
+                let modelId = model.modelId ?? ""
+                let expected = modelId.replacingOccurrences(of: "/", with: "--")
+                #expect((model.modelFile ?? "") == expected,
+                        "modelFile '\(model.modelFile ?? "")' should equal '\(expected)'")
             }
         }
 
         @Test("MLX models have GPU-only platform support")
         func mlxPlatformSupport() {
-            let mlxModels = ModelRegistry.knownModels.filter { $0.runtimeType == .mlx }
+            let mlxModels = KnownModelCatalog.allModels.filter { $0.runtimeType == .mlx }
             for model in mlxModels {
-                #expect(model.platformSupport.macOS == .gpuOnly)
-                #expect(model.platformSupport.iOSDevice == .gpuOnly)
+                #expect(model.platformSupport?.macOS == .gpuOnly)
+                #expect(model.platformSupport?.iOSDevice == .gpuOnly)
             }
         }
 
         @Test("isMLXDirectoryModel is true for MLX models and false for LiteRT")
         func isMLXDirectoryModelProperty() {
-            let litertModel = ModelRegistry.knownModels.first { $0.runtimeType == .litertlm }!
+            let litertModel = KnownModelCatalog.allModels.first { $0.runtimeType == .litertlm }!
             #expect(!litertModel.isMLXDirectoryModel)
 
-            let mlxModel = ModelRegistry.knownModels.first { $0.runtimeType == .mlx }!
+            let mlxModel = KnownModelCatalog.allModels.first { $0.runtimeType == .mlx }!
             #expect(mlxModel.isMLXDirectoryModel)
         }
 
@@ -241,7 +242,7 @@ struct MLXDownloadFlowTests {
         func uniqueMLXModelIds() {
             // Note: modelId is NOT globally unique — Standard and Web variants share
             // the same HuggingFace repo. But within each runtime type, IDs should be unique.
-            let mlxIds = ModelRegistry.knownModels
+            let mlxIds = KnownModelCatalog.allModels
                 .filter { $0.runtimeType == .mlx }
                 .map(\.modelId)
             let uniqueMLXIds = Set(mlxIds)
@@ -250,7 +251,7 @@ struct MLXDownloadFlowTests {
 
         @Test("all model files are unique including MLX")
         func uniqueModelFiles() {
-            let files = ModelRegistry.knownModels.map(\.modelFile)
+            let files = KnownModelCatalog.allModels.map(\.modelFile)
             let uniqueFiles = Set(files)
             #expect(files.count == uniqueFiles.count, "Duplicate modelFile found")
         }
@@ -472,10 +473,10 @@ struct MLXDownloadFlowTests {
             let mgr = ModelDownloadManager(configuration: config, documentsDirectory: tmpDir)
 
             // Use the actual registry entry for Gemma 4 E2B MLX
-            guard let model = ModelRegistry.knownModels.first(where: {
+            guard let model = KnownModelCatalog.allModels.first(where: {
                 $0.modelId == "mlx-community/gemma-4-E2B-it-4bit"
             }) else {
-                Issue.record("Gemma 4 E2B MLX not found in registry")
+                Issue.record("Gemma 4 E2B MLX not found in catalog")
                 return
             }
 

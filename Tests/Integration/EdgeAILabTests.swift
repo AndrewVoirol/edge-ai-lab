@@ -844,94 +844,94 @@ final class DeviceMetricsSnapshotTests: XCTestCase {
     }
 }
 
-// MARK: - ModelMetadata Tests
+// MARK: - ModelCapabilityProfile / KnownModelCatalog Tests
 
-final class ModelMetadataTests: XCTestCase {
+final class KnownModelCatalogTests: XCTestCase {
 
     func testLookupByFilename() {
-        let metadata = ModelRegistry.lookup(filename: "gemma-4-E2B-it.litertlm")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-4-E2B-it.litertlm")
         XCTAssertNotNil(metadata)
-        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Desktop GPU+CPU")
+        XCTAssertEqual(metadata?.displayName, "Gemma 4 E2B · Desktop GPU+CPU")
     }
 
     func testLookupByFilenameWebVariant() {
-        let metadata = ModelRegistry.lookup(filename: "gemma-4-E2B-it-web.litertlm")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-4-E2B-it-web.litertlm")
         XCTAssertNotNil(metadata)
-        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Mobile GPU")
+        XCTAssertEqual(metadata?.displayName, "Gemma 4 E2B · Mobile GPU")
     }
 
     func testLookupByPath() {
-        let metadata = ModelRegistry.lookup(path: "/path/to/models/gemma-4-E2B-it.litertlm")
+        let metadata = KnownModelCatalog.lookup(path: "/path/to/models/gemma-4-E2B-it.litertlm")
         XCTAssertNotNil(metadata)
-        XCTAssertEqual(metadata?.name, "Gemma 4 E2B · Desktop GPU+CPU")
+        XCTAssertEqual(metadata?.displayName, "Gemma 4 E2B · Desktop GPU+CPU")
     }
 
     func testLookupUnknownReturnsNil() {
-        let metadata = ModelRegistry.lookup(filename: "unknown-model.litertlm")
+        let metadata = KnownModelCatalog.lookup(filename: "unknown-model.litertlm")
         XCTAssertNil(metadata)
     }
 
     func testRecommendedBackendForUnknownModel() {
-        let recommendation = ModelRegistry.recommendedBackend(for: "/path/to/unknown.litertlm")
+        let found = KnownModelCatalog.lookup(path: "/path/to/unknown.litertlm")
+        let recommendation = found?.platformSupport?.currentPlatform.recommendedBackend ?? .probeRequired
         XCTAssertEqual(recommendation, .probeRequired)
     }
 
     func testE2BStandardSupportsMTP() {
-        let metadata = ModelRegistry.gemma4E2BStandard
-        XCTAssertTrue(metadata.supportsMTP)
-        XCTAssertTrue(metadata.capabilities.contains("speculative_decoding"))
+        let metadata = KnownModelCatalog.gemma4E2BStandard
+        XCTAssertTrue(metadata.hasMTP)
     }
 
 
 
     func testKnownModelCount() {
-        XCTAssertEqual(ModelRegistry.knownModels.count, 7)
+        XCTAssertEqual(KnownModelCatalog.allModels.count, 7)
     }
 
     func testLookup12BByFilename() {
-        let metadata = ModelRegistry.lookup(filename: "gemma-4-12B-it.litertlm")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-4-12B-it.litertlm")
         XCTAssertNotNil(metadata)
-        XCTAssertEqual(metadata?.name, "Gemma 4 12B · Dense Multimodal")
-        XCTAssertEqual(metadata?.minDeviceMemoryGB, 16)
+        XCTAssertEqual(metadata?.displayName, "Gemma 4 12B · Dense Multimodal")
+        XCTAssertEqual(metadata?.memoryGB, 16)
     }
 
     func test12BContextWindow() {
-        let metadata = ModelRegistry.gemma4_12B
-        XCTAssertEqual(metadata.defaultConfig.maxContextLength, 256_000)
-        XCTAssertEqual(metadata.defaultConfig.maxTokens, 8_000)
+        let metadata = KnownModelCatalog.gemma4_12B
+        XCTAssertEqual(metadata.defaultConfig?.maxContextLength, 256_000)
+        XCTAssertEqual(metadata.defaultConfig?.maxTokens, 8_000)
     }
 
     func test12BSupportsMTP() {
-        let metadata = ModelRegistry.gemma4_12B
-        XCTAssertTrue(metadata.supportsMTP)
-        XCTAssertTrue(metadata.supportsImage)
-        XCTAssertTrue(metadata.supportsAudio)
+        let metadata = KnownModelCatalog.gemma4_12B
+        XCTAssertTrue(metadata.hasMTP)
+        XCTAssertTrue(metadata.hasVision)
+        XCTAssertTrue(metadata.hasAudio)
     }
 
     /// Web variants are text-only GPU-optimized models — they should NOT support multimodal input.
     func testE2BWebDoesNotSupportMultimodal() {
-        let metadata = ModelRegistry.gemma4E2BWeb
-        XCTAssertFalse(metadata.supportsImage, "E2B Web should not support image input")
-        XCTAssertFalse(metadata.supportsAudio, "E2B Web should not support audio input")
-        XCTAssertNil(metadata.defaultConfig.visionAccelerator, "E2B Web should have no vision accelerator")
+        let metadata = KnownModelCatalog.gemma4E2BWeb
+        XCTAssertFalse(metadata.hasVision, "E2B Web should not support image input")
+        XCTAssertFalse(metadata.hasAudio, "E2B Web should not support audio input")
+        XCTAssertNil(metadata.defaultConfig?.visionAccelerator, "E2B Web should have no vision accelerator")
     }
 
     func testE4BWebDoesNotSupportMultimodal() {
-        let metadata = ModelRegistry.gemma4E4BWeb
-        XCTAssertFalse(metadata.supportsImage, "E4B Web should not support image input")
-        XCTAssertFalse(metadata.supportsAudio, "E4B Web should not support audio input")
-        XCTAssertNil(metadata.defaultConfig.visionAccelerator, "E4B Web should have no vision accelerator")
+        let metadata = KnownModelCatalog.gemma4E4BWeb
+        XCTAssertFalse(metadata.hasVision, "E4B Web should not support image input")
+        XCTAssertFalse(metadata.hasAudio, "E4B Web should not support audio input")
+        XCTAssertNil(metadata.defaultConfig?.visionAccelerator, "E4B Web should have no vision accelerator")
     }
 
     /// Standard variants SHOULD support multimodal input.
     func testStandardVariantsSupportMultimodal() {
-        let e2b = ModelRegistry.gemma4E2BStandard
-        XCTAssertTrue(e2b.supportsImage, "E2B Standard should support image input")
-        XCTAssertTrue(e2b.supportsAudio, "E2B Standard should support audio input")
+        let e2b = KnownModelCatalog.gemma4E2BStandard
+        XCTAssertTrue(e2b.hasVision, "E2B Standard should support image input")
+        XCTAssertTrue(e2b.hasAudio, "E2B Standard should support audio input")
 
-        let e4b = ModelRegistry.gemma4E4BStandard
-        XCTAssertTrue(e4b.supportsImage, "E4B Standard should support image input")
-        XCTAssertTrue(e4b.supportsAudio, "E4B Standard should support audio input")
+        let e4b = KnownModelCatalog.gemma4E4BStandard
+        XCTAssertTrue(e4b.hasVision, "E4B Standard should support image input")
+        XCTAssertTrue(e4b.hasAudio, "E4B Standard should support audio input")
     }
 
     // MARK: - Gemma 3n Models
@@ -939,48 +939,45 @@ final class ModelMetadataTests: XCTestCase {
     /// Gemma 3n models are defined as static properties but excluded from knownModels.
     /// Lookup by filename should return nil since they aren't in the active registry.
     func testGemma3nE2BStandardLookup() {
-        let metadata = ModelRegistry.lookup(filename: "gemma-3n-E2B-it-int4.litertlm")
-        XCTAssertNil(metadata, "Gemma 3n models were removed from knownModels and should not be discoverable via lookup")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-3n-E2B-it-int4.litertlm")
+        XCTAssertNil(metadata, "Gemma 3n models were removed from allModels and should not be discoverable via lookup")
     }
 
     func testGemma3nE2BHWLookup() {
-        let metadata = ModelRegistry.lookup(filename: "gemma-3n-E2B-HW.litertlm")
-        XCTAssertNil(metadata, "Gemma 3n models were removed from knownModels and should not be discoverable via lookup")
+        let metadata = KnownModelCatalog.lookup(filename: "gemma-3n-E2B-HW.litertlm")
+        XCTAssertNil(metadata, "Gemma 3n models were removed from allModels and should not be discoverable via lookup")
     }
 
-    func testGemma3nModelsRequireAuth() {
-        XCTAssertTrue(ModelRegistry.gemma3nE2BStandard.requiresAuth, "3n Standard should require auth (google/ repo)")
-        XCTAssertTrue(ModelRegistry.gemma3nE2BHW.requiresAuth, "3n HW should require auth (google/ repo)")
-    }
+    // requiresAuth was removed from ModelCapabilityProfile — tests for it deleted.
 
     func testGemma3nVariantsShareModelIdButDifferentFile() {
-        let standard = ModelRegistry.gemma3nE2BStandard
-        let hw = ModelRegistry.gemma3nE2BHW
+        let standard = KnownModelCatalog.gemma3nE2BStandard
+        let hw = KnownModelCatalog.gemma3nE2BHW
         XCTAssertEqual(standard.modelId, hw.modelId, "3n variants should share same repo")
         XCTAssertNotEqual(standard.modelFile, hw.modelFile, "3n variants must have different files")
-        XCTAssertNotEqual(standard.name, hw.name, "3n variants must have different display names")
+        XCTAssertNotEqual(standard.displayName, hw.displayName, "3n variants must have different display names")
     }
 
     func testGemma3nModelsAreGPUOnly() {
-        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        let models = [KnownModelCatalog.gemma3nE2BStandard, KnownModelCatalog.gemma3nE2BHW]
         for model in models {
-            XCTAssertEqual(model.platformSupport.macOS, .gpuOnly, "\(model.name) macOS should be gpuOnly")
-            XCTAssertEqual(model.platformSupport.iOSDevice, .gpuOnly, "\(model.name) iOS should be gpuOnly")
+            XCTAssertEqual(model.platformSupport?.macOS, .gpuOnly, "\(model.displayName) macOS should be gpuOnly")
+            XCTAssertEqual(model.platformSupport?.iOSDevice, .gpuOnly, "\(model.displayName) iOS should be gpuOnly")
         }
     }
 
     func testGemma3nModelsDoNotSupportMultimodal() {
-        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        let models = [KnownModelCatalog.gemma3nE2BStandard, KnownModelCatalog.gemma3nE2BHW]
         for model in models {
-            XCTAssertFalse(model.supportsImage, "\(model.name) should not support image")
-            XCTAssertFalse(model.supportsAudio, "\(model.name) should not support audio")
+            XCTAssertFalse(model.hasVision, "\(model.displayName) should not support image")
+            XCTAssertFalse(model.hasAudio, "\(model.displayName) should not support audio")
         }
     }
 
     func testGemma3nDoNotSupportMTP() {
-        let models = [ModelRegistry.gemma3nE2BStandard, ModelRegistry.gemma3nE2BHW]
+        let models = [KnownModelCatalog.gemma3nE2BStandard, KnownModelCatalog.gemma3nE2BHW]
         for model in models {
-            XCTAssertFalse(model.supportsMTP, "\(model.name) should not support MTP")
+            XCTAssertFalse(model.hasMTP, "\(model.displayName) should not support MTP")
         }
     }
 

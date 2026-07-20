@@ -432,10 +432,28 @@ struct InputAreaView: View {
                 .lineLimit(1)
             Spacer()
         }
+        .overlay(alignment: .trailing) {
+            cancelLoadButton
+        }
         .padding(.horizontal, AppSpacing.sm)
         .transition(.slideDown)
         .accessibilityIdentifier("model_loading_indicator")
         .accessibilityLabel("Loading model")
+    }
+
+    /// Cancel button that appears after 30s loading timeout, giving the user an escape hatch.
+    private var cancelLoadButton: some View {
+        Group {
+            if viewModel.showLoadingCancelButton {
+                Button("Cancel") {
+                    viewModel.cancelModelLoad()
+                }
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.destructive)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("button_cancelModelLoad")
+            }
+        }
     }
 
     // MARK: - Multimodal Attachment Strip

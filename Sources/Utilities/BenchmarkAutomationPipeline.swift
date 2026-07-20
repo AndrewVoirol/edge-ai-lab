@@ -164,7 +164,7 @@ struct BenchmarkAutomationPipeline {
         
         // Step 3: Ensure model is available (downloads if needed)
         automationLog("[AUTOMATION] Step 3: Ensuring model is available...")
-        let targetModel = ModelRegistry.gemma4E2BStandard
+        let targetModel = KnownModelCatalog.gemma4E2BStandard
         await DeveloperAutomationHarness.ensureModelDownloaded(model: targetModel, docs: docs, viewModel: viewModel)
         
         // Re-scan after download
@@ -179,7 +179,8 @@ struct BenchmarkAutomationPipeline {
             return
         }
         
-        let configId = BenchmarkPipelineLogic.buildConfigId(modelFile: targetModel.modelFile, backend: "gpu", samplingStrategy: "greedy")
+        let modelFile = targetModel.modelFile ?? targetModel.id
+        let configId = BenchmarkPipelineLogic.buildConfigId(modelFile: modelFile, backend: "gpu", samplingStrategy: "greedy")
         
         // Skip if this config was already processed (crash recovery)
         if BenchmarkPipelineLogic.shouldSkipConfig(configId: configId, processedConfigs: processedConfigs) {
@@ -188,10 +189,10 @@ struct BenchmarkAutomationPipeline {
             // Persist active config before starting (crash recovery breadcrumb)
             defaults.set(configId, forKey: kActiveConfigKey)
             
-            let targetURL = docs.appendingPathComponent(targetModel.modelFile)
+            let targetURL = docs.appendingPathComponent(modelFile)
             let flags = RuntimeFlags(enableBenchmark: true, enableSpeculativeDecoding: nil, enableConversationConstrainedDecoding: false, visualTokenBudget: nil)
             let sampler = DeveloperAutomationHarness.safeSamplerConfig(topK: 1, topP: 1.0, temperature: 1.0)
-            let cachesDir = DeveloperAutomationHarness.safeCachesDirectory().appendingPathComponent(targetModel.modelFile)
+            let cachesDir = DeveloperAutomationHarness.safeCachesDirectory().appendingPathComponent(modelFile)
             try? FileManager.default.createDirectory(at: cachesDir, withIntermediateDirectories: true)
             
             do {
@@ -231,7 +232,7 @@ struct BenchmarkAutomationPipeline {
             
             if let metrics = await DeveloperAutomationHarness.runSingleBenchmark(viewModel: viewModel, prompt: DeveloperAutomationHarness.benchmarkPrompt) {
                 automationLog("[AUTOMATION_SUCCESS] Benchmark completed.")
-                DeveloperAutomationHarness.printReport(metrics: metrics, model: targetModel.modelFile, configLabel: "GPU / No MTP / Greedy")
+                DeveloperAutomationHarness.printReport(metrics: metrics, model: modelFile, configLabel: "GPU / No MTP / Greedy")
                 
                 // Stream the benchmark turn result to JSONL
                 var turnEntry: [String: Any] = metrics
@@ -260,12 +261,12 @@ struct BenchmarkAutomationPipeline {
                         let doubleMetrics = BenchmarkPipelineLogic.convertMetricsToDoubles(metrics: metrics)
                         
                         // Find matching baseline by model name and backend
-                        let matchingBaselines = baselines.baselines.filter {
-                            $0.model == targetModel.modelFile && $0.backend == "gpu"
+                        let matchingBaselines = baselines.baselines.filter { baseline in
+                            baseline.model == modelFile && baseline.backend == "gpu"
                         }
                         
                         guard let baseline = matchingBaselines.first else {
-                            automationLog("[AUTOMATION] No matching baseline found for \(targetModel.modelFile) / gpu")
+                            automationLog("[AUTOMATION] No matching baseline found for \(modelFile) / gpu")
                             clearBenchmarkState()
                             DeveloperAutomationHarness.signalComplete(0, message: "No matching baseline found, skipping regression check")
                             return

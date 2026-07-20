@@ -33,8 +33,8 @@ struct DiscoveredModel: Identifiable, Sendable {
     /// Where this model was discovered.
     let source: DiscoverySource
 
-    /// Matched metadata from ModelRegistry, if available.
-    let metadata: ModelMetadata?
+    /// Matched profile from KnownModelCatalog, if available.
+    let metadata: ModelCapabilityProfile?
 
     /// Path to a companion multimodal projector file (mmproj-*.gguf), if found.
     /// Populated during discovery by scanning the same directory for mmproj files.
@@ -52,164 +52,28 @@ struct DiscoveredModel: Identifiable, Sendable {
         ByteCountFormatter.string(fromByteCount: sizeInBytes, countStyle: .file)
     }
 
-    /// Returns registry metadata if available, otherwise synthesizes reasonable
-    /// metadata from the filename, file size, and extension. This ensures the
+    /// Returns catalog profile if available, otherwise synthesizes a reasonable
+    /// profile from the filename, file size, and extension. This ensures the
     /// detail panel, load/unload buttons, and model card always render —
-    /// even for user-imported GGUF or community models with no registry entry.
+    /// even for user-imported GGUF or community models with no catalog entry.
     ///
-    /// Note: For GGUF models, the metadata reflects the model family's inherent
+    /// Note: For GGUF models, the profile reflects the model family's inherent
     /// capabilities (e.g., Gemma 4 supports vision). Whether the engine can
     /// actually USE those capabilities at runtime depends on the mmproj companion
     /// file — this is checked by the engine after loading (engine.supportsVision),
-    /// not by metadata. This separation keeps discovery and runtime concerns clean.
-    var resolvedMetadata: ModelMetadata {
+    /// not by the profile. This separation keeps discovery and runtime concerns clean.
+    var resolvedMetadata: ModelCapabilityProfile {
         if let metadata {
             return metadata
         }
-        return DiscoveredModel.synthesizeMetadata(
+        return ModelCapabilityProfileBuilder.synthesized(
             filename: filename,
             sizeInBytes: sizeInBytes,
             hasMMProj: mmProjPath != nil
         )
     }
 
-    /// Build a synthetic `ModelMetadata` from filename heuristics.
-    /// Parses quantization (Q4_K_M, Q8_0, etc.) and runtime from extension.
-    private static func synthesizeMetadata(
-        filename: String,
-        sizeInBytes: Int64,
-        hasMMProj: Bool = false
-    ) -> ModelMetadata {
-        let ext = (filename as NSString).pathExtension.lowercased()
-        let stem = (filename as NSString).deletingPathExtension
 
-        // Infer runtime from extension
-        let runtime: RuntimeType = switch ext {
-        case "gguf": .gguf
-        case "litertlm": .litertlm
-        default: .gguf
-        }
-
-        // Parse quantization from filename (e.g., "Q4_K_M", "Q8_0", "FP16")
-        let quantPattern = stem.components(separatedBy: "-")
-        let quantization = quantPattern.last(where: {
-            $0.hasPrefix("Q") || $0.hasPrefix("F") || $0.hasPrefix("q") || $0.hasPrefix("f")
-        })
-
-        // Estimate RAM: model weights + overhead for KV-cache, activations, system overhead.
-        // Quantized models need proportionally more overhead because KV-cache and activations
-        // operate at full precision even when weights are compressed.
-        let ramMultiplier: Double
-        if let q = quantization?.uppercased() {
-            if q.hasPrefix("Q4") || q.hasPrefix("Q3") || q.contains("IQ4") || q.contains("IQ3") || q.contains("IQ2") || q.contains("4BIT") || q.contains("2BIT") {
-                ramMultiplier = 1.6  // 4-bit or lower: large relative overhead
-            } else if q.hasPrefix("Q8") || q.hasPrefix("Q5") || q.hasPrefix("Q6") || q.contains("8BIT") {
-                ramMultiplier = 1.4  // 8-bit/5-bit/6-bit: moderate overhead
-            } else if q.contains("F16") || q.contains("FP16") || q.contains("BF16") {
-                ramMultiplier = 1.2  // Full/half precision: minimal overhead
-            } else {
-                ramMultiplier = 1.3  // Unknown quantization: conservative default
-            }
-        } else {
-            ramMultiplier = 1.3  // No quantization detected: conservative default
-        }
-        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * ramMultiplier))
-
-        // Delegate name formatting to the shared formatter
-        let displayName = ModelDetailFormatters.normalizeDisplayName(stem)
-
-        // Detect multimodal support from filename.
-        // Gemma 4 Standard variants (E2B, E4B, 12B) support image + audio.
-        // Web/Mobile variants (filename contains "-web") do NOT support multimodal.
-        let lowerStem = stem.lowercased()
-        let isGemma4Standard = lowerStem.contains("gemma") && lowerStem.contains("4")
-            && !lowerStem.contains("web") && !lowerStem.contains("mobile")
-        // For GGUF models, multimodal requires an mmproj file — family detection alone is insufficient.
-        // For LiteRT-LM models, multimodal is built into the model file itself.
-        let hasMultimodal: Bool
-        switch runtime {
-        case .gguf:
-            hasMultimodal = isGemma4Standard && hasMMProj
-        case .litertlm:
-            hasMultimodal = isGemma4Standard
-        default:
-            hasMultimodal = isGemma4Standard
-        }
-
-        // Infer context window from model family
-        let contextWindow: Int
-        if lowerStem.contains("gemma") && lowerStem.contains("4") {
-            if lowerStem.contains("12b") {
-                contextWindow = 256_000  // Gemma 4 12B = 256K
-            } else {
-                contextWindow = 128_000  // Gemma 4 E2B/E4B = 128K
-            }
-        } else if lowerStem.contains("gemma") {
-            contextWindow = 32_000  // Gemma 2/3 = 32K
-        } else if lowerStem.contains("llama") {
-            contextWindow = 128_000  // Llama 3+ = 128K
-        } else {
-            contextWindow = 32_000  // Conservative default (was 8K)
-        }
-
-        // Infer architecture from model family
-        let architecture: String
-        if lowerStem.contains("gemma") && lowerStem.contains("4") {
-            if lowerStem.contains("e2b") || lowerStem.contains("e4b") {
-                architecture = "Mixture of Experts"
-            } else if lowerStem.contains("12b") {
-                architecture = "Dense Transformer"
-            } else {
-                architecture = "Transformer"  // Unknown Gemma 4 variant
-            }
-        } else if lowerStem.contains("gemma") {
-            architecture = "Dense Transformer"  // Gemma 2/3 are dense
-        } else {
-            architecture = "Transformer"  // Conservative default
-        }
-
-        // Infer capabilities from model name and runtime
-        var capabilities: [String] = []
-        // Thinking: Instruction-tuned Gemma/Llama models support thinking
-        if lowerStem.contains("it") && (lowerStem.contains("gemma") || lowerStem.contains("llama") || lowerStem.contains("mistral") || lowerStem.contains("phi") || lowerStem.contains("qwen")) {
-            capabilities.append("llm_thinking")
-        }
-        // MTP: Only LiteRT models have speculative decoding wired at the adapter level
-        if runtime == .litertlm {
-            capabilities.append("speculative_decoding")
-        }
-
-        return ModelMetadata(
-            name: displayName,
-            modelId: "local/\(filename)",
-            modelFile: filename,
-            description: "Locally imported \(runtime.displayName) model" +
-                (quantization.map { " (\($0) quantization)" } ?? ""),
-            sizeInBytes: sizeInBytes,
-            minDeviceMemoryGB: estimatedRAM,
-            contextWindowSize: contextWindow,
-            architectureType: architecture,
-            recommendedFor: "Local inference",
-            supportsImage: hasMultimodal,
-            supportsAudio: hasMultimodal,
-            capabilities: capabilities,
-            defaultConfig: ModelDefaultConfig(
-                topK: 40,
-                topP: 0.95,
-                temperature: 0.7,
-                maxContextLength: contextWindow,
-                maxTokens: 2048,
-                accelerators: "gpu",
-                visionAccelerator: hasMultimodal ? "gpu" : nil
-            ),
-            platformSupport: PlatformSupport(
-                macOS: .gpuAndCpu,
-                iOSDevice: .gpuAndCpu,
-                iOSSimulator: .cpuOnly
-            ),
-            runtimeType: runtime
-        )
-    }
 }
 
 // MARK: - Gallery Model Discovery
@@ -385,7 +249,7 @@ enum GalleryModelDiscovery {
             guard resourceValues?.isRegularFile == true else { return nil }
 
             let size = Int64(resourceValues?.fileSize ?? 0)
-            let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
+            let metadata = KnownModelCatalog.lookup(filename: url.lastPathComponent)
 
             // Only attach mmproj path to GGUF models
             let projPath: String? = url.pathExtension.lowercased() == "gguf" ? mmprojURL?.path : nil
@@ -438,7 +302,7 @@ enum GalleryModelDiscovery {
                 return sum + Int64(fileSize)
             }
 
-            // Parse model metadata from config.json if possible
+            // Parse model profile from config.json if possible
             let metadata = parseMLXConfig(configURL)
 
             return DiscoveredModel(
@@ -451,15 +315,15 @@ enum GalleryModelDiscovery {
         }
     }
 
-    /// Parse model metadata from an MLX model's config.json and directory name.
+    /// Parse model profile from an MLX model's config.json and directory name.
     ///
     /// Extracts model_type from config.json and derives a human-readable name
-    /// from the directory name. If the directory name matches a ModelRegistry entry,
-    /// returns that entry's full metadata instead.
-    private static func parseMLXConfig(_ configURL: URL) -> ModelMetadata? {
-        // First check if this directory matches a known registry model
+    /// from the directory name. If the directory name matches a KnownModelCatalog entry,
+    /// returns that entry's full profile instead.
+    private static func parseMLXConfig(_ configURL: URL) -> ModelCapabilityProfile? {
+        // First check if this directory matches a known catalog model
         let dirName = configURL.deletingLastPathComponent().lastPathComponent
-        if let registryMatch = ModelRegistry.knownModels.first(where: { $0.modelFile == dirName }) {
+        if let registryMatch = KnownModelCatalog.lookup(filename: dirName) {
             return registryMatch
         }
 
@@ -515,41 +379,53 @@ enum GalleryModelDiscovery {
             contextWindow = 32_000
         }
 
-        // Infer capabilities from model name
-        var capabilities: [String] = []
-        if lowerName.contains("it") && (lowerName.contains("gemma") || lowerName.contains("llama") || lowerName.contains("mistral") || lowerName.contains("phi") || lowerName.contains("qwen")) {
-            capabilities.append("llm_thinking")
-        }
-        // MLX does not have speculative_decoding wired at the adapter level
-
-        return ModelMetadata(
-            name: humanName,
-            modelId: modelId,
-            modelFile: dirName,
-            description: "MLX \(modelType) model",
-            sizeInBytes: 0,  // Size will be computed from actual directory contents by the caller
-            minDeviceMemoryGB: 8,
-            contextWindowSize: contextWindow,
-            architectureType: modelType,
-            recommendedFor: "Apple Silicon inference",
-            supportsImage: supportsImage,
-            supportsAudio: supportsAudio,
-            capabilities: capabilities,
+        // Construct a ModelCapabilityProfile directly.
+        // Uses .configJSON source for config.json-derived data (vision, audio),
+        // which is more reliable than filename heuristics.
+        return ModelCapabilityProfile(
+            id: dirName,
+            displayName: humanName,
+            repoId: modelId,
+            runtimeType: .mlx,
+            supportsVision: SourcedValue(supportsImage, source: hasVisionConfig ? .configJSON : .heuristic),
+            supportsAudio: SourcedValue(supportsAudio, source: hasAudioConfig ? .configJSON : .heuristic),
+            supportsThinking: SourcedValue(lowerName.contains("it") && (lowerName.contains("gemma") || lowerName.contains("llama") || lowerName.contains("mistral") || lowerName.contains("phi") || lowerName.contains("qwen")), source: .heuristic),
+            supportsToolCalling: SourcedValue(lowerName.contains("it"), source: .heuristic),
+            supportsMTP: SourcedValue(false, source: .heuristic),
+            supportsConstrainedDecoding: SourcedValue(false, source: .heuristic),
+            architecture: ArchitectureInfo(
+                architectureClass: nil, modelType: modelType, isMoE: false,
+                hiddenSize: nil, numLayers: nil, numAttentionHeads: nil,
+                numKeyValueHeads: nil, vocabSize: nil, headDim: nil,
+                maxImageResolution: nil, dtype: nil,
+                quantizationBits: nil, quantizationMethod: nil
+            ),
+            contextWindow: SourcedValue(contextWindow, source: .heuristic),
+            fileSizeBytes: 0,  // Size will be computed from actual directory contents by the caller
+            estimatedMemoryGB: SourcedValue(8, source: .heuristic),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .medium,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil, licenseLink: nil, baseModelId: nil,
+            downloads: nil, likes: nil, downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
             defaultConfig: ModelDefaultConfig(
-                topK: 40,
-                topP: 0.9,
-                temperature: 0.6,
-                maxContextLength: contextWindow,
-                maxTokens: 4_000,
+                topK: 40, topP: 0.9, temperature: 0.6,
+                maxContextLength: contextWindow, maxTokens: 4_000,
                 accelerators: "gpu",
                 visionAccelerator: supportsImage ? "gpu" : nil
             ),
             platformSupport: PlatformSupport(
-                macOS: .gpuOnly,
-                iOSDevice: .gpuOnly,
-                iOSSimulator: .unknown
+                macOS: .gpuOnly, iOSDevice: .gpuOnly, iOSSimulator: .unknown
             ),
-            runtimeType: .mlx
+            modelDescription: "MLX \(modelType) model",
+            recommendedFor: "Apple Silicon inference",
+            modelFile: dirName,
+            modelId: modelId
         )
     }
 
@@ -593,7 +469,7 @@ enum GalleryModelDiscovery {
             guard url.startAccessingSecurityScopedResource() else { return nil }
             defer { url.stopAccessingSecurityScopedResource() }
 
-            let metadata = ModelRegistry.lookup(filename: url.lastPathComponent)
+            let metadata = KnownModelCatalog.lookup(filename: url.lastPathComponent)
 
             // MLX directory models: validate it's a real directory with config.json + safetensors,
             // not a stub file left from a failed download attempt.

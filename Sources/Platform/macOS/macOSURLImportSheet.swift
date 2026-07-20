@@ -271,11 +271,11 @@ struct macOSURLImportSheet: View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
             // ── Model Identity Card ──
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text(meta.metadata.name)
+                Text(meta.metadata.displayName)
                     .font(AppTypography.cardTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
-                Text(meta.metadata.description)
+                Text(meta.metadata.modelDescription ?? "")
                     .font(AppTypography.listSubtitle)
                     .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(2)
@@ -326,19 +326,26 @@ struct macOSURLImportSheet: View {
     private func metadataDetails(meta: DynamicModelMetadata) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             detailRow(label: "Runtime", value: meta.metadata.runtimeType.displayName)
-            detailRow(label: "Architecture", value: meta.metadata.architectureType)
-            detailRow(label: "Context Window", value: "\(meta.metadata.contextWindowSize.formatted()) tokens")
+            detailRow(label: "Architecture", value: meta.metadata.architecture?.architectureClass ?? "Unknown")
+            detailRow(label: "Context Window", value: "\(meta.metadata.contextWindowSize?.formatted() ?? "Unknown") tokens")
 
-            if !meta.metadata.capabilities.isEmpty {
-                detailRow(label: "Capabilities", value: meta.metadata.capabilities.joined(separator: ", "))
+            let caps = [
+                meta.metadata.hasVision ? "vision" : nil,
+                meta.metadata.hasAudio ? "audio" : nil,
+                meta.metadata.hasThinking ? "llm_thinking" : nil,
+                meta.metadata.hasMTP ? "speculative_decoding" : nil,
+                meta.metadata.hasToolCalling ? "tool_calling" : nil
+            ].compactMap { $0 }
+            if !caps.isEmpty {
+                detailRow(label: "Capabilities", value: caps.joined(separator: ", "))
             }
 
             HStack(spacing: AppSpacing.md) {
-                if meta.metadata.supportsImage {
+                if meta.metadata.hasVision {
                     Label("Vision", systemImage: "eye")
                         .badge(AppColors.capabilityVision)
                 }
-                if meta.metadata.supportsAudio {
+                if meta.metadata.hasAudio {
                     Label("Audio", systemImage: "waveform")
                         .badge(AppColors.capabilityAudio)
                 }
@@ -544,7 +551,7 @@ struct macOSURLImportSheet: View {
                 .foregroundStyle(AppColors.success)
                 .glow(AppColors.success, radius: 10, opacity: AppOpacity.half)
 
-            Text(meta.metadata.name)
+            Text(meta.metadata.displayName)
                 .font(AppTypography.cardTitle)
                 .foregroundStyle(AppColors.textPrimary)
 

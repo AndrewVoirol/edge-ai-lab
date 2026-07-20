@@ -149,10 +149,10 @@ struct iOSURLImportSheet: View {
         case .readyToDownload(let meta, let files):
             Section("Model Found") {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    Text(meta.metadata.name)
+                    Text(meta.metadata.displayName)
                         .font(AppTypography.listTitle)
                         .foregroundStyle(AppColors.textPrimary)
-                    Text(meta.metadata.description)
+                    Text(meta.metadata.modelDescription ?? "")
                         .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                         .lineLimit(3)
@@ -247,7 +247,7 @@ struct iOSURLImportSheet: View {
 
         case .complete(let meta):
             Section("Complete") {
-                Label(meta.metadata.name, systemImage: "checkmark.circle.fill")
+                Label(meta.metadata.displayName, systemImage: "checkmark.circle.fill")
                     .foregroundStyle(AppColors.success)
                     .accessibilityIdentifier("urlImport_complete")
             }

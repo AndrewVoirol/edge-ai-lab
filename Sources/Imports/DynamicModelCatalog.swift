@@ -105,14 +105,15 @@ final class DynamicModelCatalog {
     /// - Returns: Combined array of `DynamicModelMetadata` entries.
     func allModels() -> [DynamicModelMetadata] {
         // Convert known models to DynamicModelMetadata
-        let knownEntries = ModelRegistry.knownModels.map { DynamicModelMetadata.fromKnownModel($0) }
+        let knownEntries = KnownModelCatalog.allModels.map { DynamicModelMetadata.fromKnownModel($0) }
 
         // Collect known model file names to avoid duplicates
-        let knownFiles = Set(ModelRegistry.knownModels.map(\.modelFile))
+        let knownFiles = Set(KnownModelCatalog.allModels.compactMap(\.modelFile))
 
         // Filter imported entries that don't overlap with known models
         let importedOnly = entries.filter { entry in
-            !knownFiles.contains(entry.metadata.modelFile)
+            guard let file = entry.metadata.modelFile else { return true }
+            return !knownFiles.contains(file)
         }
 
         return knownEntries + importedOnly
@@ -179,9 +180,9 @@ final class DynamicModelCatalog {
     func search(query: String) -> [DynamicModelMetadata] {
         let lowered = query.lowercased()
         return allModels().filter { entry in
-            entry.metadata.name.lowercased().contains(lowered)
-                || entry.metadata.description.lowercased().contains(lowered)
-                || entry.metadata.modelId.lowercased().contains(lowered)
+            entry.metadata.displayName.lowercased().contains(lowered)
+                || (entry.metadata.modelDescription ?? "").lowercased().contains(lowered)
+                || (entry.metadata.modelId ?? "").lowercased().contains(lowered)
                 || entry.id.lowercased().contains(lowered)
         }
     }
@@ -196,24 +197,28 @@ final class DynamicModelCatalog {
 
     /// Filter models by capability string.
     ///
-    /// Matches against the `capabilities` array (e.g., "speculative_decoding", "llm_thinking")
-    /// as well as `supportsImage` and `supportsAudio` flags.
+    /// Matches against capability flags such as `hasVision`, `hasAudio`, `hasMTP`,
+    /// `hasThinking`, and `hasToolCalling` on the `ModelCapabilityProfile`.
     ///
     /// - Parameter capability: The capability to filter by.
     /// - Returns: Models that have the specified capability.
     func filter(by capability: String) -> [DynamicModelMetadata] {
         let lowered = capability.lowercased()
         return allModels().filter { entry in
-            if entry.metadata.capabilities.contains(where: { $0.lowercased() == lowered }) {
-                return true
+            switch lowered {
+            case "image", "vision":
+                return entry.metadata.hasVision
+            case "audio":
+                return entry.metadata.hasAudio
+            case "mtp", "speculative_decoding":
+                return entry.metadata.hasMTP
+            case "thinking", "llm_thinking":
+                return entry.metadata.hasThinking
+            case "tool_calling":
+                return entry.metadata.hasToolCalling
+            default:
+                return entry.metadata.tags.contains(where: { $0.lowercased() == lowered })
             }
-            if lowered == "image" || lowered == "vision" {
-                return entry.metadata.supportsImage
-            }
-            if lowered == "audio" {
-                return entry.metadata.supportsAudio
-            }
-            return false
         }
     }
 

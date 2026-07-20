@@ -33,6 +33,19 @@ struct StatusBarView: View {
                     .controlSize(.small)
                     .accessibilityIdentifier("progress_loading")
                     .accessibilityLabel("Loading model")
+                if viewModel.showLoadingCancelButton {
+                    Button {
+                        viewModel.cancelModelLoad()
+                    } label: {
+                        Text("Cancel")
+                            .font(AppTypography.badge)
+                            .foregroundStyle(AppColors.destructive)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("statusBar_cancelModelLoad")
+                    .accessibilityLabel("Cancel model loading")
+                    .transition(.opacity)
+                }
             }
             Text(viewModel.statusMessage)
                 .font(AppTypography.sectionHeader)

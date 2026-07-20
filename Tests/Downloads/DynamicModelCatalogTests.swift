@@ -46,19 +46,37 @@ final class DynamicModelCatalogTests: XCTestCase {
   private func makeTestDynamicMetadata(
     id: String = "test-org/test-model"
   ) -> DynamicModelMetadata {
-    let metadata = ModelMetadata(
-      name: "Test Model",
-      modelId: id,
-      modelFile: "test-model-\(UUID().uuidString).litertlm",
-      description: "A test model",
-      sizeInBytes: 1_000_000_000,
-      minDeviceMemoryGB: 8,
-      contextWindowSize: 128_000,
-      architectureType: "MoE Edge",
-      recommendedFor: "Testing",
-      supportsImage: false,
-      supportsAudio: false,
-      capabilities: ["llm_thinking"],
+    let profile = ModelCapabilityProfile(
+      id: "test-model-\(UUID().uuidString).litertlm",
+      displayName: "Test Model",
+      repoId: id,
+      runtimeType: .litertlm,
+      supportsVision: SourcedValue(false, source: .heuristic),
+      supportsAudio: SourcedValue(false, source: .heuristic),
+      supportsThinking: SourcedValue(true, source: .heuristic),
+      supportsToolCalling: nil,
+      supportsMTP: nil,
+      supportsConstrainedDecoding: nil,
+      architecture: ArchitectureInfo(
+        architectureClass: nil, modelType: nil, isMoE: true,
+        hiddenSize: nil, numLayers: nil, numAttentionHeads: nil,
+        numKeyValueHeads: nil, vocabSize: nil, headDim: nil,
+        maxImageResolution: nil, dtype: nil,
+        quantizationBits: nil, quantizationMethod: nil
+      ),
+      contextWindow: SourcedValue(128_000, source: .heuristic),
+      fileSizeBytes: 1_000_000_000,
+      estimatedMemoryGB: SourcedValue(8, source: .heuristic),
+      totalParameters: nil,
+      parameterLabel: nil,
+      confidence: .medium,
+      source: .huggingFaceInferred,
+      lastUpdated: Date(),
+      repoSha: nil,
+      license: nil, licenseLink: nil, baseModelId: nil,
+      downloads: nil, likes: nil, downloadsAllTime: nil,
+      supportedLanguages: [],
+      tags: ["llm_thinking"],
       defaultConfig: ModelDefaultConfig(
         topK: 64, topP: 0.95, temperature: 1.0,
         maxContextLength: 32_000, maxTokens: 4_000,
@@ -67,10 +85,13 @@ final class DynamicModelCatalogTests: XCTestCase {
       platformSupport: PlatformSupport(
         macOS: .gpuAndCpu, iOSDevice: .gpuAndCpu, iOSSimulator: .cpuOnly
       ),
-      runtimeType: .litertlm
+      modelDescription: "A test model",
+      recommendedFor: "Testing",
+      modelFile: "test-model-\(UUID().uuidString).litertlm",
+      modelId: id
     )
     return DynamicModelMetadata.fromHuggingFace(
-      repoId: id, metadata: metadata, confidence: .medium
+      repoId: id, metadata: profile, confidence: .medium
     )
   }
 
@@ -155,10 +176,10 @@ final class DynamicModelCatalogTests: XCTestCase {
   @MainActor
   func testAllModels_includesKnownRegistry() {
     let allModels = catalog.allModels()
-    let knownModels = ModelRegistry.knownModels
+    let knownModels = KnownModelCatalog.allModels
     for known in knownModels {
       let found = allModels.contains { $0.metadata.modelFile == known.modelFile }
-      XCTAssertTrue(found, "Expected allModels to include known model: \(known.name)")
+      XCTAssertTrue(found, "Expected allModels to include known model: \(known.displayName)")
     }
   }
 
@@ -168,43 +189,58 @@ final class DynamicModelCatalogTests: XCTestCase {
     try catalog.add(entry)
     let allModels = catalog.allModels()
     XCTAssertTrue(
-      allModels.count > ModelRegistry.knownModels.count,
-      "Expected allModels count (\(allModels.count)) > knownModels count (\(ModelRegistry.knownModels.count))"
+      allModels.count > KnownModelCatalog.allModels.count,
+      "Expected allModels count (\(allModels.count)) > knownModels count (\(KnownModelCatalog.allModels.count))"
     )
   }
 
   @MainActor
   func testAllModels_deduplicates() throws {
-    guard let knownModel = ModelRegistry.knownModels.first else {
-      XCTFail("ModelRegistry.knownModels is empty")
+    guard let knownModel = KnownModelCatalog.allModels.first else {
+      XCTFail("KnownModelCatalog.allModels is empty")
       return
     }
-    let duplicateMetadata = ModelMetadata(
-      name: knownModel.name,
-      modelId: "dup/model",
-      modelFile: knownModel.modelFile,
-      description: "Duplicate",
-      sizeInBytes: knownModel.sizeInBytes,
-      minDeviceMemoryGB: knownModel.minDeviceMemoryGB,
-      contextWindowSize: knownModel.contextWindowSize,
-      architectureType: knownModel.architectureType,
-      recommendedFor: knownModel.recommendedFor,
-      supportsImage: knownModel.supportsImage,
+    let duplicateProfile = ModelCapabilityProfile(
+      id: "dup-model",
+      displayName: knownModel.displayName,
+      repoId: "dup/model",
+      runtimeType: knownModel.runtimeType,
+      supportsVision: knownModel.supportsVision,
       supportsAudio: knownModel.supportsAudio,
-      capabilities: knownModel.capabilities,
+      supportsThinking: knownModel.supportsThinking,
+      supportsToolCalling: knownModel.supportsToolCalling,
+      supportsMTP: knownModel.supportsMTP,
+      supportsConstrainedDecoding: knownModel.supportsConstrainedDecoding,
+      architecture: knownModel.architecture,
+      contextWindow: knownModel.contextWindow,
+      fileSizeBytes: knownModel.fileSizeBytes,
+      estimatedMemoryGB: knownModel.estimatedMemoryGB,
+      totalParameters: knownModel.totalParameters,
+      parameterLabel: knownModel.parameterLabel,
+      confidence: knownModel.confidence,
+      source: knownModel.source,
+      lastUpdated: Date(),
+      repoSha: nil,
+      license: nil, licenseLink: nil, baseModelId: nil,
+      downloads: nil, likes: nil, downloadsAllTime: nil,
+      supportedLanguages: [],
+      tags: [],
       defaultConfig: knownModel.defaultConfig,
       platformSupport: knownModel.platformSupport,
-      runtimeType: knownModel.runtimeType
+      modelDescription: "Duplicate",
+      recommendedFor: knownModel.recommendedFor,
+      modelFile: knownModel.modelFile,
+      modelId: "dup/model"
     )
     let entry = DynamicModelMetadata.fromHuggingFace(
-      repoId: "dup/model", metadata: duplicateMetadata, confidence: .medium
+      repoId: "dup/model", metadata: duplicateProfile, confidence: .medium
     )
     try catalog.add(entry)
     let allModels = catalog.allModels()
     let matchingFiles = allModels.filter { $0.metadata.modelFile == knownModel.modelFile }
     XCTAssertEqual(
       matchingFiles.count, 1,
-      "Expected no duplicates for modelFile '\(knownModel.modelFile)', found \(matchingFiles.count)"
+      "Expected no duplicates for modelFile '\(knownModel.modelFile ?? "")', found \(matchingFiles.count)"
     )
   }
 
@@ -254,8 +290,8 @@ final class DynamicModelCatalogTests: XCTestCase {
     let filtered = catalog.filter(by: "vision")
     for model in filtered {
       XCTAssertTrue(
-        model.metadata.supportsImage,
-        "Expected all vision-filtered models to have supportsImage == true"
+        model.metadata.hasVision,
+        "Expected all vision-filtered models to have hasVision == true"
       )
     }
   }
