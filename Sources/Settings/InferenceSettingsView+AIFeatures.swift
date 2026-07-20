@@ -43,7 +43,11 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var visualTokenBudgetSection: some View {
-        if let metadata = viewModel.activeModelMetadata, metadata.supportsImage {
+        let visionStatus = CapabilityGating.vision(profile: viewModel.activeCapabilityProfile)
+        // Show vision settings when profile confirms support, or fall back to legacy metadata
+        let showVision = visionStatus.isEnabled
+            || (viewModel.activeCapabilityProfile == nil && viewModel.activeModelMetadata?.supportsImage == true)
+        if showVision {
             Section {
                 Picker("Visual Token Budget", selection: Binding(
                     get: { viewModel.runtimeFlags.visualTokenBudget ?? 0 },
@@ -64,6 +68,12 @@ extension InferenceSettingsView {
                 )
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.textSecondary)
+
+                if let sourceLabel = visionStatus.sourceLabel {
+                    Label("Vision capability \(sourceLabel)", systemImage: "info.circle")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textTertiary)
+                }
             } header: {
                 Label("Vision Settings", systemImage: "eye")
                     .foregroundStyle(AppColors.capabilityVision)

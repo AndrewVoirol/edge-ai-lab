@@ -135,9 +135,32 @@ struct DiagnosticsView: View {
 
     // MARK: - Model Capabilities
 
+    @ViewBuilder
     private var modelCapabilitiesSection: some View {
-        GroupBox("Model Capabilities (from metadata)") {
-            if let metadata = viewModel.activeModelMetadata {
+        let profile = viewModel.activeCapabilityProfile
+        GroupBox(profile != nil ? "Model Capabilities (with provenance)" : "Model Capabilities (from metadata)") {
+            if let profile = profile {
+                // Wave 3: Sourced capability badges with provenance tracking
+                VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
+                    SourcedCapabilityBadge(label: "Vision", status: CapabilityGating.vision(profile: profile))
+                    SourcedCapabilityBadge(label: "Audio", status: CapabilityGating.audio(profile: profile))
+                    SourcedCapabilityBadge(label: "Thinking", status: CapabilityGating.thinking(profile: profile))
+                    SourcedCapabilityBadge(label: "Tool Calling", status: CapabilityGating.toolCalling(profile: profile))
+                    SourcedCapabilityBadge(
+                        label: "Spec. Dec (MTP)",
+                        status: CapabilityGating.mtp(profile: profile, runtimeType: viewModel.selectedRuntimeType)
+                    )
+
+                    if let ctxWindow = profile.contextWindow {
+                        diagnosticRow("Context Window", value: "\(ctxWindow.value) tokens (\(ctxWindow.source.displayLabel))")
+                    }
+                    if let arch = profile.architecture {
+                        diagnosticRow("Architecture", value: arch.modelType ?? "Unknown")
+                    }
+                    diagnosticRow("Data Confidence", value: profile.confidence.label)
+                }
+            } else if let metadata = viewModel.activeModelMetadata {
+                // Legacy fallback: display without provenance
                 VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                     capabilityRow("Vision", supported: metadata.supportsImage)
                     capabilityRow("Audio", supported: metadata.supportsAudio)

@@ -116,7 +116,24 @@ extension InferenceSettingsView {
             .disabled(!mtpSupported)
             .accessibilityIdentifier("toggle_enableMTP")
 
-            if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
+            // Show MTP model-level support with provenance
+            let mtpGate = CapabilityGating.mtp(
+                profile: viewModel.activeCapabilityProfile,
+                runtimeType: viewModel.selectedRuntimeType
+            )
+            if mtpGate.isEnabled {
+                HStack(spacing: AppSpacing.xs) {
+                    Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.success)
+                    if let sourceLabel = mtpGate.sourceLabel {
+                        Text("(\(sourceLabel))")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                }
+            } else if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
+                // Legacy fallback
                 Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.success)
