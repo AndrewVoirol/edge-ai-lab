@@ -251,6 +251,7 @@ struct iOSHFModelDetailView: View {
     private var modelInfoSection: some View {
         let hasInfo = model.architecture != nil || model.contextLength != nil
             || model.license != nil || model.baseModelId != nil
+            || model.hasVisionSupport || model.hasAudioSupport
 
         if hasInfo {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -263,8 +264,11 @@ struct iOSHFModelDetailView: View {
                     if let arch = model.architecture {
                         infoRow(label: "Architecture", value: arch, icon: "cpu")
                     }
-                    if let ctx = model.contextLength {
+                    // Use maxContextLength cascade (text_config → top-level → GGUF)
+                    if let ctx = model.maxContextLength, ctx > 0 {
                         infoRow(label: "Context Window", value: formatContextWindow(ctx), icon: "text.alignleft")
+                    } else if let legacyCtx = model.contextLength {
+                        infoRow(label: "Context Window", value: formatContextWindow(legacyCtx), icon: "text.alignleft")
                     }
                     if let license = model.license {
                         infoRow(label: "License", value: license.uppercased(), icon: "doc.text")
@@ -272,23 +276,27 @@ struct iOSHFModelDetailView: View {
                     if let base = model.baseModelId {
                         infoRow(label: "Base Model", value: base, icon: "arrow.triangle.branch")
                     }
+                    if let dtype = model.dtype, !dtype.isEmpty {
+                        infoRow(label: "Dtype", value: dtype.uppercased(), icon: "number")
+                    }
+                    if model.isMoE {
+                        infoRow(label: "Architecture Type", value: "Mixture of Experts (MoE)", icon: "point.3.filled.connected.trianglepath.dotted")
+                    }
                 }
                 .padding(AppSpacing.md)
                 .glassCard(cornerRadius: AppRadius.md)
 
-                // Capability badges
+                // Capability badges — uses enriched metadata from Wave 1
                 HStack(spacing: AppSpacing.xs) {
-                    if let arch = model.architecture {
-                        if arch.lowercased().contains("conditionalgeneration") {
-                            Label("Vision", systemImage: "eye.fill")
-                                .badge(AppColors.capabilityVision)
-                                .accessibilityIdentifier("hfDetail_visionBadge")
-                        }
-                        if arch.lowercased().contains("audio") || arch.lowercased().contains("speech") {
-                            Label("Audio", systemImage: "waveform")
-                                .badge(AppColors.capabilityAudio)
-                                .accessibilityIdentifier("hfDetail_audioBadge")
-                        }
+                    if model.hasVisionSupport {
+                        Label("Vision", systemImage: "eye.fill")
+                            .badge(AppColors.capabilityVision)
+                            .accessibilityIdentifier("hfDetail_visionBadge")
+                    }
+                    if model.hasAudioSupport {
+                        Label("Audio", systemImage: "waveform")
+                            .badge(AppColors.capabilityAudio)
+                            .accessibilityIdentifier("hfDetail_audioBadge")
                     }
                     if model.isGated {
                         Label("Gated", systemImage: "lock.fill")

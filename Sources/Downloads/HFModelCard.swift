@@ -171,27 +171,42 @@ struct HFModelCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
             }
 
-            // Capability badges
+            // Capability badges — uses enriched metadata from Wave 1
             HStack(spacing: AppSpacing.xs) {
-                if let arch = model.architecture {
-                    let supportsVision = arch.lowercased().contains("conditionalgeneration")
-                    let supportsAudio = arch.lowercased().contains("audio") || arch.lowercased().contains("speech")
-                    if supportsVision {
-                        Label("Vision", systemImage: "eye.fill")
-                            .badge(AppColors.capabilityVision)
-                            .accessibilityIdentifier("hf_card_vision_\(model.id.replacingOccurrences(of: "/", with: "_"))")
-                    }
-                    if supportsAudio {
-                        Label("Audio", systemImage: "waveform")
-                            .badge(AppColors.capabilityAudio)
-                            .accessibilityIdentifier("hf_card_audio_\(model.id.replacingOccurrences(of: "/", with: "_"))")
-                    }
+                if model.hasVisionSupport {
+                    Label("Vision", systemImage: "eye.fill")
+                        .badge(AppColors.capabilityVision)
+                        .accessibilityIdentifier("hf_card_vision_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                }
+                if model.hasAudioSupport {
+                    Label("Audio", systemImage: "waveform")
+                        .badge(AppColors.capabilityAudio)
+                        .accessibilityIdentifier("hf_card_audio_\(model.id.replacingOccurrences(of: "/", with: "_"))")
                 }
                 if model.isGated {
                     Label("Gated", systemImage: "lock.fill")
                         .badge(AppColors.warning)
                         .accessibilityIdentifier("hf_card_gated_\(model.id.replacingOccurrences(of: "/", with: "_"))")
                 }
+            }
+
+            // Context window + architecture info
+            if let ctxLen = model.maxContextLength, ctxLen > 0 {
+                HStack(spacing: AppSpacing.sm) {
+                    Label(formatContextWindow(ctxLen), systemImage: "text.word.spacing")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .accessibilityIdentifier("hf_card_context_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                    if model.isMoE {
+                        Label("MoE", systemImage: "point.3.filled.connected.trianglepath.dotted")
+                            .badge(AppColors.accentSecondary)
+                            .accessibilityIdentifier("hf_card_moe_\(model.id.replacingOccurrences(of: "/", with: "_"))")
+                    }
+                }
+            } else if model.isMoE {
+                Label("MoE", systemImage: "point.3.filled.connected.trianglepath.dotted")
+                    .badge(AppColors.accentSecondary)
+                    .accessibilityIdentifier("hf_card_moe_\(model.id.replacingOccurrences(of: "/", with: "_"))")
             }
 
             // Action button
@@ -436,5 +451,17 @@ struct HFModelCard: View {
             return String(format: "%.1fK", Double(count) / 1_000)
         }
         return "\(count)"
+    }
+
+    /// Format context window size (e.g., 8192 → "8K ctx", 131072 → "128K ctx").
+    private func formatContextWindow(_ tokens: Int) -> String {
+        if tokens >= 1_000 {
+            let k = Double(tokens) / 1_000
+            if k == Double(Int(k)) {
+                return "\(Int(k))K ctx"
+            }
+            return String(format: "%.1fK ctx", k)
+        }
+        return "\(tokens) ctx"
     }
 }
