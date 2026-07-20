@@ -230,3 +230,16 @@ Likely cause: perpetual animation saturating the runloop. Check that any `PhaseA
 
 ### Module Import Errors
 Build the main app target first, then run tests.
+
+## EvalRunner Test Pattern
+
+- Always inject mock engines via `EvalRunner(store:engineFactory:)`.
+- Use `Self.makeRunner(store:engine:)` helper pattern from `EngineEvalIntegrationTests`.
+- The `engineFactory` closure defaults to `EngineFactory.createEngine(for:)` in production.
+- Without injection, tests silently use real engines against non-existent model files, causing flaky count mismatches.
+- Example:
+  ```swift
+  private static func makeRunner(store: EvalStore, engine: MockInferenceEngine) -> EvalRunner {
+      EvalRunner(store: store, engineFactory: { _ in engine })
+  }
+  ```
