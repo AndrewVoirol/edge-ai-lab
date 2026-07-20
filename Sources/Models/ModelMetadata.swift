@@ -662,11 +662,12 @@ enum ModelRegistry {
         runtimeType: .litertlm
     )
 
-    // MARK: - Lookup
+    // MARK: - Lookup (Deprecated — migrate to ModelCapabilityProfile)
 
     /// Attempt to match a model file to a known model by filename.
     /// - Parameter filename: The model filename (e.g., "gemma-4-E2B-it-web.litertlm")
     /// - Returns: The matching ModelMetadata, or nil if unknown.
+    @available(*, deprecated, message: "Use ModelCapabilityProfile instead of ModelRegistry lookups")
     static func lookup(filename: String) -> ModelMetadata? {
         knownModels.first { $0.modelFile == filename }
     }
@@ -674,6 +675,7 @@ enum ModelRegistry {
     /// Attempt to match a model file to a known model by file path.
     /// - Parameter path: Full path to the model file.
     /// - Returns: The matching ModelMetadata, or nil if unknown.
+    @available(*, deprecated, message: "Use ModelCapabilityProfile instead of ModelRegistry lookups")
     static func lookup(path: String) -> ModelMetadata? {
         let filename = (path as NSString).lastPathComponent
         return lookup(filename: filename)
@@ -681,6 +683,7 @@ enum ModelRegistry {
 
     /// Get the recommended backend for a model file on the current platform.
     /// Falls back to .probeRequired for unknown models.
+    @available(*, deprecated, message: "Use ModelCapabilityProfile.runtimeType instead")
     static func recommendedBackend(for path: String) -> BackendRecommendation {
         guard let metadata = lookup(path: path) else {
             return .probeRequired

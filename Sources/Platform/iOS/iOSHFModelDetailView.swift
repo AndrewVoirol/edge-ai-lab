@@ -38,6 +38,7 @@ struct iOSHFModelDetailView: View {
 
     @Environment(ConversationViewModel.self) private var viewModel
     @State private var browser = HFModelBrowser()
+    @State private var selectedGGUFVariant: String?
 
     // MARK: - Body
 
@@ -345,6 +346,8 @@ struct iOSHFModelDetailView: View {
                 litertlmActions
             } else if format == .mlx {
                 mlxActions
+            } else if format == .gguf {
+                ggufActions
             }
         }
         .accessibilityIdentifier("hfDetail_actionsSection")
@@ -508,6 +511,114 @@ struct iOSHFModelDetailView: View {
 
         default:
             EmptyView()
+        }
+    }
+
+    // MARK: GGUF Actions
+
+    @ViewBuilder
+    private var ggufActions: some View {
+        let variants = GGUFVariantLogic.extractVariants(from: model.siblings ?? [])
+        let targetVariant: HFSibling? = {
+            if let selectedId = selectedGGUFVariant {
+                return model.siblings?.first(where: { $0.rfilename == selectedId })
+            }
+            return GGUFVariantLogic.recommendedVariant(from: variants)
+                .flatMap { rec in model.siblings?.first(where: { $0.rfilename == rec.filename }) }
+        }()
+
+        // Show variant picker when multiple variants exist
+        if GGUFVariantLogic.needsPicker(variants: variants) {
+            GGUFVariantPicker(variants: variants, selectedVariantId: $selectedGGUFVariant)
+                .onAppear {
+                    if selectedGGUFVariant == nil {
+                        selectedGGUFVariant = GGUFVariantLogic.recommendedVariant(from: variants)?.id
+                    }
+                }
+        }
+
+        if let sibling = targetVariant {
+            let state = viewModel.downloadManager.downloadStates[sibling.rfilename] ?? .notDownloaded
+
+            switch state {
+            case .notDownloaded:
+                Button {
+                    viewModel.downloadManager.downloadCommunityModel(model: model, sibling: sibling)
+                } label: {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text("Download Model")
+                            .font(AppTypography.subtitle)
+                    }
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(AppSpacing.md)
+                    .background(AppColors.accentPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hfDetail_ggufDownloadButton")
+
+            case .downloading(let progress):
+                VStack(spacing: AppSpacing.sm) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.accentPrimary)
+                    Text("Downloading… \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+                .accessibilityIdentifier("hfDetail_ggufDownloadProgress")
+
+            case .downloaded(let url):
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColors.success)
+                    Text("Downloaded")
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppColors.success)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+                .accessibilityIdentifier("hfDetail_ggufDownloadedBadge")
+
+                Button {
+                    Task {
+                        await viewModel.handleModelSelection(url)
+                        viewModel.refreshDiscoveredModels()
+                    }
+                } label: {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "bolt.fill")
+                        Text("Load Model")
+                            .font(AppTypography.subtitle)
+                    }
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(AppSpacing.md)
+                    .background(AppColors.accentPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hfDetail_ggufLoadButton")
+
+            case .failed(let message):
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColors.destructive)
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.destructive)
+                        .lineLimit(3)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+                .accessibilityIdentifier("hfDetail_ggufErrorBadge")
+
+            default:
+                EmptyView()
+            }
         }
     }
 

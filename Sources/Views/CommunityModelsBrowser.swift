@@ -34,6 +34,7 @@ struct CommunityModelsBrowser: View {
     @State private var selectedBrowserModel: HFModelInfo?
     @State private var browserFormat: HFModelFormat = .unknown
     @State private var browserModelSize: Int64?
+    @State private var selectedGGUFVariant: String?
     @Environment(ConversationViewModel.self) private var viewModel
 
     var body: some View {
@@ -673,6 +674,112 @@ struct CommunityModelsBrowser: View {
                 default:
                     EmptyView()
                 }
+            } else if browserFormat == .gguf {
+                ggufBrowserActions(model: model)
+            }
+        }
+    }
+
+    /// GGUF variant picker + download/load actions.
+    @ViewBuilder
+    private func ggufBrowserActions(model: HFModelInfo) -> some View {
+        let variants = GGUFVariantLogic.extractVariants(from: model.siblings ?? [])
+        let targetVariant: HFSibling? = {
+            if let selectedId = selectedGGUFVariant {
+                return model.siblings?.first(where: { $0.rfilename == selectedId })
+            }
+            return GGUFVariantLogic.recommendedVariant(from: variants)
+                .flatMap { rec in model.siblings?.first(where: { $0.rfilename == rec.filename }) }
+        }()
+
+        // Variant picker when multiple variants exist
+        if GGUFVariantLogic.needsPicker(variants: variants) {
+            GGUFVariantPicker(variants: variants, selectedVariantId: $selectedGGUFVariant)
+                .onAppear {
+                    if selectedGGUFVariant == nil {
+                        selectedGGUFVariant = GGUFVariantLogic.recommendedVariant(from: variants)?.id
+                    }
+                }
+        }
+
+        if let sibling = targetVariant {
+            let state = viewModel.downloadManager.downloadStates[sibling.rfilename] ?? .notDownloaded
+
+            switch state {
+            case .notDownloaded:
+                Button {
+                    viewModel.downloadManager.downloadCommunityModel(model: model, sibling: sibling)
+                } label: {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "arrow.down.circle.fill")
+                        Text("Download Model")
+                            .font(AppTypography.subtitle)
+                    }
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(AppSpacing.md)
+                    .background(AppColors.accentPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("browserDetail_ggufDownloadButton")
+
+            case .downloading(let progress):
+                VStack(spacing: AppSpacing.sm) {
+                    ProgressView(value: progress)
+                        .tint(AppColors.accentPrimary)
+                    Text("Downloading\u{2026} \(Int(progress * 100))%")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+
+            case .downloaded(let url):
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColors.success)
+                    Text("Downloaded")
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppColors.success)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+
+                Button {
+                    Task {
+                        await viewModel.handleModelSelection(url)
+                        viewModel.refreshDiscoveredModels()
+                    }
+                } label: {
+                    HStack(spacing: AppSpacing.sm) {
+                        Image(systemName: "bolt.fill")
+                        Text("Load Model")
+                            .font(AppTypography.subtitle)
+                    }
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(AppSpacing.md)
+                    .background(AppColors.accentPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("browserDetail_ggufLoadButton")
+
+            case .failed(let message):
+                HStack(spacing: AppSpacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColors.destructive)
+                    Text(message)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.destructive)
+                        .lineLimit(2)
+                }
+                .padding(AppSpacing.md)
+                .glassCard(cornerRadius: AppRadius.md)
+
+            default:
+                EmptyView()
             }
         }
     }
