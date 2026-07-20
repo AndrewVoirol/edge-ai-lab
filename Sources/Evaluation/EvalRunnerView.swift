@@ -92,6 +92,9 @@ struct EvalRunnerView: View {
                     runAllButton
                 }
 
+                // MARK: Compatibility Warning
+                compatibilityWarning
+
                 // MARK: Progress (during eval)
                 if isRunning, let runner = evalRunner {
                     progressView(runner: runner)
@@ -325,6 +328,67 @@ struct EvalRunnerView: View {
                 .accessibilityIdentifier("evalRunner_compat_no_\(suite.name)")
         case .unknown:
             EmptyView()
+        }
+    }
+
+    /// Shows a warning banner when the selected suite is incompatible with the loaded model.
+    @ViewBuilder
+    private var compatibilityWarning: some View {
+        if let suiteId = selectedSuiteId,
+           let suite = allSuites.first(where: { $0.id == suiteId }),
+           let profile = viewModel.activeCapabilityProfile {
+            let status = EvalSuiteCompatibility.check(suite: suite, profile: profile)
+            switch status {
+            case .incompatible(let reasons):
+                HStack(alignment: .top, spacing: AppSpacing.sm) {
+                    Image(systemName: "xmark.seal.fill")
+                        .foregroundStyle(AppColors.destructive)
+                        .font(AppIconSize.sm)
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                        Text("Suite may not work with this model")
+                            .font(AppTypography.subtitle)
+                            .foregroundStyle(AppColors.textPrimary)
+                        ForEach(reasons, id: \.self) { reason in
+                            Text("• \(reason)")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                        Text("Incompatible prompts will be auto-skipped.")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    Spacer()
+                }
+                .padding(AppSpacing.md)
+                .background(AppColors.destructive.opacity(0.12)) // design-system-exempt: warning banner needs custom opacity
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                .accessibilityIdentifier("evalRunner_compatWarning_incompatible")
+
+            case .partiallyCompatible(let reasons):
+                HStack(alignment: .top, spacing: AppSpacing.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColors.warning)
+                        .font(AppIconSize.sm)
+                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                        Text("Some prompts may produce limited results")
+                            .font(AppTypography.subtitle)
+                            .foregroundStyle(AppColors.textPrimary)
+                        ForEach(reasons, id: \.self) { reason in
+                            Text("• \(reason)")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(AppSpacing.md)
+                .background(AppColors.warning.opacity(0.12)) // design-system-exempt: warning banner needs custom opacity
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
+                .accessibilityIdentifier("evalRunner_compatWarning_partial")
+
+            case .compatible, .unknown:
+                EmptyView()
+            }
         }
     }
 

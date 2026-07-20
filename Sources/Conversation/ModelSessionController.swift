@@ -375,6 +375,18 @@ final class ModelSessionController {
             }
             onEngineReadyChanged?(true)
 
+            // Enrich the capability profile with engine runtime ground truth.
+            // The engine's live capabilities supersede all prior metadata sources.
+            if let profile = activeCapabilityProfile {
+                let engineVision = engine.supportsVision
+                let engineToolCalling = engine.supportsToolCalling
+                activeCapabilityProfile = profile.enrichedWithEngineRuntime(
+                    supportsVision: engineVision,
+                    supportsToolCalling: engineToolCalling
+                )
+                Self.logger.info("📊 Profile enriched with runtime: vision=\(engineVision), toolCalling=\(engineToolCalling)")
+            }
+
             Self.signposter.endInterval("Session", signpostState, "Ready")
 
         } catch {

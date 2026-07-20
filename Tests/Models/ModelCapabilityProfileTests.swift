@@ -455,3 +455,121 @@ struct ProfileCodableTests {
         #expect(json.contains("config_json"))
     }
 }
+
+// MARK: - Runtime Enrichment Tests
+
+@Suite("ModelCapabilityProfile — Runtime Enrichment")
+struct ProfileRuntimeEnrichmentTests {
+
+    @Test("enrichedWithEngineRuntime overrides vision and toolCalling with .engineRuntime source")
+    func testEnrichmentOverridesCapabilities() {
+        let original = ModelCapabilityProfile(
+            id: "test/model",
+            displayName: "Test",
+            repoId: nil,
+            runtimeType: .litertlm,
+            supportsVision: SourcedValue(false, source: .heuristic),
+            supportsAudio: SourcedValue(true, source: .configJSON),
+            supportsThinking: SourcedValue(true, source: .heuristic),
+            supportsToolCalling: SourcedValue(false, source: .heuristic),
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: nil,
+            fileSizeBytes: nil,
+            estimatedMemoryGB: nil,
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .medium,
+            source: .huggingFaceInferred,
+            lastUpdated: Date.distantPast,
+            repoSha: nil,
+            license: "apache-2.0",
+            licenseLink: nil,
+            baseModelId: nil,
+            downloads: 1000,
+            likes: 50,
+            downloadsAllTime: nil,
+            supportedLanguages: ["en"],
+            tags: ["text-generation"]
+        )
+
+        // Engine reports vision=true, toolCalling=true (overriding heuristic false)
+        let enriched = original.enrichedWithEngineRuntime(
+            supportsVision: true,
+            supportsToolCalling: true
+        )
+
+        // Vision overridden to true with .engineRuntime source
+        #expect(enriched.hasVision == true)
+        #expect(enriched.supportsVision?.source == .engineRuntime)
+
+        // Tool calling overridden to true with .engineRuntime source
+        #expect(enriched.hasToolCalling == true)
+        #expect(enriched.supportsToolCalling?.source == .engineRuntime)
+
+        // Non-overridden fields preserved
+        #expect(enriched.hasAudio == true)
+        #expect(enriched.supportsAudio?.source == .configJSON)
+        #expect(enriched.hasThinking == true)
+        #expect(enriched.supportsThinking?.source == .heuristic)
+
+        // Metadata preserved
+        #expect(enriched.license == "apache-2.0")
+        #expect(enriched.downloads == 1000)
+        #expect(enriched.likes == 50)
+        #expect(enriched.supportedLanguages == ["en"])
+        #expect(enriched.tags == ["text-generation"])
+
+        // Confidence upgraded to .verified
+        #expect(enriched.confidence == .verified)
+
+        // Date refreshed
+        #expect(enriched.lastUpdated > original.lastUpdated)
+    }
+
+    @Test("enrichedWithEngineRuntime can downgrade capabilities")
+    func testEnrichmentCanDowngrade() {
+        let original = ModelCapabilityProfile(
+            id: "test/model",
+            displayName: "Test",
+            repoId: nil,
+            runtimeType: .gguf,
+            supportsVision: SourcedValue(true, source: .configJSON),
+            supportsAudio: nil,
+            supportsThinking: nil,
+            supportsToolCalling: SourcedValue(true, source: .apiMetadata),
+            supportsMTP: nil,
+            supportsConstrainedDecoding: nil,
+            architecture: nil,
+            contextWindow: nil,
+            fileSizeBytes: nil,
+            estimatedMemoryGB: nil,
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .high,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil,
+            licenseLink: nil,
+            baseModelId: nil,
+            downloads: nil,
+            likes: nil,
+            downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: []
+        )
+
+        // Engine says vision=false (e.g., GGUF without mmproj)
+        let enriched = original.enrichedWithEngineRuntime(
+            supportsVision: false,
+            supportsToolCalling: false
+        )
+
+        #expect(enriched.hasVision == false)
+        #expect(enriched.supportsVision?.source == .engineRuntime)
+        #expect(enriched.hasToolCalling == false)
+        #expect(enriched.supportsToolCalling?.source == .engineRuntime)
+    }
+}

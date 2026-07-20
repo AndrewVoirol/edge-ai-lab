@@ -270,6 +270,57 @@ extension ModelCapabilityProfile {
     var memoryGB: Int? {
         estimatedMemoryGB?.value
     }
+
+    // MARK: - Runtime Enrichment
+
+    /// Creates a new profile with engine-verified capability values.
+    ///
+    /// Called after an engine successfully loads a model. The engine's runtime
+    /// state is the ground truth for what actually works — it supersedes all
+    /// prior metadata sources.
+    ///
+    /// Only overrides capabilities the engine explicitly reports. Preserves
+    /// all other fields from the original profile.
+    ///
+    /// - Parameters:
+    ///   - supportsVision: Engine's runtime vision capability.
+    ///   - supportsToolCalling: Engine's runtime tool calling capability.
+    /// - Returns: A new profile with `.engineRuntime` sourced overrides.
+    func enrichedWithEngineRuntime(
+        supportsVision engineVision: Bool,
+        supportsToolCalling engineToolCalling: Bool
+    ) -> ModelCapabilityProfile {
+        ModelCapabilityProfile(
+            id: id,
+            displayName: displayName,
+            repoId: repoId,
+            runtimeType: runtimeType,
+            supportsVision: SourcedValue(engineVision, source: .engineRuntime),
+            supportsAudio: supportsAudio,
+            supportsThinking: supportsThinking,
+            supportsToolCalling: SourcedValue(engineToolCalling, source: .engineRuntime),
+            supportsMTP: supportsMTP,
+            supportsConstrainedDecoding: supportsConstrainedDecoding,
+            architecture: architecture,
+            contextWindow: contextWindow,
+            fileSizeBytes: fileSizeBytes,
+            estimatedMemoryGB: estimatedMemoryGB,
+            totalParameters: totalParameters,
+            parameterLabel: parameterLabel,
+            confidence: .verified,
+            source: source,
+            lastUpdated: Date(),
+            repoSha: repoSha,
+            license: license,
+            licenseLink: licenseLink,
+            baseModelId: baseModelId,
+            downloads: downloads,
+            likes: likes,
+            downloadsAllTime: downloadsAllTime,
+            supportedLanguages: supportedLanguages,
+            tags: tags
+        )
+    }
 }
 
 // MARK: - Profile Builder
