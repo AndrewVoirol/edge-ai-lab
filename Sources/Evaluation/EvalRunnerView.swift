@@ -252,6 +252,9 @@ struct EvalRunnerView: View {
                 // Prompt count badge
                 Text("\(suite.promptCount) prompts")
                     .badge(isSelected ? AppColors.accentPrimary : AppColors.textTertiary)
+
+                // Compatibility badge
+                compatibilityBadge(for: suite)
             }
             .frame(width: 120)
             .padding(AppSpacing.md)
@@ -293,6 +296,36 @@ struct EvalRunnerView: View {
             }
         }
         .accessibilityIdentifier("evalRunner_suiteCard_\(suite.name)")
+    }
+
+    /// Shows compatibility status badge for a suite based on the active model.
+    @ViewBuilder
+    private func compatibilityBadge(for suite: EvalSuite) -> some View {
+        let status = EvalSuiteCompatibility.check(
+            suite: suite,
+            profile: viewModel.activeCapabilityProfile
+        )
+        switch status {
+        case .compatible:
+            Label("Compatible", systemImage: "checkmark.seal.fill")
+                .font(AppTypography.badge)
+                .foregroundStyle(AppColors.success)
+                .accessibilityIdentifier("evalRunner_compat_ok_\(suite.name)")
+        case .partiallyCompatible(let reasons):
+            Label(reasons.first ?? "Partial", systemImage: "exclamationmark.triangle.fill")
+                .font(AppTypography.badge)
+                .foregroundStyle(AppColors.warning)
+                .lineLimit(1)
+                .accessibilityIdentifier("evalRunner_compat_partial_\(suite.name)")
+        case .incompatible(let reasons):
+            Label(reasons.first ?? "Incompatible", systemImage: "xmark.seal.fill")
+                .font(AppTypography.badge)
+                .foregroundStyle(AppColors.destructive)
+                .lineLimit(1)
+                .accessibilityIdentifier("evalRunner_compat_no_\(suite.name)")
+        case .unknown:
+            EmptyView()
+        }
     }
 
     // MARK: - Model Picker
