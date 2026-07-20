@@ -142,7 +142,7 @@ final class EvalRunner {
     // MARK: - Dependencies
 
     /// The inference engine currently in use for the active model evaluation.
-    /// Created fresh per-model inside `evaluateModel()` via `EngineFactory`.
+    /// Created fresh per-model inside `evaluateModel()` via `engineFactory`.
     /// Stored at class level so `cancel()` can invoke `cancelGeneration()`.
     private var engine: (any InferenceEngine)?
 
@@ -152,6 +152,10 @@ final class EvalRunner {
     /// Portable export persistence for timestamped JSON exports.
     private let exportPersistence: EvalResultPersistence?
 
+    /// Factory closure that creates an `InferenceEngine` for a given `RuntimeType`.
+    /// Defaults to `EngineFactory.createEngine(for:)`. Override in tests to inject mocks.
+    private let engineFactory: @MainActor (RuntimeType) throws -> any InferenceEngine
+
     /// Active task for cancellation support.
     private var runTask: Task<Void, Never>?
 
@@ -160,20 +164,25 @@ final class EvalRunner {
 
     // MARK: - Init
 
-    /// Initialize the eval runner with a store and optional export persistence.
-    ///
-    /// The runner creates its own inference engine per model based on the
-    /// model's `runtimeType`, so no engine parameter is needed.
+    /// Initialize the eval runner with a store, optional export persistence, and
+    /// an optional engine factory for dependency injection.
     ///
     /// - Parameters:
     ///   - store: The eval store for persisting results.
     ///   - exportPersistence: Optional portable export persistence for timestamped JSON exports.
+    ///   - engineFactory: Closure that creates an engine for a given runtime type.
+    ///     Defaults to `EngineFactory.createEngine(for:)`. Pass a custom closure in
+    ///     tests to inject a `MockInferenceEngine`.
     init(
         store: EvalStore,
-        exportPersistence: EvalResultPersistence? = nil
+        exportPersistence: EvalResultPersistence? = nil,
+        engineFactory: (@MainActor (RuntimeType) throws -> any InferenceEngine)? = nil
     ) {
         self.store = store
         self.exportPersistence = exportPersistence
+        self.engineFactory = engineFactory ?? { runtimeType in
+            try EngineFactory.createEngine(for: runtimeType)
+        }
     }
 
     // MARK: - Run Evaluation
@@ -353,7 +362,7 @@ final class EvalRunner {
 
         let engine: any InferenceEngine
         do {
-            engine = try EngineFactory.createEngine(for: requiredRuntime)
+            engine = try engineFactory(requiredRuntime)
         } catch {
             Self.logger.error("❌ Failed to create \(requiredRuntime.displayName, privacy: .public) engine: \(error.localizedDescription, privacy: .public)")
             throw EvalRunnerError.engineInitFailed("Cannot create \(requiredRuntime.displayName) engine: \(error.localizedDescription)")
