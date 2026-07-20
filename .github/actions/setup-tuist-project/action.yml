@@ -43,6 +43,18 @@ runs:
         # "remote missing object" errors on Android artifacts.
         GIT_LFS_SKIP_SMUDGE: "1"
 
+    - name: Clear Stale Binary Artifacts
+      shell: bash
+      run: |
+        # LiteRT-LM's CLiteRTLM xcframework binaries are hosted at GitHub Release URLs.
+        # Google occasionally re-uploads these with different content (same URL, new checksum).
+        # SPM caches the old checksum and refuses to download the new version.
+        # Fix: remove the cached binary artifacts so SPM re-downloads with fresh checksums.
+        echo "Clearing stale binary target artifacts from SPM cache..."
+        find "${{ inputs.spm-packages-dir }}" -name "*.xcframework" -type d -exec rm -rf {} + 2>/dev/null || true
+        find "${{ inputs.spm-packages-dir }}" -name "*.artifactbundle" -type d -exec rm -rf {} + 2>/dev/null || true
+        echo "✅ Binary artifact cache cleared"
+
     - name: Resolve Packages
       shell: bash
       run: |

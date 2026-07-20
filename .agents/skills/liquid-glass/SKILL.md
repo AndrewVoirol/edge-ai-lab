@@ -43,32 +43,19 @@ All APIs verified against:
 
 ## Migration Checklist
 
-### Remove `.preferredColorScheme(.dark)`
-The app currently forces dark mode in ~20 places. For glass to render correctly with system-managed appearance:
+### ✅ RESOLVED: `.preferredColorScheme(.dark)` Removal (July 2026)
+All per-view `.preferredColorScheme(.dark)` calls have been removed. Zero references remain in Sources/.
 
-1. Remove all per-view `.preferredColorScheme(.dark)` calls
-2. Add app-level dark mode toggle via `@AppStorage("prefersDarkMode")` if user control desired
-3. Ensure all `AppColors` have light-mode variants, OR use `colorScheme(.dark)` at the window level only
-
-### Remove/Conditionalize `VibrantBackgroundView`
-Opaque backgrounds defeat glass transparency on navigation chrome.
-
-**Known `VibrantBackgroundView` locations:**
-1. `Sources/Views/ContentView.swift:319` — chat column background
-2. `Sources/Platform/iOS/iOSChatTabView.swift:52` — iOS chat tab
-3. `Sources/Platform/iOS/iOSConversationPickerSheet.swift:56` — conversation picker
-4. `Sources/Platform/iOS/iOSLabTabView.swift:36` — lab tab
-5. `Sources/Views/OnboardingView.swift:38` — onboarding flow
-
-**Strategy:** Replace with system background on navigation-adjacent views. Keep gradient effects on content-area views but make them lighter/more transparent.
+### ✅ RESOLVED: `VibrantBackgroundView` Removal (July 2026)
+All `VibrantBackgroundView` instances have been removed from the codebase. Zero references remain in Sources/.
 
 ### Existing `.glassEffect` Usage (already adopted)
-1. `Sources/Views/SidebarView.swift:93` — active model row ✅
-2. `Sources/Views/DetailColumnView.swift:304` — detail card ✅
-3. `Sources/Platform/iOS/iOSModelHubView.swift:235` — model hub card ✅
+1. `Sources/Views/SidebarView.swift` — active model row ✅
+2. `Sources/Views/DetailColumnView.swift` — detail card ✅
+3. `Sources/Platform/iOS/iOSModelHubView.swift` — model hub card ✅
 
-### `.onDrop` Extension
-`Sources/Views/ContentView.swift:192` — currently hardcoded to `.litertlm` extension only. Must add `.gguf` acceptance.
+### ✅ RESOLVED: `.onDrop` Multi-Format Support (July 2026)
+`ContentView.swift` `.onDrop` handler already accepts both `.litertlm` and `.gguf` extensions.
 
 ## Testing Checklist
 

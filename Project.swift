@@ -23,8 +23,8 @@ let project = Project(
         //   - 68947ccd: Fix E-series num_kv_shared_layers
         //   - d14cf3da: Gemma tool parameter conversion by schema type
         //   - 2a2bdf4c: E-series MTP centroid embedder
-        // Later commits require unreleased mlx-swift >= 0.31.5 APIs.
-        // Switch back to .upToNextMajor when 3.32.0 ships.
+        // Pin advance UNBLOCKED: mlx-swift 0.31.5 (Jun 30) and 0.31.6 (Jul 2) have shipped.
+        // Advance past d2424294 to pick up MTP speculative decoding, FoundationModels bridge, etc.
         .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .revision("d2424294a6c3")),
         // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
         .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
@@ -206,7 +206,7 @@ let project = Project(
             shared: true,
             buildAction: .buildAction(targets: ["EdgeAILab_iOS"]),
             testAction: .testPlans(
-                ["UnitTests.xctestplan", "iOSUITests.xctestplan", "SimulatorTests.xctestplan", "IntegrationTests.xctestplan", "PerformanceTests.xctestplan"],
+                ["iOSUnitTests.xctestplan", "iOSUITests.xctestplan", "SimulatorTests.xctestplan", "IntegrationTests.xctestplan", "PerformanceTests.xctestplan"],
                 configuration: .debug
             ),
             runAction: .runAction(configuration: .debug)

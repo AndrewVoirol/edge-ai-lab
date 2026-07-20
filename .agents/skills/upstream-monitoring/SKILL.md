@@ -10,7 +10,10 @@ description: Track upstream dependency PRs, merge velocity, and ecosystem change
 | Dependency | Repo | Our Pin Location | Current Pin |
 |---|---|---|---|
 | mlx-swift-lm | ml-explore/mlx-swift-lm | `Project.swift` L28 | `.revision("d2424294a6c3")` |
-| mlx-swift | ml-explore/mlx-swift | Resolved transitively via mlx-swift-lm | — |
+| mlx-swift | ml-explore/mlx-swift | Resolved transitively via mlx-swift-lm | 0.31.4 (resolves from our pin) |
+
+> [!IMPORTANT]
+> **Pin advance UNBLOCKED (July 2026).** mlx-swift 0.31.5 shipped June 30, 0.31.6 shipped July 2. Earlier sessions noted "later commits require unreleased mlx-swift >= 0.31.5" — this is no longer true. We can now advance past `d2424294`. The upgrade will also bump `swift-tools-version` to 6.3. See "When a PR Merges" checklist below for the update procedure.
 
 ## Active Tracked PRs
 

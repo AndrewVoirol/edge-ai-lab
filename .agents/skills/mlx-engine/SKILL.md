@@ -283,6 +283,9 @@ Audio inference is a **known SDK limitation** at the pinned commit:
 
 **Do NOT attempt:** Config.json model_type patches, custom audio processors, or workarounds that modify the model's configuration. Wait for upstream `mlx-swift-lm` to implement mel spectrogram extraction in `Gemma4Processor`.
 
+> [!TIP]
+> **Upstream progress (July 2026):** PR [#392](https://github.com/ml-explore/mlx-swift-lm/pull/392) has a **complete, test-verified** audio encoder implementation (USM-Conformer, mel extraction, forward pass tests). It's awaiting maintainer review. Once merged + our pin advances, audio should work. See `upstream-monitoring` skill for full PR status.
+
 ## Multimodal Diagnostics
 
 The adapter includes diagnostic logging for multimodal inputs:
