@@ -57,7 +57,7 @@ struct ModelSessionControllerTests {
         #expect(controller.isLoadingModel == false)
         #expect(controller.activeModelURL == nil)
         #expect(controller.backendResult == nil)
-        #expect(controller.activeModelMetadata == nil)
+        #expect(controller.activeCapabilityProfile == nil)
     }
 
     // MARK: - Default Sampler Values
@@ -110,7 +110,7 @@ struct ModelSessionControllerTests {
         await controller.shutdown()
 
         #expect(controller.activeModelURL == nil)
-        #expect(controller.activeModelMetadata == nil)
+        #expect(controller.activeCapabilityProfile == nil)
         #expect(controller.backendResult == nil)
         #expect(engine.shutdownCallCount >= 1)
     }

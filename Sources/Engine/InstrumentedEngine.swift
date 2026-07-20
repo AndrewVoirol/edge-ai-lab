@@ -765,8 +765,8 @@ final class InstrumentedEngine: InstrumentedEngineProtocol {
         supportsAudio: Bool = false,
         maxNumTokens: Int? = nil
     ) async throws -> BackendResult {
-        // Check known model registry first for pre-verified guidance
-        let recommendation = ModelRegistry.recommendedBackend(for: modelPath)
+        // Check known model catalog first for pre-verified guidance
+        let recommendation = KnownModelCatalog.lookup(path: modelPath)?.recommendedBackend ?? .probeRequired
 
         let shouldTryGPU: Bool
         switch recommendation {

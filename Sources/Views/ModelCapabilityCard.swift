@@ -20,10 +20,10 @@ import SwiftUI
 /// **Design**: Follows the glass card pattern from the empty state quick-action hints.
 /// Uses the same `glassCard` modifier and `messageEntrance` animation.
 ///
-/// **Data source**: `ModelMetadata` + `RuntimeFlags` + `BackendResult` — all available
+/// **Data source**: `ModelCapabilityProfile` + `RuntimeFlags` + `BackendResult` — all available
 /// when `isEngineReady` transitions to `true`.
 struct ModelCapabilityCard: View {
-    let metadata: ModelMetadata
+    let profile: ModelCapabilityProfile
     let backendResult: BackendResult?
     let runtimeFlags: RuntimeFlags
     let runtimeType: RuntimeType
@@ -40,7 +40,7 @@ struct ModelCapabilityCard: View {
                     .symbolEffect(.pulse, isActive: !appeared)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                    Text(metadata.name)
+                    Text(profile.displayName)
                         .font(AppTypography.cardTitle)
                         .foregroundStyle(AppColors.textPrimary)
 
@@ -90,7 +90,7 @@ struct ModelCapabilityCard: View {
             }
         }
         .accessibilityIdentifier("modelCapabilityCard")
-        .accessibilityLabel("Model capabilities for \(metadata.name)")
+        .accessibilityLabel("Model capabilities for \(profile.displayName)")
     }
 
     // MARK: - Capability Grid
@@ -106,11 +106,11 @@ struct ModelCapabilityCard: View {
             ],
             spacing: AppSpacing.sm
         ) {
-            capabilityBadge("Vision", icon: "eye.fill", supported: metadata.supportsImage, color: AppColors.capabilityVision)
-            capabilityBadge("Audio", icon: "waveform", supported: metadata.supportsAudio, color: AppColors.capabilityAudio)
-            capabilityBadge("Spec. Dec", icon: "hare.fill", supported: metadata.supportsMTP && runtimeType != .mlx, color: AppColors.capabilityMTP)
+            capabilityBadge("Vision", icon: "eye.fill", supported: profile.hasVision, color: AppColors.capabilityVision)
+            capabilityBadge("Audio", icon: "waveform", supported: profile.hasAudio, color: AppColors.capabilityAudio)
+            capabilityBadge("Spec. Dec", icon: "hare.fill", supported: profile.hasMTP && runtimeType != .mlx, color: AppColors.capabilityMTP)
             capabilityBadge("Thinking", icon: "brain.head.profile", supported: true, color: AppColors.capabilityThinking)
-            capabilityBadge("Tools", icon: "wrench.fill", supported: metadata.supportsToolCalling, color: AppColors.toolAction)
+            capabilityBadge("Tools", icon: "wrench.fill", supported: profile.hasToolCalling, color: AppColors.toolAction)
             contextWindowBadge
         }
     }
@@ -144,7 +144,7 @@ struct ModelCapabilityCard: View {
             Image(systemName: "text.line.first.and.arrowtriangle.forward")
                 .font(AppIconSize.xxs)
                 .foregroundStyle(AppColors.accentSecondary)
-            Text(Self.formatContextWindow(metadata.contextWindowSize))
+            Text(Self.formatContextWindow(profile.contextWindowSize))
                 .font(AppTypography.badge)
                 .foregroundStyle(AppColors.textSecondary)
             Spacer()
@@ -155,7 +155,7 @@ struct ModelCapabilityCard: View {
             RoundedRectangle(cornerRadius: AppRadius.sm)
                 .fill(AppColors.accentSecondary.opacity(AppOpacity.mist))
         )
-        .accessibilityLabel("Context window: \(metadata.contextWindowSize ?? 0) tokens")
+        .accessibilityLabel("Context window: \(profile.contextWindowSize ?? 0) tokens")
     }
 
     // MARK: - Negative Capabilities
@@ -164,9 +164,9 @@ struct ModelCapabilityCard: View {
     /// doesn't have to infer from missing badges.
     private var negativeCapabilities: [String] {
         var items: [String] = []
-        if !metadata.supportsImage { items.append("No image input") }
-        if !metadata.supportsAudio { items.append("No audio input") }
-        if !metadata.supportsMTP || runtimeType == .mlx {
+        if !profile.hasVision { items.append("No image input") }
+        if !profile.hasAudio { items.append("No audio input") }
+        if !profile.hasMTP || runtimeType == .mlx {
             items.append(runtimeType == .mlx ? "MTP unavailable on MLX" : "No MTP")
         }
         return items

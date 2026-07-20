@@ -57,7 +57,7 @@ extension ConversationViewModel {
         guard !conversation.isEmpty else { return }
 
         let config = ExperimentConfig.capture(
-            modelMetadata: activeModelMetadata,
+            profile: activeCapabilityProfile,
             modelURL: activeModelURL,
             backendResult: backendResult,
             topK: topK,
@@ -107,7 +107,7 @@ extension ConversationViewModel {
         guard !conversation.isEmpty else { return }
 
         let config = ExperimentConfig.capture(
-            modelMetadata: activeModelMetadata,
+            profile: activeCapabilityProfile,
             modelURL: activeModelURL,
             backendResult: backendResult,
             topK: topK,

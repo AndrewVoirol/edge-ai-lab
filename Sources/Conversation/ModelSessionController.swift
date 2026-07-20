@@ -48,12 +48,8 @@ final class ModelSessionController {
     /// The URL of the currently loaded model file (for security scope management).
     private(set) var activeModelURL: URL?
 
-    /// Metadata for the currently loaded model, if known.
-    private(set) var activeModelMetadata: ModelMetadata?
-
     /// Capability profile for the currently loaded model.
-    /// Built from ModelMetadata via `ModelCapabilityProfileBuilder`.
-    /// New code should prefer this over `activeModelMetadata` for capability checks.
+    /// The single source of truth for model identity, capabilities, and operational config.
     private(set) var activeCapabilityProfile: ModelCapabilityProfile?
 
     /// Result of the last backend initialization (active backend, fallback info).
@@ -94,9 +90,9 @@ final class ModelSessionController {
     var onSamplerDefaultsApplied: ((Int, Float, Float) -> Void)?
     /// Callback when engine readiness state changes (so the ViewModel can update its tracked property).
     var onEngineReadyChanged: ((Bool) -> Void)?
-    /// Callback when the active model identity changes (metadata and/or URL).
+    /// Callback when the active model identity changes (profile and/or URL).
     /// The ViewModel mirrors these as stored tracked properties so SwiftUI observes changes.
-    var onActiveModelChanged: ((ModelMetadata?, URL?) -> Void)?
+    var onActiveModelChanged: ((ModelCapabilityProfile?, URL?) -> Void)?
     /// Default runtime flags to use when none are explicitly passed.
     var defaultRuntimeFlags: RuntimeFlags?
 
@@ -145,7 +141,6 @@ final class ModelSessionController {
         // Swap
         engine = newEngine
         backendResult = nil
-        activeModelMetadata = nil
         activeCapabilityProfile = nil
         onActiveModelChanged?(nil, activeModelURL)
         onEngineReadyChanged?(false)
@@ -159,7 +154,7 @@ final class ModelSessionController {
     /// - Parameters:
     ///   - url: File URL to the model file or directory.
     ///   - metadata: Pre-resolved metadata from DiscoveredModel (avoids re-lookup for community models).
-    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil, mmProjPath: String? = nil) async {
+    func handleModelSelection(_ url: URL, metadata: ModelMetadata? = nil, mmProjPath: String? = nil, profile: ModelCapabilityProfile? = nil) async {
         Self.logger.info("📂 Model selected: \(url.lastPathComponent, privacy: .public)")
         // Release previous security scope
         activeModelURL?.stopAccessingSecurityScopedResource()
@@ -167,7 +162,7 @@ final class ModelSessionController {
         // Attempt to access the new file
         let hasAccess = url.startAccessingSecurityScopedResource()
         activeModelURL = url
-        onActiveModelChanged?(activeModelMetadata, url)
+        onActiveModelChanged?(activeCapabilityProfile, url)
 
         if !hasAccess {
             // Even without security scope, try to load (may work for non-sandboxed macOS)
@@ -176,7 +171,7 @@ final class ModelSessionController {
         // Bookmark Gallery models for future auto-discovery
         GalleryModelDiscovery.bookmarkGalleryModel(url)
 
-        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata, mmProjPath: mmProjPath)
+        await initializeEngine(modelPath: url.path, discoveredMetadata: metadata, mmProjPath: mmProjPath, discoveredProfile: profile)
     }
 
     /// Initialize the inference engine with a model file, using smart backend fallback.
@@ -192,7 +187,8 @@ final class ModelSessionController {
         runtimeFlags: RuntimeFlags? = nil,
         useGPU: Bool? = nil,
         mcpClients: [UUID: Any] = [:],
-        mmProjPath: String? = nil
+        mmProjPath: String? = nil,
+        discoveredProfile: ModelCapabilityProfile? = nil
     ) async {
         // Cancel any in-progress load
         modelLoadTask?.cancel()
@@ -208,31 +204,37 @@ final class ModelSessionController {
             }
         }
 
-        let modelName = (modelPath as NSString).lastPathComponent
+        let modelFilename = (modelPath as NSString).lastPathComponent
         let preferGPU = useGPU ?? true
-        Self.logger.info("⏳ initializeEngine: \(modelName, privacy: .public) GPU=\(preferGPU)")
+        Self.logger.info("⏳ initializeEngine: \(modelFilename, privacy: .public) GPU=\(preferGPU)")
 
-        // Look up model metadata — prefer caller-provided metadata (from DiscoveredModel)
-        // over static registry lookup. Community MLX models aren't in ModelRegistry.
-        activeModelMetadata = ModelRegistry.lookup(path: modelPath) ?? discoveredMetadata
-        // Build capability profile from metadata for new capability-aware subsystems
-        if let metadata = activeModelMetadata {
+        // Build capability profile — the single source of truth for model identity and capabilities.
+        // Priority: caller-provided profile > known catalog lookup > metadata conversion > filename synthesis
+        if let discoveredProfile {
+            activeCapabilityProfile = discoveredProfile
+        } else if let catalogProfile = KnownModelCatalog.lookup(filename: modelFilename) {
+            activeCapabilityProfile = catalogProfile
+        } else if let discoveredMetadata {
             activeCapabilityProfile = ModelCapabilityProfileBuilder.fromModelMetadata(
-                metadata,
-                source: ModelRegistry.lookup(path: modelPath) != nil ? .knownRegistry : .huggingFaceInferred,
-                confidence: ModelRegistry.lookup(path: modelPath) != nil ? .verified : .medium
+                discoveredMetadata, source: .huggingFaceInferred, confidence: .medium
             )
         } else {
-            activeCapabilityProfile = nil
+            // Last resort: synthesize from filename heuristics
+            let fileSize = (try? FileManager.default.attributesOfItem(atPath: modelPath)[.size] as? Int64) ?? 0
+            activeCapabilityProfile = ModelCapabilityProfileBuilder.synthesized(
+                filename: modelFilename, sizeInBytes: fileSize
+            )
         }
-        onActiveModelChanged?(activeModelMetadata, activeModelURL)
-        if let metadata = activeModelMetadata {
-            onStatusMessage("Loading \(metadata.name)...")
-            // Apply model's default sampler config
-            topK = metadata.defaultConfig.topK
-            topP = Float(metadata.defaultConfig.topP)
-            temperature = Float(metadata.defaultConfig.temperature)
-            // Notify the ViewModel so it can sync its own properties
+
+        let profile = activeCapabilityProfile!
+        onActiveModelChanged?(profile, activeModelURL)
+        onStatusMessage("Loading \(profile.displayName)...")
+
+        // Apply model's default sampler config
+        if let config = profile.defaultConfig {
+            topK = config.topK
+            topP = Float(config.topP)
+            temperature = Float(config.temperature)
             onSamplerDefaultsApplied?(topK, topP, temperature)
         }
 
@@ -243,7 +245,6 @@ final class ModelSessionController {
             visualTokenBudget: nil
         )
 
-        let modelFilename = (modelPath as NSString).lastPathComponent
         let engineType = engine.runtimeType.rawValue
         let signpostState = Self.signposter.beginInterval(
             "Session",
@@ -283,7 +284,7 @@ final class ModelSessionController {
 
             // Optimize TTFT by automatically enabling MTP if the model supports it.
             // MTP + CPU crashes on iOS devices. On macOS, 12B models can also crash if memory is constrained.
-            if activeFlags.enableSpeculativeDecoding == nil, activeModelMetadata?.supportsMTP == true {
+            if activeFlags.enableSpeculativeDecoding == nil, activeCapabilityProfile?.hasMTP == true {
                 // Safest to leave it off by default and let user manually enable it if desired.
                 activeFlags.enableSpeculativeDecoding = false
             }
@@ -322,8 +323,8 @@ final class ModelSessionController {
                     samplerConfig: samplerConfig,
                     systemMessage: composedSystemMessage,
                     tools: tools,
-                    supportsVision: activeModelMetadata?.supportsImage ?? false,
-                    supportsAudio: activeModelMetadata?.supportsAudio ?? false,
+                    supportsVision: activeCapabilityProfile?.hasVision ?? false,
+                    supportsAudio: activeCapabilityProfile?.hasAudio ?? false,
                     maxNumTokens: maxNumTokens
                 )
                 backendResult = result
@@ -345,8 +346,8 @@ final class ModelSessionController {
                     cacheDir: modelCacheDirectory.path,
                     systemMessage: composedSystemMessage,
                     tools: appTools,
-                    supportsVision: activeModelMetadata?.supportsImage ?? false,
-                    supportsAudio: activeModelMetadata?.supportsAudio ?? false,
+                    supportsVision: activeCapabilityProfile?.hasVision ?? false,
+                    supportsAudio: activeCapabilityProfile?.hasAudio ?? false,
                     generationConfig: genConfig,
                     runtimeFlags: activeFlags,
                     maxNumTokens: maxNumTokens,
@@ -356,7 +357,7 @@ final class ModelSessionController {
                 // Generic engines may populate lastBackendResult via protocol
                 backendResult = engine.lastBackendResult
             }
-            let modelLabel = activeModelMetadata?.name
+            let modelLabel = activeCapabilityProfile?.displayName
                 ?? engine.modelInfo?.name
                 ?? GalleryModelDiscovery.cleanModelDirectoryName(modelFilename)
 
@@ -441,7 +442,6 @@ final class ModelSessionController {
         await engine.shutdown()
         await initializeEngine(
             modelPath: url.path,
-            discoveredMetadata: activeModelMetadata,
             runtimeFlags: runtimeFlags,
             useGPU: useGPU,
             mcpClients: mcpClients
@@ -453,7 +453,6 @@ final class ModelSessionController {
         Self.logger.info("🛑 Session shutdown initiated")
         activeModelURL?.stopAccessingSecurityScopedResource()
         activeModelURL = nil
-        activeModelMetadata = nil
         activeCapabilityProfile = nil
         backendResult = nil
         await engine.shutdown()

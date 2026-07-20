@@ -19,10 +19,10 @@ extension InferenceSettingsView {
 
     @ViewBuilder
     var modelInfoSection: some View {
-        // Model info section (shown when metadata is available)
-        if let metadata = viewModel.activeModelMetadata {
+        // Model info section (shown when profile is available)
+        if let profile = viewModel.activeCapabilityProfile {
             Section {
-                LabeledContent("Name") { Text(metadata.name) }
+                LabeledContent("Name") { Text(profile.displayName) }
                 if let path = viewModel.activeModelURL?.path {
                     LabeledContent("Path") {
                         Text(path)
@@ -32,14 +32,14 @@ extension InferenceSettingsView {
                     }
                 }
                 LabeledContent("Size") {
-                    Text(ByteCountFormatter.string(fromByteCount: metadata.sizeInBytes, countStyle: .file))
+                    Text(ByteCountFormatter.string(fromByteCount: profile.fileSizeBytes ?? 0, countStyle: .file))
                 }
-                LabeledContent("Min Memory") { Text("\(metadata.minDeviceMemoryGB) GB") }
-                if metadata.supportsImage {
+                LabeledContent("Min Memory") { Text("\(profile.memoryGB ?? 0) GB") }
+                if profile.hasVision {
                     Label("Image input supported", systemImage: "photo")
                         .font(AppTypography.caption)
                 }
-                if metadata.supportsAudio {
+                if profile.hasAudio {
                     Label("Audio input supported", systemImage: "waveform")
                         .font(AppTypography.caption)
                 }

@@ -59,7 +59,7 @@ struct EnginePickerView: View {
             }
 
             // GPU/CPU Backend picker
-            let capability = viewModel.activeModelMetadata?.platformSupport.currentPlatform ?? .unknown
+            let capability = viewModel.activeCapabilityProfile?.platformSupport?.currentPlatform ?? .unknown
             let availableBackends = BackendPickerLogic.availableBackends(for: capability)
 
             if availableBackends.count > 1 {
@@ -86,8 +86,8 @@ struct EnginePickerView: View {
             }
 
             // Auto-detect hint when model metadata is available
-            if let metadata = viewModel.activeModelMetadata {
-                let detectedType = metadata.runtimeType
+            if let profile = viewModel.activeCapabilityProfile {
+                let detectedType = profile.runtimeType
                 if detectedType != viewModel.selectedRuntimeType {
                     Label {
                         Text("This model uses \(detectedType.displayName) — switch to match?")

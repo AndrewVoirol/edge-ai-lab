@@ -95,7 +95,7 @@ extension ConversationViewModel {
         // Capture config snapshot at inference start — this is the "proof"
         // of what settings actually produced the response.
         let configSnapshot = InferenceConfigSnapshot.capture(
-            modelName: activeModelMetadata?.name,
+            modelName: activeCapabilityProfile?.displayName,
             runtimeType: selectedRuntimeType,
             computeBackend: backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)",
             flags: runtimeFlags,
@@ -119,7 +119,7 @@ extension ConversationViewModel {
             // so using GenerationConfig.default would overwrite model-specific defaults
             // (e.g., maxTokens 512 instead of the model's recommended 4000).
             let genConfig = GenerationConfig(
-                maxTokens: sessionController.activeModelMetadata?.defaultConfig.maxTokens ?? 4000,
+                maxTokens: activeCapabilityProfile?.maxTokens ?? 4000,
                 temperature: Double(temperature),
                 topP: Double(topP),
                 topK: topK,
@@ -292,7 +292,7 @@ extension ConversationViewModel {
 
         // Capture config snapshot for agent mode responses
         let configSnapshot = InferenceConfigSnapshot.capture(
-            modelName: activeModelMetadata?.name,
+            modelName: activeCapabilityProfile?.displayName,
             runtimeType: selectedRuntimeType,
             computeBackend: backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)",
             flags: runtimeFlags,
@@ -327,7 +327,7 @@ extension ConversationViewModel {
                 // Run a single inference turn with the ViewModel's actual sampler settings.
                 var accumulatedResponse = ""
                 let agentGenConfig = GenerationConfig(
-                    maxTokens: self.sessionController.activeModelMetadata?.defaultConfig.maxTokens ?? 4000,
+                    maxTokens: self.activeCapabilityProfile?.maxTokens ?? 4000,
                     temperature: Double(self.temperature),
                     topP: Double(self.topP),
                     topK: self.topK,

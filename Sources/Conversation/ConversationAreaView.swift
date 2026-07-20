@@ -90,8 +90,8 @@ struct ConversationAreaView: View {
                     .font(AppTypography.sectionTitle)
                     .foregroundStyle(AppColors.textPrimary)
 
-                if viewModel.isEngineReady, let metadata = viewModel.activeModelMetadata {
-                    Text("\(metadata.name) loaded · on-device inference")
+                if viewModel.isEngineReady, let profile = viewModel.activeCapabilityProfile {
+                    Text("\(profile.displayName) loaded · on-device inference")
                         .font(AppTypography.listSubtitle)
                         .foregroundStyle(AppColors.textSecondary)
                 } else {
@@ -121,9 +121,9 @@ struct ConversationAreaView: View {
             }
 
             // Model capability card — shows what this model can and can't do
-            if viewModel.isEngineReady, let metadata = viewModel.activeModelMetadata {
+            if viewModel.isEngineReady, let profile = viewModel.activeCapabilityProfile {
                 ModelCapabilityCard(
-                    metadata: metadata,
+                    profile: profile,
                     backendResult: viewModel.backendResult,
                     runtimeFlags: viewModel.runtimeFlags,
                     runtimeType: viewModel.selectedRuntimeType

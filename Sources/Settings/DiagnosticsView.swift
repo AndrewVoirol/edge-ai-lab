@@ -75,10 +75,10 @@ struct DiagnosticsView: View {
                 diagnosticRow("Status", value: viewModel.isGenerating ? "Generating…" : (viewModel.isLoadingModel ? "Loading Model…" : (viewModel.isEngineReady ? "Ready" : "Not Loaded")),
                               status: viewModel.isEngineReady ? .ok : .warning)
 
-                if let metadata = viewModel.activeModelMetadata {
-                    diagnosticRow("Model", value: metadata.name)
-                    diagnosticRow("Model File", value: metadata.modelFile)
-                    diagnosticRow("Runtime", value: metadata.runtimeType.rawValue)
+                if let profile = viewModel.activeCapabilityProfile {
+                    diagnosticRow("Model", value: profile.displayName)
+                    diagnosticRow("Model File", value: profile.modelFile ?? profile.id)
+                    diagnosticRow("Runtime", value: profile.runtimeType.rawValue)
                 } else {
                     diagnosticRow("Model", value: "None loaded", status: .warning)
                 }
@@ -159,19 +159,6 @@ struct DiagnosticsView: View {
                     }
                     diagnosticRow("Data Confidence", value: profile.confidence.label)
                 }
-            } else if let metadata = viewModel.activeModelMetadata {
-                // Legacy fallback: display without provenance
-                VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
-                    capabilityRow("Vision", supported: metadata.supportsImage)
-                    capabilityRow("Audio", supported: metadata.supportsAudio)
-                    capabilityRow("Thinking", supported: metadata.capabilities.contains("llm_thinking"))
-                    capabilityRow("Tool Calling", supported: metadata.supportsToolCalling)
-                    capabilityRow("Spec. Dec", supported: metadata.supportsMTP)
-
-                    diagnosticRow("Context Window", value: "\(metadata.contextWindowSize) tokens")
-                    diagnosticRow("Architecture", value: metadata.architectureType)
-                    diagnosticRow("Capabilities", value: metadata.capabilities.joined(separator: ", "))
-                }
             } else {
                 Text("No model loaded — capabilities unknown")
                     .font(AppTypography.caption)
@@ -187,7 +174,7 @@ struct DiagnosticsView: View {
         GroupBox("Configuration Compatibility") {
             VStack(alignment: .leading, spacing: AppSpacing.listRowVertical) {
                 let flags = viewModel.runtimeFlags
-                let metadata = viewModel.activeModelMetadata
+                let metadata = viewModel.activeCapabilityProfile
 
                 // Check known conflicts from Phase 1 verification
                 if flags.enableThinking && flags.enableConversationConstrainedDecoding && !flags.enableToolCalling {
@@ -201,13 +188,13 @@ struct DiagnosticsView: View {
                 }
 
                 if let metadata = metadata {
-                    if flags.enableThinking && !metadata.capabilities.contains("llm_thinking") {
+                    if flags.enableThinking && !metadata.hasThinking {
                         conflictRow("⚠️ Thinking enabled but model doesn't support it",
-                                    detail: "Model '\(metadata.name)' does not advertise thinking support.")
+                                    detail: "Model '\(metadata.displayName)' does not advertise thinking support.")
                     }
-                    if flags.enableToolCalling && !metadata.supportsToolCalling {
+                    if flags.enableToolCalling && !metadata.hasToolCalling {
                         conflictRow("⚠️ Tool Calling enabled but model doesn't support it",
-                                    detail: "Model '\(metadata.name)' does not advertise tool calling support.")
+                                    detail: "Model '\(metadata.displayName)' does not advertise tool calling support.")
                     }
                 }
 
@@ -364,7 +351,7 @@ struct DiagnosticsView: View {
 
     // MARK: - Logic
 
-    private func hasConflicts(flags: RuntimeFlags, metadata: ModelMetadata?) -> Bool {
+    private func hasConflicts(flags: RuntimeFlags, metadata: ModelCapabilityProfile?) -> Bool {
         if flags.enableThinking && flags.enableConversationConstrainedDecoding && !flags.enableToolCalling {
             return true
         }
@@ -372,8 +359,8 @@ struct DiagnosticsView: View {
             return true  // Not a hard conflict but a silenced feature — flag it
         }
         if let metadata = metadata {
-            if flags.enableThinking && !metadata.capabilities.contains("llm_thinking") { return true }
-            if flags.enableToolCalling && !metadata.supportsToolCalling { return true }
+            if flags.enableThinking && !metadata.hasThinking { return true }
+            if flags.enableToolCalling && !metadata.hasToolCalling { return true }
         }
         return false
     }
@@ -433,7 +420,7 @@ struct DiagnosticsView: View {
 
     private func buildDiagnosticJSON() -> String {
         let flags = viewModel.runtimeFlags
-        let metadata = viewModel.activeModelMetadata
+        let metadata = viewModel.activeCapabilityProfile
 
         var dict: [String: Any] = [
             "timestamp": ISO8601DateFormatter().string(from: Date()),
@@ -456,16 +443,15 @@ struct DiagnosticsView: View {
 
         if let metadata = metadata {
             dict["model"] = [
-                "name": metadata.name,
-                "file": metadata.modelFile,
+                "name": metadata.displayName,
+                "file": metadata.modelFile ?? metadata.id,
                 "runtime": metadata.runtimeType.rawValue,
-                "supportsImage": metadata.supportsImage,
-                "supportsAudio": metadata.supportsAudio,
-                "supportsThinking": metadata.capabilities.contains("llm_thinking"),
-                "supportsToolCalling": metadata.supportsToolCalling,
-                "supportsMTP": metadata.supportsMTP,
-                "contextWindowSize": metadata.contextWindowSize,
-                "capabilities": metadata.capabilities,
+                "supportsVision": metadata.hasVision,
+                "supportsAudio": metadata.hasAudio,
+                "supportsThinking": metadata.hasThinking,
+                "supportsToolCalling": metadata.hasToolCalling,
+                "supportsMTP": metadata.hasMTP,
+                "contextWindowSize": metadata.contextWindowSize as Any,
             ]
         }
 

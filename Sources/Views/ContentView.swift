@@ -69,7 +69,7 @@ struct ContentView: View {
         if userExplicitlyCollapsed { return true }
         if isChatCollapsed { return true }
         // Auto-collapse when no model is loaded
-        if !viewModel.isEngineReady && viewModel.activeModelMetadata == nil { return true }
+        if !viewModel.isEngineReady && viewModel.activeCapabilityProfile == nil { return true }
         return false
     }
     #endif
@@ -140,7 +140,7 @@ struct ContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .foregroundStyle(AppColors.textPrimary)
-        .navigationTitle(viewModel.activeModelMetadata?.name ?? "Edge AI Lab")
+        .navigationTitle(viewModel.activeCapabilityProfile?.displayName ?? "Edge AI Lab")
         .toolbar {
             // Settings — isolated on the left of the primary action area
             ToolbarItem(placement: .primaryAction) {

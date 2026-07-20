@@ -33,7 +33,7 @@ import Testing
 /// ```
 /// if userExplicitlyCollapsed { return true }
 /// if isChatCollapsed { return true }
-/// if !isEngineReady && activeModelMetadata == nil { return true }
+/// if !isEngineReady && activeCapabilityProfile == nil { return true }
 /// return false
 /// ```
 @Suite("ChatPanelAutoCollapse")

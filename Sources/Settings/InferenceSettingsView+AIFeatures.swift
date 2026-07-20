@@ -46,7 +46,6 @@ extension InferenceSettingsView {
         let visionStatus = CapabilityGating.vision(profile: viewModel.activeCapabilityProfile)
         // Show vision settings when profile confirms support, or fall back to legacy metadata
         let showVision = visionStatus.isEnabled
-            || (viewModel.activeCapabilityProfile == nil && viewModel.activeModelMetadata?.supportsImage == true)
         if showVision {
             Section {
                 Picker("Visual Token Budget", selection: Binding(

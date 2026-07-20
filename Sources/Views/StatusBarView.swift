@@ -54,12 +54,12 @@ struct StatusBarView: View {
                 .accessibilityLabel(result.activeBackend == .gpu ? "Backend: loaded on GPU" : "Backend: loaded on CPU")
             }
 
-            if let metadata = viewModel.activeModelMetadata, viewModel.isEngineReady {
+            if let profile = viewModel.activeCapabilityProfile, viewModel.isEngineReady {
                 HStack(spacing: AppSpacing.xs) {
-                    if metadata.supportsMTP { Text("Spec. Dec").badge(AppColors.capabilityMTP) }
-                    if metadata.supportsImage { Text("Vision").badge(AppColors.capabilityVision) }
-                    if metadata.supportsAudio { Text("Audio").badge(AppColors.capabilityAudio) }
-                    if metadata.supportsToolCalling { Text("Tools").badge(AppColors.toolAction) }
+                    if profile.hasMTP { Text("Spec. Dec").badge(AppColors.capabilityMTP) }
+                    if profile.hasVision { Text("Vision").badge(AppColors.capabilityVision) }
+                    if profile.hasAudio { Text("Audio").badge(AppColors.capabilityAudio) }
+                    if profile.hasToolCalling { Text("Tools").badge(AppColors.toolAction) }
                 }
             }
 

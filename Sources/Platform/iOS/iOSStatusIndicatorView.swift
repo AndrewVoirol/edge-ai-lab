@@ -65,7 +65,7 @@ struct iOSStatusIndicatorView: View {
                 }
                 .buttonStyle(.plain)
                 .sensoryFeedback(.selection, trigger: isExpanded)
-                .accessibilityLabel("Model status: \(viewModel.activeModelMetadata?.name ?? "Loading"), tap to \(isExpanded ? "collapse" : "expand")")
+                .accessibilityLabel("Model status: \(viewModel.activeCapabilityProfile?.displayName ?? "Loading"), tap to \(isExpanded ? "collapse" : "expand")")
                 .accessibilityIdentifier("statusIndicator")
             }
             .background {
@@ -96,8 +96,8 @@ struct iOSStatusIndicatorView: View {
             }
 
             // Model name
-            if let metadata = viewModel.activeModelMetadata {
-                Text(metadata.name)
+            if let profile = viewModel.activeCapabilityProfile {
+                Text(profile.displayName)
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(1)
@@ -186,18 +186,18 @@ struct iOSStatusIndicatorView: View {
             }
 
             // Capability badges
-            if let metadata = viewModel.activeModelMetadata {
+            if let profile = viewModel.activeCapabilityProfile {
                 HStack(spacing: AppSpacing.xs) {
-                    if metadata.supportsImage {
+                    if profile.hasVision {
                         Text("Vision").badge(AppColors.capabilityVision)
                     }
-                    if metadata.supportsAudio {
+                    if profile.hasAudio {
                         Text("Audio").badge(AppColors.capabilityAudio)
                     }
-                    if metadata.supportsMTP {
+                    if profile.hasMTP {
                         Text("Spec. Dec").badge(AppColors.capabilityMTP)
                     }
-                    if metadata.supportsToolCalling {
+                    if profile.hasToolCalling {
                         Text("Tools").badge(AppColors.toolAction)
                     }
                     Spacer()

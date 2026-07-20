@@ -20,7 +20,7 @@ import os
 import UserNotifications
 #endif
 
-/// Manages downloading model files from HuggingFace, integrated with the ModelRegistry.
+/// Manages downloading model files from HuggingFace, integrated with the KnownModelCatalog.
 ///
 /// **Download strategy:**
 /// 1. Check if the model file already exists in the app's Documents directory.
@@ -418,7 +418,40 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
         return .notDownloaded
     }
 
-    /// Refresh download states for all registry models.
+    /// Check the download state for a model profile by scanning the filesystem.
+    /// This overload allows callers using `KnownModelCatalog.allModels` (which are
+    /// `ModelCapabilityProfile` instances) to check download state directly.
+    func checkState(for profile: ModelCapabilityProfile) -> DownloadState {
+        guard let modelFile = profile.modelFile else { return .notDownloaded }
+
+        // If we already know the state, return it immediately.
+        if let existing = downloadStates[modelFile] {
+            return existing
+        }
+
+        // For MLX directory models, delegate to the directory-aware checker.
+        if profile.runtimeType == .mlx, let repoId = profile.repoId {
+            return checkMLXModelState(modelId: repoId)
+        }
+
+        // First-time check: scan filesystem to determine initial state.
+        let fileURL = documentsDirectory.appendingPathComponent(modelFile)
+
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            let state = DownloadState.downloaded(fileURL)
+            downloadStates[modelFile] = state
+            return state
+        } else if let discovered = GalleryModelDiscovery.discoverModels().first(where: { $0.filename == modelFile }) {
+            let state = DownloadState.downloaded(discovered.url)
+            downloadStates[modelFile] = state
+            return state
+        }
+
+        downloadStates[modelFile] = .notDownloaded
+        return .notDownloaded
+    }
+
+    /// Refresh download states for all catalog models.
     ///
     /// Clears stale cached entries (downloaded, notDownloaded, failed, authRequired)
     /// so `checkState()` re-scans the filesystem. In-flight states (downloading,
@@ -432,9 +465,9 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
             default: return false
             }
         }
-        // Re-check all registry models against the filesystem
-        for model in ModelRegistry.knownModels {
-            let _ = checkState(for: model)
+        // Re-check all catalog models against the filesystem
+        for profile in KnownModelCatalog.allModels {
+            let _ = checkState(for: profile)
         }
     }
 
@@ -1150,7 +1183,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     /// Send a local notification when a background download completes.
     private func sendDownloadCompleteNotification(modelFile: String) {
         // Try to find a display name from the registry
-        let displayName = ModelRegistry.knownModels.first(where: { $0.modelFile == modelFile })?.name ?? modelFile
+        let displayName = KnownModelCatalog.lookup(filename: modelFile)?.displayName ?? modelFile
 
         let content = UNMutableNotificationContent()
         content.title = "\(displayName) is ready"
@@ -1355,6 +1388,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
                 if let httpResponse = task.response as? HTTPURLResponse {
                     if httpResponse.statusCode == 401 {
                         self.downloadStates[modelFile] = .authRequired
+                        // TODO: [Slice 4] Change pendingAuthModel to ModelCapabilityProfile
                         if let model = ModelRegistry.knownModels.first(where: { $0.modelFile == modelFile }) {
                             self.pendingAuthModel = model
                         }

@@ -274,6 +274,12 @@ private func makeProfile(
         likes: nil,
         downloadsAllTime: nil,
         supportedLanguages: [],
-        tags: []
+        tags: [],
+        defaultConfig: nil,
+        platformSupport: nil,
+        modelDescription: nil,
+        recommendedFor: nil,
+        modelFile: nil,
+        modelId: nil
     )
 }

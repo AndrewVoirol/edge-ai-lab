@@ -185,7 +185,7 @@ final class DownloadToLoadIntegrationTests: XCTestCase {
 
         await vm.handleModelSelection(fakeModelURL)
 
-        // After loading, activeModelMetadata should be populated
+        // After loading, activeCapabilityProfile should be populated
         // (or at minimum, the engine should be ready)
         XCTAssertTrue(
             engine.isLoaded,

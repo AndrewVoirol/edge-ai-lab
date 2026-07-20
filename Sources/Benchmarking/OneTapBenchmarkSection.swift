@@ -231,7 +231,7 @@ struct OneTapBenchmarkSection: View {
         let newRunner = OneTapBenchmarkRunner(
             engine: viewModel.engine,
             metricsStore: MetricsStore(),
-            modelName: viewModel.activeModelMetadata?.name ?? "Unknown",
+            modelName: viewModel.activeCapabilityProfile?.displayName ?? "Unknown",
             runtimeFlags: viewModel.runtimeFlags
         )
         runner = newRunner

@@ -32,8 +32,8 @@ enum CapabilitySource: String, Codable, Sendable, Hashable {
     case readme
     /// From model naming conventions (e.g., "-it" suffix → instruction-tuned).
     case heuristic
-    /// From ModelRegistry hardcoded values (deprecated, being phased out).
-    case registry
+    /// From KnownModelCatalog hardcoded profiles — hand-verified metadata.
+    case catalog = "registry"
     /// Verified at runtime by the inference engine after loading.
     case engineRuntime = "engine_runtime"
     /// Manually set or overridden by the user.
@@ -46,7 +46,7 @@ enum CapabilitySource: String, Codable, Sendable, Hashable {
         case .apiMetadata: return "from API"
         case .readme: return "from README"
         case .heuristic: return "estimated"
-        case .registry: return "known model"
+        case .catalog: return "known model"
         case .engineRuntime: return "verified at runtime"
         case .userOverride: return "user override"
         }
@@ -220,6 +220,26 @@ struct ModelCapabilityProfile: Codable, Sendable, Hashable, Identifiable {
 
     /// Tags from the HuggingFace model card.
     let tags: [String]
+
+    // MARK: - Operational Configuration
+
+    /// Default sampler configuration for this model.
+    let defaultConfig: ModelDefaultConfig?
+
+    /// Platform-specific backend support matrix.
+    let platformSupport: PlatformSupport?
+
+    /// Human-readable description of the model.
+    let modelDescription: String?
+
+    /// Human-readable recommendation (e.g., "Mobile chat", "Desktop coding").
+    let recommendedFor: String?
+
+    /// Model file name on disk (e.g., "gemma-4-E2B-it.litertlm").
+    let modelFile: String?
+
+    /// HuggingFace model identifier (e.g., "litert-community/gemma-4-E2B-it-litert-lm").
+    let modelId: String?
 }
 
 // MARK: - Convenience Accessors
@@ -271,6 +291,33 @@ extension ModelCapabilityProfile {
         estimatedMemoryGB?.value
     }
 
+    /// Maximum tokens for generation from the model's default config.
+    var maxTokens: Int {
+        defaultConfig?.maxTokens ?? 4000
+    }
+
+    /// The recommended backend for the current platform, or `.probeRequired` if unknown.
+    var recommendedBackend: BackendRecommendation {
+        platformSupport?.currentPlatform.recommendedBackend ?? .probeRequired
+    }
+
+    /// Whether this model requires HuggingFace authentication.
+    var requiresAuth: Bool {
+        guard let modelId else { return false }
+        return modelId.hasPrefix("google/")
+    }
+
+    /// HuggingFace download URL.
+    var downloadURL: URL? {
+        guard let modelId, let modelFile else { return nil }
+        return URL(string: "https://huggingface.co/\(modelId)/resolve/main/\(modelFile)")
+    }
+
+    /// Whether this model uses a multi-file directory format (MLX models).
+    var isMLXDirectoryModel: Bool {
+        runtimeType == .mlx
+    }
+
     // MARK: - Runtime Enrichment
 
     /// Creates a new profile with engine-verified capability values.
@@ -318,7 +365,13 @@ extension ModelCapabilityProfile {
             likes: likes,
             downloadsAllTime: downloadsAllTime,
             supportedLanguages: supportedLanguages,
-            tags: tags
+            tags: tags,
+            defaultConfig: defaultConfig,
+            platformSupport: platformSupport,
+            modelDescription: modelDescription,
+            recommendedFor: recommendedFor,
+            modelFile: modelFile,
+            modelId: modelId
         )
     }
 }
@@ -490,7 +543,13 @@ enum ModelCapabilityProfileBuilder {
             likes: model.likes,
             downloadsAllTime: model.downloadsAllTime,
             supportedLanguages: model.supportedLanguages,
-            tags: model.tags
+            tags: model.tags,
+            defaultConfig: nil,
+            platformSupport: nil,
+            modelDescription: nil,
+            recommendedFor: nil,
+            modelFile: nil,
+            modelId: model.id
         )
     }
 
@@ -503,7 +562,7 @@ enum ModelCapabilityProfileBuilder {
         source: MetadataSource = .knownRegistry,
         confidence: MetadataConfidence = .verified
     ) -> ModelCapabilityProfile {
-        let capSource: CapabilitySource = source == .knownRegistry ? .registry : .heuristic
+        let capSource: CapabilitySource = source == .knownRegistry ? .catalog : .heuristic
 
         return ModelCapabilityProfile(
             id: metadata.modelFile,
@@ -553,7 +612,182 @@ enum ModelCapabilityProfileBuilder {
             likes: nil,
             downloadsAllTime: nil,
             supportedLanguages: [],
-            tags: []
+            tags: [],
+            defaultConfig: metadata.defaultConfig,
+            platformSupport: metadata.platformSupport,
+            modelDescription: metadata.description,
+            recommendedFor: metadata.recommendedFor,
+            modelFile: metadata.modelFile,
+            modelId: metadata.modelId.isEmpty ? nil : metadata.modelId
+        )
+    }
+
+    /// Build a profile by synthesizing metadata from filename heuristics.
+    ///
+    /// Used for user-imported models with no HF API data and no catalog match.
+    /// Parses quantization, runtime type, model family, and capabilities from the filename.
+    static func synthesized(
+        filename: String,
+        sizeInBytes: Int64,
+        hasMMProj: Bool = false
+    ) -> ModelCapabilityProfile {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        let stem = (filename as NSString).deletingPathExtension
+
+        // Infer runtime from extension
+        let runtime: RuntimeType = switch ext {
+        case "gguf": .gguf
+        case "litertlm": .litertlm
+        default: .gguf
+        }
+
+        // Parse quantization from filename (e.g., "Q4_K_M", "Q8_0", "FP16")
+        let quantPattern = stem.components(separatedBy: "-")
+        let quantization = quantPattern.last(where: {
+            $0.hasPrefix("Q") || $0.hasPrefix("F") || $0.hasPrefix("q") || $0.hasPrefix("f")
+        })
+
+        // Estimate RAM
+        let ramMultiplier: Double
+        if let q = quantization?.uppercased() {
+            if q.hasPrefix("Q4") || q.hasPrefix("Q3") || q.contains("IQ4") || q.contains("IQ3") || q.contains("IQ2") || q.contains("4BIT") || q.contains("2BIT") {
+                ramMultiplier = 1.6
+            } else if q.hasPrefix("Q8") || q.hasPrefix("Q5") || q.hasPrefix("Q6") || q.contains("8BIT") {
+                ramMultiplier = 1.4
+            } else if q.contains("F16") || q.contains("FP16") || q.contains("BF16") {
+                ramMultiplier = 1.2
+            } else {
+                ramMultiplier = 1.3
+            }
+        } else {
+            ramMultiplier = 1.3
+        }
+        let estimatedRAM = max(2, Int(Double(sizeInBytes) / 1_000_000_000.0 * ramMultiplier))
+
+        let displayName = ModelDetailFormatters.normalizeDisplayName(stem)
+
+        // Detect multimodal support
+        let lowerStem = stem.lowercased()
+        let isGemma4Standard = lowerStem.contains("gemma") && lowerStem.contains("4")
+            && !lowerStem.contains("web") && !lowerStem.contains("mobile")
+        let hasMultimodal: Bool
+        switch runtime {
+        case .gguf:
+            hasMultimodal = isGemma4Standard && hasMMProj
+        case .litertlm:
+            hasMultimodal = isGemma4Standard
+        default:
+            hasMultimodal = isGemma4Standard
+        }
+
+        // Infer context window
+        let contextWindow: Int
+        if lowerStem.contains("gemma") && lowerStem.contains("4") {
+            if lowerStem.contains("12b") {
+                contextWindow = 256_000
+            } else {
+                contextWindow = 128_000
+            }
+        } else if lowerStem.contains("gemma") {
+            contextWindow = 32_000
+        } else if lowerStem.contains("llama") {
+            contextWindow = 128_000
+        } else {
+            contextWindow = 32_000
+        }
+
+        // Infer architecture
+        let archClass: String?
+        let isMoE: Bool
+        if lowerStem.contains("gemma") && lowerStem.contains("4") {
+            if lowerStem.contains("e2b") || lowerStem.contains("e4b") {
+                archClass = "Mixture of Experts"
+                isMoE = true
+            } else if lowerStem.contains("12b") {
+                archClass = "Dense Transformer"
+                isMoE = false
+            } else {
+                archClass = "Transformer"
+                isMoE = false
+            }
+        } else {
+            archClass = "Transformer"
+            isMoE = false
+        }
+
+        // Infer thinking support
+        let hasThinking = lowerStem.contains("it") && (
+            lowerStem.contains("gemma") || lowerStem.contains("llama") ||
+            lowerStem.contains("mistral") || lowerStem.contains("phi") ||
+            lowerStem.contains("qwen"))
+
+        // MTP: Only LiteRT models have speculative decoding
+        let hasMTP = runtime == .litertlm
+
+        let capSource: CapabilitySource = .heuristic
+
+        return ModelCapabilityProfile(
+            id: filename,
+            displayName: displayName,
+            repoId: nil,
+            runtimeType: runtime,
+            supportsVision: SourcedValue(hasMultimodal, source: capSource),
+            supportsAudio: SourcedValue(hasMultimodal, source: capSource),
+            supportsThinking: SourcedValue(hasThinking, source: capSource),
+            supportsToolCalling: SourcedValue(hasThinking, source: capSource),
+            supportsMTP: SourcedValue(hasMTP, source: capSource),
+            supportsConstrainedDecoding: SourcedValue(runtime == .litertlm, source: capSource),
+            architecture: ArchitectureInfo(
+                architectureClass: archClass,
+                modelType: nil,
+                isMoE: isMoE,
+                hiddenSize: nil,
+                numLayers: nil,
+                numAttentionHeads: nil,
+                numKeyValueHeads: nil,
+                vocabSize: nil,
+                headDim: nil,
+                maxImageResolution: nil,
+                dtype: nil,
+                quantizationBits: nil,
+                quantizationMethod: nil
+            ),
+            contextWindow: SourcedValue(contextWindow, source: capSource),
+            fileSizeBytes: sizeInBytes,
+            estimatedMemoryGB: SourcedValue(estimatedRAM, source: capSource),
+            totalParameters: nil,
+            parameterLabel: nil,
+            confidence: .low,
+            source: .huggingFaceInferred,
+            lastUpdated: Date(),
+            repoSha: nil,
+            license: nil,
+            licenseLink: nil,
+            baseModelId: nil,
+            downloads: nil,
+            likes: nil,
+            downloadsAllTime: nil,
+            supportedLanguages: [],
+            tags: [],
+            defaultConfig: ModelDefaultConfig(
+                topK: 40,
+                topP: 0.95,
+                temperature: 0.7,
+                maxContextLength: contextWindow,
+                maxTokens: 2048,
+                accelerators: "gpu",
+                visionAccelerator: hasMultimodal ? "gpu" : nil
+            ),
+            platformSupport: PlatformSupport(
+                macOS: .gpuAndCpu,
+                iOSDevice: .gpuAndCpu,
+                iOSSimulator: .cpuOnly
+            ),
+            modelDescription: "Locally imported \(runtime.displayName) model"
+                + (quantization.map { " (\($0) quantization)" } ?? ""),
+            recommendedFor: "Local inference",
+            modelFile: filename,
+            modelId: "local/\(filename)"
         )
     }
 

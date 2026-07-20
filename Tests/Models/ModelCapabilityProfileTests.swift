@@ -33,7 +33,7 @@ struct CapabilitySourceTests {
         #expect(CapabilitySource.apiMetadata.displayLabel == "from API")
         #expect(CapabilitySource.heuristic.displayLabel == "estimated")
         #expect(CapabilitySource.engineRuntime.displayLabel == "verified at runtime")
-        #expect(CapabilitySource.registry.displayLabel == "known model")
+        #expect(CapabilitySource.catalog.displayLabel == "known model")
     }
 
     @Test("Codable roundtrip")
@@ -375,7 +375,7 @@ struct ProfileBuilderModelMetadataTests {
         }
 
         let profile = ModelCapabilityProfileBuilder.fromModelMetadata(metadata)
-        #expect(profile.supportsVision?.source == .registry)
+        #expect(profile.supportsVision?.source == .catalog)
     }
 }
 
@@ -491,7 +491,13 @@ struct ProfileRuntimeEnrichmentTests {
             likes: 50,
             downloadsAllTime: nil,
             supportedLanguages: ["en"],
-            tags: ["text-generation"]
+            tags: ["text-generation"],
+            defaultConfig: nil,
+            platformSupport: nil,
+            modelDescription: nil,
+            recommendedFor: nil,
+            modelFile: nil,
+            modelId: nil
         )
 
         // Engine reports vision=true, toolCalling=true (overriding heuristic false)
@@ -558,7 +564,13 @@ struct ProfileRuntimeEnrichmentTests {
             likes: nil,
             downloadsAllTime: nil,
             supportedLanguages: [],
-            tags: []
+            tags: [],
+            defaultConfig: nil,
+            platformSupport: nil,
+            modelDescription: nil,
+            recommendedFor: nil,
+            modelFile: nil,
+            modelId: nil
         )
 
         // Engine says vision=false (e.g., GGUF without mmproj)

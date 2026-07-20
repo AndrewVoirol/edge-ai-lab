@@ -149,7 +149,7 @@ struct BenchmarkBarView: View {
                 cardData: BenchmarkCardData.from(
                     performanceMetrics: metrics,
                     inferenceMetrics: viewModel.inferenceMetrics,
-                    modelMetadata: viewModel.activeModelMetadata,
+                    modelMetadata: viewModel.activeCapabilityProfile,
                     backendResult: viewModel.backendResult
                 )
             )

@@ -80,7 +80,7 @@ private struct ModelDetailPanel: View {
     /// filename heuristics for user-imported GGUF/community models).
     private var selectedMetadata: ModelMetadata? {
         guard let modelId = selectedModelId else { return nil }
-        if let registryMatch = ModelRegistry.lookup(filename: modelId) {
+        if let registryMatch = ModelRegistry.knownModels.first(where: { $0.modelFile == modelId }) {
             return registryMatch
         }
         // Use resolvedMetadata which always returns non-nil (synthesizes if needed)
@@ -95,7 +95,7 @@ private struct ModelDetailPanel: View {
     private var isActiveModel: Bool {
         guard let selected = selectedMetadata else { return false }
         // Primary check: metadata-based identity
-        if let active = viewModel.activeModelMetadata,
+        if let active = viewModel.activeCapabilityProfile,
            selected.modelFile == active.modelFile {
             return true
         }

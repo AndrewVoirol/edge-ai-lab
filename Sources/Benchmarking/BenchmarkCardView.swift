@@ -58,7 +58,7 @@ struct BenchmarkCardData: Sendable {
     static func from(
         benchmarkInfo: BenchmarkInfo,
         inferenceMetrics: InferenceMetrics?,
-        modelMetadata: ModelMetadata?,
+        modelMetadata: ModelCapabilityProfile?,
         backendResult: BackendResult?
     ) -> BenchmarkCardData {
         let ramGB = Int(ProcessInfo.processInfo.physicalMemory / (1024 * 1024 * 1024))
@@ -79,8 +79,8 @@ struct BenchmarkCardData: Sendable {
         #endif
 
         return BenchmarkCardData(
-            modelName: modelMetadata?.name ?? "Unknown Model",
-            modelArchitecture: modelMetadata?.architectureType ?? "LiteRT-LM",
+            modelName: modelMetadata?.displayName ?? "Unknown Model",
+            modelArchitecture: modelMetadata?.architecture?.architectureClass ?? "LiteRT-LM",
             backendLabel: backendResult?.activeBackend == .gpu ? "GPU (Metal)" : "CPU (XNNPACK)",
             deviceName: deviceName,
             chipName: machine,
@@ -102,7 +102,7 @@ struct BenchmarkCardData: Sendable {
     static func from(
         performanceMetrics: EnginePerformanceMetrics,
         inferenceMetrics: InferenceMetrics?,
-        modelMetadata: ModelMetadata?,
+        modelMetadata: ModelCapabilityProfile?,
         backendResult: BackendResult?
     ) -> BenchmarkCardData {
         let ramGB = Int(ProcessInfo.processInfo.physicalMemory / (1024 * 1024 * 1024))
@@ -132,8 +132,8 @@ struct BenchmarkCardData: Sendable {
         }
 
         return BenchmarkCardData(
-            modelName: modelMetadata?.name ?? "Unknown Model",
-            modelArchitecture: modelMetadata?.architectureType ?? runtimeLabel,
+            modelName: modelMetadata?.displayName ?? "Unknown Model",
+            modelArchitecture: modelMetadata?.architecture?.architectureClass ?? runtimeLabel,
             backendLabel: runtimeLabel,
             deviceName: deviceName,
             chipName: machine,

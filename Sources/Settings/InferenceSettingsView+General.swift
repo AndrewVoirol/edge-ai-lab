@@ -21,7 +21,7 @@ extension InferenceSettingsView {
     var backendSection: some View {
         Section {
             // KV-Cache (maxNumTokens) stepper
-            let modelContextLength = viewModel.activeModelMetadata?.contextWindowSize
+            let modelContextLength = viewModel.activeCapabilityProfile?.contextWindowSize
             let presets = KVCacheConfigLogic.presetSteps(modelContextLength: modelContextLength)
 
             Picker(selection: Binding(
@@ -132,11 +132,6 @@ extension InferenceSettingsView {
                             .foregroundStyle(AppColors.textTertiary)
                     }
                 }
-            } else if let metadata = viewModel.activeModelMetadata, metadata.supportsMTP, mtpSupported {
-                // Legacy fallback
-                Label("This model supports MTP for accelerated decoding.", systemImage: "hare")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.success)
             }
 
             if !mtpSupported {

@@ -50,9 +50,9 @@ struct iOSModelHubView: View {
 
     // MARK: - Computed Collections
 
-    /// The currently loaded model's metadata, if any.
-    private var activeModel: ModelMetadata? {
-        viewModel.activeModelMetadata
+    /// The currently loaded model's profile, if any.
+    private var activeModel: ModelCapabilityProfile? {
+        viewModel.activeCapabilityProfile
     }
 
     /// Models that exist on disk (downloaded or discovered), excluding the active model.
@@ -538,7 +538,7 @@ struct iOSModelHubView: View {
 
     // MARK: - Active Model Row
 
-    private func activeModelRow(_ metadata: ModelMetadata) -> some View {
+    private func activeModelRow(_ profile: ModelCapabilityProfile) -> some View {
         HStack(spacing: AppSpacing.md) {
             // Leading: Pulsing indicator
             ZStack {
@@ -556,7 +556,7 @@ struct iOSModelHubView: View {
             .pulsingGlow(AppColors.accentPrimary)
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(metadata.name)
+                Text(profile.displayName)
                     .font(AppTypography.listTitle)
                     .foregroundStyle(AppColors.accentPrimary)
                     .lineLimit(1)
@@ -577,13 +577,13 @@ struct iOSModelHubView: View {
 
                 // Capability badges
                 HStack(spacing: AppSpacing.xs) {
-                    if metadata.supportsImage {
+                    if profile.hasVision {
                         Label("Vision", systemImage: "eye")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.capabilityVision)
                             .accessibilityIdentifier("activeModel_badge_vision")
                     }
-                    if metadata.supportsAudio {
+                    if profile.hasAudio {
                         Label("Audio", systemImage: "waveform")
                             .font(AppTypography.badge)
                             .foregroundStyle(AppColors.capabilityAudio)

@@ -286,7 +286,7 @@ struct ModelMetadata: Codable, Sendable, Identifiable, Hashable {
 }
 
 /// Default inference configuration for a model, mirroring the Gallery allowlist schema.
-struct ModelDefaultConfig: Codable, Sendable {
+struct ModelDefaultConfig: Codable, Sendable, Hashable {
     let topK: Int
     let topP: Double
     let temperature: Double
@@ -298,7 +298,7 @@ struct ModelDefaultConfig: Codable, Sendable {
 
 /// Platform-specific backend support matrix.
 /// Encodes which backends work on which platforms for a given model.
-struct PlatformSupport: Codable, Sendable {
+struct PlatformSupport: Codable, Sendable, Hashable {
     let macOS: BackendCapability
     let iOSDevice: BackendCapability
     let iOSSimulator: BackendCapability
@@ -317,10 +317,15 @@ struct PlatformSupport: Codable, Sendable {
     }
 }
 
-// MARK: - Known Model Registry
+// MARK: - Known Model Registry (Deprecated)
 
 /// Registry of known Gemma 4 models with pre-verified platform compatibility.
-/// Populated from HuggingFace litert-community models and Gallery allowlist data.
+///
+/// - Important: **Deprecated.** Use `KnownModelCatalog` instead, which provides
+///   `ModelCapabilityProfile` entries directly. This enum is retained only for
+///   callers that still require `ModelMetadata` types (download manager, discovery).
+///   It will be removed once those systems are migrated in Slice 4.
+@available(*, deprecated, message: "Use KnownModelCatalog instead — it provides ModelCapabilityProfile entries directly")
 enum ModelRegistry {
 
     /// All known models in the registry.

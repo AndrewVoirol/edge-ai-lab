@@ -140,7 +140,7 @@ struct ExperimentConfig: Codable, Sendable, Equatable {
     /// access to model metadata, sampler config, and flags can construct a snapshot.
     @MainActor
     static func capture(
-        modelMetadata: ModelMetadata?,
+        profile: ModelCapabilityProfile?,
         modelURL: URL?,
         backendResult: BackendResult?,
         topK: Int,
@@ -164,10 +164,10 @@ struct ExperimentConfig: Codable, Sendable, Equatable {
         let variant = Self.parseVariant(from: modelURL?.lastPathComponent ?? "")
 
         return ExperimentConfig(
-            modelName: modelMetadata?.name ?? modelURL?.lastPathComponent ?? "Unknown Model",
+            modelName: profile?.displayName ?? modelURL?.lastPathComponent ?? "Unknown Model",
             modelFile: modelURL?.lastPathComponent ?? "unknown",
-            modelId: modelMetadata?.modelId,
-            architectureType: modelMetadata?.architectureType,
+            modelId: profile?.modelId ?? profile?.repoId,
+            architectureType: profile?.architecture?.architectureClass,
             modelVariant: variant,
             backend: backendLabel,
             didFallback: didFallback,

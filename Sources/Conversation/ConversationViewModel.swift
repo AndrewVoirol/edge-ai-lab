@@ -122,14 +122,9 @@ final class ConversationViewModel {
     /// Result of the last backend initialization (active backend, fallback info).
     var backendResult: BackendResult?
 
-    /// Metadata for the currently loaded model, if known.
-    /// Stored (not computed) so that @Observable tracks mutations and SwiftUI re-renders.
-    /// Synced from ModelSessionController via `onActiveModelChanged` callback.
-    var activeModelMetadata: ModelMetadata?
-
     /// Capability profile for the currently loaded model.
-    /// Built from ModelMetadata, provides sourced capability checks.
-    /// New UI code should prefer this for capability gating.
+    /// The single source of truth for model identity, capabilities, and operational config.
+    /// Synced from ModelSessionController via `onActiveModelChanged` callback.
     var activeCapabilityProfile: ModelCapabilityProfile?
 
     /// Current runtime flags configuration (user-toggleable, default ON).
@@ -209,12 +204,12 @@ final class ConversationViewModel {
 
     /// Whether the currently loaded model supports image input.
     var supportsImageInput: Bool {
-        activeModelMetadata?.supportsImage ?? false
+        activeCapabilityProfile?.hasVision ?? false
     }
 
     /// Whether the currently loaded model supports audio input.
     var supportsAudioInput: Bool {
-        activeModelMetadata?.supportsAudio ?? false
+        activeCapabilityProfile?.hasAudio ?? false
     }
 
     // MARK: - Thinking Mode State
@@ -433,9 +428,8 @@ final class ConversationViewModel {
             self?.temperature = temperature
         }
         // Sync active model identity so SwiftUI observes changes
-        controller.onActiveModelChanged = { [weak self] metadata, url in
-            self?.activeModelMetadata = metadata
-            self?.activeCapabilityProfile = controller.activeCapabilityProfile
+        controller.onActiveModelChanged = { [weak self] profile, url in
+            self?.activeCapabilityProfile = profile
             self?.activeModelURL = url
             self?.backendResult = controller.backendResult
         }
@@ -560,9 +554,7 @@ final class ConversationViewModel {
         activeSwitchTask = nil
 
         // Auto-detect format and switch engines if the model requires a different runtime.
-        // Two detection strategies — filesystem-based and registry-based — for robustness.
-        let detectedFormat: RuntimeType? = ModelFormatDetector.detectFormat(at: url)
-            ?? ModelRegistry.lookup(path: url.path)?.runtimeType
+        let detectedFormat = ModelFormatDetector.detectFormat(at: url)
 
         if let detectedFormat, detectedFormat != self.engine.runtimeType {
             Self.logger.info("🔄 Auto-switching engine: \(self.engine.runtimeType.displayName) → \(detectedFormat.displayName) for \(url.lastPathComponent, privacy: .public)")
@@ -571,9 +563,7 @@ final class ConversationViewModel {
             await switchEngine(to: detectedFormat)
         }
 
-        // Resolve metadata from discoveredModels for community/imported models
-        // that aren't in the static ModelRegistry. resolvedMetadata synthesizes
-        // from filename heuristics when registry lookup returns nil.
+        // Resolve metadata from discoveredModels for community/imported models.
         let discoveredMatch = discoveredModels.first { $0.url == url }
         let discoveredMeta = discoveredMatch?.resolvedMetadata
 
@@ -710,7 +700,6 @@ final class ConversationViewModel {
         await sessionController.shutdown()
         isEngineReady = false
         performanceMetrics = nil
-        activeModelMetadata = nil
         activeCapabilityProfile = nil
         activeModelURL = nil
         backendResult = nil

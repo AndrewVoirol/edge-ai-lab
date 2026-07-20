@@ -53,11 +53,11 @@ struct iOSModelDetailView: View {
     }
 
     private var isActiveModel: Bool {
-        viewModel.activeModelMetadata?.modelFile == metadata.modelFile && viewModel.isEngineReady
+        viewModel.activeCapabilityProfile?.modelFile == metadata.modelFile && viewModel.isEngineReady
     }
 
     private var isLoading: Bool {
-        viewModel.isLoadingModel && viewModel.activeModelMetadata?.modelFile == metadata.modelFile
+        viewModel.isLoadingModel && viewModel.activeCapabilityProfile?.modelFile == metadata.modelFile
     }
 
     // MARK: - Body
