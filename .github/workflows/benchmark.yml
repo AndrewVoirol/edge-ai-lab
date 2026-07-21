@@ -335,11 +335,13 @@ jobs:
 
       - name: Run Benchmark Pipeline Tests
         run: |
+          set -o pipefail
           xcodebuild test \
             -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             -only-testing:EdgeAILab_macOSTests/BenchmarkPipelineTests \
             -only-testing:EdgeAILab_macOSTests/EvalPipelineTests \
             -only-testing:EdgeAILab_macOSTests/EvalRegressionCheckerTests \

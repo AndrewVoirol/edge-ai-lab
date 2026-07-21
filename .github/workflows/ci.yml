@@ -43,11 +43,13 @@ jobs:
 
       - name: Build macOS
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             build \
             COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGN_IDENTITY="-" \
@@ -57,11 +59,13 @@ jobs:
 
       - name: Test macOS
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             -only-testing:EdgeAILab_macOSTests \
             -enableCodeCoverage YES \
             test \
@@ -154,11 +158,13 @@ jobs:
 
       - name: Build & Test iOS (Unit Tests)
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace EdgeAILab.xcworkspace \
             -scheme EdgeAILab_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             -only-testing:EdgeAILab_iOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -226,11 +232,13 @@ jobs:
 
       - name: Build & Run iOS UI Smoke Tests
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace EdgeAILab.xcworkspace \
             -scheme EdgeAILab_iOS \
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             -only-testing:EdgeAILab_iOSUITests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -272,11 +280,13 @@ jobs:
 
       - name: Run Automation Harness Dry-Run Tests
         run: |
+          set -o pipefail
           xcodebuild test \
             -workspace EdgeAILab.xcworkspace \
             -scheme "Edge AI Lab" \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
+            -skipPackagePluginValidation \
             -only-testing:EdgeAILab_macOSUITests/AutomationHarnessXCTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \

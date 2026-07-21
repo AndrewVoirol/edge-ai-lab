@@ -64,6 +64,7 @@ runs:
     - name: Resolve Packages
       shell: bash
       run: |
+        set -o pipefail
         if [ ! -d "EdgeAILab.xcworkspace" ]; then
           echo "❌ EdgeAILab.xcworkspace not found — tuist generate failed before workspace creation"
           exit 1
@@ -72,6 +73,7 @@ runs:
         xcodebuild -resolvePackageDependencies \
           -workspace EdgeAILab.xcworkspace \
           -scheme "Edge AI Lab" \
+          -skipPackagePluginValidation \
           -clonedSourcePackagesDirPath "${{ inputs.spm-packages-dir }}" \
           2>&1 | tail -50
       env:
