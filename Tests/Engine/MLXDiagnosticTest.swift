@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import Metal
 
 @Suite("MLX Diagnostic")
 struct MLXDiagnosticTest {
@@ -24,8 +25,9 @@ struct MLXDiagnosticTest {
             ?? candidates.last!
     }()
 
-    /// Guard: skip the test if no local model is available.
+    /// Guard: skip the test if no local model or Metal GPU is available.
     private func requireModel() throws {
+        try #require(MTLCreateSystemDefaultDevice() != nil, "Skipping: no Metal GPU available")
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: Self.modelPath, isDirectory: &isDir)
         try #require(exists && isDir.boolValue, "Skipping: no local MLX model at \(Self.modelPath)")

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import XCTest
+import Security
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
@@ -150,6 +151,23 @@ final class ModelLifecycleTests: XCTestCase {
 // MARK: - KaggleTokenStorage Tests
 
 final class KaggleTokenStorageTests: XCTestCase {
+
+    override func setUp() throws {
+        try super.setUp()
+        // Probe Keychain accessibility — CI simulators may sandbox or block Keychain ops.
+        let probeQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.edgeailab.test.keychain-probe",
+            kSecValueData as String: Data("probe".utf8),
+        ]
+        SecItemDelete(probeQuery as CFDictionary)
+        let status = SecItemAdd(probeQuery as CFDictionary, nil)
+        SecItemDelete(probeQuery as CFDictionary)
+        try XCTSkipUnless(
+            status == errSecSuccess,
+            "Skipped — Keychain not accessible (status: \(status))"
+        )
+    }
 
     override func tearDown() {
         super.tearDown()

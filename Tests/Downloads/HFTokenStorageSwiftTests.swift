@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import Security
 #if os(iOS)
 @testable import EdgeAILab_iOS
 #elseif os(macOS)
@@ -45,6 +46,19 @@ struct HFTokenStorageSwiftTests {
 
     @Suite("Keychain operations", .serialized)
     struct KeychainTests {
+
+        init() throws {
+            // Probe Keychain accessibility — CI simulators may sandbox or block Keychain ops.
+            let probeQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: "com.edgeailab.test.keychain-probe",
+                kSecValueData as String: Data("probe".utf8),
+            ]
+            SecItemDelete(probeQuery as CFDictionary)
+            let status = SecItemAdd(probeQuery as CFDictionary, nil)
+            SecItemDelete(probeQuery as CFDictionary)
+            try #require(status == errSecSuccess, "Skipped — Keychain not accessible (status: \(status))")
+        }
         @Test("Save and retrieve round-trip")
         func saveAndRetrieve() throws {
             // Clean up any existing token
