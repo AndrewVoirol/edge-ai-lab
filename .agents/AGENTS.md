@@ -16,6 +16,7 @@
 - **iOS Simulator builds MUST target a specific arm64 simulator** (e.g., `-destination "platform=iOS Simulator,name=iPhone 16 Pro Max"`). The `generic/platform=iOS Simulator` destination includes x86_64 which fails because LiteRT-LM's xcframework only contains arm64 slices.
 - **Release scheme for benchmarking**: `"Edge AI Lab (Release)"` uses `.release` configuration. Use it for ALL performance measurements and eval pipeline runs. The default `"Edge AI Lab"` scheme uses `.debug`, which compiles SPM packages (including mlx-swift's C++ backend) at `-O0`/`-Onone` — causing 10-50× MLX slowdown while GGUF/LiteRT (precompiled binaries) appear unaffected. Never benchmark MLX in Debug.
 - **Never use `#if DEBUG` to gate filesystem paths that must work in both configurations.** `#filePath` is a compile-time literal that works in both Debug and Release. If a code path uses `#filePath` to find project-root directories, it should not be gated behind `#if DEBUG`. Use runtime `FileManager.fileExists()` checks instead of compile-time configuration gates for path selection.
+- **Test target deployment targets MUST match their host app targets.** Test targets import the app module via `@testable import`. A test compiled for macOS 26.0 cannot import a module compiled for macOS 27.0 (`error: compiling for macOS 26.0, but module has a minimum deployment target of macOS 27.0`). If the app target is lowered for CI runner compatibility, ALL targets (app + test + tool) must be lowered together. Guard newer APIs with `if #available()` or `GlassEffectModifier`-style wrapper types.
 
 ## Code Style
 - Use `@Observable` (not `ObservableObject`) — Swift 5.9+ Observation framework.
@@ -131,6 +132,11 @@
 ## Pre-Flight Build Check
 - **Before starting feature work, verify the tree builds clean on both platforms.** Run `xcodebuild build` for macOS and iOS. If the build is broken, commit fixes separately with message prefix `fix: pre-existing —` before beginning feature work. Do not mix pre-existing fixes with feature commits.
 
+## CI Pipeline
+- **Never pipe xcodebuild output through `| tail`, `| head`, or `| grep` in CI.** These truncate diagnostic output (test failure details appear mid-stream, not at the end) and can swallow exit codes without `set -o pipefail`. GitHub Actions captures all stdout/stderr in the log regardless — filtering serves no purpose. Always use `set -o pipefail` as the first line of multi-line `run:` steps.
+- **Always specify `-testPlan <name>` when running xcodebuild test in CI.** When a scheme has multiple test plans, xcodebuild selects the first alphabetically. If the target you want isn't in that plan, you get `isn't a member of the specified test plan or scheme`. Explicitly passing `-testPlan` is required.
+- **The `xcode-27` CI runner runs macOS 26.5.2 with Xcode 27 beta.** Cross-compiling for macOS/iOS 27.0 deployment targets works (build succeeds), but tests must execute on the host OS — so test targets need deployment target ≤ 26.5. The runner also requires `xcodebuild -downloadComponent MetalToolchain` for Metal-heavy projects (mlx-swift).
+
 ## Apple Framework API Verification
 - **Before using any system framework API (Core ML, MapKit, CoreLocation, etc.), verify the exact type and method names exist.** Search Apple's developer documentation or use `grep` in SDK headers. Do NOT guess or invent API names — this is a common hallucination pattern.
 - **Known non-existent APIs agents have invented:** `CWInterface.rssi()` (doesn't exist — use `.rssiValue()`). When in doubt, verify against SDK headers in Xcode.
@@ -156,6 +162,8 @@
 - **`import Testing` does NOT bring in Foundation.** Test files using `JSONSerialization`, `Date`, `URL`, `Data`, or any Foundation type must add `import Foundation` explicitly. This differs from XCTest, which implicitly imports Foundation.
 - **Avoid optional chaining inside `#expect()`.** The Swift compiler crashes on `#expect(foo?["key"] as? String == "bar")`. Extract to a local variable first: `let val = foo?["key"] as? String; #expect(val == "bar")`.
 - **`xcodebuild test` may report `TEST FAILED` even when all tests pass** if any test uses Swift Testing's `withKnownIssue`. The exit code is non-zero due to the known issue marker. Verify actual failures with `grep -c "✘"` on the output — if the count is 0, all tests passed.
+- **Swift Testing and XCTest have different skip mechanisms.** `try #require(false)` in Swift Testing records a **failure**, NOT a skip. Use `.enabled(if:)` suite/test trait for conditional skipping. For XCTest, use `try XCTSkipUnless()`. Never mix them up. Also: XCTestCase's `setUp()` is non-throwing — use `setUpWithError()` for the throwing override point.
+- **Never reference `Self` properties in `@Suite` macro attributes.** `@Suite(.enabled(if: MyType.someProperty))` on `struct MyType` causes `Circular reference resolving attached macro 'Suite'`. Move the check to a `private let` at module scope outside the struct, then reference that in the `@Suite` attribute. Inner `@Suite` structs can reference the enclosing type's `static let` properties.
 
 ## Tuist — File and Branch Registration
 - **Always run `tuist generate` after creating new `.swift` source or test files.** Tuist scans the filesystem to build the Xcode project; new files are invisible to the build until project regeneration.
