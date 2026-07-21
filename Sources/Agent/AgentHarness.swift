@@ -62,6 +62,11 @@ final class AgentHarness {
     /// Flag to signal cancellation from outside the loop.
     private var isCancelled: Bool = false
 
+    /// Tracks which tools have already been retried once after an error.
+    /// Key: tool name, Value: true if already retried.
+    /// Prevents infinite retry loops while allowing one chance to recover.
+    private var retriedTools: Set<String> = []
+
     // MARK: - Core Loop
 
     /// Run the agent ReAct loop.
@@ -87,6 +92,7 @@ final class AgentHarness {
         isRunning = true
         isCancelled = false
         autoApproveAll = false
+        retriedTools = []
         status = .thinking
 
         defer {
@@ -182,8 +188,23 @@ final class AgentHarness {
                     )
                     stepToolResult = lastEvent.result
                     status = .executingTool(lastEvent.toolName)
-                    currentPrompt = "Tool \(lastEvent.toolName) returned: \(lastEvent.result)" +
-                        "\n\nAnalyze this result and decide your next step."
+
+                    // Error-aware prompt construction with retry logic:
+                    // If the tool result contains an error, prepend a recovery instruction
+                    // to help the model adapt. Limit to 1 retry per tool to prevent loops.
+                    let resultContainsError = lastEvent.result.contains("\"error\"") ||
+                        lastEvent.result.lowercased().contains("error:") ||
+                        !lastEvent.succeeded
+
+                    if resultContainsError && !retriedTools.contains(lastEvent.toolName) {
+                        retriedTools.insert(lastEvent.toolName)
+                        currentPrompt = "Tool \(lastEvent.toolName) returned an error: \(lastEvent.result)" +
+                            "\n\nThe tool encountered an issue. Try a different approach, " +
+                            "adjust the parameters, or use an alternative tool to accomplish the task."
+                    } else {
+                        currentPrompt = "Tool \(lastEvent.toolName) returned: \(lastEvent.result)" +
+                            "\n\nAnalyze this result and decide your next step."
+                    }
                 }
             } else {
                 // No tool calls — model is reasoning or done
@@ -264,6 +285,7 @@ final class AgentHarness {
         isRunning = false
         isCancelled = false
         autoApproveAll = false
+        retriedTools = []
         approvalContinuation = nil
     }
 }
