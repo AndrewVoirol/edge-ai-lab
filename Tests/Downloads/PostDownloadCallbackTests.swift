@@ -13,13 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import XCTest
+import Foundation
+import Testing
 
 #if os(iOS)
 @testable import EdgeAILab_iOS
 #elseif os(macOS)
 @testable import EdgeAILab_macOS
 #endif
+
+// MARK: - PostDownloadCallback Tests
 
 /// Tests for the postDownloadCallback race condition fix.
 ///
@@ -30,14 +33,14 @@ import XCTest
 ///
 /// Fix: The completion closure is now passed as a parameter to `downloadCommunityModel`
 /// and registered INSIDE the method BEFORE starting the download task.
-final class PostDownloadCallbackTests: XCTestCase {
+@Suite("PostDownloadCallback — Race Condition Fix")
+struct PostDownloadCallbackRaceFixTests {
 
     // MARK: - Callback Registration Atomicity
 
-    /// Verify that the completion callback is registered in the dictionary
-    /// BEFORE the download task starts (i.e., before any delegate can fire).
+    @Test("Callback is registered before download task starts")
     @MainActor
-    func testCallbackRegisteredBeforeDownloadStarts() {
+    func callbackRegisteredBeforeDownloadStarts() {
         let manager = ModelDownloadManager()
         let model = makeTestHFModel()
         let sibling = HFSibling(rfilename: "test-model.litertlm", size: 1000, lfs: nil)
@@ -48,15 +51,15 @@ final class PostDownloadCallbackTests: XCTestCase {
         }
 
         // The callback should be registered in the dictionary immediately
-        XCTAssertNotNil(
-            manager.postDownloadCallbacks["test-model.litertlm"],
+        #expect(
+            manager.postDownloadCallbacks["test-model.litertlm"] != nil,
             "Callback must be registered in postDownloadCallbacks before download starts"
         )
     }
 
-    /// Verify that callback fires after state transitions to `.downloaded`.
+    @Test("Callback fires after state transitions to .downloaded")
     @MainActor
-    func testCallbackFiresAfterStateUpdate() {
+    func callbackFiresAfterStateUpdate() {
         let manager = ModelDownloadManager()
         let filename = "test-callback-order.litertlm"
         let testURL = manager.documentsDirectory.appendingPathComponent(filename)
@@ -79,26 +82,26 @@ final class PostDownloadCallbackTests: XCTestCase {
             manager.postDownloadCallbacks.removeValue(forKey: filename)
         }
 
-        XCTAssertTrue(callbackFired, "Callback should have fired")
+        #expect(callbackFired, "Callback should have fired")
 
         // State should be .downloaded when the callback executes
         if case .downloaded(let url) = stateAtCallbackTime {
-            XCTAssertEqual(url, testURL, "Downloaded URL should match")
+            #expect(url == testURL, "Downloaded URL should match")
         } else {
-            XCTFail("State should be .downloaded when callback fires, got: \(String(describing: stateAtCallbackTime))")
+            Issue.record("State should be .downloaded when callback fires, got: \(String(describing: stateAtCallbackTime))")
         }
     }
 
-    /// Verify that callback is removed after firing (no memory leak).
+    @Test("Callback is removed after firing (no memory leak)")
     @MainActor
-    func testCallbackRemovedAfterFiring() {
+    func callbackRemovedAfterFiring() {
         let manager = ModelDownloadManager()
         let filename = "test-cleanup.litertlm"
         let testURL = manager.documentsDirectory.appendingPathComponent(filename)
 
         manager.postDownloadCallbacks[filename] = { _, _ in }
 
-        XCTAssertNotNil(manager.postDownloadCallbacks[filename], "Callback should exist before firing")
+        #expect(manager.postDownloadCallbacks[filename] != nil, "Callback should exist before firing")
 
         // Simulate the delegate's callback firing and cleanup
         if let callback = manager.postDownloadCallbacks[filename] {
@@ -106,15 +109,15 @@ final class PostDownloadCallbackTests: XCTestCase {
             manager.postDownloadCallbacks.removeValue(forKey: filename)
         }
 
-        XCTAssertNil(
-            manager.postDownloadCallbacks[filename],
+        #expect(
+            manager.postDownloadCallbacks[filename] == nil,
             "Callback should be removed after firing to prevent memory leaks"
         )
     }
 
-    /// Verify that no-completion downloads don't register a nil callback.
+    @Test("No completion parameter means no callback registered")
     @MainActor
-    func testNoCompletionDoesNotRegisterCallback() {
+    func noCompletionDoesNotRegisterCallback() {
         let manager = ModelDownloadManager()
         let model = makeTestHFModel()
         let sibling = HFSibling(rfilename: "no-callback.litertlm", size: 1000, lfs: nil)
@@ -122,39 +125,30 @@ final class PostDownloadCallbackTests: XCTestCase {
         // Call without completion
         manager.downloadCommunityModel(model: model, sibling: sibling)
 
-        XCTAssertNil(
-            manager.postDownloadCallbacks["no-callback.litertlm"],
+        #expect(
+            manager.postDownloadCallbacks["no-callback.litertlm"] == nil,
             "No callback should be registered when completion is nil"
         )
     }
 
-    /// Verify that duplicate download calls are rejected even with a completion.
+    @Test("Duplicate download calls are rejected")
     @MainActor
-    func testDuplicateDownloadRejected() {
+    func duplicateDownloadRejected() {
         let manager = ModelDownloadManager()
         let model = makeTestHFModel()
         let sibling = HFSibling(rfilename: "dup-test.litertlm", size: 1000, lfs: nil)
 
-        var firstCallbackRegistered = false
-        var secondCallbackRegistered = false
-
         // First call — should register callback and start download
-        manager.downloadCommunityModel(model: model, sibling: sibling) { _, _ in
-            firstCallbackRegistered = true
-        }
+        manager.downloadCommunityModel(model: model, sibling: sibling) { _, _ in }
 
         // Verify first callback is registered
-        XCTAssertNotNil(manager.postDownloadCallbacks["dup-test.litertlm"])
+        #expect(manager.postDownloadCallbacks["dup-test.litertlm"] != nil)
 
         // Second call — should be rejected (duplicate)
-        manager.downloadCommunityModel(model: model, sibling: sibling) { _, _ in
-            secondCallbackRegistered = true
-        }
+        manager.downloadCommunityModel(model: model, sibling: sibling) { _, _ in }
 
         // The first callback should still be the one registered
         // (the second call was rejected before reaching callback registration)
-        // Note: We can't directly distinguish which closure is registered,
-        // but the test verifies the duplicate guard path works.
     }
 
     // MARK: - Helpers
