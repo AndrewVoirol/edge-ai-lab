@@ -285,6 +285,7 @@ jobs:
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -skipPackagePluginValidation \
+            -testPlan macOSUITests \
             -only-testing:EdgeAILab_macOSUITests/AutomationHarnessXCTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
