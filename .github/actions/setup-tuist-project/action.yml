@@ -24,27 +24,27 @@ runs:
       uses: actions/cache@v5
       with:
         path: ${{ inputs.spm-packages-dir }}
-        key: ${{ runner.os }}-spm-v3-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
+        key: ${{ runner.os }}-spm-v4-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
         restore-keys: |
-          ${{ runner.os }}-spm-v3-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
+          ${{ runner.os }}-spm-v4-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
 
-    - name: Clear Stale Binary Artifacts
+    - name: Clear Stale SPM Checksum Cache
       shell: bash
       run: |
         # LiteRT-LM's CLiteRTLM xcframework binaries are hosted at GitHub Release URLs.
         # Google occasionally re-uploads these with different content (same URL, new checksum).
-        # SPM caches the old checksum in multiple locations and refuses to re-download.
+        # SPM caches the old checksum in the global SPM cache and refuses to re-download.
         #
-        # MUST run BEFORE tuist generate (which triggers package resolution internally).
-        # Locations:
-        #   1. Global SPM cache: ~/Library/Caches/org.swift.swiftpm/
-        #   2. Cloned packages dir: xcframeworks downloaded by SPM
-        #   3. Workspace-level state (created by tuist generate, cleared preemptively)
-        echo "Clearing stale binary target artifacts..."
+        # We clear ONLY the global SPM cache (which stores checksums), NOT the xcframeworks
+        # themselves. xcodebuild -resolvePackageDependencies resolves source packages but does
+        # NOT re-download binary targets — so deleting xcframeworks from .spm-packages causes
+        # "There is no XCFramework found at..." build failures.
+        #
+        # If LiteRT-LM re-uploads binaries with new checksums again, bump the cache key
+        # version in the Cache SPM Packages step above (v3 → v4) to force a full re-download.
+        echo "Clearing global SPM checksum cache..."
         rm -rf ~/Library/Caches/org.swift.swiftpm/ 2>/dev/null || true
-        find "${{ inputs.spm-packages-dir }}" -name "*.xcframework" -type d -exec rm -rf {} + 2>/dev/null || true
-        find "${{ inputs.spm-packages-dir }}" -name "*.artifactbundle" -type d -exec rm -rf {} + 2>/dev/null || true
-        echo "✅ Binary artifact caches cleared"
+        echo "✅ Global SPM cache cleared"
 
     - name: Generate Xcode Project
       shell: bash
