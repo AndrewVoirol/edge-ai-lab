@@ -13,10 +13,14 @@ let project = Project(
     ),
     packages: [
         // LiteRT-LM — Native Swift APIs with Metal GPU for macOS/iOS.
-        // Uses .branch("main") because: (1) unsafeFlags blocks SPM versioned deps,
-        // (2) force-push history makes .revision() unreliable, (3) no semver tags available.
-        // CI pre-clones the repo to work around GHA-specific SPM resolution failures.
-        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .branch("main")),
+        // Pinned to f73637c5 — v0.14.0 Swift source with updated checksums matching
+        // Google's re-uploaded xcframework binaries. The v0.14.0 tag (80f301ff) has stale
+        // checksums. Post-v0.14.0 commits added thinking config, repetition penalty, and
+        // constrained decoding APIs that the v0.14.0 binary doesn't export.
+        // When Google ships a new xcframework, advance this pin to the matching tag.
+        // If SPM reports "invalid custom path 'swift'", nuke SourcePackages/checkouts/LiteRT-LM
+        // + SourcePackages/repositories/LiteRT-LM-* and re-resolve.
+        .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("f73637c5")),
         // mlx-swift-lm: MLX inference (Apple Silicon Metal GPU) for macOS/iOS.
         // Pinned to commit d2424294 which includes all Gemma4 VLM fixes:
         //   - 09deb8c4: Fix VLM load KV-shared layers (k_proj/v_proj)
