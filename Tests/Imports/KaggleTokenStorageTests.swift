@@ -22,24 +22,27 @@ import Security
 @testable import EdgeAILab_macOS
 #endif
 
+/// Module-level Keychain accessibility probe for Kaggle token tests.
+/// In Swift Testing, `try #require(false)` in init records a failure (not a skip).
+private let kaggleKeychainIsAccessible: Bool = {
+    let probeQuery: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "com.edgeailab.test.keychain-probe-kaggle",
+        kSecValueData as String: Data("probe".utf8),
+    ]
+    SecItemDelete(probeQuery as CFDictionary)
+    let status = SecItemAdd(probeQuery as CFDictionary, nil)
+    SecItemDelete(probeQuery as CFDictionary)
+    return status == errSecSuccess
+}()
+
 // MARK: - KaggleTokenStorage Tests
 
-@Suite("KaggleTokenStorage", .serialized)
+@Suite("KaggleTokenStorage", .serialized, .enabled(if: kaggleKeychainIsAccessible, "Keychain not accessible on CI"))
 struct KaggleTokenStorageSwiftTests {
 
     // Clean Keychain state before each test to avoid cross-test contamination.
-    init() throws {
-        // Probe Keychain accessibility — CI simulators may sandbox or block Keychain ops.
-        let probeQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "com.edgeailab.test.keychain-probe",
-            kSecValueData as String: Data("probe".utf8),
-        ]
-        SecItemDelete(probeQuery as CFDictionary)
-        let status = SecItemAdd(probeQuery as CFDictionary, nil)
-        SecItemDelete(probeQuery as CFDictionary)
-        try #require(status == errSecSuccess, "Skipped — Keychain not accessible (status: \(status))")
-
+    init() {
         KaggleTokenStorage.deleteCredentials()
     }
 

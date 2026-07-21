@@ -44,21 +44,23 @@ struct HFTokenStorageSwiftTests {
 
     // MARK: - HFTokenStorage Keychain Operations
 
-    @Suite("Keychain operations", .serialized)
-    struct KeychainTests {
+    /// Module-level Keychain accessibility probe. Defined outside the struct
+    /// to avoid circular reference with @Suite macro's .enabled(if:) trait.
+    /// In Swift Testing, `try #require(false)` in init records a failure (not a skip).
+    private static let keychainIsAccessible: Bool = {
+        let probeQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.edgeailab.test.keychain-probe",
+            kSecValueData as String: Data("probe".utf8),
+        ]
+        SecItemDelete(probeQuery as CFDictionary)
+        let status = SecItemAdd(probeQuery as CFDictionary, nil)
+        SecItemDelete(probeQuery as CFDictionary)
+        return status == errSecSuccess
+    }()
 
-        init() throws {
-            // Probe Keychain accessibility — CI simulators may sandbox or block Keychain ops.
-            let probeQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: "com.edgeailab.test.keychain-probe",
-                kSecValueData as String: Data("probe".utf8),
-            ]
-            SecItemDelete(probeQuery as CFDictionary)
-            let status = SecItemAdd(probeQuery as CFDictionary, nil)
-            SecItemDelete(probeQuery as CFDictionary)
-            try #require(status == errSecSuccess, "Skipped — Keychain not accessible (status: \(status))")
-        }
+    @Suite("Keychain operations", .serialized, .enabled(if: HFTokenStorageSwiftTests.keychainIsAccessible, "Keychain not accessible on CI"))
+    struct KeychainTests {
         @Test("Save and retrieve round-trip")
         func saveAndRetrieve() throws {
             // Clean up any existing token
