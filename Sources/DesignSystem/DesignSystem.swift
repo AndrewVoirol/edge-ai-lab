@@ -564,6 +564,24 @@ struct GlassCardModifier: ViewModifier {
     }
 }
 
+/// Liquid Glass effect — applies `.glassEffect()` on iOS/macOS 26.0+ with a
+/// fallback to `.ultraThinMaterial` on earlier versions.
+/// Use this modifier instead of calling `.glassEffect()` directly to maintain
+/// backward compatibility with CI runners that may run on older OS versions.
+struct GlassEffectModifier: ViewModifier {
+    var cornerRadius: CGFloat = AppRadius.md
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, iOS 26.0, *) {
+            content
+                .glassEffect(in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+        }
+    }
+}
+
 /// Forest glass overlay — used for input bars, toolbars, and floating panels.
 /// Slightly more opaque than the standard glass card for better readability.
 struct ForestGlassModifier: ViewModifier {

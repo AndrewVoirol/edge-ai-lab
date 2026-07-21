@@ -116,7 +116,7 @@ struct HFModelCard: View {
                 if let encoded = model.orgName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
                    let avatarURL = URL(string: "https://huggingface.co/api/organizations/\(encoded)/avatar") {
                     AsyncImage(
-                        request: URLRequest(url: avatarURL)
+                        url: avatarURL
                     ) { image in
                         image.resizable()
                             .aspectRatio(contentMode: .fill)

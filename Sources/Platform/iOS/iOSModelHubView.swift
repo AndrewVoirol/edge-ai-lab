@@ -206,7 +206,7 @@ struct iOSModelHubView: View {
                 NavigationLink(value: active) {
                     activeModelRow(active)
                 }
-                .glassEffect(in: .rect(cornerRadius: AppRadius.md))
+                .modifier(GlassEffectModifier())
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button {
                         Task { await viewModel.shutdown() }

@@ -310,7 +310,7 @@ private struct ModelDetailPanel: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.md)
-        .glassEffect(in: .rect(cornerRadius: AppRadius.md))
+        .modifier(GlassEffectModifier())
         .accessibilityIdentifier("modelDetail_stat_\(label)")
     }
 

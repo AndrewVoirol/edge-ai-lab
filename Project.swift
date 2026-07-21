@@ -52,7 +52,7 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.andrewvoirol.EdgeAILab",
-            deploymentTargets: .iOS("27.0"),
+            deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
                 "UILaunchScreen": [:],
@@ -100,7 +100,7 @@ let project = Project(
             destinations: .macOS,
             product: .app,
             bundleId: "com.andrewvoirol.EdgeAILab.mac",
-            deploymentTargets: .macOS("27.0"),
+            deploymentTargets: .macOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Edge AI Lab",
                 "CFBundleName": "Edge AI Lab",
