@@ -44,7 +44,7 @@ jobs:
   # ──────────────────────────────────────────────────────────
   build-benchmark:
     name: Build & Validate
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
 
     steps:
@@ -130,7 +130,7 @@ jobs:
   # ──────────────────────────────────────────────────────────
   inference-benchmark:
     name: Inference Benchmark
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 60
     needs: build-benchmark
     if: github.event.inputs.model_path != ''
@@ -261,7 +261,7 @@ jobs:
   # ──────────────────────────────────────────────────────────
   dry-run-validation:
     name: Pipeline Dry-Run Validation
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     if: github.event_name == 'pull_request'
 

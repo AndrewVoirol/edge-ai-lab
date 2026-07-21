@@ -16,7 +16,7 @@ env:
 jobs:
   build-and-test:
     name: macOS Build & Test
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
 
     steps:
@@ -119,7 +119,7 @@ jobs:
 
   build-and-test-ios:
     name: iOS Simulator Build & Test
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
 
     steps:
@@ -202,7 +202,7 @@ jobs:
 
   build-ios-uitests:
     name: iOS Simulator UI Smoke Tests
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
 
     steps:
@@ -265,7 +265,7 @@ jobs:
 
   automation-flows:
     name: Automation Flow Validation
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     needs: build-and-test
 
