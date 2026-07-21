@@ -22,14 +22,18 @@ let project = Project(
         // + SourcePackages/repositories/LiteRT-LM-* and re-resolve.
         .remote(url: "https://github.com/google-ai-edge/LiteRT-LM.git", requirement: .revision("f73637c5")),
         // mlx-swift-lm: MLX inference (Apple Silicon Metal GPU) for macOS/iOS.
-        // Pinned to commit d2424294 which includes all Gemma4 VLM fixes:
-        //   - 09deb8c4: Fix VLM load KV-shared layers (k_proj/v_proj)
-        //   - 68947ccd: Fix E-series num_kv_shared_layers
-        //   - d14cf3da: Gemma tool parameter conversion by schema type
-        //   - 2a2bdf4c: E-series MTP centroid embedder
-        // Pin advance UNBLOCKED: mlx-swift 0.31.5 (Jun 30) and 0.31.6 (Jul 2) have shipped.
-        // Advance past d2424294 to pick up MTP speculative decoding, FoundationModels bridge, etc.
-        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .revision("d2424294a6c3")),
+        // Pinned to commit bc95ffb6 (Jul 21, 2026) which includes:
+        //   - d2424294: Gemma4 VLM fixes (KV-shared layers, E-series, tool params, MTP centroid)
+        //   - fd0f13bc: TurboQuant KV cache compression (#232)
+        //   - 60bd0d78: Aspect-preserving image resize with dynamic token counts (#405)
+        //   - e69d0a93 + 1c86cc18 + 9cd1a484: FoundationModels fixes (#435, #439, #438)
+        //   - bc95ffb6: Load EOS token IDs from nested text configs (#449)
+        // Transitive: mlx-swift 0.31.6 (Jul 2). swift-tools-version: 6.1.
+        .remote(url: "https://github.com/ml-explore/mlx-swift-lm.git", requirement: .revision("bc95ffb66213")),
+        // mlx-swift: Metal GPU framework. Normally resolved transitively via mlx-swift-lm,
+        // but pinned here to force 0.31.6 — mlx-swift-lm HEAD uses DType.greatestFiniteMagnitudeArray
+        // (added in 0.31.6) while its Package.swift floor is still 0.31.4 (upstream bug).
+        .remote(url: "https://github.com/ml-explore/mlx-swift.git", requirement: .upToNextMinor(from: "0.31.6")),
         // swift-transformers: HuggingFace tokenizers + Hub client for MLX model downloading.
         .remote(url: "https://github.com/huggingface/swift-transformers.git", requirement: .upToNextMajor(from: "1.1.1")),
         // MarkdownUI: Premium markdown rendering (lists, tables, blockquotes).
