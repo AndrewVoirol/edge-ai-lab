@@ -104,6 +104,7 @@ final class AgentHarness {
         // Build the agent system prompt
         let systemPrompt = AgentLogic.buildAgentSystemPrompt(availableTools: availableToolNames)
         var currentPrompt = "\(systemPrompt)\n\nUser task: \(initialPrompt)"
+        let availableToolNameSet = Set(availableToolNames)
 
         // ReAct Loop
         while currentIteration < maxIterations && !isCancelled {
@@ -147,11 +148,29 @@ final class AgentHarness {
             var stepToolResult: String?
 
             if let lastEvent = toolEvents.last {
-                let risk = AgentLogic.classifyRisk(toolName: lastEvent.toolName)
+                let parsedArgs = AgentHarnessHelpers.parseArguments(lastEvent.arguments)
+
+                // Pre-dispatch validation: catch invalid tool calls before execution
+                if let validationError = AgentLogic.validateToolCall(
+                    toolName: lastEvent.toolName,
+                    arguments: parsedArgs,
+                    availableToolNames: availableToolNameSet
+                ) {
+                    Self.logger.warning("⚠️ Tool validation failed for \(lastEvent.toolName, privacy: .public): \(validationError, privacy: .public)")
+                    stepToolCall = ToolCallInfo(
+                        toolName: lastEvent.toolName,
+                        arguments: parsedArgs,
+                        riskLevel: .requiresApproval,
+                        wasApproved: false
+                    )
+                    stepToolResult = "Validation error: \(validationError)"
+                    currentPrompt = "Your tool call to '\(lastEvent.toolName)' was rejected: \(validationError)" +
+                        "\n\nPlease correct the tool name or arguments and try again."
+                } else {
+                    let risk = AgentLogic.classifyRisk(toolName: lastEvent.toolName)
 
                 // If risky and not auto-approved, pause for user approval
                 if risk == .requiresApproval && !autoApproveAll {
-                    let parsedArgs = AgentHarnessHelpers.parseArguments(lastEvent.arguments)
                     status = .waitingForApproval(tool: lastEvent.toolName, arguments: parsedArgs)
 
                     Self.logger.info("⏸️ Waiting for approval: \(lastEvent.toolName, privacy: .public)")
@@ -179,7 +198,6 @@ final class AgentHarness {
                             "\n\nAnalyze this result and decide your next step."
                     }
                 } else {
-                    let parsedArgs = AgentHarnessHelpers.parseArguments(lastEvent.arguments)
                     stepToolCall = ToolCallInfo(
                         toolName: lastEvent.toolName,
                         arguments: parsedArgs,
@@ -189,23 +207,26 @@ final class AgentHarness {
                     stepToolResult = lastEvent.result
                     status = .executingTool(lastEvent.toolName)
 
-                    // Error-aware prompt construction with retry logic:
-                    // If the tool result contains an error, prepend a recovery instruction
-                    // to help the model adapt. Limit to 1 retry per tool to prevent loops.
-                    let resultContainsError = lastEvent.result.contains("\"error\"") ||
-                        lastEvent.result.lowercased().contains("error:") ||
-                        !lastEvent.succeeded
+                    // Structured error classification replaces string-matching heuristics
+                    let executionResult = ToolExecutionResult.from(event: lastEvent)
 
-                    if resultContainsError && !retriedTools.contains(lastEvent.toolName) {
-                        retriedTools.insert(lastEvent.toolName)
-                        currentPrompt = "Tool \(lastEvent.toolName) returned an error: \(lastEvent.result)" +
-                            "\n\nThe tool encountered an issue. Try a different approach, " +
-                            "adjust the parameters, or use an alternative tool to accomplish the task."
-                    } else {
+                    switch executionResult {
+                    case .failure(let message, let isRetryable):
+                        if isRetryable && !retriedTools.contains(lastEvent.toolName) {
+                            retriedTools.insert(lastEvent.toolName)
+                            currentPrompt = "Tool \(lastEvent.toolName) returned an error: \(message)" +
+                                "\n\nThe tool encountered an issue. Try a different approach, " +
+                                "adjust the parameters, or use an alternative tool to accomplish the task."
+                        } else {
+                            currentPrompt = "Tool \(lastEvent.toolName) failed: \(message)" +
+                                "\n\nThis error is not retryable. Use a different approach or tool."
+                        }
+                    case .success:
                         currentPrompt = "Tool \(lastEvent.toolName) returned: \(lastEvent.result)" +
                             "\n\nAnalyze this result and decide your next step."
                     }
                 }
+                } // end else (validation passed)
             } else {
                 // No tool calls — model is reasoning or done
                 currentPrompt = response
@@ -234,6 +255,11 @@ final class AgentHarness {
                     let finalAnswer = reasoning ?? response
                     status = .completed(summary: finalAnswer)
                     Self.logger.info("✅ Agent completed after \(self.currentIteration) iteration(s)")
+                    return
+                case .fuzzyDone:
+                    let finalAnswer = reasoning ?? response
+                    status = .completed(summary: "⚡ Agent appears to have finished (no explicit [DONE] marker):\n\n\(finalAnswer)")
+                    Self.logger.info("✅ Agent fuzzy-completed after \(self.currentIteration) iteration(s)")
                     return
                 case .maxIterations:
                     let summary = AgentLogic.generateForceStopSummary(completedSteps: steps)

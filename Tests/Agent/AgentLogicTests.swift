@@ -287,21 +287,21 @@ struct AgentLogicFuzzyTerminationTests {
     func detectsTaskComplete() {
         let response = "I've calculated all the values. The result is 42.\n\nTask complete."
         let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
-        #expect(result == .done)
+        #expect(result == .fuzzyDone)
     }
 
     @Test("Detects 'I'm done' at end of response")
     func detectsImDone() {
         let response = "Everything has been analyzed and the answer is clear. I'm done."
         let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
-        #expect(result == .done)
+        #expect(result == .fuzzyDone)
     }
 
     @Test("Detects 'here is the final answer'")
     func detectsFinalAnswer() {
         let response = "After thorough analysis, here is the final answer: The temperature is 25°C."
         let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
-        #expect(result == .done)
+        #expect(result == .fuzzyDone)
     }
 
     @Test("Does NOT trigger fuzzy detection in mid-reasoning")
@@ -323,6 +323,20 @@ struct AgentLogicFuzzyTerminationTests {
         let response = "Task complete. [DONE]"
         let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
         #expect(result == .done)
+    }
+
+    @Test(".fuzzyDone is distinct from .done")
+    func fuzzyDoneIsDistinctFromDone() {
+        #expect(AgentLogic.TerminationReason.done != AgentLogic.TerminationReason.fuzzyDone)
+    }
+
+    @Test("Fuzzy detection returns .fuzzyDone not .done")
+    func fuzzyReturnsCorrectCase() {
+        let response = "I have completed the analysis. The task is complete."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .fuzzyDone)
+        // Explicitly verify it's NOT .done
+        #expect(result != .done)
     }
 }
 
@@ -362,5 +376,94 @@ struct AgentLogicToolValidationTests {
         )
         #expect(result != nil)
         #expect(result!.contains("no arguments"))
+    }
+}
+
+// MARK: - ToolExecutionResult Tests
+
+@Suite("ToolExecutionResult — Structured Error Classification")
+struct ToolExecutionResultTests {
+
+    private func makeEvent(
+        toolName: String = "calculate",
+        result: String = "42",
+        succeeded: Bool = true
+    ) -> ToolCallEvent {
+        ToolCallEvent(
+            toolName: toolName,
+            arguments: "{}",
+            result: result,
+            durationMs: 10.0,
+            timestamp: Date(),
+            succeeded: succeeded
+        )
+    }
+
+    @Test("Successful tool returns .success")
+    func successfulToolReturnsSuccess() {
+        let event = makeEvent(result: "42", succeeded: true)
+        let result = ToolExecutionResult.from(event: event)
+        #expect(result == .success("42"))
+    }
+
+    @Test("Failed tool (succeeded=false) returns .failure with retryable=true")
+    func failedToolReturnsFailure() {
+        let event = makeEvent(result: "Division by zero", succeeded: false)
+        let result = ToolExecutionResult.from(event: event)
+        #expect(result == .failure(message: "Division by zero", isRetryable: true))
+    }
+
+    @Test("Tool with 'error' in JSON body detected as failure")
+    func errorInJsonBodyDetected() {
+        let event = makeEvent(result: "{\"error\": \"invalid expression\"}", succeeded: true)
+        let result = ToolExecutionResult.from(event: event)
+        if case .failure(let msg, let retryable) = result {
+            #expect(msg.contains("invalid expression"))
+            #expect(retryable == true)
+        } else {
+            Issue.record("Expected .failure but got \(result)")
+        }
+    }
+
+    @Test("Tool with 'error:' prefix detected as failure")
+    func errorPrefixDetected() {
+        let event = makeEvent(result: "Error: permission denied", succeeded: true)
+        let result = ToolExecutionResult.from(event: event)
+        if case .failure = result {
+            // Expected
+        } else {
+            Issue.record("Expected .failure but got \(result)")
+        }
+    }
+
+    @Test("Tool with 'error_message' in JSON body detected as failure")
+    func errorMessageFieldDetected() {
+        let event = makeEvent(result: "{\"error_message\": \"timeout\"}", succeeded: true)
+        let result = ToolExecutionResult.from(event: event)
+        if case .failure = result {
+            // Expected
+        } else {
+            Issue.record("Expected .failure but got \(result)")
+        }
+    }
+
+    @Test("Clean result with no error signals returns .success")
+    func cleanResultReturnsSuccess() {
+        let event = makeEvent(result: "The current date is 2026-07-21.", succeeded: true)
+        let result = ToolExecutionResult.from(event: event)
+        #expect(result == .success("The current date is 2026-07-21."))
+    }
+
+    @Test(".success and .failure are distinct")
+    func successAndFailureAreDistinct() {
+        #expect(ToolExecutionResult.success("ok") != ToolExecutionResult.failure(message: "ok", isRetryable: true))
+    }
+
+    @Test("Retryable and non-retryable failures are distinct")
+    func retryableAndNonRetryableDistinct() {
+        #expect(
+            ToolExecutionResult.failure(message: "err", isRetryable: true) !=
+            ToolExecutionResult.failure(message: "err", isRetryable: false)
+        )
     }
 }

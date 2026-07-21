@@ -29,7 +29,11 @@ enum AgentLogic {
     // MARK: - Termination Reasons
 
     enum TerminationReason: Equatable {
+        /// Model explicitly marked completion with [DONE].
         case done
+        /// Model semantically indicated completion (fuzzy phrase match).
+        /// Less confident than `.done` — the model didn't use the exact marker.
+        case fuzzyDone
         case needsApproval(tool: String)
         case maxIterations
         case cancelled
@@ -90,7 +94,7 @@ enum AgentLogic {
         if !response.contains("[NEED_APPROVAL") {
             for phrase in completionPhrases {
                 if trimmedSuffix.contains(phrase) {
-                    return .done
+                    return .fuzzyDone
                 }
             }
         }

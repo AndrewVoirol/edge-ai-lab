@@ -41,6 +41,44 @@ struct ToolCallInfo: Sendable {
     let wasApproved: Bool?
 }
 
+// MARK: - Tool Execution Result
+
+/// Structured result from tool execution, replacing string-matching error detection.
+///
+/// The harness uses this to decide whether to retry (`isRetryable`),
+/// inject recovery instructions, or pass the result through normally.
+enum ToolExecutionResult: Sendable, Equatable {
+    /// Tool completed successfully with a result string.
+    case success(String)
+    /// Tool failed with an error message.
+    /// - `isRetryable`: Whether the harness should attempt the tool again with adjusted parameters.
+    ///   `true` for transient errors (timeout, parse failure). `false` for permanent errors (unsupported operation).
+    case failure(message: String, isRetryable: Bool)
+
+    /// Convenience: classify a raw ToolCallEvent into a structured result.
+    ///
+    /// Uses the `succeeded` flag from ToolCallEvent as the primary signal,
+    /// with string-content analysis as a fallback for tools that report errors
+    /// in the result body while still returning `succeeded = true`.
+    static func from(event: ToolCallEvent) -> ToolExecutionResult {
+        // Primary signal: the tool's own success flag
+        if !event.succeeded {
+            return .failure(message: event.result, isRetryable: true)
+        }
+
+        // Secondary signal: detect error-shaped content in successful results
+        // Some tools return succeeded=true but include error details in the result body
+        let resultLower = event.result.lowercased()
+        if event.result.contains("\"error\"") ||
+           resultLower.hasPrefix("error:") ||
+           resultLower.contains("\"error_message\"") {
+            return .failure(message: event.result, isRetryable: true)
+        }
+
+        return .success(event.result)
+    }
+}
+
 // MARK: - Agent Status
 
 /// The current status of the agent harness.
