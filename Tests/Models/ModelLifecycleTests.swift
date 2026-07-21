@@ -152,8 +152,8 @@ final class ModelLifecycleTests: XCTestCase {
 
 final class KaggleTokenStorageTests: XCTestCase {
 
-    override func setUp() throws {
-        try super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         // Probe Keychain accessibility — CI simulators may sandbox or block Keychain ops.
         let probeQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
