@@ -270,7 +270,7 @@ The `ToolCallFormat.infer(from:)` method uses prefix matching on `model_type`:
 
 Tool calling format is preserved regardless of model_type value, as long as the prefix matches.
 
-## MLX Audio Status (Pinned Commit d2424294a6c3)
+## MLX Audio Status (Pinned Commit bc95ffb66213)
 
 Audio inference is a **known SDK limitation** at the pinned commit:
 

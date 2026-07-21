@@ -1245,7 +1245,9 @@ final class HFModelBrowser: @unchecked Sendable {
         if model.id.lowercased().contains("litert-lm") || model.id.lowercased().contains("litert_lm") {
             return .litertlm
         }
-        if model.author.lowercased() == "mlx-community" {
+        if model.author.lowercased() == "mlx-community"
+            || model.id.lowercased().contains("-mlx")
+            || model.id.lowercased().contains("mlx-") {
             return .mlx
         }
         if model.id.lowercased().contains("-gguf") || model.id.lowercased().hasSuffix(".gguf") {
