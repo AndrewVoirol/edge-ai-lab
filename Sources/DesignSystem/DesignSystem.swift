@@ -443,6 +443,8 @@ enum AppOpacity {
     static let fill: Double = 0.12
     /// Badge borders — warning section backgrounds, tag pill fills.
     static let rinse: Double = 0.15
+    /// Subtle overlays — card backgrounds, faded state indicators, secondary fills.
+    static let subtle: Double = 0.2
     /// Borders — glow base, gradient stops, glass fills, ring strokes.
     static let medium: Double = 0.3
     /// Shadows — disabled foreground, selection borders, glass fills.

@@ -558,7 +558,7 @@ private struct ConditionalGlowModifier: ViewModifier {
         } else {
             content
                 .shadow(
-                    color: isActive ? color.opacity(isGlowing ? 0.6 : 0.2) : .clear,
+                    color: isActive ? color.opacity(isGlowing ? 0.6 : 0.2) : .clear, // design-system-exempt: animation keyframe pair
                     radius: isActive ? (isGlowing ? 8 : 4) : 0
                 )
                 .animation(

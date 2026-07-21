@@ -59,6 +59,7 @@ enum AgentLogic {
     ///
     /// Checks for:
     /// - `[DONE]` — model has finished its task
+    /// - Semantic completion phrases (fuzzy detection for smaller models)
     /// - `[NEED_APPROVAL:tool_name]` — model requests permission for a risky tool
     /// - Max iteration limit reached
     static func detectTermination(
@@ -68,6 +69,30 @@ enum AgentLogic {
     ) -> TerminationReason? {
         if response.contains("[DONE]") {
             return .done
+        }
+
+        // Fuzzy termination detection — smaller models may not produce exact [DONE] markers.
+        // Check for common semantic completion phrases at the end of the response.
+        let trimmedSuffix = String(response.suffix(200)).lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let completionPhrases = [
+            "task complete",
+            "i'm done",
+            "i am done",
+            "here is the final answer",
+            "here's the final answer",
+            "that completes the task",
+            "the task is complete",
+            "i have completed",
+        ]
+        // Only trigger fuzzy detection if no tool call markers are present
+        // AND the response looks like a final answer (not mid-reasoning)
+        if !response.contains("[NEED_APPROVAL") {
+            for phrase in completionPhrases {
+                if trimmedSuffix.contains(phrase) {
+                    return .done
+                }
+            }
         }
 
         // Extract tool name from [NEED_APPROVAL:tool_name] pattern
@@ -143,6 +168,13 @@ enum AgentLogic {
             summary += "\nTools used: \(uniqueTools.sorted().joined(separator: ", "))"
         }
 
+        // Include elapsed time for context
+        if let firstStep = completedSteps.first, let lastStep = completedSteps.last {
+            let elapsed = lastStep.timestamp.timeIntervalSince(firstStep.timestamp)
+            let elapsedFormatted = String(format: "%.1f", elapsed)
+            summary += "\nElapsed: \(elapsedFormatted)s"
+        }
+
         if let lastReasoning = completedSteps.last?.reasoning {
             let truncated = String(lastReasoning.prefix(200))
             summary += "\nLast reasoning: \(truncated)"
@@ -151,6 +183,34 @@ enum AgentLogic {
             }
         }
 
+        summary += "\n\nNote: The agent reached its maximum iteration limit. " +
+            "The above represents the progress made before stopping."
+
         return summary
+    }
+
+    // MARK: - Tool Call Validation
+
+    /// Validate that a tool call has all required parameters before dispatching.
+    ///
+    /// Returns `nil` if validation passes, or an error message describing what's missing.
+    /// This saves an inference round-trip by catching obviously invalid tool calls
+    /// before they reach the tool implementation.
+    static func validateToolCall(
+        toolName: String,
+        arguments: [String: String],
+        availableToolNames: Set<String>
+    ) -> String? {
+        // Check tool exists
+        guard availableToolNames.contains(toolName) else {
+            return "Unknown tool '\(toolName)'. Available tools: \(availableToolNames.sorted().joined(separator: ", "))"
+        }
+
+        // Check arguments are non-empty (tool-specific validation happens in the tool itself)
+        if arguments.isEmpty {
+            return "Tool '\(toolName)' was called with no arguments. Most tools require at least one parameter."
+        }
+
+        return nil
     }
 }

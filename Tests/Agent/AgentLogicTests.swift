@@ -255,4 +255,112 @@ struct AgentLogicForceStopTests {
         let summary = AgentLogic.generateForceStopSummary(completedSteps: steps)
         #expect(summary.contains("..."))
     }
+
+    @Test("Summary includes elapsed time")
+    func summaryIncludesElapsedTime() {
+        let t1 = Date()
+        let t2 = t1.addingTimeInterval(5.3)
+        let steps = [
+            AgentStep(id: UUID(), iteration: 0, reasoning: "Start", toolCall: nil, toolResult: nil, timestamp: t1),
+            AgentStep(id: UUID(), iteration: 1, reasoning: "End", toolCall: nil, toolResult: nil, timestamp: t2)
+        ]
+        let summary = AgentLogic.generateForceStopSummary(completedSteps: steps)
+        #expect(summary.contains("Elapsed: 5.3s"))
+    }
+
+    @Test("Summary includes iteration limit note")
+    func summaryIncludesIterationNote() {
+        let steps = [
+            AgentStep(id: UUID(), iteration: 0, reasoning: "Working", toolCall: nil, toolResult: nil, timestamp: Date())
+        ]
+        let summary = AgentLogic.generateForceStopSummary(completedSteps: steps)
+        #expect(summary.contains("maximum iteration limit"))
+    }
+}
+
+// MARK: - Fuzzy Termination Tests
+
+@Suite("AgentLogic — Fuzzy Termination Detection")
+struct AgentLogicFuzzyTerminationTests {
+
+    @Test("Detects 'task complete' at end of response")
+    func detectsTaskComplete() {
+        let response = "I've calculated all the values. The result is 42.\n\nTask complete."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .done)
+    }
+
+    @Test("Detects 'I'm done' at end of response")
+    func detectsImDone() {
+        let response = "Everything has been analyzed and the answer is clear. I'm done."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .done)
+    }
+
+    @Test("Detects 'here is the final answer'")
+    func detectsFinalAnswer() {
+        let response = "After thorough analysis, here is the final answer: The temperature is 25°C."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .done)
+    }
+
+    @Test("Does NOT trigger fuzzy detection in mid-reasoning")
+    func doesNotTriggerMidReasoning() {
+        let response = "I need to continue working. Let me use the calculator next."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == nil)
+    }
+
+    @Test("Does NOT trigger fuzzy when NEED_APPROVAL is present")
+    func doesNotTriggerWithApprovalMarker() {
+        let response = "I have completed the analysis but need permission. [NEED_APPROVAL:get_location] Task complete."
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .needsApproval(tool: "get_location"))
+    }
+
+    @Test("[DONE] still takes priority over fuzzy detection")
+    func doneStillTakesPriority() {
+        let response = "Task complete. [DONE]"
+        let result = AgentLogic.detectTermination(response: response, currentIteration: 1, maxIterations: 10)
+        #expect(result == .done)
+    }
+}
+
+// MARK: - Tool Call Validation Tests
+
+@Suite("AgentLogic — Tool Call Validation")
+struct AgentLogicToolValidationTests {
+
+    @Test("Valid tool call passes validation")
+    func validToolCallPasses() {
+        let result = AgentLogic.validateToolCall(
+            toolName: "calculate",
+            arguments: ["expression": "2+2"],
+            availableToolNames: ["calculate", "get_device_info"]
+        )
+        #expect(result == nil)
+    }
+
+    @Test("Unknown tool name fails validation")
+    func unknownToolFails() {
+        let result = AgentLogic.validateToolCall(
+            toolName: "hack_system",
+            arguments: ["target": "everything"],
+            availableToolNames: ["calculate", "get_device_info"]
+        )
+        #expect(result != nil)
+        #expect(result!.contains("Unknown tool"))
+        #expect(result!.contains("hack_system"))
+    }
+
+    @Test("Empty arguments fail validation")
+    func emptyArgumentsFail() {
+        let result = AgentLogic.validateToolCall(
+            toolName: "calculate",
+            arguments: [:],
+            availableToolNames: ["calculate"]
+        )
+        #expect(result != nil)
+        #expect(result!.contains("no arguments"))
+    }
 }
