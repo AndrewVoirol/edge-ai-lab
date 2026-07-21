@@ -1,0 +1,185 @@
+# Upstream Dependency Monitor
+#
+# Periodically checks upstream repos for new releases and tracked PR status.
+# Creates/updates a GitHub Issue with version drift and tracked PR status.
+#
+# Runs weekly on Monday mornings and can be triggered manually.
+name: Upstream Monitor
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check upstream dependencies
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // --- Configuration ---
+            const trackedDeps = [
+              {
+                name: 'mlx-swift-lm',
+                org: 'ml-explore',
+                repo: 'mlx-swift-lm',
+                pinType: 'revision',  // We pin to a specific commit SHA
+              },
+              {
+                name: 'LiteRT-LM',
+                org: 'google-ai-edge',
+                repo: 'LiteRT',
+                pinType: 'branch',  // We track main branch
+              },
+              {
+                name: 'llama.cpp',
+                org: 'ggml-org',
+                repo: 'llama.cpp',
+                pinType: 'release',  // We use released versions
+              },
+            ];
+
+            const trackedPRs = [
+              { repo: 'ml-explore/mlx-swift-lm', number: 392, label: 'Gemma 4 audio (USM-Conformer)' },
+              { repo: 'ml-explore/mlx-swift-lm', number: 391, label: 'Gemma 4 video input' },
+              { repo: 'ml-explore/mlx-swift-lm', number: 400, label: 'Gemma4Unified audio+video' },
+              { repo: 'ml-explore/mlx-swift-lm', number: 434, label: 'Tool-schema $defs hoisting' },
+              { repo: 'ml-explore/mlx-swift-lm', number: 426, label: 'Prompt-lookup speculative decoding' },
+            ];
+
+            // --- Gather release info ---
+            let releaseTable = '| Dependency | Latest Release | Published | Days Ago |\n|---|---|---|---|\n';
+
+            for (const dep of trackedDeps) {
+              try {
+                const { data: releases } = await github.rest.repos.listReleases({
+                  owner: dep.org,
+                  repo: dep.repo,
+                  per_page: 1,
+                });
+
+                if (releases.length > 0) {
+                  const latest = releases[0];
+                  const published = new Date(latest.published_at);
+                  const daysAgo = Math.floor((Date.now() - published) / (1000 * 60 * 60 * 24));
+                  const isNew = daysAgo <= 7;
+                  const marker = isNew ? ' 🆕' : '';
+                  releaseTable += `| ${dep.name} | [${latest.tag_name}](${latest.html_url})${marker} | ${published.toISOString().split('T')[0]} | ${daysAgo} |\n`;
+                } else {
+                  releaseTable += `| ${dep.name} | _No releases_ | — | — |\n`;
+                }
+              } catch (e) {
+                releaseTable += `| ${dep.name} | _Error: ${e.message}_ | — | — |\n`;
+              }
+            }
+
+            // --- Check tracked PRs ---
+            let prTable = '| PR | Title | Status | Updated |\n|---|---|---|---|\n';
+
+            for (const pr of trackedPRs) {
+              try {
+                const [prOrg, prRepo] = pr.repo.split('/');
+                const { data: prData } = await github.rest.pulls.get({
+                  owner: prOrg,
+                  repo: prRepo,
+                  pull_number: pr.number,
+                });
+
+                let status;
+                if (prData.merged_at) {
+                  status = `✅ MERGED (${prData.merged_at.split('T')[0]})`;
+                } else if (prData.state === 'closed') {
+                  status = '❌ CLOSED';
+                } else {
+                  status = '🟡 OPEN';
+                }
+
+                const updated = prData.updated_at.split('T')[0];
+                prTable += `| [#${pr.number}](${prData.html_url}) | ${pr.label} | ${status} | ${updated} |\n`;
+              } catch (e) {
+                prTable += `| #${pr.number} | ${pr.label} | _Error_ | — |\n`;
+              }
+            }
+
+            // --- Check recent commits on mlx-swift-lm (our primary dep) ---
+            let recentCommits = '';
+            try {
+              const { data: commits } = await github.rest.repos.listCommits({
+                owner: 'ml-explore',
+                repo: 'mlx-swift-lm',
+                per_page: 5,
+              });
+
+              recentCommits = '| SHA | Message | Author | Date |\n|---|---|---|---|\n';
+              for (const c of commits) {
+                const sha = c.sha.substring(0, 10);
+                const msg = c.commit.message.split('\n')[0].substring(0, 80);
+                const author = c.author?.login || c.commit.author.name;
+                const date = c.commit.author.date.split('T')[0];
+                recentCommits += `| \`${sha}\` | ${msg} | @${author} | ${date} |\n`;
+              }
+            } catch (e) {
+              recentCommits = `_Error fetching commits: ${e.message}_`;
+            }
+
+            // --- Compose issue body ---
+            const now = new Date().toISOString().split('T')[0];
+            const body = `# Upstream Dependency Status
+
+            _Last checked: ${now}_
+
+            ## Latest Releases
+
+            ${releaseTable}
+
+            ## Tracked PRs (mlx-swift-lm)
+
+            ${prTable}
+
+            ## Recent Commits (mlx-swift-lm HEAD)
+
+            ${recentCommits}
+
+            ---
+            _Auto-generated by [upstream-monitor.yml](../blob/main/.github/workflows/upstream-monitor.yml). Updates weekly._
+            `.replace(/^            /gm, '');
+
+            // --- Find or create the tracking issue ---
+            const issueTitle = '📡 Upstream Dependency Status';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'open',
+              labels: 'upstream-monitor',
+              per_page: 1,
+            });
+
+            if (issues.length > 0) {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issues[0].number,
+                body,
+              });
+              console.log(`Updated issue #${issues[0].number}`);
+            } else {
+              // Create new issue
+              const { data: newIssue } = await github.rest.issues.create({
+                owner,
+                repo,
+                title: issueTitle,
+                body,
+                labels: ['upstream-monitor'],
+              });
+              console.log(`Created issue #${newIssue.number}`);
+            }
