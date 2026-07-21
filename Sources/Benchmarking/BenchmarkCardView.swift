@@ -292,7 +292,7 @@ struct BenchmarkCardView: View {
             // Neon blue glow — top right
             RadialGradient(
                 colors: [
-                    AppColors.accentPrimary.opacity(0.12),
+                    AppColors.accentPrimary.opacity(AppOpacity.fill),
                     Color.clear
                 ],
                 center: .topTrailing,
@@ -303,7 +303,7 @@ struct BenchmarkCardView: View {
             // Neon green glow — bottom left (subtle)
             RadialGradient(
                 colors: [
-                    AppColors.success.opacity(0.06),
+                    AppColors.success.opacity(AppOpacity.mist),
                     Color.clear
                 ],
                 center: .bottomLeading,
@@ -325,8 +325,8 @@ struct BenchmarkCardView: View {
                 LinearGradient(
                     colors: [
                         Color.clear,
-                        AppColors.accentPrimary.opacity(0.3),
-                        AppColors.success.opacity(0.3),
+                        AppColors.accentPrimary.opacity(AppOpacity.medium),
+                        AppColors.success.opacity(AppOpacity.medium),
                         Color.clear
                     ],
                     startPoint: .leading,
@@ -368,7 +368,7 @@ struct BenchmarkCardView: View {
                         .foregroundStyle(AppColors.accentPrimary)
                         .padding(.horizontal, 10) // design-system-exempt: image-export pixel-exact rendering
                         .padding(.vertical, 4) // design-system-exempt: image-export pixel-exact rendering
-                        .background(AppColors.accentPrimary.opacity(0.12))
+                        .background(AppColors.accentPrimary.opacity(AppOpacity.fill))
                         .clipShape(Capsule())
 
                     Text(data.backendLabel)
@@ -380,7 +380,7 @@ struct BenchmarkCardView: View {
                         .padding(.vertical, 4) // design-system-exempt: image-export pixel-exact rendering
                         .background(
                             (data.backendLabel.contains("GPU") ? AppColors.success : AppColors.textSecondary)
-                                .opacity(0.12)
+                                .opacity(AppOpacity.fill)
                         )
                         .clipShape(Capsule())
                 }
@@ -444,7 +444,7 @@ struct BenchmarkCardView: View {
 
                     Text(unit)
                         .font(.system(size: heroUnitSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                        .foregroundStyle(color.opacity(0.6))
+                        .foregroundStyle(color.opacity(AppOpacity.prominent))
                 }
             } else {
                 Text(value)
@@ -483,7 +483,7 @@ struct BenchmarkCardView: View {
                         x: .value("Run", index),
                         y: .value("Speed", speed)
                     )
-                    .foregroundStyle(AppColors.accentPrimary.opacity(0.8))
+                    .foregroundStyle(AppColors.accentPrimary.opacity(AppOpacity.emphasis))
                     .lineStyle(StrokeStyle(lineWidth: 2))
 
                     AreaMark(
@@ -492,7 +492,7 @@ struct BenchmarkCardView: View {
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [AppColors.accentPrimary.opacity(0.2), Color.clear],
+                            colors: [AppColors.accentPrimary.opacity(AppOpacity.subtle), Color.clear],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -512,10 +512,10 @@ struct BenchmarkCardView: View {
         .padding(.horizontal, 16) // design-system-exempt: image-export pixel-exact rendering
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.02))
+                .fill(Color.white.opacity(AppOpacity.whisper))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(AppColors.border.opacity(0.5), lineWidth: 0.5)
+                        .stroke(AppColors.border.opacity(AppOpacity.half), lineWidth: 0.5)
                 )
         )
     }
@@ -558,10 +558,10 @@ struct BenchmarkCardView: View {
         .padding(.horizontal, 20) // design-system-exempt: image-export pixel-exact rendering
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.03))
+                .fill(Color.white.opacity(AppOpacity.whisper))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(AppColors.border.opacity(0.5), lineWidth: 0.5)
+                        .stroke(AppColors.border.opacity(AppOpacity.half), lineWidth: 0.5)
                 )
         )
     }
@@ -586,7 +586,7 @@ struct BenchmarkCardView: View {
 
     private var secondaryDivider: some View {
         Rectangle()
-            .fill(AppColors.border.opacity(0.5))
+            .fill(AppColors.border.opacity(AppOpacity.half))
             .frame(width: 0.5, height: 40)
     }
 
@@ -628,7 +628,7 @@ struct BenchmarkCardView: View {
 
                 Text("github.com/AndrewVoirol/edge-ai-lab")
                     .font(.system(size: labelSize, weight: .medium, design: .monospaced)) // design-system-exempt: image export requires fixed point sizes
-                    .foregroundStyle(AppColors.accentPrimary.opacity(0.7))
+                    .foregroundStyle(AppColors.accentPrimary.opacity(AppOpacity.strong))
 
                 Text(data.timestamp, format: .dateTime.year().month(.abbreviated).day().hour().minute())
                     .font(.system(size: labelSize - 1, weight: .regular, design: .default)) // design-system-exempt: image export requires fixed point sizes

@@ -350,7 +350,7 @@ struct EvalComparisonView: View {
                     .overlay(
                         Capsule()
                             .stroke(
-                                isActive ? AppColors.accentPrimaryBorder : AppColors.border.opacity(0.2),
+                                isActive ? AppColors.accentPrimaryBorder : AppColors.border.opacity(AppOpacity.subtle),
                                 lineWidth: AppLineWidth.hairline
                             )
                     )

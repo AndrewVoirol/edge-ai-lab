@@ -926,7 +926,7 @@ struct EvalRunnerView: View {
 
         return ZStack {
             Circle()
-                .stroke(color.opacity(0.2), lineWidth: AppLineWidth.heavy)
+                .stroke(color.opacity(AppOpacity.subtle), lineWidth: AppLineWidth.heavy)
                 .frame(width: AppSize.tapTarget, height: AppSize.tapTarget)
 
             Circle()

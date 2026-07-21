@@ -652,7 +652,7 @@ private struct ExperimentDetailView: View {
                     .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(AppSpacing.md)
-                    .background(AppColors.accentPrimary.opacity(0.2))
+                    .background(AppColors.accentPrimary.opacity(AppOpacity.subtle))
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.md))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)

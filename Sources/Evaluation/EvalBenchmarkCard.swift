@@ -66,7 +66,7 @@ struct EvalBenchmarkCard: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            PassRateTier.color(for: data.overallPassRate).opacity(0.08),
+                            PassRateTier.color(for: data.overallPassRate).opacity(AppOpacity.tint),
                             Color.clear,
                         ],
                         center: .center,
@@ -110,7 +110,7 @@ struct EvalBenchmarkCard: View {
                 .foregroundStyle(AppColors.accentPrimary)
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.vertical, AppSpacing.xs)
-                .background(AppColors.accentPrimary.opacity(0.12))
+                .background(AppColors.accentPrimary.opacity(AppOpacity.fill))
                 .clipShape(Capsule())
             }
 
@@ -436,10 +436,10 @@ struct EvalBenchmarkCardShareSheet: View {
             .frame(width: 90, height: 70)
             .background(
                 RoundedRectangle(cornerRadius: AppRadius.md)
-                    .fill(color.opacity(0.08))
+                    .fill(color.opacity(AppOpacity.tint))
                     .overlay(
                         RoundedRectangle(cornerRadius: AppRadius.md)
-                            .stroke(color.opacity(0.15), lineWidth: AppLineWidth.hairline)
+                            .stroke(color.opacity(AppOpacity.rinse), lineWidth: AppLineWidth.hairline)
                     )
             )
         }
