@@ -9,7 +9,24 @@ import Testing
 import Foundation
 import Metal
 
-@Suite("MLX Diagnostic", .enabled(if: MLXDiagnosticTest.isRunnable, "Requires Metal GPU and local MLX model"))
+/// Module-level precondition: Metal GPU available AND local model directory exists.
+/// Defined outside MLXDiagnosticTest to avoid circular reference in @Suite macro.
+private let mlxDiagnosticIsRunnable: Bool = {
+    guard MTLCreateSystemDefaultDevice() != nil else { return false }
+    let candidates = [
+        NSString(string: #filePath)
+            .deletingLastPathComponent  // Tests/Engine/
+            .appending("/../../models/mlx-community--gemma-4-E2B-it-4bit"),
+        NSHomeDirectory() + "/Antigravity/Projects/edge-ai-lab/models/mlx-community--gemma-4-E2B-it-4bit"
+    ]
+    let modelPath = candidates.first { FileManager.default.fileExists(atPath: $0) }
+        ?? candidates.last!
+    var isDir: ObjCBool = false
+    let exists = FileManager.default.fileExists(atPath: modelPath, isDirectory: &isDir)
+    return exists && isDir.boolValue
+}()
+
+@Suite("MLX Diagnostic", .enabled(if: mlxDiagnosticIsRunnable, "Requires Metal GPU and local MLX model"))
 struct MLXDiagnosticTest {
 
     /// Path to a locally-downloaded MLX model. Tests skip if this directory doesn't exist.
@@ -23,14 +40,6 @@ struct MLXDiagnosticTest {
         ]
         return candidates.first { FileManager.default.fileExists(atPath: $0) }
             ?? candidates.last!
-    }()
-
-    /// Static check: Metal GPU available AND model directory exists.
-    nonisolated static let isRunnable: Bool = {
-        guard MTLCreateSystemDefaultDevice() != nil else { return false }
-        var isDir: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: modelPath, isDirectory: &isDir)
-        return exists && isDir.boolValue
     }()
 
     /// Generation WITHOUT system message — should produce clean response.
