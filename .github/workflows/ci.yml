@@ -165,6 +165,7 @@ jobs:
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -skipPackagePluginValidation \
+            -testPlan iOSUnitTests \
             -only-testing:EdgeAILab_iOSTests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \
@@ -239,6 +240,7 @@ jobs:
             -destination 'platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}' \
             -clonedSourcePackagesDirPath "$SPM_PACKAGES_DIR" \
             -skipPackagePluginValidation \
+            -testPlan iOSUITests \
             -only-testing:EdgeAILab_iOSUITests \
             test \
             COMPILER_INDEX_STORE_ENABLE=NO \

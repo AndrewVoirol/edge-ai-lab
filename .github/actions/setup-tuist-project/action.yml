@@ -20,13 +20,22 @@ runs:
       shell: bash
       run: tuist version
 
+    - name: Download Metal Toolchain
+      shell: bash
+      run: |
+        # Xcode 27 beta runners don't ship with the Metal compiler toolchain.
+        # mlx-swift uses Metal shaders for GPU compute, so this is required.
+        echo "Downloading Metal Toolchain..."
+        xcodebuild -downloadComponent MetalToolchain 2>&1 || true
+        echo "✅ Metal Toolchain download complete"
+
     - name: Cache SPM Packages
       uses: actions/cache@v5
       with:
         path: ${{ inputs.spm-packages-dir }}
-        key: ${{ runner.os }}-spm-v4-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
+        key: ${{ runner.os }}-spm-v5-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}${{ hashFiles('Project.swift') }}
         restore-keys: |
-          ${{ runner.os }}-spm-v4-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
+          ${{ runner.os }}-spm-v5-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) }}
 
     - name: Clear Stale SPM Checksum Cache
       shell: bash
