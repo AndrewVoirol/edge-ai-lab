@@ -263,9 +263,7 @@ struct HFModelCard: View {
         case .notDownloaded:
             if format == .litertlm, let sibling = litertlmSibling {
                 Button {
-                    downloadManager.downloadCommunityModel(model: model, sibling: sibling)
-                    // Register post-download callback keyed by filename
-                    downloadManager.postDownloadCallbacks[sibling.rfilename] = { filename, url in
+                    downloadManager.downloadCommunityModel(model: model, sibling: sibling) { filename, url in
                         downloadedURL = url
                         showLoadPrompt = true
                     }
@@ -306,8 +304,7 @@ struct HFModelCard: View {
                 // GGUF single-file download
                 let sizeLabel = modelSize.map { formatBytes($0) } ?? "GGUF"
                 Button {
-                    downloadManager.downloadCommunityModel(model: model, sibling: ggufFile)
-                    downloadManager.postDownloadCallbacks[ggufFile.rfilename] = { filename, url in
+                    downloadManager.downloadCommunityModel(model: model, sibling: ggufFile) { filename, url in
                         downloadedURL = url
                         showLoadPrompt = true
                     }

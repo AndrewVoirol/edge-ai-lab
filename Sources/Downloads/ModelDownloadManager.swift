@@ -649,12 +649,26 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
     /// - Parameters:
     ///   - model: The HuggingFace model info from the community browser.
     ///   - sibling: The specific `.litertlm` file to download from the repo.
-    func downloadCommunityModel(model: HFModelInfo, sibling: HFSibling) {
+    ///   - completion: Optional callback invoked on the main actor after download completes.
+    ///     Registered atomically before the download task starts, preventing the race condition
+    ///     where a near-instant completion could fire before the callback was set.
+    func downloadCommunityModel(
+        model: HFModelInfo,
+        sibling: HFSibling,
+        completion: ((String, URL) -> Void)? = nil
+    ) {
         let filename = sibling.rfilename
 
         // Don't start a duplicate download
         if fileToTaskId[filename] != nil { return }
         if downloadQueue.contains(where: { $0.modelFile == filename }) { return }
+
+        // Register callback BEFORE starting the download to prevent timing race:
+        // if the download completes near-instantly (cache hit, mock session), the
+        // URLSession delegate could fire before the caller's next line executes.
+        if let completion {
+            postDownloadCallbacks[filename] = completion
+        }
 
         let downloadURL = HFModelBrowser.downloadURL(
             repoId: model.id,
@@ -673,6 +687,7 @@ final class ModelDownloadManager: NSObject, URLSessionDownloadDelegate {
             updateQueuePositions()
         }
     }
+
 
     // MARK: - Multi-File Download (MLX Models)
 
