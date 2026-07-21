@@ -348,8 +348,7 @@ jobs:
             COMPILER_INDEX_STORE_ENABLE=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tail -50
+            CODE_SIGNING_ALLOWED=NO
 
   # ──────────────────────────────────────────────────────────
   # Job 4: Self-Hosted Benchmark (model required, Apple Silicon)
