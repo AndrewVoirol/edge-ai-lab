@@ -552,7 +552,7 @@ private struct ConditionalGlowModifier: ViewModifier {
             // Static shadow — no animation cycle to saturate the runloop
             content
                 .shadow(
-                    color: isActive ? color.opacity(0.3) : .clear,
+                    color: isActive ? color.opacity(0.3) : .clear, // design-system-exempt: animation keyframe pair (static fallback)
                     radius: isActive ? 6 : 0
                 )
         } else {
