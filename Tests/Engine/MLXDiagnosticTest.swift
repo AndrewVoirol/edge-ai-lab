@@ -9,7 +9,7 @@ import Testing
 import Foundation
 import Metal
 
-@Suite("MLX Diagnostic")
+@Suite("MLX Diagnostic", .enabled(if: MLXDiagnosticTest.isRunnable, "Requires Metal GPU and local MLX model"))
 struct MLXDiagnosticTest {
 
     /// Path to a locally-downloaded MLX model. Tests skip if this directory doesn't exist.
@@ -25,18 +25,17 @@ struct MLXDiagnosticTest {
             ?? candidates.last!
     }()
 
-    /// Guard: skip the test if no local model or Metal GPU is available.
-    private func requireModel() throws {
-        try #require(MTLCreateSystemDefaultDevice() != nil, "Skipping: no Metal GPU available")
+    /// Static check: Metal GPU available AND model directory exists.
+    nonisolated static let isRunnable: Bool = {
+        guard MTLCreateSystemDefaultDevice() != nil else { return false }
         var isDir: ObjCBool = false
-        let exists = FileManager.default.fileExists(atPath: Self.modelPath, isDirectory: &isDir)
-        try #require(exists && isDir.boolValue, "Skipping: no local MLX model at \(Self.modelPath)")
-    }
+        let exists = FileManager.default.fileExists(atPath: modelPath, isDirectory: &isDir)
+        return exists && isDir.boolValue
+    }()
 
     /// Generation WITHOUT system message — should produce clean response.
     @Test("MLX generates without system message")
     func testWithoutSystemMessage() async throws {
-        try requireModel()
 
         let engine = MLXEngineAdapter()
         let config = ModelLoadConfig(
@@ -78,7 +77,6 @@ struct MLXDiagnosticTest {
     /// Generation WITH thinking token in system message — ThinkingParser separates thinking/response.
     @Test("MLX generates with thinking trigger and parser separates output")
     func testThinkingParserSeparation() async throws {
-        try requireModel()
 
         let engine = MLXEngineAdapter()
         let config = ModelLoadConfig(
@@ -142,7 +140,6 @@ struct MLXDiagnosticTest {
     /// Settings take effect — temperature 0 should produce deterministic output.
     @Test("MLX settings apply correctly")
     func testSettingsApply() async throws {
-        try requireModel()
 
         let engine = MLXEngineAdapter()
         let config = ModelLoadConfig(
