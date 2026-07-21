@@ -9,11 +9,14 @@ description: Track upstream dependency PRs, merge velocity, and ecosystem change
 
 | Dependency | Repo | Our Pin Location | Current Pin |
 |---|---|---|---|
-| mlx-swift-lm | ml-explore/mlx-swift-lm | `Project.swift` L28 | `.revision("d2424294a6c3")` |
-| mlx-swift | ml-explore/mlx-swift | Resolved transitively via mlx-swift-lm | 0.31.4 (resolves from our pin) |
+| mlx-swift-lm | ml-explore/mlx-swift-lm | `Project.swift` L32 | `.revision("bc95ffb66213")` |
+| mlx-swift | ml-explore/mlx-swift | `Project.swift` L36 (direct, forced floor) | `.upToNextMinor(from: "0.31.6")` → resolves 0.31.6 |
+| llama.cpp | ggml-org/llama.cpp | `Packages/LlamaCpp/Package.swift` L44 | `b10076` xcframework |
 
 > [!IMPORTANT]
-> **Pin advance UNBLOCKED (July 2026).** mlx-swift 0.31.5 shipped June 30, 0.31.6 shipped July 2. Earlier sessions noted "later commits require unreleased mlx-swift >= 0.31.5" — this is no longer true. We can now advance past `d2424294`. The upgrade will also bump `swift-tools-version` to 6.3. See "When a PR Merges" checklist below for the update procedure.
+> **Pin advanced July 21, 2026.** mlx-swift-lm moved from `d2424294` to `bc95ffb6` (14 commits). mlx-swift is now a direct dependency forced to `>= 0.31.6` because mlx-swift-lm HEAD uses `DType.greatestFiniteMagnitudeArray` (added in 0.31.6) but its Package.swift floor is still 0.31.4. llama.cpp bumped from `b9929` to `b10076` (147 builds).
+>
+> **Build note:** mlx-swift 0.31.6 includes a CudaBuild plugin that fails Xcode's plugin validation. Use `-skipPackagePluginValidation` in xcodebuild commands.
 
 ## Active Tracked PRs
 
@@ -48,9 +51,9 @@ done
 ## When a PR Merges — Update Checklist
 
 1. Get the merge commit SHA: `curl -s "https://api.github.com/repos/ml-explore/mlx-swift-lm/pulls/<NUM>" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('merge_commit_sha','?'))"`
-2. Update `Project.swift`: change `.revision("d2424294a6c3")` → `.revision("<new-sha>")`
+2. Update `Project.swift`: change `.revision("bc95ffb66213")` → `.revision("<new-sha>")`
 3. Run `tuist generate`
-4. Build both platforms:
+4. Build both platforms (with `-skipPackagePluginValidation`):
    - `xcodebuild build -workspace EdgeAILab.xcworkspace -scheme "Edge AI Lab" -destination "platform=macOS"`
    - `xcodebuild build -workspace EdgeAILab.xcworkspace -scheme EdgeAILab_iOS -destination "platform=iOS Simulator,name=iPhone 16 Pro Max"`
 5. Run test plan

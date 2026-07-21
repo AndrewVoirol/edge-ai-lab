@@ -93,7 +93,7 @@ MLX engine logs tool dispatch with emoji prefixes:
 
 ### Audio: SDK Limitation
 
-At pinned commit d2424294a6c3, MLX audio inference does not work:
+At pinned commit bc95ffb66213, MLX audio inference does not work:
 - `Gemma4.sanitize()` strips audio weights
 - No mel spectrogram extraction in processor
 - Audio prompts return: "Please provide the audio"

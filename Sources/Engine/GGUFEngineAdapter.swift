@@ -407,12 +407,14 @@ final class GGUFEngineAdapter: InferenceEngine, @unchecked Sendable {
                     // Set up mtmd_input_text (plain C struct)
                     var inputText = mtmd_input_text(
                         text: nil,
+                        text_len: 0,
                         add_special: true,
                         parse_special: true
                     )
 
                     let tokenizeResult: Int32 = multimodalPrompt.withCString { cStr in
                         inputText.text = cStr
+                        inputText.text_len = multimodalPrompt.utf8.count
                         // Swift imports `const mtmd_bitmap **` as `UnsafeMutablePointer<OpaquePointer?>?`
                         var optionalBitmaps: [OpaquePointer?] = bitmaps.map { Optional($0) }
                         return optionalBitmaps.withUnsafeMutableBufferPointer { bmpBuf -> Int32 in
