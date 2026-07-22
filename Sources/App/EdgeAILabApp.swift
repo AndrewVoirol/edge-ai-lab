@@ -17,7 +17,7 @@ import SwiftUI
 
 /// EdgeAILab — Edge AI Lab for iOS & macOS.
 ///
-/// Powered by LiteRT-LM v0.13. Runs Gemma 4 E2B, E4B, and 12B models
+/// Powered by LiteRT-LM v0.14. Runs Gemma 4 E2B, E4B, and 12B models
 /// entirely on-device with Metal GPU acceleration. Features tool calling,
 /// thinking mode, multimodal input, and deep performance instrumentation.
 ///

@@ -43,19 +43,41 @@ export DEVELOPMENT_TEAM="YOUR_TEAM_ID"
 
 For CI builds without signing, you can skip this — the project defaults to no team, allowing unsigned builds with `CODE_SIGNING_REQUIRED=NO`.
 
-### 4. Generate the Xcode Project
+### 4. Configure Git LFS (Required)
+
+LiteRT-LM's repo tracks Android binaries via Git LFS. SPM's checkout triggers `git lfs pull`, which fails and cascades into all packages failing to resolve. Apply this one-time workaround:
+
+```bash
+git config --global lfs.fetchinclude "NEVER_MATCH_ANYTHING"
+```
+
+This is safe — LiteRT's actual iOS/macOS binaries are downloaded from GitHub Releases via `binaryTarget(url:)`, not LFS.
+
+### 5. Generate the Xcode Project
 
 ```bash
 tuist generate
 ```
 
-This resolves SPM dependencies (LiteRT-LM, MarkdownUI) and generates the `.xcworkspace`.
+This resolves SPM dependencies (LiteRT-LM, mlx-swift, MarkdownUI, etc.) and generates the `.xcworkspace`.
 
-### 5. Build and Run
+### 6. Trust SPM Build Plugins
+
+mlx-swift includes a CudaBuild plugin (for Linux CUDA support) that Xcode validates on all platforms. On your first build in Xcode, you'll be prompted to **"Trust & Enable"** the plugin — click it.
+
+Alternatively, to permanently skip plugin validation:
+
+```bash
+defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+```
+
+> **Note:** If you see "Missing package product 'LiteRTLM'" or similar errors after `tuist generate`, this plugin trust step is almost certainly the cause. The packages resolved fine — Xcode just won't build until plugins are trusted.
+
+### 7. Build and Run
 
 Open `EdgeAILab.xcworkspace` in Xcode, select the **Edge AI Lab** scheme, and run (⌘R).
 
-### 6. Get a Model
+### 8. Get a Model
 
 Download a Gemma model in `.litertlm` format from:
 - The in-app Community Browser (sidebar → Models section)

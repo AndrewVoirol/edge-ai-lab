@@ -518,7 +518,7 @@ struct SidebarView: View {
                     Spacer()
 
                     // Relative timestamp
-                    Text(relativeTimestamp(entry.lastModifiedAt))
+                    Text(DateFormatters.relativeTimestamp(entry.lastModifiedAt))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                 }
@@ -591,21 +591,7 @@ struct SidebarView: View {
         #endif
     }
 
-    // MARK: - Relative Timestamp
 
-    /// Format a date as a relative timestamp for sidebar display.
-    private func relativeTimestamp(_ date: Date) -> String {
-        let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "Just now" }
-        if interval < 3600 { return "\(Int(interval / 60))m ago" }
-        if interval < 86400 { return "\(Int(interval / 3600))h ago" }
-        if interval < 172800 { return "Yesterday" }
-        if interval < 604800 { return "\(Int(interval / 86400))d ago" }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date)
-    }
 
     // MARK: - Experiment Row Helpers
 

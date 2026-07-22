@@ -251,7 +251,7 @@ struct iOSConversationPickerSheet: View {
 
                     Spacer()
 
-                    Text(relativeTimestamp(entry.lastModifiedAt))
+                    Text(DateFormatters.relativeTimestamp(entry.lastModifiedAt))
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.textTertiary)
                 }
@@ -314,11 +314,7 @@ struct iOSConversationPickerSheet: View {
 
     // MARK: - Helpers
 
-    private func relativeTimestamp(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
+
 
     private func exportConversation(_ id: UUID) {
         do {

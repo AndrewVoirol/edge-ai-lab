@@ -37,6 +37,7 @@ struct ChatBubbleView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var showThinking = false
     @State private var expandedToolCall: UUID?
+    @State private var showCopied = false
 
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.sm) {
@@ -200,18 +201,24 @@ struct ChatBubbleView: View {
                         #else
                         UIPasteboard.general.string = message.content
                         #endif
+                        showCopied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(1.5))
+                            showCopied = false
+                        }
                     } label: {
-                        Image(systemName: "doc.on.doc")
+                        Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
                             .font(AppIconSize.xxs)
-                            .foregroundStyle(AppColors.textTertiary)
+                            .foregroundStyle(showCopied ? AppColors.success : AppColors.textTertiary)
                             .padding(AppSpacing.xs)
                             .background(AppColors.backgroundTertiarySubtle)
                             .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm))
+                            .animation(AppAnimation.standard, value: showCopied)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("button_copyMessage")
                     .accessibilityLabel("Copy response")
-                    .help("Copy Response")
+                    .help(showCopied ? "Copied!" : "Copy Response")
                 }
                 .padding(.horizontal, AppSpacing.sm)
                 .padding(.bottom, AppSpacing.xs)
